@@ -1,30 +1,37 @@
 <script>
-	export let name;
+  /*   const getBible = async () => {
+    const res = await fetch("cornilescu.json");
+    const bible = res.json();
+    console.log(bible);
+  };
+  getBible(); */
+
+  let getBible = fetch("vdc/bible.json").then((res) => res.json());
+  let getBibleMap = fetch("vdc/bible.map.json").then((res) => res.json());
 </script>
 
-<main>
-	<h1>Hello {name}!</h1>
-	<p>Visit the <a href="https://svelte.dev/tutorial">Svelte tutorial</a> to learn how to build Svelte apps.</p>
-</main>
+{#await getBible}
+  <p>Loading Bible...</p>
+{:then result}
+  {#await getBibleMap then map}
+    <p>{map}</p>
+    <table>
+      <thead />
+      <tbody>
+        <tr>
+          {#each Object.keys(result) as bookNumber}
+            <td>
+              {map[bookNumber]}
+            </td>
+          {/each}
+        </tr>
+      </tbody>
+    </table>
+  {/await}
+{/await}
 
 <style>
-	main {
-		text-align: center;
-		padding: 1em;
-		max-width: 240px;
-		margin: 0 auto;
-	}
-
-	h1 {
-		color: #ff3e00;
-		text-transform: uppercase;
-		font-size: 4em;
-		font-weight: 100;
-	}
-
-	@media (min-width: 640px) {
-		main {
-			max-width: none;
-		}
-	}
+  p {
+    color: #666666;
+  }
 </style>
