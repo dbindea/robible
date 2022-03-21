@@ -1,62 +1,26 @@
 <script>
+  import Navbar from "./layouts/header/Navbar.svelte";
+  import Footer from "./layouts/footer/Footer.svelte";
+  import Main from "./layouts/main/Main.svelte";
+  import { onMount } from "svelte/internal";
+
   const version = "vdc";
+  let map = {},
+    bible = [];
 
-  const _getBible = async () => {
-    const bible = await fetch(`${version}/bible.json`).json();
-  };
-
-  const _getBibleMap = async () => {
-    const bibleMap = await fetch(`${version}/bible.map.json`).json();
-  };
-
-  _getBible();
-  _getBibleMap();
-
-  // let getBible = fetch("vdc/bible.json").then((res) => res.json());
-  // let getBibleMap = fetch("vdc/bible.map.json").then((res) => res.json());
+  onMount(() => {
+    Promise.all([
+      fetch(`${version}/bible.map.json`),
+      fetch(`${version}/bible.json`),
+    ]).then(async (result) => {
+      map = await result[0].json();
+      bible = await result[1].json();
+    });
+  });
 </script>
 
-<!-- {#await getBible}
-  <p>Loading Bible...</p>
-{:then result}
-  {#await getBibleMap then map}
-    <p>{map}</p>
-    <table>
-      <thead />
-      <tbody>
-        <tr>
-          {#each Object.keys(result) as bookNumber}
-            <td>
-              {map[bookNumber]}
-            </td>
-          {/each}
-        </tr>
-      </tbody>
-    </table>
-  {/await}
-{/await} -->
-
-<table>
-  <thead>
-    <tr>
-      <td>
-        Cartea
-      </td>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      {#each Object.keys(bible) as bookNumber}
-      <td>
-        Cartea
-      </td>
-      {/each}
-    </tr>
-  </tbody>
-</table>
-
-<style>
-  p {
-    color: #666666;
-  }
-</style>
+<main>
+  <Navbar />
+  <Main {map} {bible} {version} />
+  <Footer />
+</main>
