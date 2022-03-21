@@ -20,14 +20,20 @@
 
 <style>
   div.main {
-    gap: 2rem;
+    gap: 1.5rem;
   }
   div.sidebar-ct {
     background-color: #425968;
-    flex-grow: 1;
+    max-width: 25%;
+    min-width: 20%;
   }
   div.layout-ct {
     flex-direction: column;
-    flex-grow: 3;
   }
+
+  /*   @media (max-width: 600px) {
+    div.sidebar-ct {
+    min-width: 100%;
+  } 
+}*/
 </style>
