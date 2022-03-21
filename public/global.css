@@ -1,4 +1,61 @@
-html, body {
+@font-face {
+  font-family: "Open Sans";
+  font-style: normal;
+  font-weight: 300;
+  src: url("assets/font/open-sans-v15-latin-300.eot");
+  src: local("Open Sans Bold"), local("OpenSans-Bold"),
+    url("assets/font/open-sans-v15-latin-300.eot?#iefix")
+      format("embedded-opentype"),
+    url("assets/font/open-sans-v15-latin-300.woff2") format("woff2"),
+    url("assets/font/open-sans-v15-latin-300.woff") format("woff"),
+    url("assets/font/open-sans-v15-latin-300.ttf") format("truetype"),
+    url("assets/font/open-sans-v15-latin-300.svg#OpenSans") format("svg");
+}
+
+@font-face {
+  font-family: "Open Sans";
+  font-style: normal;
+  font-weight: 700;
+  src: url("assets/font/open-sans-v15-latin-700.eot");
+  src: local("Open Sans Bold"), local("OpenSans-Bold"),
+    url("assets/font/open-sans-v15-latin-700.eot?#iefix")
+      format("embedded-opentype"),
+    url("assets/font/open-sans-v15-latin-700.woff2") format("woff2"),
+    url("assets/font/open-sans-v15-latin-700.woff") format("woff"),
+    url("assets/font/open-sans-v15-latin-700.ttf") format("truetype"),
+    url("assets/font/open-sans-v15-latin-700.svg#OpenSans") format("svg");
+}
+
+html,
+body {
+  height: 100%;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Open Sans", sans-serif;
+  background-color: #ffffff;
+}
+
+div {
+  display: flex;
+  word-wrap: anywhere;
+}
+
+h3 {
+  letter-spacing: 0.1rem;
+  font-weight: 700;
+}
+
+p {
+  font-size: 1.2rem;
+  font-weight: 300;
+}
+
+
+/* html, body {
 	position: relative;
 	width: 100%;
 	height: 100%;
@@ -61,3 +118,4 @@ button:not(:disabled):active {
 button:focus {
 	border-color: #666;
 }
+ */

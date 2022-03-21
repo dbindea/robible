@@ -12,7 +12,7 @@
 </script>
 
 <div>
-  <pre>
+  <p>
     Resultado Búsqueda {JSON.stringify(result)}
-  </pre>
+  </p>
 </div>

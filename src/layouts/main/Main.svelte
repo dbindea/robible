@@ -8,14 +8,26 @@
   export let version;
 </script>
 
-<div>
-  <Sidebar {map} {version} />
-  <Request {map} {version} />
-  <Result {bible}/>
+<div class="main">
+  <div class="sidebar-ct">
+    <Sidebar {map} {version} />
+  </div>
+  <div class="layout-ct">
+    <Request {map} {version} />
+    <Result {bible} />
+  </div>
 </div>
 
 <style>
-  div {
-    background-color: rgb(229, 240, 240);
+  div.main {
+    gap: 2rem;
+  }
+  div.sidebar-ct {
+    background-color: #425968;
+    flex-grow: 1;
+  }
+  div.layout-ct {
+    flex-direction: column;
+    flex-grow: 3;
   }
 </style>

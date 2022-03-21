@@ -16,7 +16,7 @@
 
 <div>
   <p>{map[version]}</p>
-  <pre>
+  <p>
     Map: {Object.keys(map)}
-  </pre>
+  </p>
 </div>

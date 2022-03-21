@@ -10,8 +10,8 @@
 
   onMount(() => {
     Promise.all([
-      fetch(`${version}/bible.map.json`),
-      fetch(`${version}/bible.json`),
+      fetch(`data/${version}/bible.map.json`),
+      fetch(`data/${version}/bible.json`),
     ]).then(async (result) => {
       map = await result[0].json();
       bible = await result[1].json();
@@ -19,8 +19,15 @@
   });
 </script>
 
-<main>
+<main class="container">
   <Navbar />
   <Main {map} {bible} {version} />
   <Footer />
 </main>
+
+<style>
+  main.container {
+    display: flex;
+    flex-direction: column;
+  }
+</style>
