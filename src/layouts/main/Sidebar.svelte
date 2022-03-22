@@ -3,12 +3,54 @@
   export let map;
 </script>
 
-<div class="sidebar">
-  <!-- Sidebar: {map[version]} -->
-  <label for="search-input">Cauta ca si expresie</label>
-  <input id="search-input" type="text" placeholder="isus plangea" />
+<!-- Sidebar: {map[version]} -->
 
-  <label for="radio-vt">Unde Caut?</label>
+<div class="sidebar">
+  <div class="block-erase">
+    <span class="filter-icon"><img src="assets/img/filter.png" alt="" /> Filtru</span>
+    <button class="button-erase">Sterge Cautarea</button>
+  </div>
+
+  <div class="divider" />
+
+  <label for="search-input">Cauta dupa cuvintele...</label>
+  <input id="search-input" type="text" placeholder="Isus plangea" />
+
+  <div class="margin-up">Unde se face cautarea?</div>
+
+  <div class="radio-in">
+    <input type="radio" id="all" name="searchPlace" value="" checked />
+    <label for="all">Toata Biblia</label>
+  </div>
+
+  <div class="radio-in">
+    <input type="radio" id="nt" name="searchPlace" value="" />
+    <label for="nt">Noul Testament</label>
+  </div>
+
+  <div class="radio-in">
+    <input type="radio" id="vt" name="searchPlace" value="" />
+    <label for="vt">Vechiul testament</label>
+  </div>
+
+  <div class="margin-up">Cum se face cautarea?</div>
+
+  <div class="radio-in">
+    <input type="radio" id="aprox" name="searchMode" value="" checked />
+    <label for="aprox">Cu aproximatie</label>
+  </div>
+
+  <div class="radio-in">
+    <input type="radio" id="exact" name="searchMode" value="" />
+    <label for="exact">Fraza exacta</label>
+  </div>
+
+  <div class="radio-in">
+    <input type="radio" id="any" name="searchMode" value="" />
+    <label for="any">Oricare cuvant</label>
+  </div>
+
+  <!--   <label for="radio-vt">Unde Caut?</label>
   <div id="radio-vt" class="radio-in">
     <input id="srch-vt" type="radio" />
     <label for="srch-vt">Vechiul Testament</label>
@@ -16,8 +58,8 @@
   <div id="radio-nt" class="radio-in">
     <input id="srch-nt" type="radio" />
     <label for="srch-nt">Noul Testament</label>
-  </div>
-<!--   <input id="search-radio-test" type="radio" />
+  </div> -->
+  <!--   <input id="search-radio-test" type="radio" />
   <input id="search-radio-test" type="radio" /> -->
   <p>INICIO</p>
   <p>
@@ -38,12 +80,45 @@
     padding: 2rem 2rem;
     gap: 0.5rem;
   }
-  input {
+  input[type="text"] {
     height: 3rem;
     padding: 0 0.5rem;
   }
 
-  div.radio-in {
+  .radio-in {
     align-items: center;
+    gap: 0.5rem;
+  }
+
+  .margin-up {
+    padding-top: 1.2rem;
+  }
+
+  label,
+  input {
+    cursor: pointer;
+  }
+
+  .divider {
+    border-top: solid 1px #d1d1d1;
+    margin-top: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .block-erase {
+    justify-content: space-between;
+  }
+
+  .button-erase {
+    background: #2d96cd;
+    color: #ffffff;
+    border: 1px solid #2d96cd;
+    height: 2rem;
+    font-family: "Open Sans";
+  }
+
+  .filter-icon {
+    display: flex;
+    align-items: flex-end;
   }
 </style>

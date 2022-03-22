@@ -24,8 +24,8 @@
   }
   div.sidebar-ct {
     background-color: #425968;
-    max-width: 25%;
-    min-width: 20%;
+    max-width: 20%;
+    min-width: 15%;
   }
   div.layout-ct {
     flex-direction: column;
