@@ -68,3 +68,8 @@ a:visited {
 label {
   display: block;
 }
+
+input {
+  font-family: "Open Sans";
+  font-size: 1rem;
+}
