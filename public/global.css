@@ -1,27 +1,12 @@
 @font-face {
   font-family: "Open Sans";
   font-weight: 300;
-  src: url("assets/font/open-sans-v15-latin-300.eot");
-  src: local("Open Sans Bold"), local("OpenSans-Bold"),
-    url("assets/font/open-sans-v15-latin-300.eot?#iefix")
-      format("embedded-opentype"),
-    url("assets/font/open-sans-v15-latin-300.woff2") format("woff2"),
-    url("assets/font/open-sans-v15-latin-300.woff") format("woff"),
-    url("assets/font/open-sans-v15-latin-300.ttf") format("truetype"),
-    url("assets/font/open-sans-v15-latin-300.svg#OpenSans") format("svg");
+  src: url("assets/font/open-sans-v15-latin-300.woff2") format("woff2");
 }
-
 @font-face {
   font-family: "Open Sans";
   font-weight: 700;
-  src: url("assets/font/open-sans-v15-latin-700.eot");
-  src: local("Open Sans Bold"), local("OpenSans-Bold"),
-    url("assets/font/open-sans-v15-latin-700.eot?#iefix")
-      format("embedded-opentype"),
-    url("assets/font/open-sans-v15-latin-700.woff2") format("woff2"),
-    url("assets/font/open-sans-v15-latin-700.woff") format("woff"),
-    url("assets/font/open-sans-v15-latin-700.ttf") format("truetype"),
-    url("assets/font/open-sans-v15-latin-700.svg#OpenSans") format("svg");
+  src: url("assets/font/open-sans-v15-latin-700.woff2") format("woff2");
 }
 
 html,
@@ -44,7 +29,6 @@ div {
 
 h3 {
   letter-spacing: 0.1rem;
-  /* font-size: 1.4rem; */
 }
 
 p {
