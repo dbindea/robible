@@ -16,23 +16,6 @@
   <label for="search-input">Cauta dupa cuvintele...</label>
   <input id="search-input" type="text" placeholder="Isus plangea" />
 
-  <div class="margin-up">Unde se face cautarea?</div>
-
-  <div class="radio-in">
-    <input type="radio" id="all" name="searchPlace" value="" checked />
-    <label for="all">Toata Biblia</label>
-  </div>
-
-  <div class="radio-in">
-    <input type="radio" id="nt" name="searchPlace" value="" />
-    <label for="nt">Noul Testament</label>
-  </div>
-
-  <div class="radio-in">
-    <input type="radio" id="vt" name="searchPlace" value="" />
-    <label for="vt">Vechiul testament</label>
-  </div>
-
   <div class="margin-up">Cum se face cautarea?</div>
 
   <div class="radio-in">
@@ -50,32 +33,107 @@
     <label for="any">Oricare cuvant</label>
   </div>
 
-  <!--   <label for="radio-vt">Unde Caut?</label>
-  <div id="radio-vt" class="radio-in">
-    <input id="srch-vt" type="radio" />
-    <label for="srch-vt">Vechiul Testament</label>
+  <div class="margin-up">Unde se face cautarea?</div>
+
+  <div class="radio-in">
+    <input type="radio" id="all" name="searchPlace" value="" checked />
+    <label for="all">Toata Biblia</label>
   </div>
-  <div id="radio-nt" class="radio-in">
-    <input id="srch-nt" type="radio" />
-    <label for="srch-nt">Noul Testament</label>
-  </div> -->
-  <!--   <input id="search-radio-test" type="radio" />
-  <input id="search-radio-test" type="radio" /> -->
-  <p>INICIO</p>
-  <p>
-    Lorem ipsum dolor sit amet consectetur adipisicing elit. Deserunt similique
-    perspiciatis, officia odit quo quidem necessitatibus dolorum aliquam
-    nesciunt expedita magnam dicta unde suscipit distinctio sint molestias nemo
-    id qui!
-  </p>
-  <p>FIN</p>
+
+  <div class="radio-in">
+    <input type="radio" id="nt" name="searchPlace" value="" />
+    <label for="nt">Noul Testament</label>
+  </div>
+
+  <div class="radio-in">
+    <input type="radio" id="vt" name="searchPlace" value="" />
+    <label for="vt">Vechiul testament</label>
+  </div>
+
+  <div class="margin-up">O carte specifica?</div>
+
+  <div class="libs">
+    <button class="libs_btn">Gen.</button>
+    <button class="libs_btn">Exod.</button>
+    <button class="libs_btn">Lev.</button>
+    <button class="libs_btn">Deut.</button>
+    <button class="libs_btn">Ios.</button>
+    <button class="libs_btn">Gen.</button>
+    <button class="libs_btn">Exod.</button>
+    <button class="libs_btn">Lev.</button>
+    <button class="libs_btn">Deut.</button>
+    <button class="libs_btn">Ios.</button>
+    <button class="libs_btn">Gen.</button>
+    <button class="libs_btn">Exod.</button>
+    <button class="libs_btn">Lev.</button>
+    <button class="libs_btn">Deut.</button>
+    <button class="libs_btn">Ios.</button>
+    <button class="libs_btn">Gen.</button>
+    <button class="libs_btn">Exod.</button>
+    <button class="libs_btn">Lev.</button>
+    <button class="libs_btn">Deut.</button>
+    <button class="libs_btn">Ios.</button>
+    <button class="libs_btn">Exod.</button>
+    <button class="libs_btn">Lev.</button>
+    <button class="libs_btn">Deut.</button>
+    <button class="libs_btn">Ios.</button>
+    <button class="libs_btn">Gen.</button>
+    <button class="libs_btn">Exod.</button>
+    <button class="libs_btn">Lev.</button>
+    <button class="libs_btn">Deut.</button>
+    <button class="libs_btn">Ios.</button>
+    <button class="libs_btn">Gen.</button>
+    <button class="libs_btn">Exod.</button>
+    <button class="libs_btn">Lev.</button>
+    <button class="libs_btn">Deut.</button>
+    <button class="libs_btn">Ios.</button>
+    <button class="libs_btn">Gen.</button>
+    <button class="libs_btn">Exod.</button>
+    <button class="libs_btn">Lev.</button>
+    <button class="libs_btn">Deut.</button>
+    <button class="libs_btn">Ios.</button>
+    <button class="libs_btn">Exod.</button>
+    <button class="libs_btn">Lev.</button>
+    <button class="libs_btn">Deut.</button>
+    <button class="libs_btn">Ios.</button>
+    <!-- <button class="libs_btn">Gen.</button>
+    <button class="libs_btn">Exod.</button>
+    <button class="libs_btn">Lev.</button>
+    <button class="libs_btn">Deut.</button>
+    <button class="libs_btn">Ios.</button>
+    <button class="libs_btn">Gen.</button>
+    <button class="libs_btn">Exod.</button>
+    <button class="libs_btn">Lev.</button>
+    <button class="libs_btn">Deut.</button>
+    <button class="libs_btn">Ios.</button>
+    <button class="libs_btn">Gen.</button>
+    <button class="libs_btn">Exod.</button>
+    <button class="libs_btn">Lev.</button>
+    <button class="libs_btn">Deut.</button>
+    <button class="libs_btn">Ios.</button>
+    <button class="libs_btn">Gen.</button>
+    <button class="libs_btn">Exod.</button>
+    <button class="libs_btn">Lev.</button>
+    <button class="libs_btn">Deut.</button>
+    <button class="libs_btn">Ios.</button>
+    <button class="libs_btn">Gen.</button>
+    <button class="libs_btn">Exod.</button>
+    <button class="libs_btn">Lev.</button>
+    <button class="libs_btn">Deut.</button>
+    <button class="libs_btn">Ios.</button>
+    <button class="libs_btn">Gen.</button>
+    <button class="libs_btn">Exod.</button> -->
+    </div>
+
+
+
 </div>
 
 <style>
   div {
     color: #ffffff;
   }
-  div.sidebar {
+  .sidebar {
     flex-direction: column;
     padding: 2rem 2rem;
     gap: 0.5rem;
@@ -120,5 +178,19 @@
   .filter-icon {
     display: flex;
     align-items: flex-end;
+  }
+
+  .libs {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .libs_btn {
+    background: #2d96cd;
+    color: #ffffff;
+    border: 1px solid #2d96cd;
+    height: 2rem;
+    font-family: "Open Sans";
+    width: 3rem;
   }
 </style>

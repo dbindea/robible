@@ -9,31 +9,26 @@
 </script>
 
 <div class="main">
-  <div class="sidebar-ct">
+  <div class="sidebar">
     <Sidebar {map} {version} />
   </div>
-  <div class="layout-ct">
-    <Request {map} {version} />
+  <div class="layout">
+    <!-- <Request {map} {version} /> -->
     <Result {bible} />
   </div>
 </div>
 
 <style>
-  div.main {
+  .main {
     gap: 1.5rem;
+    background-color: #f2f5f8;
   }
-  div.sidebar-ct {
+  .sidebar {
     background-color: #425968;
-    max-width: 20%;
-    min-width: 15%;
+    max-width: 36vh;
+    min-width: 34vh;
   }
-  div.layout-ct {
-    flex-direction: column;
+  .layout {
+    padding: 4rem 10rem 4rem 5rem;
   }
-
-  /*   @media (max-width: 600px) {
-    div.sidebar-ct {
-    min-width: 100%;
-  } 
-}*/
 </style>
