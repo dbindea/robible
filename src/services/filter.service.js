@@ -1,5 +1,5 @@
 export const getFilterResult = (bible, filter) => {
-  return ["Laudati", "pe", "Domnul!"];
+  return ['Laudati', 'pe', 'Domnul!'];
 };
 
 export default getFilterResult;

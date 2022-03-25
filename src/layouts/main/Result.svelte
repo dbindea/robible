@@ -1,6 +1,6 @@
 <script>
-  import { filter } from "../../store/stores";
-  import { getFilterResult } from "../../services/filter.service";
+  import { filter } from '../../store/stores';
+  import { getFilterResult } from '../../services/filter.service';
 
   export let bible;
 
@@ -17,118 +17,92 @@
 
   <div class="verse">
     <p>
-      Lorem ipsum dolor sit amet consectetur adipisicing elit. Repellat at,
-      nesciunt dicta consectetur in veritatis itaque voluptas voluptatem
-      doloremque distinctio aliquam quis ad perferendis hic, eius asperiores
-      iure laboriosam id.
+      Lorem ipsum dolor sit amet consectetur adipisicing elit. Repellat at, nesciunt dicta consectetur in veritatis itaque voluptas voluptatem doloremque
+      distinctio aliquam quis ad perferendis hic, eius asperiores iure laboriosam id.
     </p>
   </div>
   <div class="divider" />
   <div class="verse">
     <p>
-      Lorem ipsum dolor sit amet consectetur adipisicing elit. Repellat at,
-      nesciunt dicta consectetur in veritatis itaque voluptas voluptatem
-      doloremque distinctio aliquam quis ad perferendis hic, eius asperiores
-      iure laboriosam id.
+      Lorem ipsum dolor sit amet consectetur adipisicing elit. Repellat at, nesciunt dicta consectetur in veritatis itaque voluptas voluptatem doloremque
+      distinctio aliquam quis ad perferendis hic, eius asperiores iure laboriosam id.
     </p>
   </div>
   <div class="divider" />
   <div class="verse">
     <p>
-      Lorem ipsum dolor sit amet consectetur adipisicing elit. Repellat at,
-      nesciunt dicta consectetur in veritatis itaque voluptas voluptatem
-      doloremque distinctio aliquam quis ad perferendis hic, eius asperiores
-      iure laboriosam id.
+      Lorem ipsum dolor sit amet consectetur adipisicing elit. Repellat at, nesciunt dicta consectetur in veritatis itaque voluptas voluptatem doloremque
+      distinctio aliquam quis ad perferendis hic, eius asperiores iure laboriosam id.
     </p>
   </div>
   <div class="divider" />
   <div class="verse">
     <p>
-      Lorem ipsum dolor sit amet consectetur adipisicing elit. Repellat at,
-      nesciunt dicta consectetur in veritatis itaque voluptas voluptatem
-      doloremque distinctio aliquam quis ad perferendis hic, eius asperiores
-      iure laboriosam id.
+      Lorem ipsum dolor sit amet consectetur adipisicing elit. Repellat at, nesciunt dicta consectetur in veritatis itaque voluptas voluptatem doloremque
+      distinctio aliquam quis ad perferendis hic, eius asperiores iure laboriosam id.
     </p>
   </div>
   <div class="divider" />
   <div class="verse">
     <p>
-      Lorem ipsum dolor sit amet consectetur adipisicing elit. Repellat at,
-      nesciunt dicta consectetur in veritatis itaque voluptas voluptatem
-      doloremque distinctio aliquam quis ad perferendis hic, eius asperiores
-      iure laboriosam id.
+      Lorem ipsum dolor sit amet consectetur adipisicing elit. Repellat at, nesciunt dicta consectetur in veritatis itaque voluptas voluptatem doloremque
+      distinctio aliquam quis ad perferendis hic, eius asperiores iure laboriosam id.
     </p>
   </div>
   <div class="divider" />
   <div class="verse">
     <p>
-      Lorem ipsum dolor sit amet consectetur adipisicing elit. Repellat at,
-      nesciunt dicta consectetur in veritatis itaque voluptas voluptatem
-      doloremque distinctio aliquam quis ad perferendis hic, eius asperiores
-      iure laboriosam id.
+      Lorem ipsum dolor sit amet consectetur adipisicing elit. Repellat at, nesciunt dicta consectetur in veritatis itaque voluptas voluptatem doloremque
+      distinctio aliquam quis ad perferendis hic, eius asperiores iure laboriosam id.
     </p>
   </div>
   <div class="divider" />
   <div class="verse">
     <p>
-      Lorem ipsum dolor sit amet consectetur adipisicing elit. Repellat at,
-      nesciunt dicta consectetur in veritatis itaque voluptas voluptatem
-      doloremque distinctio aliquam quis ad perferendis hic, eius asperiores
-      iure laboriosam id.
+      Lorem ipsum dolor sit amet consectetur adipisicing elit. Repellat at, nesciunt dicta consectetur in veritatis itaque voluptas voluptatem doloremque
+      distinctio aliquam quis ad perferendis hic, eius asperiores iure laboriosam id.
     </p>
   </div>
   <div class="divider" />
   <div class="verse">
     <p>
-      Lorem ipsum dolor sit amet consectetur adipisicing elit. Repellat at,
-      nesciunt dicta consectetur in veritatis itaque voluptas voluptatem
-      doloremque distinctio aliquam quis ad perferendis hic, eius asperiores
-      iure laboriosam id.
+      Lorem ipsum dolor sit amet consectetur adipisicing elit. Repellat at, nesciunt dicta consectetur in veritatis itaque voluptas voluptatem doloremque
+      distinctio aliquam quis ad perferendis hic, eius asperiores iure laboriosam id.
     </p>
   </div>
   <div class="divider" />
   <div class="verse">
     <p>
-      Lorem ipsum dolor sit amet consectetur adipisicing elit. Repellat at,
-      nesciunt dicta consectetur in veritatis itaque voluptas voluptatem
-      doloremque distinctio aliquam quis ad perferendis hic, eius asperiores
-      iure laboriosam id.
+      Lorem ipsum dolor sit amet consectetur adipisicing elit. Repellat at, nesciunt dicta consectetur in veritatis itaque voluptas voluptatem doloremque
+      distinctio aliquam quis ad perferendis hic, eius asperiores iure laboriosam id.
     </p>
   </div>
   <div class="divider" />
   <div class="verse">
     <p>
-      Lorem ipsum dolor sit amet consectetur adipisicing elit. Repellat at,
-      nesciunt dicta consectetur in veritatis itaque voluptas voluptatem
-      doloremque distinctio aliquam quis ad perferendis hic, eius asperiores
-      iure laboriosam id.
+      Lorem ipsum dolor sit amet consectetur adipisicing elit. Repellat at, nesciunt dicta consectetur in veritatis itaque voluptas voluptatem doloremque
+      distinctio aliquam quis ad perferendis hic, eius asperiores iure laboriosam id.
     </p>
   </div>
   <div class="divider" />
   <div class="verse">
     <p>
-      Lorem ipsum dolor sit amet consectetur adipisicing elit. Repellat at,
-      nesciunt dicta consectetur in veritatis itaque voluptas voluptatem
-      doloremque distinctio aliquam quis ad perferendis hic, eius asperiores
-      iure laboriosam id.
+      Lorem ipsum dolor sit amet consectetur adipisicing elit. Repellat at, nesciunt dicta consectetur in veritatis itaque voluptas voluptatem doloremque
+      distinctio aliquam quis ad perferendis hic, eius asperiores iure laboriosam id.
     </p>
   </div>
   <div class="divider" />
   <div class="verse">
     <p>
-      Lorem ipsum dolor sit amet consectetur adipisicing elit. Repellat at,
-      nesciunt dicta consectetur in veritatis itaque voluptas voluptatem
-      doloremque distinctio aliquam quis ad perferendis hic, eius asperiores
-      iure laboriosam id.
+      Lorem ipsum dolor sit amet consectetur adipisicing elit. Repellat at, nesciunt dicta consectetur in veritatis itaque voluptas voluptatem doloremque
+      distinctio aliquam quis ad perferendis hic, eius asperiores iure laboriosam id.
     </p>
   </div>
   <div class="divider" />
   <div class="verse">
     <p>
-      Lorem ipsum dolor sit amet consectetur adipisicing elit. Repellat at,
-      nesciunt dicta consectetur in veritatis itaque voluptas voluptatem
-      doloremque distinctio aliquam quis ad perferendis hic, eius asperiores
-      iure laboriosam id.
+      Lorem ipsum dolor sit amet consectetur adipisicing elit. Repellat at, nesciunt dicta consectetur in veritatis itaque voluptas voluptatem doloremque
+      distinctio aliquam quis ad perferendis hic, eius asperiores iure laboriosam id.
     </p>
   </div>
   <div class="divider" />
@@ -137,18 +111,18 @@
 <style>
   .result {
     padding: 2rem 6rem 4rem;
-    background-color: #ffffff;
+    background-color: var(--color-white);
     flex-direction: column;
 
     border-radius: 0.3rem;
-    box-shadow: 0 0 0.3rem 0px rgb(122 122 122 / 45%);
-    border-top: 0.3rem solid rgb(45 150 205);
-    border-bottom: 0.3rem solid rgb(45 150 205);
+    box-shadow: var(--box-shadow-up);
+    border-top: 0.3rem var(--border-blue);
+    border-bottom: 0.3rem var(--border-blue);
     margin: auto;
   }
 
   .divider {
-    border-top: solid 1px #c3c3c3;
+    border-top: 0.1rem var(--border-gray);
     margin: 0 10rem;
   }
 

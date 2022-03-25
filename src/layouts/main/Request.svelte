@@ -1,5 +1,5 @@
 <script>
-  import { filter } from "../../store/stores";
+  import { filter } from '../../store/stores';
 
   export let version;
   export let map;
@@ -16,7 +16,5 @@
 
 <div>
   <p>{map[version]}</p>
-  <p>
-    Map: {Object.keys(map)}
-  </p>
+  <p>Map: {Object.keys(map)}</p>
 </div>

@@ -1,7 +1,7 @@
 <script>
-  import Sidebar from "./Sidebar.svelte";
-  import Request from "./Request.svelte";
-  import Result from "./Result.svelte";
+  import Sidebar from './Sidebar.svelte';
+  import Request from './Request.svelte';
+  import Result from './Result.svelte';
 
   export let bible;
   export let map;
@@ -18,13 +18,13 @@
   </div>
 </div>
 
-<style>
+<style type="scss">
   .main {
     gap: 1.5rem;
-    background-color: #f2f5f8;
+    background-color: var(--color-bg-light);
   }
   .sidebar {
-    background-color: #425968;
+    background-color: var(--color-bg-dark);
     max-width: 36vh;
     min-width: 34vh;
   }

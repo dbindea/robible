@@ -123,23 +123,20 @@
     <button class="libs_btn">Ios.</button>
     <button class="libs_btn">Gen.</button>
     <button class="libs_btn">Exod.</button> -->
-    </div>
-
-
-
+  </div>
 </div>
 
 <style>
   div {
-    color: #ffffff;
+    color: var(--color-white);
   }
   .sidebar {
     flex-direction: column;
     padding: 2rem 2rem;
     gap: 0.5rem;
   }
-  input[type="text"] {
-    height: 3rem;
+  input[type='text'] {
+    height: var(--input-height);
     padding: 0 0.5rem;
   }
 
@@ -158,7 +155,7 @@
   }
 
   .divider {
-    border-top: solid 1px #d1d1d1;
+    border-top: 0.1rem var(--border-gray);
     margin-top: 0.5rem;
     margin-bottom: 1rem;
   }
@@ -168,11 +165,11 @@
   }
 
   .button-erase {
-    background: #2d96cd;
-    color: #ffffff;
-    border: 1px solid #2d96cd;
-    height: 2rem;
-    font-family: "Open Sans";
+    background: var(--color-blue);
+    color: var(--color-white);
+    border: 0.1rem var(--border-blue);
+    height: var(--button-height);
+    font-family: 'Open Sans';
   }
 
   .filter-icon {
@@ -186,11 +183,11 @@
   }
 
   .libs_btn {
-    background: #2d96cd;
-    color: #ffffff;
-    border: 1px solid #2d96cd;
-    height: 2rem;
-    font-family: "Open Sans";
-    width: 3rem;
+    background: var(--color-blue);
+    color: var(--color-white);
+    border: 0.1rem var(--border-blue);
+    height: var(--button-height);
+    font-family: 'Open Sans';
+    width: auto;
   }
 </style>
