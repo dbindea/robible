@@ -155,7 +155,7 @@
   }
 
   .divider {
-    border-top: 0.1rem var(--border-gray);
+    border-top: 0.05rem var(--border-gray);
     margin-top: 0.5rem;
     margin-bottom: 1rem;
   }

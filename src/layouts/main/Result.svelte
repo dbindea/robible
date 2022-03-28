@@ -122,7 +122,7 @@
   }
 
   .divider {
-    border-top: 0.1rem var(--border-gray);
+    border-top: 0.05rem var(--border-gray);
     margin: 0 10rem;
   }
 
