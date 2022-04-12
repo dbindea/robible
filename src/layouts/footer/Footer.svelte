@@ -12,5 +12,6 @@
     box-shadow: var(--box-shadow-up);
     align-items: center;
     padding: 0 5rem;
+    display: flex;
   }
 </style>

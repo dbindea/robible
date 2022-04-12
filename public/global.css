@@ -141,20 +141,12 @@
        url('assets/font/open-sans-v28-latin-700italic.svg#OpenSans') format('svg'); /* Legacy iOS */
 }
 
-html,
-body {
-  height: 100%;
-  width: 100%;
-  box-sizing: border-box;
-}
-
 body {
   margin: 0;
   font-family: 'Open Sans', sans-serif;
 }
 
 div {
-  display: flex;
   word-wrap: anywhere;
   color: var(--color-text-dark);
   font-size: var(--font-default-size);

@@ -33,7 +33,7 @@
 
 <style lang="scss">
   .container {
-    display: flex;
-    flex-direction: column;
+/*     display: flex;
+    flex-direction: column; */
   }
 </style>
