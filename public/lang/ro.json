@@ -1,0 +1,12 @@
+{
+  "app": {
+    "footer": {
+      "title": "Biblia in Limba Romana"
+    },
+    "sidebar": {
+      "form": {
+        "search_placeholder": "Cuvinte..."
+      }
+    }
+  }
+}

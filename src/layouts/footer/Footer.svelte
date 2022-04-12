@@ -1,5 +1,9 @@
+<script>
+  import { _ } from 'svelte-i18n';
+</script>
+
 <div class="footer">
-  <h4>Biblia in Limba Romana</h4>
+  <h4>{$_('app.footer.title')}</h4>
 </div>
 
 <style>

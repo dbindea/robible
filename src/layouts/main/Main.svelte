@@ -14,7 +14,7 @@
   </div>
   <div class="layout">
     <!-- <Request {map} {version} /> -->
-    <Result {bible} />
+    <Result {bible} {map} />
   </div>
 </div>
 

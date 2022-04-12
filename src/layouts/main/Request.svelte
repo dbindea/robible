@@ -1,3 +1,4 @@
+<!-- NO UTILIZADO -->
 <script>
   import { filter } from '../../store/stores';
 
