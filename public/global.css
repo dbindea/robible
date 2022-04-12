@@ -147,6 +147,7 @@ body {
 }
 
 div {
+  /* display: flex; */
   word-wrap: anywhere;
   color: var(--color-text-dark);
   font-size: var(--font-default-size);

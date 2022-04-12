@@ -1,8 +1,12 @@
 import { writable } from 'svelte/store';
 
-export const filter = writable({
-  searchText: null,
-  searchType: 'aprox',
-  testament: '',
-  book: [],
-});
+const form = JSON.parse(localStorage.getItem('filter') || '{}');
+
+const formValues = {
+  searchText: form.searchText || null,
+  searchType: form.searchType || 'aprox',
+  testament: form.testament || '',
+  book: form.book || [],
+};
+
+export const filter = writable(formValues);

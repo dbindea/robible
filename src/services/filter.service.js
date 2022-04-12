@@ -19,12 +19,14 @@ export const getFilterResult = (bible, map, form) => {
     form.book = map['ot'].concat(map['nt']);
   }
 
-  console.log('Filtro', form);
+  localStorage.setItem('filter', JSON.stringify(form));
+
+  // console.log('Filtro', form);
 
   const isReadyForSearch = form.book.length && form.searchText && form.searchText.length > 2;
 
   if (isReadyForSearch) {
-    console.log('Filtrando...');
+    // console.log('Filtrando...');
 
     _bible.forEach((book, indexBook) => {
       if (form.book.includes(indexBook)) {

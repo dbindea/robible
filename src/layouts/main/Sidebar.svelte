@@ -5,11 +5,13 @@
   export let version;
   export let map;
 
+  const form = JSON.parse(localStorage.getItem('filter') || '{}');
+
   const formValues = {
-    searchText: null,
-    searchType: 'aprox',
-    testament: '',
-    book: [],
+    searchText: form.searchText || null,
+    searchType: form.searchType || 'aprox',
+    testament: form.testament || '',
+    book: form.book || [],
   };
 
   // REACTIVE
@@ -24,10 +26,7 @@
   } */
 
   const updateFilter = (form) => {
-    // UPDATE FILTER STORE
-    filter.update(() => {
-      return form;
-    });
+    filter.update(() => form);
   };
 
   $: visibleBook = [];
@@ -85,13 +84,13 @@
     </div>
 
     <div class="radio-in">
-      <input type="radio" id="nt" name="testament" value="nt" bind:group={formValues.testament} />
-      <label for="nt">Noul Testament</label>
+      <input type="radio" id="ot" name="testament" value="ot" bind:group={formValues.testament} />
+      <label for="ot">Vechiul testament</label>
     </div>
 
     <div class="radio-in">
-      <input type="radio" id="ot" name="testament" value="ot" bind:group={formValues.testament} />
-      <label for="ot">Vechiul testament</label>
+      <input type="radio" id="nt" name="testament" value="nt" bind:group={formValues.testament} />
+      <label for="nt">Noul Testament</label>
     </div>
 
     <div class="margin-up">O carte specifica?</div>
@@ -112,6 +111,7 @@
     color: var(--color-white);
   }
   .sidebar {
+    display: flex;
     flex-direction: column;
     padding: 2rem 2rem;
     gap: 0.5rem;
@@ -122,6 +122,7 @@
   }
 
   .radio-in {
+    display: flex;
     align-items: center;
     gap: 0.5rem;
   }
@@ -142,6 +143,7 @@
   }
 
   .block-erase {
+    display: flex;
     justify-content: space-between;
   }
 
@@ -160,6 +162,7 @@
   }
 
   .libs {
+    display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
   }

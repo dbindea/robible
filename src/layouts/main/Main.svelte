@@ -14,12 +14,15 @@
   </div>
   <div class="layout">
     <!-- <Request {map} {version} /> -->
-    <Result {bible} {map} />
+    {#if Object.keys(bible).length}
+      <Result {bible} {map} />
+    {/if}
   </div>
 </div>
 
 <style type="scss">
   .main {
+    display: flex;
     gap: 1.5rem;
     background-color: var(--color-bg-light);
   }

@@ -1,6 +1,7 @@
 <script>
   import { filter } from '../../store/stores';
   import { getFilterResult } from '../../services/filter.service';
+  import { onMount } from 'svelte/internal';
 
   export let bible;
   export let map;
@@ -9,12 +10,15 @@
   $: keywords = '';
   $: time = 0;
 
-  filter.subscribe((form) => {
-    const snapshot = new Date();
-    keywords = form.searchText;
-    result = getFilterResult(bible, map, form);
-    time = new Date().getMilliseconds() - snapshot.getMilliseconds();
-  });
+  onMount(() => {
+    filter.subscribe((form) => {
+      const snapshot = new Date();
+      keywords = form.searchText;
+      result = getFilterResult(bible, map, form);
+      time = new Date().getMilliseconds() - snapshot.getMilliseconds();
+    });
+  })
+
 
   function markText(text, keywords) {
     let regex = new RegExp(keywords, 'i');
@@ -42,7 +46,7 @@
         <!-- <span><img src="assets/img/filter.png" alt="" /> Copiar</span> -->
       </div>
     </div>
-    <div class="divider" />
+    <div class="divider div-transparent div-dot" />
   {/each}
 </div>
 
@@ -60,8 +64,32 @@
   }
 
   .divider {
-    border-top: 0.1rem var(--border-gray);
-    margin: 0 20rem 0 10rem;
+    position: relative;
+  }
+
+  .div-transparent:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 5%;
+    right: 5%;
+    width: 90%;
+    height: 1px;
+    background-image: linear-gradient(to right, transparent, rgb(48, 49, 51), transparent);
+  }
+
+  .div-dot:after {
+    content: '';
+    position: absolute;
+    z-index: 1;
+    top: -5px;
+    left: calc(50% - 9px);
+    width: 0.5rem;
+    height: 0.5rem;
+    background-color: var(--color-bg-dark);
+    border: 1px solid var(--color-bg-dark);
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 2px white, 0 0 0 4px white;
   }
 
   .verse {

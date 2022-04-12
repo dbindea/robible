@@ -21,7 +21,7 @@
   });
 </script>
 
-<main class="container">
+<main class="main">
   {#if $isLocaleLoaded && Object.keys(map).length}
     <Navbar />
     <Main {map} {bible} {version} />
@@ -30,10 +30,3 @@
     <p>Loading...</p>
   {/if}
 </main>
-
-<style lang="scss">
-  .container {
-/*     display: flex;
-    flex-direction: column; */
-  }
-</style>
