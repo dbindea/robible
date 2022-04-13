@@ -7,6 +7,7 @@
   --color-link-visited: #0050a0;
   --color-white: #ffffff;
   --color-blue: #2d96cd;
+  --color-blue-hover: #2b779f;
 
   /* FONT */
   --font-default-size: 16px;
@@ -16,6 +17,7 @@
   --border-gray: solid #c3c3c3;
   --box-shadow-up: 0 0 0.3rem 0 rgb(122 122 122 / 45%);
   --box-shadow-down: 0.2rem 0 1rem 0 rgb(122 122 122 / 45%);
+  --transition: background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
 
   /* SIZE */
   --button-height: 2rem;
@@ -168,6 +170,10 @@ label {
 input {
   font-family: 'Open Sans';
   font-size: 1rem;
+}
+
+button {
+  cursor: pointer;
 }
 
 .marked-key {

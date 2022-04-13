@@ -1,13 +1,12 @@
 <div class="header">
-  <div class="logo">
-    <img class="logo_img" src="assets/img/logo.png" alt="" />
-    <h2 class="logo_text">Biblia</h2>
-    <!-- <h2 class="logo"><img class="logo-img" src="assets/img/logo.png" alt="" /> <div>Biblia</div></h2> -->
+  <div>
+    <a class="logo" href="/">
+      <img class="logo__img" src="assets/img/logo.png" alt="" />
+      <h2 class="logo__text">Biblia</h2>
+    </a>
   </div>
-  <!-- <h2 class="logo"><img class="logo-img" src="assets/img/logo.png" alt="" /> <div>Biblia</div></h2> -->
   <select class="select" name="version" id="version">
     <option class="select__option" value="vdc" selected>Cornilescu - VDC</option>
-    <option class="select__option" value="ntr">Noua Traducere - NTR</option>
   </select>
 </div>
 
@@ -28,6 +27,12 @@
     height: var(--button-height);
     font-family: 'Open Sans';
     padding: 0 1.2rem;
+    cursor: pointer;
+    outline: none;
+    &:hover {
+      background: var(--color-blue-hover);
+      border-color: var(--color-blue-hover);
+    }
   }
 
   .select__option {
@@ -36,21 +41,21 @@
     font-size: var(--font-default-size);
   }
 
-/*   .logo-img {
-    height: 2.5rem;
-    padding: 1.5rem 1rem 0 0;
-  } */
-
   .logo {
     display: flex;
-    padding: 0.5rem;
 
-    &_img {
+    &__img {
       height: 2.5rem;
       margin-top: 1.5rem;
     }
-    &_text {
+
+    &__text {
       padding: 0.5rem;
+      color: var(--color-bg-dark);
     }
+  }
+
+  a.logo:hover {
+    text-decoration: none;
   }
 </style>

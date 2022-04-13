@@ -7,7 +7,7 @@
 
   const form = JSON.parse(localStorage.getItem('filter') || '{}');
 
-  const formValues = {
+  let formValues = {
     searchText: form.searchText || null,
     searchType: form.searchType || 'aprox',
     testament: form.testament || '',
@@ -46,16 +46,31 @@
         break;
     }
   }
+
+  const resetForm = () => {
+    formValues = {
+      searchText: null,
+      searchType: 'aprox',
+      testament: '',
+      book: [],
+    };
+    updateFilter(formValues);
+  };
+
+ /*  function scrollToTop() {
+		box.scrollIntoView();
+	} */
+
 </script>
 
 <div class="sidebar sticky">
-  <div class="block-erase">
-    <span class="filter-icon"><img src="assets/img/filter.png" alt="" /> Filtru</span>
-    <button class="button-erase">Sterge Cautarea</button>
-  </div>
-
-  <div class="divider" />
   <form on:change|preventDefault={updateFilter(formValues)} on:keyup|preventDefault={updateFilter(formValues)}>
+    <div class="block-erase">
+      <span class="filter-icon"><img src="assets/img/filter.png" alt="" /> Filtru</span>
+      <button class="button__erase" on:click|preventDefault={resetForm}>Sterge Cautarea</button>
+    </div>
+
+    <div class="divider" />
     <label for="searchText">Cauta dupa cuvintele...</label>
     <input id="searchText" type="text" autocomplete="off" bind:value={formValues.searchText} placeholder={$_('app.sidebar.form.search_placeholder')} />
 
@@ -119,28 +134,87 @@
   input[type='text'] {
     height: var(--input-height);
     padding: 0 0.5rem;
+    border: solid 1px #ffffff;
+    background-color: var(--color-bg-dark);
+    color: #ffffff;
+    outline: none;
+    transition: var(--transition);
   }
 
+  input[type='text']:hover,
   input[type='text']:focus {
-    border-color: transparent;
-    border-radius: 2px;
-    outline: none;
-    transition: background-color 0.4s cubic-bezier(0, 0, 0, 1);
-    box-shadow: 0 0 4px 1px var(--color-blue);
+    border-color: var(--color-blue);
+  }
+
+  input[type='text']::placeholder {
+    color: #ffffff;
   }
 
   .radio__label {
     align-items: center;
     display: inline-flex;
     gap: 0.5rem;
+
+    input[type='radio'] {
+      position: absolute;
+      cursor: pointer;
+      opacity: 0;
+      + span {
+        &:before {
+          content: '';
+          border-radius: 100%;
+          border: 1px solid darken(#f4f4f4, 25%);
+          display: inline-block;
+          width: 1.2em;
+          height: 1.2em;
+          top: -0.2em;
+          margin-right: 1em;
+          vertical-align: top;
+          cursor: pointer;
+          text-align: center;
+          transition: all 250ms ease;
+        }
+      }
+      &:checked {
+        + span {
+          &:before {
+            background-color: var(--color-blue);
+            box-shadow: inset 0 0 0 4px #f4f4f4;
+          }
+        }
+      }
+      &:focus {
+        + span {
+          &:before {
+            outline: none;
+            border-color: var(--color-blue);
+          }
+        }
+      }
+      &:disabled {
+        + span {
+          &:before {
+            box-shadow: inset 0 0 0 4px #f4f4f4;
+            border-color: darken(#f4f4f4, 25%);
+            background: darken(#f4f4f4, 25%);
+          }
+        }
+      }
+      + span {
+        &:empty {
+          &:before {
+            margin-right: 0;
+          }
+        }
+      }
+    }
   }
 
   .margin-up {
     padding-top: 1.2rem;
   }
 
-  label,
-  input {
+  label {
     cursor: pointer;
   }
 
@@ -155,13 +229,19 @@
     justify-content: space-between;
   }
 
-  .button-erase {
+  .button__erase {
     background: var(--color-blue);
     color: var(--color-white);
     border: 0.1rem var(--border-blue);
     height: var(--button-height);
     font-family: 'Open Sans';
     font-size: 14px;
+    transition: var(--transition);
+
+    &:hover {
+      background: var(--color-blue-hover);
+      border-color: var(--color-blue-hover);
+    }
   }
 
   .filter-icon {
@@ -187,6 +267,11 @@
       gap: 0.5rem;
       padding: 0.3rem;
       font-size: 14px;
+
+      &:hover {
+        background: var(--color-blue-hover);
+        border-color: var(--color-blue-hover);
+      }
     }
     input[type='checkbox'] {
       display: contents;
