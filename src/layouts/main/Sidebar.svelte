@@ -48,7 +48,7 @@
   }
 </script>
 
-<div class="sidebar">
+<div class="sidebar sticky">
   <div class="block-erase">
     <span class="filter-icon"><img src="assets/img/filter.png" alt="" /> Filtru</span>
     <button class="button-erase">Sterge Cautarea</button>
@@ -61,37 +61,37 @@
 
     <div class="margin-up">Cum se face cautarea?</div>
 
-    <div class="radio-in">
+    <label class="radio__label" for="aprox">
       <input type="radio" id="aprox" name="searchType" value="aprox" bind:group={formValues.searchType} />
-      <label for="aprox">Cu aproximatie</label>
-    </div>
+      <span>Cu aproximatie</span>
+    </label>
 
-    <div class="radio-in">
+    <label class="radio__label" for="exact">
       <input type="radio" id="exact" name="searchType" value="exact" bind:group={formValues.searchType} />
-      <label for="exact">Fraza exacta</label>
-    </div>
+      <span>Fraza exacta</span></label
+    >
 
-    <div class="radio-in">
+    <label class="radio__label" for="any">
       <input type="radio" id="any" name="searchType" value="any" bind:group={formValues.searchType} />
-      <label for="any">Oricare cuvant</label>
-    </div>
+      <span>Oricare cuvant</span>
+    </label>
 
     <div class="margin-up">Unde se face cautarea?</div>
 
-    <div class="radio-in">
+    <label class="radio__label" for="all">
       <input type="radio" id="all" name="testament" value="" bind:group={formValues.testament} />
-      <label for="all">Toata Biblia</label>
-    </div>
+      <span>Toata Biblia</span>
+    </label>
 
-    <div class="radio-in">
+    <label class="radio__label" for="ot">
       <input type="radio" id="ot" name="testament" value="ot" bind:group={formValues.testament} />
-      <label for="ot">Vechiul testament</label>
-    </div>
+      <span>Vechiul testament</span>
+    </label>
 
-    <div class="radio-in">
+    <label class="radio__label" for="nt">
       <input type="radio" id="nt" name="testament" value="nt" bind:group={formValues.testament} />
-      <label for="nt">Noul Testament</label>
-    </div>
+      <span>Noul Testament</span>
+    </label>
 
     <div class="margin-up">O carte specifica?</div>
 
@@ -121,9 +121,17 @@
     padding: 0 0.5rem;
   }
 
-  .radio-in {
-    display: flex;
+  input[type='text']:focus {
+    border-color: transparent;
+    border-radius: 2px;
+    outline: none;
+    transition: background-color 0.4s cubic-bezier(0, 0, 0, 1);
+    box-shadow: 0 0 4px 1px var(--color-blue);
+  }
+
+  .radio__label {
     align-items: center;
+    display: inline-flex;
     gap: 0.5rem;
   }
 
