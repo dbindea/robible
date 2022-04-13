@@ -31,7 +31,7 @@
     outline: none;
     &:hover {
       background: var(--color-blue-hover);
-      border-color: var(--color-blue-hover);
+      border-color: var(--color-blue-hover);;
     }
   }
 

@@ -2,34 +2,40 @@ export const getFilterResult = (bible, map, form) => {
   const _bible = [...bible];
   const result = [];
 
+  let _books = [];
+
   switch (form.testament) {
     case 'ot':
-      form.book = map['ot'];
+      _books = map['ot'];
       break;
 
     case 'nt':
-      form.book = map['nt'];
+      _books = map['nt'];
       break;
 
     default:
-      form.book = map['ot'].concat(map['nt']);
+      _books = map['ot'].concat(map['nt']);
       break;
   }
-  if (!form.book.length) {
+  /*   if (!form.book.length) {
     form.book = map['ot'].concat(map['nt']);
+  } */
+
+  if (!Array.isArray(form.book)) {
+    _books = [form.book];
   }
 
   localStorage.setItem('filter', JSON.stringify(form));
 
   // console.log('Filtro', form);
 
-  const isReadyForSearch = form.book.length && form.searchText && form.searchText.length > 2;
+  const isReadyForSearch = _books.length && form.searchText && form.searchText.length > 2;
 
   if (isReadyForSearch) {
     // console.log('Filtrando...');
 
     _bible.forEach((book, indexBook) => {
-      if (form.book.includes(indexBook)) {
+      if (_books.includes(indexBook)) {
         const _book = [...book];
 
         _book.forEach((chapter, indexChapter) => {

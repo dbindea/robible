@@ -14,17 +14,6 @@
     book: form.book || [],
   };
 
-  // REACTIVE
-  /*   $: {
-    map,
-      () => {
-        if (!formValues.book.length) {
-          formValues.book = concat(map['ot'], map['nt']);
-        }
-        updateFilter(formValues);
-      };
-  } */
-
   const updateFilter = (form) => {
     filter.update(() => form);
   };
@@ -57,10 +46,10 @@
     updateFilter(formValues);
   };
 
- /*  function scrollToTop() {
-		box.scrollIntoView();
-	} */
-
+  const cleanBook = () => {
+    formValues.book = [];
+    updateFilter(formValues);
+  };
 </script>
 
 <div class="sidebar sticky">
@@ -72,7 +61,7 @@
 
     <div class="divider" />
     <label for="searchText">Cauta dupa cuvintele...</label>
-    <input id="searchText" type="text" autocomplete="off" bind:value={formValues.searchText} placeholder={$_('app.sidebar.form.search_placeholder')} />
+    <input id="searchText" type="text" autocomplete="off" spellcheck="false" bind:value={formValues.searchText} placeholder={$_('app.sidebar.form.search_placeholder')} />
 
     <div class="margin-up">Cum se face cautarea?</div>
 
@@ -82,37 +71,38 @@
     </label>
 
     <label class="radio__label" for="exact">
-      <input type="radio" id="exact" name="searchType" value="exact" bind:group={formValues.searchType} />
+      <input type="radio" id="exact" name="searchType" value="exact" bind:group={formValues.searchType} disabled/>
       <span>Fraza exacta</span></label
     >
 
     <label class="radio__label" for="any">
-      <input type="radio" id="any" name="searchType" value="any" bind:group={formValues.searchType} />
+      <input type="radio" id="any" name="searchType" value="any" bind:group={formValues.searchType} disabled/>
       <span>Oricare cuvant</span>
     </label>
 
     <div class="margin-up">Unde se face cautarea?</div>
 
     <label class="radio__label" for="all">
-      <input type="radio" id="all" name="testament" value="" bind:group={formValues.testament} />
+      <input type="radio" id="all" name="testament" value="" bind:group={formValues.testament} on:change={cleanBook} />
       <span>Toata Biblia</span>
     </label>
 
     <label class="radio__label" for="ot">
-      <input type="radio" id="ot" name="testament" value="ot" bind:group={formValues.testament} />
+      <input type="radio" id="ot" name="testament" value="ot" bind:group={formValues.testament} on:change={cleanBook} />
       <span>Vechiul testament</span>
     </label>
 
     <label class="radio__label" for="nt">
-      <input type="radio" id="nt" name="testament" value="nt" bind:group={formValues.testament} />
+      <input type="radio" id="nt" name="testament" value="nt" bind:group={formValues.testament} on:change={cleanBook} />
       <span>Noul Testament</span>
     </label>
 
     <div class="margin-up">O carte specifica?</div>
 
-    <div class="libs">
+    <div class="radio-toolbar">
       {#each visibleBook as item}
-        <label for={item} class="book">{map[item]}<input type="checkbox" id={item} value={item} bind:group={formValues.book} /></label>
+        <input type="radio" id={item} value={item} bind:group={formValues.book} />
+        <label for={item}>{map[item]}</label>
       {/each}
     </div>
   </form>
@@ -139,6 +129,7 @@
     color: #ffffff;
     outline: none;
     transition: var(--transition);
+    margin-left: 1rem;
   }
 
   input[type='text']:hover,
@@ -154,6 +145,7 @@
     align-items: center;
     display: inline-flex;
     gap: 0.5rem;
+    margin-left: 1rem;
 
     input[type='radio'] {
       position: absolute;
@@ -240,7 +232,8 @@
 
     &:hover {
       background: var(--color-blue-hover);
-      border-color: var(--color-blue-hover);
+      border-color: var(--color-blue);
+      box-shadow: 0 0 4px 1px var(--color-blue);
     }
   }
 
@@ -249,32 +242,35 @@
     align-items: flex-end;
   }
 
-  .libs {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-
   form {
     display: contents;
   }
 
-  label {
-    &.book {
-      background: var(--color-blue);
-      border: 0.1rem var(--border-blue);
-      width: auto;
-      gap: 0.5rem;
+  .radio-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-left: 1rem;
+
+    label {
+      background-color: var(--color-blue);
       padding: 0.3rem;
       font-size: 14px;
-
-      &:hover {
-        background: var(--color-blue-hover);
-        border-color: var(--color-blue-hover);
-      }
+      border: 0.1rem var(--border-blue);
     }
-    input[type='checkbox'] {
-      display: contents;
+
+    input[type='radio'] {
+      opacity: 0;
+      position: fixed;
+      width: 0;
+    }
+
+    input[type='radio']:hover + label,
+    input[type='radio']:checked + label {
+      background: var(--color-blue-hover);
+      border-color: var(--color-blue-hover);
+      border-color: var(--color-blue);
+      box-shadow: 0 0 4px 1px var(--color-blue);
     }
   }
 </style>

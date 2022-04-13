@@ -7,6 +7,7 @@
   export let map;
 
   $: result = [];
+  $: count = 0;
   $: keywords = '';
   $: time = 0;
 
@@ -15,10 +16,11 @@
       const snapshot = new Date();
       keywords = form.searchText;
       result = getFilterResult(bible, map, form);
+      count = result.length;
+      result = [...result.slice(0, 100)]
       time = new Date().getMilliseconds() - snapshot.getMilliseconds();
     });
-  })
-
+  });
 
   function markText(text, keywords) {
     let regex = new RegExp(keywords, 'i');
@@ -35,16 +37,16 @@
 </script>
 
 <div class="result">
-  <p>S-au gasit <span class="count">{result.length}</span> rezultate <span>in {time} milisecunde</span></p>
+  <p>Se afiseaza <span class="count">{result.length}</span> rezultate din {count}.</p>
 
   {#each result as item}
     <div class="verse">
       <p class="verse__text">
         {@html markText(item.text, keywords)} <span class="reference">({map[item.book]} {item.chapter}:{item.verse})</span>
       </p>
-      <div class="options">
-        <!-- <span><img src="assets/img/filter.png" alt="" /> Copiar</span> -->
-      </div>
+      <!-- <div class="options">
+        <span><img src="assets/img/filter.png" alt="" /> Copiar</span>
+      </div> -->
     </div>
     <div class="divider div-transparent div-dot" />
   {/each}
@@ -75,7 +77,8 @@
     right: 5%;
     width: 90%;
     height: 1px;
-    background-image: linear-gradient(to right, transparent, rgb(48, 49, 51), transparent);
+    background-color: var(--color-bg-dark);
+    box-shadow: var(--box-shadow-up);
   }
 
   .div-dot:after {
@@ -88,7 +91,7 @@
     height: 0.5rem;
     background-color: var(--color-bg-dark);
     border: 1px solid var(--color-bg-dark);
-    border-radius: 50%;
+    /* border-radius: 50%; */
     box-shadow: inset 0 0 0 2px white, 0 0 0 4px white;
   }
 
