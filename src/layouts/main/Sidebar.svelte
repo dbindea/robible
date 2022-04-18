@@ -10,8 +10,9 @@
   let formValues = {
     searchText: form.searchText || null,
     searchType: form.searchType || 'aprox',
-    testament: form.testament || '',
+    testament: form.testament || 'all',
     book: form.book || [],
+    chapter: form.chapter || []
   };
 
   const updateFilter = (form) => {
@@ -20,10 +21,10 @@
 
   $: visibleBook = [];
   $: {
-    formValues.testament, getDinamicBook(formValues.testament);
+    formValues.testament, visibleBook = map[formValues.testament];
   }
 
-  function getDinamicBook(testament) {
+/*   function getDinamicBook(testament) {
     switch (testament) {
       case 'ot':
       case 'nt':
@@ -34,20 +35,22 @@
         visibleBook = map['ot'].concat(map['nt']);
         break;
     }
-  }
+  } */
 
   const resetForm = () => {
     formValues = {
       searchText: null,
       searchType: 'aprox',
-      testament: '',
+      testament: 'all',
       book: [],
+      chapter: []
     };
     updateFilter(formValues);
   };
 
   const cleanBook = () => {
     formValues.book = [];
+    formValues.chapter = [];
     updateFilter(formValues);
   };
 </script>
@@ -55,8 +58,8 @@
 <div class="sidebar sticky">
   <form on:change|preventDefault={updateFilter(formValues)} on:keyup|preventDefault={updateFilter(formValues)}>
     <div class="block-erase">
-      <span class="filter-icon"><img src="assets/img/filter.png" alt="" /> Filtru</span>
-      <button class="button__erase" on:click|preventDefault={resetForm}>Sterge Cautarea</button>
+      <span class="icon-filter icon--L"></span>
+      <button class="button__erase" on:click|preventDefault={resetForm}><span class="icon-delete icon--M"></span>Sterge Cautarea</button>
     </div>
 
     <div class="divider" />
@@ -83,7 +86,7 @@
     <div class="margin-up">Unde se face cautarea?</div>
 
     <label class="radio__label" for="all">
-      <input type="radio" id="all" name="testament" value="" bind:group={formValues.testament} on:change={cleanBook} />
+      <input type="radio" id="all" name="testament" value="all" bind:group={formValues.testament} on:change={cleanBook} />
       <span>Toata Biblia</span>
     </label>
 
@@ -229,6 +232,9 @@
     font-family: 'Open Sans';
     font-size: 14px;
     transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 
     &:hover {
       background: var(--color-blue-hover);
@@ -271,6 +277,16 @@
       border-color: var(--color-blue-hover);
       border-color: var(--color-blue);
       box-shadow: 0 0 4px 1px var(--color-blue);
+    }
+  }
+
+  .icon {
+    &--L {
+      font-size: 32px;
+    }
+
+    &--M {
+      font-size: 18px;
     }
   }
 </style>
