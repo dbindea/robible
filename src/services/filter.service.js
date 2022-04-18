@@ -1,3 +1,8 @@
+export function replaceDiacritics(str) {
+  return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  //return str
+}
+
 export const getFilterResult = (bible, map, form) => {
   const _bible = [...bible];
   let result = [];
@@ -24,7 +29,7 @@ export const getFilterResult = (bible, map, form) => {
   if (form.searchText) {
     result = [];
     if (form.searchText.length > 2) {
-      let regex = new RegExp(form.searchText, 'i');
+      let regex = new RegExp(replaceDiacritics(form.searchText), 'i');
 
       _bible.forEach((book, indexBook) => {
         if (_books.includes(indexBook)) {
@@ -34,7 +39,7 @@ export const getFilterResult = (bible, map, form) => {
             const _chapter = [...chapter];
 
             _chapter.forEach((verse, indexVerse) => {
-              if (regex.test(String(verse))) {
+              if (regex.test(replaceDiacritics(verse))) {
                 result.push({
                   book: indexBook,
                   chapter: indexChapter + 1,

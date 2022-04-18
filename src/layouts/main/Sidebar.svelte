@@ -1,6 +1,6 @@
 <script>
   import { _ } from 'svelte-i18n';
-  import { filter } from '../../store/stores';
+  import { filter, loading } from '../../store/stores';
 
   export let version;
   export let map;
@@ -16,12 +16,18 @@
   };
 
   const updateFilter = (form) => {
+    loading.update(() => ({ isLoading: true, time: new Date() }));
     filter.update(() => form);
   };
 
   $: visibleBook = [];
+  $: isLoading = false;
   $: {
     formValues.testament, (visibleBook = map[formValues.testament]);
+  }
+
+  $: {
+    isLoading, console.log('isLoading', isLoading);
   }
 
   const resetForm = () => {
@@ -45,12 +51,20 @@
     formValues.searchText = null;
     updateFilter(formValues);
   };
+
+  loading.subscribe((loading) => {
+    isLoading = loading.isLoading;
+  });
 </script>
 
 <div class="sidebar sticky">
   <form on:change|preventDefault={updateFilter(formValues)} on:keyup|preventDefault={updateFilter(formValues)}>
     <div class="block-erase">
-      <span class="icon-filter icon--L" />
+      {#if isLoading}
+        <span class="icon-loading icon--L rotate" />
+      {:else}
+        <span class="icon-filter icon--L" />
+      {/if}
       <button class="button__erase" on:click|preventDefault={resetForm}><span class="icon-delete icon--M" />Sterge Cautarea</button>
     </div>
 
@@ -284,7 +298,7 @@
 
   .icon {
     &--L {
-      font-size: 32px;
+      font-size: 28px;
     }
 
     &--M {
@@ -306,5 +320,27 @@
     display: flex;
     align-items: center;
     padding-right: 0.6rem;
+  }
+
+  .rotate {
+    -webkit-animation: spin 4s linear infinite;
+    -moz-animation: spin 4s linear infinite;
+    animation: spin 4s linear infinite;
+  }
+  @-moz-keyframes spin {
+    100% {
+      -moz-transform: rotate(360deg);
+    }
+  }
+  @-webkit-keyframes spin {
+    100% {
+      -webkit-transform: rotate(360deg);
+    }
+  }
+  @keyframes spin {
+    100% {
+      -webkit-transform: rotate(360deg);
+      transform: rotate(360deg);
+    }
   }
 </style>

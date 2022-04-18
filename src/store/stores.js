@@ -10,4 +10,10 @@ const formValues = {
   chapter: form.chapter || [],
 };
 
+const loadingValues = {
+  isLoading: false,
+  time: null
+}
+
 export const filter = writable(formValues);
+export const loading = writable(loadingValues);

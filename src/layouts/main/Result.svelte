@@ -1,6 +1,6 @@
 <script>
-  import { filter } from '../../store/stores';
-  import { getFilterResult } from '../../services/filter.service';
+  import { filter, loading } from '../../store/stores';
+  import { getFilterResult, replaceDiacritics } from '../../services/filter.service';
   import { onMount } from 'svelte/internal';
 
   export let bible;
@@ -10,34 +10,39 @@
   $: count = 0;
   $: keywords = '';
   $: time = 0;
+  $: elapsedTime = 0;
+
+  $: {
+    result, loading.update(() => ({ isLoading: false, time: null }));
+  }
 
   onMount(() => {
     filter.subscribe((form) => {
-      const snapshot = new Date();
       keywords = form.searchText;
       result = getFilterResult(bible, map, form);
       count = result.length;
       result = [...result.slice(0, 100)];
-      time = new Date().getMilliseconds() - snapshot.getMilliseconds();
+      elapsedTime = new Date().getMilliseconds() - (time || new Date()).getMilliseconds();
+    });
+
+    loading.subscribe((loading) => {
+      time = loading.time;
     });
   });
 
   function markText(text, keywords) {
-    let regex = new RegExp(keywords, 'i');
-    if (regex.test(text)) {
-      let result = text.match(regex);
-      result.forEach((e) => {
-        text = text.replace(e, `<span class='marked-key'>${e}</span>`);
-      });
-      return text;
-    } else {
-      return text;
+    if (keywords && keywords.length > 2) {
+      const index = replaceDiacritics(text).toLowerCase().indexOf(replaceDiacritics(keywords).toLowerCase());
+      const size = keywords.length;
+      const fragment = text.substr(index, size);
+      text = text.replace(fragment, `<span class='marked-key'>${fragment}</span>`);
     }
+    return text;
   }
 </script>
 
 <div class="result">
-  <p>Se afiseaza <span class="count">{result.length}</span> rezultate din {count}.</p>
+  <p>Se afiseaza <span class="count">{result.length}</span> rezultate din {count}. Cautarea s-a efectuat in {elapsedTime} ms.</p>
 
   {#each result as item}
     <div class="verse">
