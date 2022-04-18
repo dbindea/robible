@@ -24,22 +24,24 @@ export const getFilterResult = (bible, map, form) => {
   if (form.searchText) {
     result = [];
     if (form.searchText.length > 2) {
+      let regex = new RegExp(form.searchText, 'i');
+
       _bible.forEach((book, indexBook) => {
         if (_books.includes(indexBook)) {
           const _book = [...book];
+
           _book.forEach((chapter, indexChapter) => {
             const _chapter = [...chapter];
+
             _chapter.forEach((verse, indexVerse) => {
-              if (form.searchText && form.searchText.length > 2) {
-                if (String(verse).toLowerCase().includes(String(form.searchText).toLowerCase())) {
-                  result.push({
-                    book: indexBook,
-                    chapter: indexChapter + 1,
-                    verse: indexVerse + 1,
-                    text: verse,
-                    key: `${indexBook}-${indexChapter}-${indexVerse}`,
-                  });
-                }
+              if (regex.test(String(verse))) {
+                result.push({
+                  book: indexBook,
+                  chapter: indexChapter + 1,
+                  verse: indexVerse + 1,
+                  text: verse,
+                  key: `${indexBook}-${indexChapter}-${indexVerse}`,
+                });
               }
             });
           });

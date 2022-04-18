@@ -7,7 +7,7 @@ const formValues = {
   searchType: form.searchType || 'aprox',
   testament: form.testament || 'all',
   book: form.book || [],
-  chapter: form.chapter || []
+  chapter: form.chapter || [],
 };
 
 export const filter = writable(formValues);

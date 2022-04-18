@@ -12,7 +12,7 @@
     searchType: form.searchType || 'aprox',
     testament: form.testament || 'all',
     book: form.book || [],
-    chapter: form.chapter || []
+    chapter: form.chapter || [],
   };
 
   const updateFilter = (form) => {
@@ -21,21 +21,8 @@
 
   $: visibleBook = [];
   $: {
-    formValues.testament, visibleBook = map[formValues.testament];
+    formValues.testament, (visibleBook = map[formValues.testament]);
   }
-
-/*   function getDinamicBook(testament) {
-    switch (testament) {
-      case 'ot':
-      case 'nt':
-        visibleBook = map[testament];
-        break;
-
-      default:
-        visibleBook = map['ot'].concat(map['nt']);
-        break;
-    }
-  } */
 
   const resetForm = () => {
     formValues = {
@@ -43,7 +30,7 @@
       searchType: 'aprox',
       testament: 'all',
       book: [],
-      chapter: []
+      chapter: [],
     };
     updateFilter(formValues);
   };
@@ -53,18 +40,33 @@
     formValues.chapter = [];
     updateFilter(formValues);
   };
+
+  const clearInput = () => {
+    formValues.searchText = null;
+    updateFilter(formValues);
+  };
 </script>
 
 <div class="sidebar sticky">
   <form on:change|preventDefault={updateFilter(formValues)} on:keyup|preventDefault={updateFilter(formValues)}>
     <div class="block-erase">
-      <span class="icon-filter icon--L"></span>
-      <button class="button__erase" on:click|preventDefault={resetForm}><span class="icon-delete icon--M"></span>Sterge Cautarea</button>
+      <span class="icon-filter icon--L" />
+      <button class="button__erase" on:click|preventDefault={resetForm}><span class="icon-delete icon--M" />Sterge Cautarea</button>
     </div>
 
     <div class="divider" />
     <label for="searchText">Cauta dupa cuvintele...</label>
-    <input id="searchText" type="text" autocomplete="off" spellcheck="false" bind:value={formValues.searchText} placeholder={$_('app.sidebar.form.search_placeholder')} />
+    <div class="input-search">
+      <input
+        id="searchText"
+        type="text"
+        autocomplete="off"
+        spellcheck="false"
+        bind:value={formValues.searchText}
+        placeholder={$_('app.sidebar.form.search_placeholder')}
+      />
+      <span class="icon-error icon--input" on:click={clearInput} />
+    </div>
 
     <div class="margin-up">Cum se face cautarea?</div>
 
@@ -74,12 +76,12 @@
     </label>
 
     <label class="radio__label" for="exact">
-      <input type="radio" id="exact" name="searchType" value="exact" bind:group={formValues.searchType} disabled/>
+      <input type="radio" id="exact" name="searchType" value="exact" bind:group={formValues.searchType} disabled />
       <span>Fraza exacta</span></label
     >
 
     <label class="radio__label" for="any">
-      <input type="radio" id="any" name="searchType" value="any" bind:group={formValues.searchType} disabled/>
+      <input type="radio" id="any" name="searchType" value="any" bind:group={formValues.searchType} disabled />
       <span>Oricare cuvant</span>
     </label>
 
@@ -126,13 +128,13 @@
   }
   input[type='text'] {
     height: var(--input-height);
-    padding: 0 0.5rem;
+    padding: 0 2.5rem 0 0.5rem;
     border: solid 1px #ffffff;
     background-color: var(--color-bg-dark);
     color: #ffffff;
     outline: none;
     transition: var(--transition);
-    margin-left: 1rem;
+    width: 100%;
   }
 
   input[type='text']:hover,
@@ -288,5 +290,21 @@
     &--M {
       font-size: 18px;
     }
+
+    &--input {
+      margin-left: -32px;
+      font-size: 22px;
+      cursor: pointer;
+      color: rgb(255 255 255 / 80%);
+      &:hover {
+        color: #ffffff;
+      }
+    }
+  }
+
+  .input-search {
+    display: flex;
+    align-items: center;
+    padding-right: 0.6rem;
   }
 </style>

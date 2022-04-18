@@ -17,7 +17,7 @@
       keywords = form.searchText;
       result = getFilterResult(bible, map, form);
       count = result.length;
-      result = [...result.slice(0, 100)]
+      result = [...result.slice(0, 100)];
       time = new Date().getMilliseconds() - snapshot.getMilliseconds();
     });
   });
