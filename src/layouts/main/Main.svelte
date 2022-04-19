@@ -1,6 +1,5 @@
 <script>
   import Sidebar from './Sidebar.svelte';
-  import Request from './Request.svelte';
   import Result from './Result.svelte';
 
   export let bible;
@@ -13,7 +12,6 @@
     <Sidebar {map} {version} />
   </div>
   <div class="layout">
-    <!-- <Request {map} {version} /> -->
     {#if Object.keys(bible).length}
       <Result {bible} {map} />
     {/if}
@@ -32,6 +30,7 @@
     min-width: 34vh;
   }
   .layout {
-    padding: 4rem 10rem 4rem 5rem;
+    width: 100%;
+    padding: 2rem 10rem 4rem 5rem;
   }
 </style>

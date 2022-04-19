@@ -4,6 +4,7 @@
   import Main from './layouts/main/Main.svelte';
   import { onMount } from 'svelte/internal';
   import { setupI18n, isLocaleLoaded } from './services/i18n.service';
+  import { SvelteToast } from '@zerodevx/svelte-toast'
 
   $: if (!$isLocaleLoaded) {
     const lang = localStorage.getItem('lang') || 'ro';
@@ -30,4 +31,5 @@
   {:else}
     <p>Loading...</p>
   {/if}
+  <SvelteToast />
 </main>

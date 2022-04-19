@@ -1,70 +1,58 @@
 <script>
   import { _ } from 'svelte-i18n';
-  import { filter, loading } from '../../store/stores';
+  import { filter } from '../../store/stores';
 
   export let version;
   export let map;
 
   const form = JSON.parse(localStorage.getItem('filter') || '{}');
 
-  let formValues = {
+  let searchForm = {
     searchText: form.searchText || null,
-    searchType: form.searchType || 'aprox',
+    searchType: form.searchType || 'match',
     testament: form.testament || 'all',
     book: form.book || [],
     chapter: form.chapter || [],
   };
 
   const updateFilter = (form) => {
-    loading.update(() => ({ isLoading: true, time: new Date() }));
+    form.chapter = [];
+    form.book = Array.isArray(form.book) ? form.book : [form.book];
     filter.update(() => form);
   };
 
   $: visibleBook = [];
-  $: isLoading = false;
   $: {
-    formValues.testament, (visibleBook = map[formValues.testament]);
-  }
-
-  $: {
-    isLoading, console.log('isLoading', isLoading);
+    searchForm.testament, (visibleBook = map[searchForm.testament]);
   }
 
   const resetForm = () => {
-    formValues = {
+    searchForm = {
       searchText: null,
-      searchType: 'aprox',
+      searchType: 'match',
       testament: 'all',
       book: [],
       chapter: [],
     };
-    updateFilter(formValues);
+    updateFilter(searchForm);
   };
 
   const cleanBook = () => {
-    formValues.book = [];
-    formValues.chapter = [];
-    updateFilter(formValues);
+    searchForm.book = [];
+    searchForm.chapter = [];
+    updateFilter(searchForm);
   };
 
   const clearInput = () => {
-    formValues.searchText = null;
-    updateFilter(formValues);
+    searchForm.searchText = null;
+    updateFilter(searchForm);
   };
-
-  loading.subscribe((loading) => {
-    isLoading = loading.isLoading;
-  });
 </script>
 
 <div class="sidebar sticky">
-  <form on:change|preventDefault={updateFilter(formValues)} on:keyup|preventDefault={updateFilter(formValues)}>
+  <form on:change|preventDefault={updateFilter(searchForm)} on:keyup|preventDefault={updateFilter(searchForm)}>
     <div class="block-erase">
-      {#if isLoading}
-        <span class="icon-loading icon--L rotate" />
-      {:else}
-        <span class="icon-filter icon--L" />
-      {/if}
+      <span class="icon-filter icon--L" />
       <button class="button__erase" on:click|preventDefault={resetForm}><span class="icon-delete icon--M" />Sterge Cautarea</button>
     </div>
 
@@ -76,43 +64,44 @@
         type="text"
         autocomplete="off"
         spellcheck="false"
-        bind:value={formValues.searchText}
+        bind:value={searchForm.searchText}
         placeholder={$_('app.sidebar.form.search_placeholder')}
+        autofocus
       />
       <span class="icon-error icon--input" on:click={clearInput} />
     </div>
 
     <div class="margin-up">Cum se face cautarea?</div>
 
-    <label class="radio__label" for="aprox">
-      <input type="radio" id="aprox" name="searchType" value="aprox" bind:group={formValues.searchType} />
-      <span>Cu aproximatie</span>
+    <label class="radio__label" for="match">
+      <input type="radio" id="match" name="searchType" value="match" bind:group={searchForm.searchType} />
+      <span>Contine expresia</span>
     </label>
 
     <label class="radio__label" for="exact">
-      <input type="radio" id="exact" name="searchType" value="exact" bind:group={formValues.searchType} disabled />
-      <span>Fraza exacta</span></label
+      <input type="radio" id="exact" name="searchType" value="every" bind:group={searchForm.searchType} />
+      <span>Contine cuvintele</span></label
     >
 
     <label class="radio__label" for="any">
-      <input type="radio" id="any" name="searchType" value="any" bind:group={formValues.searchType} disabled />
+      <input type="radio" id="any" name="searchType" value="some" bind:group={searchForm.searchType} />
       <span>Oricare cuvant</span>
     </label>
 
     <div class="margin-up">Unde se face cautarea?</div>
 
     <label class="radio__label" for="all">
-      <input type="radio" id="all" name="testament" value="all" bind:group={formValues.testament} on:change={cleanBook} />
+      <input type="radio" id="all" name="testament" value="all" bind:group={searchForm.testament} on:change={cleanBook} />
       <span>Toata Biblia</span>
     </label>
 
     <label class="radio__label" for="ot">
-      <input type="radio" id="ot" name="testament" value="ot" bind:group={formValues.testament} on:change={cleanBook} />
+      <input type="radio" id="ot" name="testament" value="ot" bind:group={searchForm.testament} on:change={cleanBook} />
       <span>Vechiul testament</span>
     </label>
 
     <label class="radio__label" for="nt">
-      <input type="radio" id="nt" name="testament" value="nt" bind:group={formValues.testament} on:change={cleanBook} />
+      <input type="radio" id="nt" name="testament" value="nt" bind:group={searchForm.testament} on:change={cleanBook} />
       <span>Noul Testament</span>
     </label>
 
@@ -120,7 +109,7 @@
 
     <div class="radio-toolbar">
       {#each visibleBook as item}
-        <input type="radio" id={item} value={item} bind:group={formValues.book} />
+        <input type="radio" id={item} value={item} bind:group={searchForm.book} />
         <label for={item}>{map[item]}</label>
       {/each}
     </div>
@@ -298,7 +287,8 @@
 
   .icon {
     &--L {
-      font-size: 28px;
+      font-size: 30px;
+      align-self: center;
     }
 
     &--M {
