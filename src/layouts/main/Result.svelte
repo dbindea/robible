@@ -88,7 +88,9 @@
 {/if}
 
 <div class="result">
-  <p>Se afiseaza <span class="count">{result.length}</span> rezultate din {count}</p>
+  {#if searchForm.searchText}
+    <p>Se afiseaza <span class="count">{result.length}</span> rezultate din {count}</p>
+  {/if}
 
   {#each result as item}
     <div class="verse">
