@@ -11,7 +11,7 @@
     searchText: form.searchText || null,
     searchType: form.searchType || 'match',
     testament: form.testament || 'all',
-    book: form.book[0] || [],
+    book: form.book && form.book.length ? form.book[0] : [],
     chapter: [],
   };
 
