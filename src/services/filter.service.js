@@ -8,8 +8,8 @@ export const getFilterResult = (bible, map, form) => {
 
   let _books = form.book.length ? map[form.testament].filter((value) => form.book.includes(value)) : map[form.testament];
 
-  console.log('form', form);
-  console.log('_books', _books);
+  // console.log('form', form);
+  // console.log('_books', _books);
 
   localStorage.setItem('filter', JSON.stringify(form));
 

@@ -11,8 +11,8 @@
     searchText: form.searchText || null,
     searchType: form.searchType || 'match',
     testament: form.testament || 'all',
-    book: form.book || [],
-    chapter: form.chapter || [],
+    book: form.book[0] || [],
+    chapter: [],
   };
 
   const updateFilter = (form) => {
