@@ -5,7 +5,7 @@
     },
     "sidebar": {
       "form": {
-        "search_placeholder": "Cuvinte..."
+        "search_placeholder": "Minim 3 litere..."
       }
     }
   }

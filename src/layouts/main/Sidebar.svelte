@@ -230,7 +230,7 @@
   }
 
   .button__erase {
-    background: var(--color-blue);
+    background-color: var(--color-blue);
     color: var(--color-white);
     border: 0.1rem var(--border-blue);
     height: var(--button-height);

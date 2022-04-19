@@ -3,5 +3,10 @@
     "footer": {
       "title": "Biblia en Rumano"
     }
+  },
+  "sidebar": {
+    "form": {
+      "search_placeholder": "Al menos 3 letras..."
+    }
   }
 }
