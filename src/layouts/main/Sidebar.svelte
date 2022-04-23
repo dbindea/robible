@@ -55,10 +55,10 @@
 </script>
 
 <div class="sidebar sticky">
-  <form on:change|preventDefault={updateFilter(searchForm)} on:keyup|preventDefault={updateFilter(searchForm)}>
+  <form on:change|stopPropagation={updateFilter(searchForm)} on:keyup|stopPropagation={updateFilter(searchForm)}>
     <div class="block-erase">
-      <span class="icon-filter icon--L" />
-      <button class="button__erase" on:click|preventDefault={resetForm}><span class="icon-delete icon--M" />Sterge Cautarea</button>
+      <span class="filter-text">Filtru</span>
+      <button class="button__erase" on:click|stopPropagation={resetForm} type="button"><span class="icon-delete icon--M" />Sterge Cautarea</button>
     </div>
 
     <div class="divider" />
@@ -293,11 +293,6 @@
   }
 
   .icon {
-    &--L {
-      font-size: 30px;
-      align-self: center;
-    }
-
     &--M {
       font-size: 18px;
     }
@@ -339,5 +334,10 @@
       -webkit-transform: rotate(360deg);
       transform: rotate(360deg);
     }
+  }
+
+  .filter-text {
+    display: inline-flex;
+    align-items: flex-end;
   }
 </style>
