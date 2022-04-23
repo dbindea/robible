@@ -1,6 +1,7 @@
 <script>
   import { _ } from 'svelte-i18n';
   import { filter } from '../../store/stores';
+  import { onMount } from 'svelte';
 
   export let version;
   export let map;
@@ -14,6 +15,10 @@
     book: form.book && form.book.length ? form.book[0] : [],
     chapter: [],
   };
+
+  let searchTextInput;
+
+  onMount(() => searchTextInput.focus());
 
   const updateFilter = (form) => {
     form.chapter = [];
@@ -66,9 +71,11 @@
         spellcheck="false"
         bind:value={searchForm.searchText}
         placeholder={$_('app.sidebar.form.search_placeholder')}
-        autofocus
+        bind:this={searchTextInput}
       />
-      <span class="icon-error icon--input" on:click={clearInput} />
+      <label for="searchText">
+        <span class="icon-error icon--input" on:click={clearInput} />
+      </label>
     </div>
 
     <div class="margin-up">Cum se face cautarea?</div>
