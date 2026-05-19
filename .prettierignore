@@ -1,0 +1,6 @@
+dist
+node_modules
+public/data
+public/icon.css
+public/lang/ro.json
+public/assets
