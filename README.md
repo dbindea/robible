@@ -10,9 +10,7 @@ Biblia în limba Româna
 
 [EN] This project can be found at the following web address [robible.com](https://robible.com)
 
-
 ![image](https://user-images.githubusercontent.com/1469428/168670916-e580fc29-9727-43db-8895-036eadec4d27.png)
-
 
 ## Get started
 
@@ -25,15 +23,15 @@ cd robible
 npm install
 ```
 
-...then start [Rollup](https://rollupjs.org):
+...then start Vite:
 
 ```bash
 npm run dev
 ```
 
-Navigate to [localhost:8080](http://localhost:8080). You should see your app running. Edit a component file in `src`, save it, and reload the page to see your changes.
+Navigate to [localhost:5173](http://localhost:5173). You should see your app running. Edit a component file in `src` and save it to see the page update.
 
-By default, the server will only respond to requests from localhost. To allow connections from other computers, edit the `sirv` commands in package.json to include the option `--host 0.0.0.0`.
+The dev server is configured with `--host 0.0.0.0` so it can be tested from other devices on the same network.
 
 ## Building and running in production mode
 
@@ -43,6 +41,10 @@ To create an optimised version of the app:
 npm run build
 ```
 
-You can run the newly built app with `npm run start`. This uses [sirv](https://github.com/lukeed/sirv), which is included in your package.json's `dependencies` so that the app will work when you deploy to platforms like [Netlify](https://netlify.com).
+You can preview the newly built app with:
+
+```bash
+npm run preview
+```
 
 Thank you!

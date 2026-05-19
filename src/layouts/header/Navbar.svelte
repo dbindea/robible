@@ -1,23 +1,25 @@
 <div class="header">
-  <div>
-    <a class="logo" href="/">
-      <img class="logo__img" src="assets/img/logo.png" alt="" />
-      <h2 class="logo__text">Biblia</h2>
-    </a>
-  </div>
-  <select class="select" name="version" id="version">
+  <a class="logo" href="/" aria-label="RoBible">
+    <img class="logo__img" src="/assets/img/logo.svg" alt="" width="48" height="48" />
+    <span class="logo__text">Biblia</span>
+  </a>
+
+  <select class="select" name="version" id="version" aria-label="Versiunea Bibliei">
     <option class="select__option" value="vdc" selected>Cornilescu - VDC</option>
   </select>
 </div>
 
-<style type="scss">
+<style lang="scss">
   .header {
     display: flex;
-    height: 5rem;
+    min-height: 5rem;
     box-shadow: var(--box-shadow-down);
     align-items: center;
-    padding: 0 10rem 0 5rem;
+    gap: 1rem;
+    padding: 0.75rem clamp(1rem, 5vw, 5rem);
     justify-content: space-between;
+    background-color: var(--color-white);
+    font-family: var(--font-family-base);
   }
 
   .select {
@@ -25,13 +27,20 @@
     color: var(--color-white);
     border: 0.1rem var(--border-blue);
     height: var(--button-height);
-    font-family: 'Open Sans';
-    padding: 0 1.2rem;
+    max-width: 100%;
+    border-radius: 0.25rem;
+    padding: 0 2.2rem 0 0.8rem;
     cursor: pointer;
     outline: none;
+    transition: var(--transition);
+
     &:hover {
       background: var(--color-blue-hover);
       border-color: var(--color-blue-hover);
+    }
+
+    &:focus-visible {
+      box-shadow: 0 0 0 3px rgb(45 150 205 / 25%);
     }
   }
 
@@ -43,19 +52,36 @@
 
   .logo {
     display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: 0.65rem;
 
     &__img {
-      height: 2.5rem;
-      margin-top: 1.5rem;
+      width: 3rem;
+      height: 3rem;
+      flex: 0 0 auto;
     }
 
     &__text {
-      padding: 0.5rem;
       color: var(--color-bg-dark);
+      font-size: 1.35rem;
+      font-weight: 700;
+      line-height: 1;
     }
   }
 
   a.logo:hover {
     text-decoration: none;
+  }
+
+  @media (max-width: 32rem) {
+    .header {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    .select {
+      width: 100%;
+    }
   }
 </style>
