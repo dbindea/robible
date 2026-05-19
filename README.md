@@ -1,4 +1,8 @@
+[![Netlify Status](https://api.netlify.com/api/v1/badges/6b686e6f-af60-40b2-ad0d-9226c5ba76e9/deploy-status)](https://app.netlify.com/sites/robible/deploys)
+
 # robible.com
+
+Biblia în limba Româna
 
 [ES] Este proyecto se puede encontrar en la siguiente dirección web [robible.com](https://robible.com)
 
