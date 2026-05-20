@@ -1,11 +1,12 @@
 {
   "app": {
     "footer": {
-      "title": "Biblia in Limba Romana"
+      "title": "Biblia pentru Studiu",
+      "copyright": "robible.com"
     },
     "sidebar": {
       "form": {
-        "search_placeholder": "Minim 3 litere..."
+        "search_placeholder": "Cauta dupa cuvintele..."
       }
     }
   }

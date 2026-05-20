@@ -92,7 +92,7 @@
     </div>
 
     <div class="divider"></div>
-    <label for="searchText">Cauta dupa cuvintele...</label>
+    <!-- <label for="searchText">Cauta dupa cuvintele...</label> -->
     <div class="input-search">
       <input
         id="searchText"
@@ -149,8 +149,6 @@
       <span>Noul Testament</span>
     </label>
 
-    <div class="margin-up">Navigare rapida</div>
-
     <div class="book-picker">
       <div>
         <span>Cartea selectata</span>
@@ -183,7 +181,7 @@
   input[type='text'] {
     height: var(--input-height);
     padding: 0 2.5rem 0 0.5rem;
-    border: solid 1px #ffffff;
+    border: solid 1px #7c8990;
     background-color: var(--color-bg-dark);
     color: #ffffff;
     outline: none;
@@ -266,7 +264,7 @@
   }
 
   .margin-up {
-    padding-top: 1.2rem;
+    padding-top: 0.5em;
   }
 
   label {
@@ -418,6 +416,7 @@
     display: inline-flex;
     align-items: flex-end;
     font-weight: 600;
+    font-size: 1.1rem;
   }
 
   @media (max-width: 58rem) {

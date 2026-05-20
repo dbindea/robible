@@ -208,16 +208,15 @@
     border-radius: 0.35rem;
     background-color: #eeeff7;
     color: var(--color-bg-dark);
-    font-weight: 600;
-    text-align: left;
+    font-weight: 500;
     transition: var(--transition);
 
     &:hover,
     &:focus-visible,
     &--active {
       border-color: var(--color-blue);
-      background-color: rgb(45 150 205 / 10%);
-      box-shadow: 0 0 0 3px rgb(45 150 205 / 12%);
+      background-color: rgb(45 150 205 / 26%);
+      box-shadow: 0 0 4px 3px rgba(45, 150, 205, 0.12);
     }
   }
 
