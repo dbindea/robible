@@ -73,15 +73,4 @@
   a.logo:hover {
     text-decoration: none;
   }
-
-  @media (max-width: 32rem) {
-    .header {
-      align-items: flex-start;
-      flex-direction: column;
-    }
-
-    .select {
-      width: 100%;
-    }
-  }
 </style>

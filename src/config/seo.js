@@ -25,11 +25,11 @@ export const SUPPORTED_LOCALES = [
 ];
 
 export const SEO_TEXT = {
-  homeTitle: 'Biblia Dumitru Cornilescu Online | RoBible',
+  homeTitle: 'Biblia Dumitru Cornilescu Online | robible.com',
   homeDescription:
     'Citește Biblia Dumitru Cornilescu online, într-o experiență rapidă, curată și ușor de folosit. Găsește imediat cărți, capitole și versete în limba română.',
   readingDescription:
-    'RoBible îți oferă o lectură biblică limpede și modernă, cu acces rapid la Scriptură, căutare intuitivă și o interfață gândită pentru studiu zilnic.',
+    'RoBible îți oferă o lectură biblică limpede, cu acces rapid la Scriptură, căutare intuitivă și o interfață gândită pentru studiu zilnic.',
   bookDescription: (bookName) =>
     `Citește cartea ${bookName} din Biblia Dumitru Cornilescu online, într-un format curat, rapid și prietenos pentru studiu, rugăciune și aprofundarea Scripturii.`,
   chapterDescription: (bookName, chapter) =>
@@ -37,9 +37,9 @@ export const SEO_TEXT = {
   searchDescription: (query) =>
     `Caută „${query}” în Biblia Dumitru Cornilescu și descoperă rapid versetele relevante, cu rezultate clare și acces instant la contextul biblic în limba română.`,
   futureComparisonDescription:
-    'Compară versiuni și traduceri biblice într-o experiență modernă, construită pentru citire atentă, studiu comparativ și explorarea Scripturii în mai multe limbi.',
+    'Compară versiuni și traduceri biblice într-o experiență construită pentru citire atentă, studiu comparativ și explorarea Scripturii în mai multe limbi.',
   onlineReadingDescription:
-    'Citește Biblia online gratuit, cu navigare rapidă prin cărți, capitole și versete, într-un spațiu digital calm, accesibil și optimizat pentru lectură profundă.',
+    'Citește Biblia online gratuit, cu navigare rapidă prin cărți, capitole și versete, într-o pagină accesibilă și optimizată pentru o lectură atentă.',
   verseDescription: (reference) =>
     `Meditează asupra versetului ${reference} din Biblia Dumitru Cornilescu, cu acces rapid la text, context și lectură online în limba română.`,
 };

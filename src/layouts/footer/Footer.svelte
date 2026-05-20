@@ -1,5 +1,4 @@
 <script>
-  import { _ } from '../../services/i18n.service';
   import { setupI18n } from '../../services/i18n.service';
 
   const changeLang = (lang) => {
@@ -9,15 +8,16 @@
 </script>
 
 <div class="footer">
-  <h4>{$_('app.footer.title')}</h4>
-  <div class="lang">
+  <!-- <h3>{$_('app.footer.title')}</h3> -->
+  <span>RoBible - Biblia pentru Studiu | consulting@iberbind.com</span>
+<!--   <div class="lang">
     <button class="lang__button" type="button" aria-label="Romana" on:click={() => changeLang('ro')}>
       <img class="flag" src="/assets/img/ro.svg" alt="" />
     </button>
     <button class="lang__button" type="button" aria-label="Espanol" on:click={() => changeLang('es')}>
       <img class="flag" src="/assets/img/es.svg" alt="" />
     </button>
-  </div>
+  </div> -->
 </div>
 
 <style>
@@ -29,7 +29,7 @@
     padding: 0.85rem clamp(1rem, 5vw, 5rem);
     display: flex;
     color: var(--color-bg-dark);
-    justify-content: space-between;
+    justify-content: center;
     background-color: var(--color-white);
   }
 

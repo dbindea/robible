@@ -15,7 +15,7 @@
 
   /* EFFECT */
   --border-blue: solid var(--color-blue);
-  --border-gray: solid #c3c3c3;
+  --border-gray: solid #7c8990;
   --box-shadow-up: 0 0.2rem 0.8rem rgb(71 84 92 / 16%);
   --box-shadow-down: 0 0.35rem 1rem rgb(71 84 92 / 18%);
   --transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
