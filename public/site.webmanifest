@@ -1,12 +1,17 @@
 {
-  "name": "RoBible - Biblia Dumitru Cornilescu",
+  "id": "/",
+  "name": "RoBible - Biblia Online",
   "short_name": "RoBible",
-  "description": "Biblia Dumitru Cornilescu online, rapidă, curată și ușor de folosit.",
+  "description": "Biblia online, rapidă, curată și ușor de folosit.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "browser"],
+  "orientation": "any",
   "background_color": "#f2f5f8",
-  "theme_color": "#2d96cd",
+  "theme_color": "#3f5867",
   "lang": "ro",
+  "categories": ["books", "education", "reference"],
   "icons": [
     {
       "src": "/favicon.svg",
@@ -15,10 +20,52 @@
       "purpose": "any"
     },
     {
+      "src": "/favicon-16x16.png",
+      "sizes": "16x16",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon-32x32.png",
+      "sizes": "32x32",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
       "src": "/favicon.png",
       "sizes": "64x64",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/maskable-icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/maskable-icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

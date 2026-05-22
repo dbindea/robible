@@ -1,12 +1,88 @@
 {
   "app": {
+    "loading": "Se încarcă...",
+    "bible": {
+      "name": "Biblia Română"
+    },
+    "errors": {
+      "invalid_bible_version": "Versiune biblică invalidă.",
+      "bible_load_failed": "Nu s-a putut încărca versiunea biblică selectată.",
+      "bible_file_hint": "Verifică dacă există fișierele",
+      "and": "și"
+    },
+    "nav": {
+      "logo_label": "RoBible",
+      "logo_text": "Biblia",
+      "version_label": "Versiunea Bibliei"
+    },
     "footer": {
       "title": "Biblia pentru Studiu",
-      "copyright": "robible.com"
+      "copyright": "robible.com",
+      "text": "RoBible - Biblia pentru Studiu | consulting@iberbind.com"
     },
     "sidebar": {
+      "all_bible": "Toată Biblia",
+      "filter": "Filtru",
+      "clear_search": "Șterge căutarea",
+      "clear_search_text": "Șterge textul căutării",
+      "search_type_label": "Cum se face căutarea?",
+      "search_scope_label": "Unde se face căutarea?",
+      "selected_book": "Cartea selectată",
+      "choose_book": "Alege cartea",
       "form": {
-        "search_placeholder": "Cauta dupa cuvintele..."
+        "search_placeholder": "Caută după cuvintele..."
+      },
+      "search_type": {
+        "match": "Conține expresia",
+        "every": "Conține cuvintele",
+        "some": "Oricare cuvant"
+      },
+      "scope": {
+        "all": "Toată Biblia",
+        "ot": "Vechiul testament",
+        "nt": "Noul Testament"
+      }
+    },
+    "book_drawer": {
+      "aria_label": "Cărțile Bibliei",
+      "eyebrow": "Biblioteca",
+      "title": "Cărțile Bibliei",
+      "close": "Închide meniul cărților",
+      "groups": {
+        "ot": {
+          "title": "Vechiul Testament",
+          "description": "Primele 39 de cărți"
+        },
+        "nt": {
+          "title": "Noul Testament",
+          "description": "Ultimele 27 de cărți"
+        }
+      }
+    },
+    "result": {
+      "breadcrumb_label": "Breadcrumb",
+      "chapters_label": "Capitole",
+      "chapter_form_label": "Selectează capitolul",
+      "chapter_breadcrumb": "Capitolul {chapter}",
+      "result_count_start": "Se afișează",
+      "result_count_end": "rezultate din {total}",
+      "page_title": {
+        "search": "Căutare în {bible}",
+        "chapter": "{book}, capitolul {chapter}"
+      },
+      "page_lead": {
+        "search": "Rezultate rapide, clare și ușor de parcurs în textul biblic românesc.",
+        "chapter": "Citește capitolul într-un format curat, optimizat pentru lectură liniștită și studiu biblic.",
+        "default": "Citește Scriptura online, cu acces rapid la cărți, capitole și versete."
+      },
+      "toast": {
+        "copied": "Verset copiat!",
+        "copy_failed": "Nu s-a putut copia versetul"
+      },
+      "actions": {
+        "open_chapter": "Deschide capitolul complet",
+        "copy_verse": "Copiază versetul",
+        "copy_verse_reference": "Copiază {reference}"
       }
     }
   }

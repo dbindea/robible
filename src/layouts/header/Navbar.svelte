@@ -1,11 +1,23 @@
+<script>
+  import { _ } from '../../services/i18n.service';
+  import { bibleVersions, selectedBibleVersion } from '../../store/stores';
+
+  $: selectedVersion = $selectedBibleVersion;
+  $: visibleBibleVersions = bibleVersions.some((version) => version.value === selectedVersion)
+    ? bibleVersions
+    : [{ value: selectedVersion, label: selectedVersion }, ...bibleVersions];
+</script>
+
 <div class="header">
-  <a class="logo" href="/" aria-label="RoBible">
+  <a class="logo" href="/" aria-label={$_('app.nav.logo_label')}>
     <img class="logo__img" src="/assets/img/logo.svg" alt="" width="48" height="48" />
-    <span class="logo__text">Biblia</span>
+    <span class="logo__text">{$_('app.nav.logo_text')}</span>
   </a>
 
-  <select class="select" name="version" id="version" aria-label="Versiunea Bibliei">
-    <option class="select__option" value="vdc" selected>Cornilescu - VDC</option>
+  <select class="select" name="version" id="version" aria-label={$_('app.nav.version_label')} bind:value={$selectedBibleVersion}>
+    {#each visibleBibleVersions as version (version.value)}
+      <option class="select__option" value={version.value}>{version.label}</option>
+    {/each}
   </select>
 </div>
 
@@ -29,7 +41,7 @@
     height: var(--button-height);
     max-width: 100%;
     border-radius: 0.25rem;
-    padding: 0 2.2rem 0 0.8rem;
+    padding: 0 2rem 0 1.5rem;
     cursor: pointer;
     outline: none;
     transition: var(--transition);
@@ -63,7 +75,7 @@
     }
 
     &__text {
-      color: var(--color-bg-dark);
+      color: var(--color-text-dark);
       font-size: 1.35rem;
       font-weight: 700;
       line-height: 1;
