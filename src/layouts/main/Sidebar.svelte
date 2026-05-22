@@ -19,7 +19,7 @@
 
   $: searchForm = $filter;
   $: selectedBook = Array.isArray(searchForm.book) ? searchForm.book[0] : null;
-  $: selectedBookName = selectedBook !== null && selectedBook !== undefined ? map[selectedBook] : 'Toata Biblia';
+  $: selectedBookName = selectedBook !== null && selectedBook !== undefined ? map[selectedBook] : $_('app.sidebar.all_bible');
 
   onMount(() => {
     if (window.matchMedia('(min-width: 58rem)').matches) {
@@ -85,14 +85,13 @@
     on:input|stopPropagation={() => updateFilter(searchForm)}
   >
     <div class="block-erase">
-      <span class="filter-text">Filtru</span>
+      <span class="filter-text">{$_('app.sidebar.filter')}</span>
       <button class="button__erase" on:click|stopPropagation={resetForm} type="button">
-        <span class="icon-delete icon--M" aria-hidden="true"></span>Sterge Cautarea
+        <span class="icon-delete icon--M" aria-hidden="true"></span>{$_('app.sidebar.clear_search')}
       </button>
     </div>
 
     <div class="divider"></div>
-    <!-- <label for="searchText">Cauta dupa cuvintele...</label> -->
     <div class="input-search">
       <input
         id="searchText"
@@ -103,29 +102,29 @@
         placeholder={$_('app.sidebar.form.search_placeholder')}
         bind:this={searchTextInput}
       />
-      <button class="clear-search" type="button" aria-label="Sterge textul cautarii" on:click={clearInput}>
+      <button class="clear-search" type="button" aria-label={$_('app.sidebar.clear_search_text')} on:click={clearInput}>
         <span class="icon-error icon--input" aria-hidden="true"></span>
       </button>
     </div>
 
-    <div class="margin-up">Cum se face cautarea?</div>
+    <div class="margin-up">{$_('app.sidebar.search_type_label')}</div>
 
     <label class="radio__label" for="match">
       <input type="radio" id="match" name="searchType" value="match" bind:group={searchForm.searchType} />
-      <span>Contine expresia</span>
+      <span>{$_('app.sidebar.search_type.match')}</span>
     </label>
 
     <label class="radio__label" for="exact">
       <input type="radio" id="exact" name="searchType" value="every" bind:group={searchForm.searchType} />
-      <span>Contine cuvintele</span></label
+      <span>{$_('app.sidebar.search_type.every')}</span></label
     >
 
     <label class="radio__label" for="any">
       <input type="radio" id="any" name="searchType" value="some" bind:group={searchForm.searchType} />
-      <span>Oricare cuvant</span>
+      <span>{$_('app.sidebar.search_type.some')}</span>
     </label>
 
-    <div class="margin-up">Unde se face cautarea?</div>
+    <div class="margin-up">{$_('app.sidebar.search_scope_label')}</div>
 
     <label class="radio__label" for="all">
       <input
@@ -136,25 +135,25 @@
         bind:group={searchForm.testament}
         on:change={cleanBook}
       />
-      <span>Toata Biblia</span>
+      <span>{$_('app.sidebar.scope.all')}</span>
     </label>
 
     <label class="radio__label" for="ot">
       <input type="radio" id="ot" name="testament" value="ot" bind:group={searchForm.testament} on:change={cleanBook} />
-      <span>Vechiul testament</span>
+      <span>{$_('app.sidebar.scope.ot')}</span>
     </label>
 
     <label class="radio__label" for="nt">
       <input type="radio" id="nt" name="testament" value="nt" bind:group={searchForm.testament} on:change={cleanBook} />
-      <span>Noul Testament</span>
+      <span>{$_('app.sidebar.scope.nt')}</span>
     </label>
 
     <div class="book-picker">
       <div>
-        <span>Cartea selectata</span>
+        <span>{$_('app.sidebar.selected_book')}</span>
         <strong>{selectedBookName}</strong>
       </div>
-      <button type="button" on:click={() => (isBookDrawerOpen = true)}> Alege cartea </button>
+      <button type="button" on:click={() => (isBookDrawerOpen = true)}> {$_('app.sidebar.choose_book')} </button>
     </div>
   </form>
 </div>

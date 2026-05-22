@@ -1,12 +1,88 @@
 {
   "app": {
+    "loading": "Cargando...",
+    "bible": {
+      "name": "Biblia Español"
+    },
+    "errors": {
+      "invalid_bible_version": "Versión bíblica inválida.",
+      "bible_load_failed": "No se pudo cargar la versión bíblica seleccionada.",
+      "bible_file_hint": "Comprueba que existan los ficheros",
+      "and": "y"
+    },
+    "nav": {
+      "logo_label": "RoBible",
+      "logo_text": "Biblia",
+      "version_label": "Versión de la Biblia"
+    },
     "footer": {
-      "title": "Biblia pentru Studiu",
-      "copyright": "robible.com"
+      "title": "Biblia para Estudio",
+      "copyright": "robible.com",
+      "text": "RoBible - Biblia para Estudio | consulting@iberbind.com"
     },
     "sidebar": {
+      "all_bible": "Toda la Biblia",
+      "filter": "Filtro",
+      "clear_search": "Borrar búsqueda",
+      "clear_search_text": "Borrar texto de búsqueda",
+      "search_type_label": "¿Cómo se hace la búsqueda?",
+      "search_scope_label": "¿Dónde se hace la búsqueda?",
+      "selected_book": "Libro seleccionado",
+      "choose_book": "Elegir libro",
       "form": {
-        "search_placeholder": "Cauta dupa cuvintele..."
+        "search_placeholder": "Buscar por palabras..."
+      },
+      "search_type": {
+        "match": "Contiene la expresión",
+        "every": "Contiene las palabras",
+        "some": "Cualquier palabra"
+      },
+      "scope": {
+        "all": "Toda la Biblia",
+        "ot": "Antiguo Testamento",
+        "nt": "Nuevo Testamento"
+      }
+    },
+    "book_drawer": {
+      "aria_label": "Libros de la Biblia",
+      "eyebrow": "Biblioteca",
+      "title": "Libros de la Biblia",
+      "close": "Cerrar menú de libros",
+      "groups": {
+        "ot": {
+          "title": "Antiguo Testamento",
+          "description": "Primeros 39 libros"
+        },
+        "nt": {
+          "title": "Nuevo Testamento",
+          "description": "Últimos 27 libros"
+        }
+      }
+    },
+    "result": {
+      "breadcrumb_label": "Miga de pan",
+      "chapters_label": "Capítulos",
+      "chapter_form_label": "Selecciona el capítulo",
+      "chapter_breadcrumb": "Capítulo {chapter}",
+      "result_count_start": "Se muestran",
+      "result_count_end": "resultados de {total}",
+      "page_title": {
+        "search": "Búsqueda en {bible}",
+        "chapter": "{book}, capítulo {chapter}"
+      },
+      "page_lead": {
+        "search": "Resultados rápidos, claros y fáciles de recorrer en el texto bíblico.",
+        "chapter": "Lee el capítulo en un formato limpio, optimizado para una lectura tranquila y estudio bíblico.",
+        "default": "Lee la Escritura online, con acceso rápido a libros, capítulos y versículos."
+      },
+      "toast": {
+        "copied": "¡Versículo copiado!",
+        "copy_failed": "No se pudo copiar el versículo"
+      },
+      "actions": {
+        "open_chapter": "Abrir capítulo completo",
+        "copy_verse": "Copiar versículo",
+        "copy_verse_reference": "Copiar {reference}"
       }
     }
   }

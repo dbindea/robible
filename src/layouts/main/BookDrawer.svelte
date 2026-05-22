@@ -1,5 +1,6 @@
 <script>
   import { onDestroy } from 'svelte';
+  import { _ } from '../../services/i18n.service';
 
   export let open = false;
   export let map;
@@ -9,13 +10,13 @@
 
   const groups = [
     {
-      title: 'Vechiul Testament',
-      description: 'Primele 39 de carti',
+      titleKey: 'app.book_drawer.groups.ot.title',
+      descriptionKey: 'app.book_drawer.groups.ot.description',
       key: 'ot',
     },
     {
-      title: 'Noul Testament',
-      description: 'Ultimele 27 de carti',
+      titleKey: 'app.book_drawer.groups.nt.title',
+      descriptionKey: 'app.book_drawer.groups.nt.description',
       key: 'nt',
     },
   ];
@@ -46,17 +47,17 @@
   <div class="book-drawer__overlay" aria-hidden="true" on:click={onClose}></div>
 {/if}
 
-<aside class:book-drawer--open={open} class="book-drawer" aria-hidden={!open} aria-label="Cartile Bibliei">
+<aside class:book-drawer--open={open} class="book-drawer" aria-hidden={!open} aria-label={$_('app.book_drawer.aria_label')}>
   <div class="book-drawer__header">
     <div>
-      <p>Biblioteca</p>
-      <h2>Cartile Bibliei</h2>
+      <p>{$_('app.book_drawer.eyebrow')}</p>
+      <h2>{$_('app.book_drawer.title')}</h2>
     </div>
     <button
       class="book-drawer__close"
       type="button"
       tabindex={open ? 0 : -1}
-      aria-label="Inchide meniul cartilor"
+      aria-label={$_('app.book_drawer.close')}
       on:click={onClose}
     >
       <span class="icon-cross" aria-hidden="true"></span>
@@ -67,8 +68,8 @@
     {#each groups as group (group.key)}
       <section class="book-group" aria-labelledby={`book-group-${group.key}`}>
         <div class="book-group__header">
-          <h3 id={`book-group-${group.key}`}>{group.title}</h3>
-          <span>{group.description}</span>
+          <h3 id={`book-group-${group.key}`}>{$_(group.titleKey)}</h3>
+          <span>{$_(group.descriptionKey)}</span>
         </div>
 
         <div class="book-group__grid">

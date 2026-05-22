@@ -1,8 +1,9 @@
 <script>
   import { onDestroy, onMount, tick } from 'svelte';
+  import { _ } from '../../services/i18n.service';
   import { getFilterResult, replaceDiacritics } from '../../services/filter.service';
   import { applySeoMetadata, buildCurrentBibleSeo } from '../../services/seo.service';
-  import { filter } from '../../store/stores';
+  import { filter, getBibleVersionConfigOrDefault, selectedBibleVersion } from '../../store/stores';
 
   export let bible;
   export let map;
@@ -26,47 +27,50 @@
   $: selectedChapter = Array.isArray(searchForm.chapter) ? searchForm.chapter[0] : null;
   $: selectedChapterLabel =
     selectedChapter !== null && selectedChapter !== undefined ? Number(selectedChapter) + 1 : null;
-  $: pageTitle = getPageTitle(searchForm.searchText, selectedBookName, selectedChapterLabel);
-  $: pageLead = getPageLead(searchForm.searchText, selectedBookName, selectedChapterLabel);
+  $: chapterForm.chapter = selectedChapter ?? 0;
+  $: bibleVersionConfig = getBibleVersionConfigOrDefault($selectedBibleVersion);
+  $: bibleLabel = bibleVersionConfig.bibleName || $_('app.bible.name');
+  $: pageTitle = getPageTitle(searchForm.searchText, selectedBookName, selectedChapterLabel, bibleLabel, $_);
+  $: pageLead = getPageLead(searchForm.searchText, selectedBookName, selectedChapterLabel, $_);
   $: if (Object.keys(searchForm).length && Object.keys(map).length) {
-    applySeoMetadata(buildCurrentBibleSeo({ searchForm, map }));
+    applySeoMetadata(buildCurrentBibleSeo({ searchForm, map, versionConfig: bibleVersionConfig }));
   }
 
   $: chapterArray =
     Array.isArray(searchForm.book) && searchForm.book.length
-      ? Array.from(Array(bible[searchForm.book[0]].length).keys())
+      ? Array.from(Array(bible[searchForm.book[0]]?.length || 0).keys())
       : [];
 
   const updateChapterForm = () => {
     filter.set({ ...searchForm, chapter: [chapterForm.chapter] });
   };
 
-  const getPageTitle = (searchText, bookName, chapterLabel) => {
+  const getPageTitle = (searchText, bookName, chapterLabel, bibleName, translate) => {
     if (searchText) {
-      return 'Cautare in Biblia Cornilescu';
+      return translate('app.result.page_title.search', { bible: bibleName });
     }
 
     if (bookName && chapterLabel) {
-      return `${bookName}, capitolul ${chapterLabel}`;
+      return translate('app.result.page_title.chapter', { book: bookName, chapter: chapterLabel });
     }
 
     if (bookName) {
       return bookName;
     }
 
-    return 'Biblia Dumitru Cornilescu';
+    return bibleName;
   };
 
-  const getPageLead = (searchText, bookName, chapterLabel) => {
+  const getPageLead = (searchText, bookName, chapterLabel, translate) => {
     if (searchText) {
-      return 'Rezultate rapide, clare si usor de parcurs in textul biblic romanesc.';
+      return translate('app.result.page_lead.search');
     }
 
     if (bookName && chapterLabel) {
-      return 'Citeste capitolul intr-un format curat, optimizat pentru lectura linistita si studiu biblic.';
+      return translate('app.result.page_lead.chapter');
     }
 
-    return 'Citeste Scriptura online, cu acces rapid la carti, capitole si versete.';
+    return translate('app.result.page_lead.default');
   };
 
   const showToast = (message) => {
@@ -97,9 +101,9 @@
   const copyVerse = async (item) => {
     try {
       await copyToClipboard(`[${map[item.book]} ${item.chapter}:${item.index}] ${item.text}`);
-      showToast('Verset copiat!');
+      showToast($_('app.result.toast.copied'));
     } catch {
-      showToast('Nu s-a putut copia versetul');
+      showToast($_('app.result.toast.copy_failed'));
     }
   };
 
@@ -215,8 +219,8 @@
 </script>
 
 {#if !searchForm.searchText && chapterArray.length}
-  <div class="radio-toolbar sticky">
-    <form on:change|preventDefault={updateChapterForm}>
+  <div class="radio-toolbar sticky" aria-label={$_('app.result.chapters_label')}>
+    <form class="radio-toolbar__form" aria-label={$_('app.result.chapter_form_label')} on:change|preventDefault={updateChapterForm}>
       {#each chapterArray as item (item)}
         <input type="radio" id={`chapter-${item}`} value={item} bind:group={chapterForm.chapter} />
         <label for={`chapter-${item}`}>{Number(item + 1)}</label>
@@ -226,17 +230,17 @@
 {/if}
 
 <div class="result">
-  <nav class="breadcrumbs" aria-label="Breadcrumb">
+  <nav class="breadcrumbs" aria-label={$_('app.result.breadcrumb_label')}>
     <a href="/">RoBible</a>
     <span aria-hidden="true">/</span>
-    <span>Biblia Cornilescu</span>
+    <span>{bibleLabel}</span>
     {#if selectedBookName}
       <span aria-hidden="true">/</span>
       <span>{selectedBookName}</span>
     {/if}
     {#if selectedChapterLabel}
       <span aria-hidden="true">/</span>
-      <span>Capitolul {selectedChapterLabel}</span>
+      <span>{$_('app.result.chapter_breadcrumb', { chapter: selectedChapterLabel })}</span>
     {/if}
   </nav>
 
@@ -246,7 +250,11 @@
   </header>
 
   {#if searchForm.searchText}
-    <p>Se afiseaza <span class="count">{result.length}</span> rezultate din {count}</p>
+    <p>
+      {$_('app.result.result_count_start')}
+      <span class="count">{result.length}</span>
+      {$_('app.result.result_count_end', { total: count })}
+    </p>
   {/if}
 
   {#each result as item (item.key)}
@@ -267,7 +275,7 @@
         {/each}
         <button
           type="button"
-          title="Deschide capitolul complet"
+          title={$_('app.result.actions.open_chapter')}
           class="reference"
           on:click={() => navigateToVerse(item)}
         >
@@ -276,8 +284,10 @@
         </button>
         <button
           type="button"
-          title="Copiaza versetul"
-          aria-label={`Copiaza ${map[item.book]} ${item.chapter}:${item.index}`}
+          title={$_('app.result.actions.copy_verse')}
+          aria-label={$_('app.result.actions.copy_verse_reference', {
+            reference: `${map[item.book]} ${item.chapter}:${item.index}`,
+          })}
           class="copy-link"
           on:click={() => copyVerse(item)}
         >
@@ -459,30 +469,37 @@
   .count {
     font-weight: 700;
   }
-  form {
-    display: contents;
-  }
   .radio-toolbar {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    align-items: center;
     padding: 1rem;
     background-color: var(--color-bg-light);
     margin: 0 0 1rem;
     z-index: 1;
     box-shadow: var(--box-shadow-up);
     border-radius: 0.25rem;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-color: rgb(45 150 205 / 45%) transparent;
+
+    &__form {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+      min-width: 0;
+    }
 
     label {
+      flex: 0 0 auto;
       background-color: var(--color-blue);
       min-width: 2rem;
+      min-height: 2rem;
       padding: 0.25rem 0.45rem;
       font-size: 14px;
       border: 0.1rem var(--border-blue);
       border-radius: 0.25rem;
       color: #ffffff;
       cursor: pointer;
+      line-height: 1.35;
       text-align: center;
       transition: var(--transition);
     }
@@ -527,6 +544,17 @@
     .radio-toolbar {
       margin-inline: -1rem;
       border-radius: 0;
+      padding: 0.75rem 1rem;
+
+      &__form {
+        flex-wrap: nowrap;
+        min-width: 100%;
+        width: max-content;
+      }
+
+      label {
+        min-width: 2.35rem;
+      }
     }
 
     .verse {

@@ -1,4 +1,5 @@
-import { DEFAULT_VERSION, SEO_TEXT, SITE_URL, SUPPORTED_LOCALES } from '../config/seo';
+import { DEFAULT_VERSION, SITE_URL, SUPPORTED_LOCALES } from '../config/seo';
+import { getBibleVersionConfigOrDefault } from '../config/bible-versions';
 
 const DEFAULT_IMAGE = `${SITE_URL}/assets/img/logo.svg`;
 
@@ -32,10 +33,14 @@ function setLink(selector, attributes) {
   });
 }
 
+function getBibleSchemaId(versionConfig) {
+  return `${SITE_URL}/#bible-${versionConfig.value}`;
+}
+
 function updateAlternates(canonicalPath) {
   document.head.querySelectorAll('link[data-seo-alternate="true"]').forEach((element) => element.remove());
 
-  SUPPORTED_LOCALES.filter((locale) => !locale.future).forEach((locale) => {
+  SUPPORTED_LOCALES.forEach((locale) => {
     const link = document.createElement('link');
     link.setAttribute('rel', 'alternate');
     link.setAttribute('hreflang', locale.hreflang);
@@ -64,33 +69,38 @@ function setStructuredData(data) {
 }
 
 export function applySeoMetadata({
-  title = SEO_TEXT.homeTitle,
-  description = SEO_TEXT.homeDescription,
+  versionConfig = DEFAULT_VERSION,
+  title,
+  description,
   canonicalPath = '/',
   robots = 'index, follow, max-image-preview:large',
   type = 'website',
   schema = [],
 } = {}) {
+  const activeVersion = getBibleVersionConfigOrDefault(versionConfig?.value);
+  const seoText = activeVersion.seo;
+  const pageTitle = title || seoText.homeTitle;
+  const pageDescription = description || seoText.homeDescription;
   const canonicalUrl = absoluteUrl(canonicalPath);
 
-  document.documentElement.lang = DEFAULT_VERSION.language;
-  document.title = title;
+  document.documentElement.lang = activeVersion.locale;
+  document.title = pageTitle;
 
-  setMeta('meta[name="description"]', { name: 'description', content: description });
+  setMeta('meta[name="description"]', { name: 'description', content: pageDescription });
   setMeta('meta[name="robots"]', { name: 'robots', content: robots });
   setLink('link[rel="canonical"]', { rel: 'canonical', href: canonicalUrl });
   updateAlternates(canonicalPath);
 
-  setMeta('meta[property="og:locale"]', { property: 'og:locale', content: 'ro_RO' });
+  setMeta('meta[property="og:locale"]', { property: 'og:locale', content: activeVersion.ogLocale });
   setMeta('meta[property="og:type"]', { property: 'og:type', content: type });
   setMeta('meta[property="og:site_name"]', { property: 'og:site_name', content: 'RoBible' });
-  setMeta('meta[property="og:title"]', { property: 'og:title', content: title });
-  setMeta('meta[property="og:description"]', { property: 'og:description', content: description });
+  setMeta('meta[property="og:title"]', { property: 'og:title', content: pageTitle });
+  setMeta('meta[property="og:description"]', { property: 'og:description', content: pageDescription });
   setMeta('meta[property="og:url"]', { property: 'og:url', content: canonicalUrl });
   setMeta('meta[property="og:image"]', { property: 'og:image', content: DEFAULT_IMAGE });
   setMeta('meta[name="twitter:card"]', { name: 'twitter:card', content: 'summary' });
-  setMeta('meta[name="twitter:title"]', { name: 'twitter:title', content: title });
-  setMeta('meta[name="twitter:description"]', { name: 'twitter:description', content: description });
+  setMeta('meta[name="twitter:title"]', { name: 'twitter:title', content: pageTitle });
+  setMeta('meta[name="twitter:description"]', { name: 'twitter:description', content: pageDescription });
 
   setStructuredData({
     '@context': 'https://schema.org',
@@ -100,7 +110,7 @@ export function applySeoMetadata({
         '@id': `${SITE_URL}/#website`,
         name: 'RoBible',
         url: `${SITE_URL}/`,
-        inLanguage: DEFAULT_VERSION.language,
+        inLanguage: activeVersion.locale,
         potentialAction: {
           '@type': 'SearchAction',
           target: `${SITE_URL}/?q={search_term_string}`,
@@ -109,10 +119,10 @@ export function applySeoMetadata({
       },
       {
         '@type': 'Book',
-        '@id': `${SITE_URL}/#bible-cornilescu`,
-        name: DEFAULT_VERSION.name,
-        alternateName: DEFAULT_VERSION.shortName,
-        inLanguage: DEFAULT_VERSION.language,
+        '@id': getBibleSchemaId(activeVersion),
+        name: activeVersion.bibleName,
+        alternateName: activeVersion.shortName,
+        inLanguage: activeVersion.locale,
         isAccessibleForFree: true,
         url: `${SITE_URL}/`,
         publisher: {
@@ -126,7 +136,15 @@ export function applySeoMetadata({
   });
 }
 
-export function buildCurrentBibleSeo({ searchForm = {}, map = {} }) {
+export function buildCurrentBibleSeo({
+  searchForm = {},
+  map = {},
+  versionConfig = DEFAULT_VERSION,
+  bibleName = versionConfig.bibleName,
+}) {
+  const activeVersion = getBibleVersionConfigOrDefault(versionConfig?.value);
+  const seoText = activeVersion.seo;
+  const activeBibleName = bibleName || activeVersion.bibleName;
   const selectedBook = Array.isArray(searchForm.book) ? searchForm.book[0] : null;
   const selectedChapter = Array.isArray(searchForm.chapter) ? searchForm.chapter[0] : null;
   const searchText = searchForm.searchText?.trim();
@@ -134,15 +152,16 @@ export function buildCurrentBibleSeo({ searchForm = {}, map = {} }) {
 
   if (searchText) {
     return {
-      title: `Caută „${searchText}” în Biblia Cornilescu | RoBible`,
-      description: SEO_TEXT.searchDescription(searchText),
+      versionConfig: activeVersion,
+      title: seoText.searchTitle(searchText, activeBibleName),
+      description: seoText.searchDescription(searchText, activeBibleName),
       robots: 'noindex, follow',
       type: 'website',
       schema: [
         {
           '@type': 'SearchResultsPage',
-          name: `Rezultate pentru ${searchText}`,
-          description: SEO_TEXT.searchDescription(searchText),
+          name: `${activeVersion.searchResultsLabel} ${searchText}`,
+          description: seoText.searchDescription(searchText, activeBibleName),
           isPartOf: { '@id': `${SITE_URL}/#website` },
         },
       ],
@@ -154,24 +173,25 @@ export function buildCurrentBibleSeo({ searchForm = {}, map = {} }) {
     const reference = `${bookName} ${chapter}`;
 
     return {
-      title: `${reference} | Biblia Dumitru Cornilescu`,
-      description: SEO_TEXT.chapterDescription(bookName, chapter),
+      versionConfig: activeVersion,
+      title: seoText.chapterTitle(reference, activeBibleName),
+      description: seoText.chapterDescription(bookName, chapter, activeBibleName),
       type: 'article',
       schema: [
         {
           '@type': 'Chapter',
           name: reference,
-          isPartOf: { '@id': `${SITE_URL}/#bible-cornilescu` },
-          inLanguage: DEFAULT_VERSION.language,
-          description: SEO_TEXT.chapterDescription(bookName, chapter),
+          isPartOf: { '@id': getBibleSchemaId(activeVersion) },
+          inLanguage: activeVersion.locale,
+          description: seoText.chapterDescription(bookName, chapter, activeBibleName),
         },
         {
           '@type': 'BreadcrumbList',
           itemListElement: [
             { '@type': 'ListItem', position: 1, name: 'RoBible', item: `${SITE_URL}/` },
-            { '@type': 'ListItem', position: 2, name: DEFAULT_VERSION.name, item: `${SITE_URL}/` },
+            { '@type': 'ListItem', position: 2, name: activeBibleName, item: `${SITE_URL}/` },
             { '@type': 'ListItem', position: 3, name: bookName },
-            { '@type': 'ListItem', position: 4, name: `Capitolul ${chapter}` },
+            { '@type': 'ListItem', position: 4, name: `${activeVersion.chapterLabel} ${chapter}` },
           ],
         },
       ],
@@ -180,23 +200,25 @@ export function buildCurrentBibleSeo({ searchForm = {}, map = {} }) {
 
   if (bookName) {
     return {
-      title: `${bookName} | Biblia Dumitru Cornilescu Online`,
-      description: SEO_TEXT.bookDescription(bookName),
+      versionConfig: activeVersion,
+      title: seoText.bookTitle(bookName, activeBibleName),
+      description: seoText.bookDescription(bookName, activeBibleName),
       type: 'article',
       schema: [
         {
           '@type': 'Book',
-          name: `${bookName} - ${DEFAULT_VERSION.name}`,
-          isPartOf: { '@id': `${SITE_URL}/#bible-cornilescu` },
-          inLanguage: DEFAULT_VERSION.language,
-          description: SEO_TEXT.bookDescription(bookName),
+          name: `${bookName} - ${activeBibleName}`,
+          isPartOf: { '@id': getBibleSchemaId(activeVersion) },
+          inLanguage: activeVersion.locale,
+          description: seoText.bookDescription(bookName, activeBibleName),
         },
       ],
     };
   }
 
   return {
-    title: SEO_TEXT.homeTitle,
-    description: SEO_TEXT.homeDescription,
+    versionConfig: activeVersion,
+    title: seoText.homeTitle,
+    description: seoText.homeDescription,
   };
 }
