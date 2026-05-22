@@ -17,12 +17,15 @@
     color: var(--color-bg-dark);
     justify-content: center;
     background-color: var(--color-white);
+    font-size: 14px;
   }
 
   @media (max-width: 32rem) {
     .footer {
-      align-items: flex-start;
-      flex-direction: column;
+      align-items: center;
+      flex-direction: row;
+    font-size: 12px;
+
     }
   }
 </style>
