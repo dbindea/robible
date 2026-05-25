@@ -5,6 +5,8 @@
   import BookDrawer from './BookDrawer.svelte';
 
   export let map;
+  export let result = [];
+  export let count = 0;
 
   let searchForm = {
     searchText: null,
@@ -19,7 +21,8 @@
 
   $: searchForm = $filter;
   $: selectedBook = Array.isArray(searchForm.book) ? searchForm.book[0] : null;
-  $: selectedBookName = selectedBook !== null && selectedBook !== undefined ? map[selectedBook] : $_('app.sidebar.all_bible');
+  $: selectedBookName =
+    selectedBook !== null && selectedBook !== undefined ? map[selectedBook] : $_('app.sidebar.all_bible');
 
   onMount(() => {
     if (window.matchMedia('(min-width: 58rem)').matches) {
@@ -106,6 +109,13 @@
         <span class="icon-error icon--input" aria-hidden="true"></span>
       </button>
     </div>
+    {#if searchForm.searchText}
+      <p class="search-result-count" aria-live="polite">
+        {$_('app.result.result_count_start')}
+        <span>{result.length}</span>
+        {$_('app.result.result_count_end', { total: count })}
+      </p>
+    {/if}
 
     <div class="margin-up">{$_('app.sidebar.search_type_label')}</div>
 
@@ -408,6 +418,19 @@
     &:focus-visible {
       outline: 2px solid rgb(255 255 255 / 75%);
       outline-offset: 2px;
+    }
+  }
+
+  .search-result-count {
+    margin: 0.35rem 0 0;
+    color: rgb(255 255 255 / 68%);
+    font-size: 0.78rem;
+    line-height: 1.35;
+    text-align: right;
+
+    span {
+      color: #ffffff;
+      font-weight: 600;
     }
   }
 

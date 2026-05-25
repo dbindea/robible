@@ -1,18 +1,25 @@
 <script>
+  import { filter } from '../../store/stores';
+  import { getFilterResult } from '../../services/filter.service';
   import Sidebar from './Sidebar.svelte';
   import Result from './Result.svelte';
 
   export let bible;
   export let map;
+
+  $: searchForm = $filter;
+  $: fullResult = Object.keys(searchForm).length ? getFilterResult(bible, map, searchForm) : [];
+  $: count = fullResult.length;
+  $: result = fullResult.slice(0, 200);
 </script>
 
 <div class="main">
   <div class="sidebar">
-    <Sidebar {map} />
+    <Sidebar {map} {result} {count} />
   </div>
   <div class="layout">
     {#if Object.keys(bible).length}
-      <Result {bible} {map} />
+      <Result {bible} {map} {result} {count} />
     {/if}
   </div>
 </div>

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'robible-v4';
+const CACHE_NAME = 'robible-v5';
 
 const CORE_ASSETS = [
   '/',
@@ -16,7 +16,6 @@ const CORE_ASSETS = [
   '/android-chrome-512x512.png',
   '/maskable-icon-192x192.png',
   '/maskable-icon-512x512.png',
-  '/assets/img/logo.svg',
   '/assets/img/logo.png',
   '/assets/font/open-sans-v28-latin-regular.woff2',
   '/assets/font/open-sans-v28-latin-700.woff2',
