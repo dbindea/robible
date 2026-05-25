@@ -23,7 +23,7 @@
     bible = [];
 
   const buildBibleDataUrl = (version, fileName) => {
-    return `data/${encodeURIComponent(version)}/${fileName}`;
+    return `/data/${encodeURIComponent(version)}/${fileName}`;
   };
 
   const fetchBibleJson = async (version, fileName) => {
@@ -37,9 +37,9 @@
     return response.json();
   };
 
-  const clearVerseHash = () => {
-    if (window.location.hash) {
-      window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
+  const clearVerseLocation = () => {
+    if (window.location.hash || window.location.pathname.startsWith('/verse/')) {
+      window.history.replaceState(null, '', '/');
     }
   };
 
@@ -84,7 +84,7 @@
 
     if (isVersionChange) {
       resetFilter();
-      clearVerseHash();
+      clearVerseLocation();
     }
 
     if (!isValidBibleVersion(version)) {

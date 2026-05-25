@@ -1,7 +1,7 @@
 import { DEFAULT_VERSION, SITE_URL, SUPPORTED_LOCALES } from '../config/seo';
 import { getBibleVersionConfigOrDefault } from '../config/bible-versions';
 
-const DEFAULT_IMAGE = `${SITE_URL}/assets/img/logo.svg`;
+const DEFAULT_IMAGE = `${SITE_URL}/assets/img/logo.png`;
 
 function absoluteUrl(path = '/') {
   return new URL(path, SITE_URL).toString();
@@ -35,6 +35,20 @@ function setLink(selector, attributes) {
 
 function getBibleSchemaId(versionConfig) {
   return `${SITE_URL}/#bible-${versionConfig.value}`;
+}
+
+function getVerseSharePath(versionConfig, item) {
+  return `/verse/${versionConfig.value}/${item.book}/${item.chapter}/${item.index}`;
+}
+
+function truncateText(text = '', maxLength = 160) {
+  const normalizedText = text.replace(/\s+/g, ' ').trim();
+
+  if (normalizedText.length <= maxLength) {
+    return normalizedText;
+  }
+
+  return `${normalizedText.slice(0, maxLength - 1).trim()}...`;
 }
 
 function updateAlternates(canonicalPath) {
@@ -98,9 +112,13 @@ export function applySeoMetadata({
   setMeta('meta[property="og:description"]', { property: 'og:description', content: pageDescription });
   setMeta('meta[property="og:url"]', { property: 'og:url', content: canonicalUrl });
   setMeta('meta[property="og:image"]', { property: 'og:image', content: DEFAULT_IMAGE });
+  setMeta('meta[property="og:image:width"]', { property: 'og:image:width', content: '512' });
+  setMeta('meta[property="og:image:height"]', { property: 'og:image:height', content: '512' });
+  setMeta('meta[property="og:image:alt"]', { property: 'og:image:alt', content: 'RoBible' });
   setMeta('meta[name="twitter:card"]', { name: 'twitter:card', content: 'summary' });
   setMeta('meta[name="twitter:title"]', { name: 'twitter:title', content: pageTitle });
   setMeta('meta[name="twitter:description"]', { name: 'twitter:description', content: pageDescription });
+  setMeta('meta[name="twitter:image"]', { name: 'twitter:image', content: DEFAULT_IMAGE });
 
   setStructuredData({
     '@context': 'https://schema.org',
@@ -220,5 +238,33 @@ export function buildCurrentBibleSeo({
     versionConfig: activeVersion,
     title: seoText.homeTitle,
     description: seoText.homeDescription,
+  };
+}
+
+export function buildVerseSeo({ item, map = {}, versionConfig = DEFAULT_VERSION }) {
+  const activeVersion = getBibleVersionConfigOrDefault(versionConfig?.value);
+  const bookName = map[item.book] || '';
+  const reference = `${bookName} ${item.chapter}:${item.index}`.trim();
+  const verseText = truncateText(item.text, 150);
+  const description = verseText
+    ? `${verseText} (${activeVersion.bibleName})`
+    : activeVersion.seo.verseDescription(reference, activeVersion.bibleName);
+
+  return {
+    versionConfig: activeVersion,
+    title: `${reference} | ${activeVersion.bibleName}`,
+    description,
+    canonicalPath: getVerseSharePath(activeVersion, item),
+    type: 'article',
+    schema: [
+      {
+        '@type': 'CreativeWork',
+        name: reference,
+        text: item.text,
+        isPartOf: { '@id': getBibleSchemaId(activeVersion) },
+        inLanguage: activeVersion.locale,
+        description,
+      },
+    ],
   };
 }

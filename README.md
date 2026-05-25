@@ -47,4 +47,15 @@ You can preview the newly built app with:
 npm run preview
 ```
 
+## PWA and SEO checks
+
+Production registers `public/sw.js`, links `public/site.webmanifest`, and precaches the shell plus `public/data/**` for offline reading after the first successful load. Test installability from the deployed HTTPS site:
+
+1. Android Chrome: open `https://robible.com`, wait for the page to finish loading, then use the browser menu or install prompt.
+2. iOS Safari: open `https://robible.com`, use Share, then Add to Home Screen.
+3. Offline: load the site once, enable airplane mode, reopen it, and confirm the selected Bible data still loads.
+4. SEO preview: share a verse URL like `https://robible.com/verse/vdc/0/1/1`. Netlify serves real OG/Twitter meta tags for that URL, then redirects human visitors back into the SPA.
+
+For social preview debugging, inspect the initial HTML for `/verse/...`, then refresh the cache in Facebook Sharing Debugger. WhatsApp may cache previews, so test with a new verse URL or wait for its cache to expire.
+
 Thank you!

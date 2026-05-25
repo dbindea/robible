@@ -24,6 +24,14 @@ const getSavedFilter = () => {
 
 const getSavedBibleVersion = () => {
   try {
+    const url = new URL(window.location.href);
+    const pathVersion = url.pathname.match(/^\/verse\/([^/]+)\//)?.[1];
+    const requestedVersion = url.searchParams.get('version') || pathVersion;
+
+    if (isValidBibleVersion(requestedVersion)) {
+      return requestedVersion;
+    }
+
     const version = localStorage.getItem(BIBLE_VERSION_STORAGE_KEY);
     return isValidBibleVersion(version) ? version : DEFAULT_BIBLE_VERSION;
   } catch {

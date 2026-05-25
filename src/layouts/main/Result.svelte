@@ -1,12 +1,14 @@
 <script>
   import { onDestroy, onMount, tick } from 'svelte';
   import { _ } from '../../services/i18n.service';
-  import { getFilterResult, replaceDiacritics } from '../../services/filter.service';
-  import { applySeoMetadata, buildCurrentBibleSeo } from '../../services/seo.service';
+  import { replaceDiacritics } from '../../services/filter.service';
+  import { applySeoMetadata, buildCurrentBibleSeo, buildVerseSeo } from '../../services/seo.service';
   import { filter, getBibleVersionConfigOrDefault, selectedBibleVersion } from '../../store/stores';
 
   export let bible;
   export let map;
+  export let result = [];
+  export let count = 0;
 
   let chapterForm = {
     chapter: [],
@@ -16,15 +18,23 @@
   let toastTimer;
   let highlightTimer;
   let highlightedVerseId = '';
+  let currentVerseSeoItem = null;
 
   $: searchForm = $filter;
   $: keywords = searchForm.searchText || '';
-  $: fullResult = Object.keys(searchForm).length ? getFilterResult(bible, map, searchForm) : [];
-  $: count = fullResult.length;
-  $: result = fullResult.slice(0, 200);
   $: selectedBook = Array.isArray(searchForm.book) ? searchForm.book[0] : null;
   $: selectedBookName = selectedBook !== null && selectedBook !== undefined ? map[selectedBook] : null;
   $: selectedChapter = Array.isArray(searchForm.chapter) ? searchForm.chapter[0] : null;
+  $: if (
+    currentVerseSeoItem &&
+    (searchForm.searchText ||
+      selectedBook !== currentVerseSeoItem.book ||
+      selectedChapter === null ||
+      selectedChapter === undefined ||
+      Number(selectedChapter) !== currentVerseSeoItem.chapter - 1)
+  ) {
+    currentVerseSeoItem = null;
+  }
   $: selectedChapterLabel =
     selectedChapter !== null && selectedChapter !== undefined ? Number(selectedChapter) + 1 : null;
   $: chapterForm.chapter = selectedChapter ?? 0;
@@ -33,7 +43,11 @@
   $: pageTitle = getPageTitle(searchForm.searchText, selectedBookName, selectedChapterLabel, bibleLabel, $_);
   $: pageLead = getPageLead(searchForm.searchText, selectedBookName, selectedChapterLabel, $_);
   $: if (Object.keys(searchForm).length && Object.keys(map).length) {
-    applySeoMetadata(buildCurrentBibleSeo({ searchForm, map, versionConfig: bibleVersionConfig }));
+    applySeoMetadata(
+      currentVerseSeoItem && !searchForm.searchText
+        ? buildVerseSeo({ item: currentVerseSeoItem, map, versionConfig: bibleVersionConfig })
+        : buildCurrentBibleSeo({ searchForm, map, versionConfig: bibleVersionConfig }),
+    );
   }
 
   $: chapterArray =
@@ -100,7 +114,9 @@
 
   const copyVerse = async (item) => {
     try {
-      await copyToClipboard(`[${map[item.book]} ${item.chapter}:${item.index}] ${item.text}`);
+      await copyToClipboard(
+        `[${map[item.book]} ${item.chapter}:${item.index}] ${item.text}\n${getVerseShareUrl(item)}`,
+      );
       showToast($_('app.result.toast.copied'));
     } catch {
       showToast($_('app.result.toast.copy_failed'));
@@ -108,6 +124,37 @@
   };
 
   const getVerseId = (item) => `verse-${item.book}-${item.chapter}-${item.index}`;
+  const getVerseSharePath = (item) => `/verse/${$selectedBibleVersion}/${item.book}/${item.chapter}/${item.index}`;
+  const getVerseShareUrl = (item) => `${window.location.origin}${getVerseSharePath(item)}`;
+
+  const getVerseFromLocation = () => {
+    const [, hashBook, hashChapter, hashIndex] = window.location.hash.match(/^#verse-(\d+)-(\d+)-(\d+)$/) || [];
+
+    if (hashBook && hashChapter && hashIndex) {
+      return {
+        book: Number(hashBook),
+        chapter: Number(hashChapter),
+        index: Number(hashIndex),
+      };
+    }
+
+    const [, pathBook, pathChapter, pathIndex] =
+      window.location.pathname.match(/^\/verse\/[^/]+\/(\d+)\/(\d+)\/(\d+)\/?$/) || [];
+
+    if (pathBook && pathChapter && pathIndex) {
+      return {
+        book: Number(pathBook),
+        chapter: Number(pathChapter),
+        index: Number(pathIndex),
+      };
+    }
+
+    return null;
+  };
+
+  const applyVerseMetadata = (item) => {
+    currentVerseSeoItem = item;
+  };
 
   const scrollToVerse = async (verseId) => {
     await tick();
@@ -128,6 +175,7 @@
 
   const navigateToVerse = async (item) => {
     const verseId = getVerseId(item);
+    applyVerseMetadata(item);
     filter.set({
       ...searchForm,
       searchText: null,
@@ -135,22 +183,28 @@
       book: [item.book],
       chapter: [item.chapter - 1],
     });
-    window.history.replaceState(null, '', `#${verseId}`);
+    window.history.replaceState(null, '', getVerseSharePath(item));
     await scrollToVerse(verseId);
   };
 
   onMount(() => {
-    const [, book, chapter, index] = window.location.hash.match(/^#verse-(\d+)-(\d+)-(\d+)$/) || [];
+    const verse = getVerseFromLocation();
 
-    if (book && chapter && index) {
+    if (verse) {
+      const item = {
+        ...verse,
+        text: bible[verse.book]?.[verse.chapter - 1]?.[verse.index - 1] || '',
+      };
       filter.set({
         ...searchForm,
         searchText: null,
-        testament: Number(book) < 39 ? 'ot' : 'nt',
-        book: [Number(book)],
-        chapter: [Number(chapter) - 1],
+        testament: Number(verse.book) < 39 ? 'ot' : 'nt',
+        book: [verse.book],
+        chapter: [verse.chapter - 1],
       });
-      scrollToVerse(`verse-${book}-${chapter}-${index}`);
+      applyVerseMetadata(item);
+      window.history.replaceState(null, '', getVerseSharePath(item));
+      scrollToVerse(getVerseId(verse));
     }
   });
 
@@ -220,7 +274,11 @@
 
 {#if !searchForm.searchText && chapterArray.length}
   <div class="radio-toolbar sticky" aria-label={$_('app.result.chapters_label')}>
-    <form class="radio-toolbar__form" aria-label={$_('app.result.chapter_form_label')} on:change|preventDefault={updateChapterForm}>
+    <form
+      class="radio-toolbar__form"
+      aria-label={$_('app.result.chapter_form_label')}
+      on:change|preventDefault={updateChapterForm}
+    >
       {#each chapterArray as item (item)}
         <input type="radio" id={`chapter-${item}`} value={item} bind:group={chapterForm.chapter} />
         <label for={`chapter-${item}`}>{Number(item + 1)}</label>

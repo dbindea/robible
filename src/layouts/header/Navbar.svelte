@@ -10,7 +10,7 @@
 
 <div class="header">
   <a class="logo" href="/" aria-label={$_('app.nav.logo_label')}>
-    <img class="logo__img" src="/assets/img/logo.svg" alt="" width="48" height="48" />
+    <img class="logo__img" src="/assets/img/logo.png" alt="" width="48" height="48" />
     <span class="logo__text">{$_('app.nav.logo_text')}</span>
   </a>
 
@@ -75,7 +75,7 @@
     }
 
     &__text {
-      color: var(--color-text-dark);
+      color: var(--color-bg-dark);
       font-size: 1.35rem;
       font-weight: 700;
       line-height: 1;
