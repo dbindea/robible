@@ -20,6 +20,17 @@
       "copyright": "robible.com",
       "text": "RoBible - Biblia pentru Studiu | consulting@iberbind.com"
     },
+    "pwa": {
+      "install_title": "Instaleaza RoBible",
+      "install_text": "Deschide Biblia pe tot ecranul si citeste fara conexiune.",
+      "install_action": "Instaleaza",
+      "ios_title": "Adauga pe ecran",
+      "ios_text": "Pe iPhone sau iPad: Partajare > Adauga pe ecranul principal.",
+      "update_title": "Versiune noua disponibila",
+      "update_text": "Actualizeaza pentru cea mai recenta versiune.",
+      "update_action": "Actualizeaza",
+      "dismiss": "Nu acum"
+    },
     "sidebar": {
       "all_bible": "Toată Biblia",
       "filter": "Filtru",
