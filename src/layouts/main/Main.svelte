@@ -34,7 +34,7 @@
   }
 
   .sidebar {
-    background-color: var(--color-bg-dark);
+    background-color: var(--color-sidebar);
     min-width: 0;
   }
 

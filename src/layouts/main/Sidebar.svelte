@@ -174,7 +174,7 @@
   }
 
   div {
-    color: var(--color-white);
+    color: var(--color-on-primary);
   }
 
   .sidebar {
@@ -191,7 +191,7 @@
     height: var(--input-height);
     padding: 0 2.5rem 0 0.5rem;
     border: solid 1px #7c8990;
-    background-color: var(--color-bg-dark);
+    background-color: var(--color-sidebar);
     color: #ffffff;
     outline: none;
     transition: var(--transition);
@@ -299,7 +299,7 @@
 
   .button__erase {
     background-color: var(--color-blue);
-    color: var(--color-white);
+    color: var(--color-on-primary);
     border: 0.1rem var(--border-blue);
     height: var(--button-height);
     font-size: 14px;
@@ -359,11 +359,11 @@
       border: 1px solid var(--color-blue);
       border: 0.1rem var(--border-blue);
       background-color: var(--color-blue);
-      color: var(--color-white);
+      color: var(--color-on-primary);
       transition: var(--transition);
 
       background-color: var(--color-blue);
-      color: var(--color-white);
+      color: var(--color-on-primary);
 
       height: var(--button-height);
       font-size: 14px;

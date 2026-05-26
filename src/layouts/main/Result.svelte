@@ -1,7 +1,7 @@
 <script>
   import { onDestroy, onMount, tick } from 'svelte';
-  import { _ } from '../../services/i18n.service';
   import { replaceDiacritics } from '../../services/filter.service';
+  import { _ } from '../../services/i18n.service';
   import { applySeoMetadata, buildCurrentBibleSeo, buildVerseSeo } from '../../services/seo.service';
   import { filter, getBibleVersionConfigOrDefault, selectedBibleVersion } from '../../store/stores';
 
@@ -115,7 +115,7 @@
   const copyVerse = async (item) => {
     try {
       await copyToClipboard(
-        `[${map[item.book]} ${item.chapter}:${item.index}] ${item.text}\n${getVerseShareUrl(item)}`,
+        `*${map[item.book]} ${item.chapter}:${item.index}* ${item.text}\n\n${getVerseShareUrl(item)}`,
       );
       showToast($_('app.result.toast.copied'));
     } catch {
@@ -353,7 +353,7 @@
         </button>
       </p>
     </div>
-    <div class="divider div-transparent div-dot"></div>
+    <div class="verse-divider" aria-hidden="true"></div>
   {/each}
 </div>
 
@@ -406,34 +406,29 @@
     }
   }
 
-  .divider {
-    position: relative;
-  }
-
-  .div-transparent:before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 5%;
-    right: 5%;
-    width: 90%;
+  .verse-divider {
+    width: min(36rem, 78%);
     height: 1px;
-    background-color: var(--color-bg-dark);
-    box-shadow: var(--box-shadow-up);
-  }
+    margin: 0.45rem auto;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in srgb, var(--color-bg-dark) 18%, transparent) 18%,
+      color-mix(in srgb, var(--color-blue) 38%, transparent) 50%,
+      color-mix(in srgb, var(--color-bg-dark) 18%, transparent) 82%,
+      transparent
+    );
 
-  .div-dot:after {
-    content: '';
-    position: absolute;
-    top: -5px;
-    left: calc(50% - 9px);
-    width: 0.5rem;
-    height: 0.5rem;
-    background-color: var(--color-bg-dark);
-    border: 1px solid var(--color-bg-dark);
-    box-shadow:
-      inset 0 0 0 2px white,
-      0 0 0 4px white;
+    &::after {
+      content: '';
+      display: block;
+      width: 2.25rem;
+      height: 0.18rem;
+      margin: -0.07rem auto 0;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--color-blue) 68%, var(--color-white));
+      opacity: 0.72;
+    }
   }
 
   .verse {
@@ -548,14 +543,14 @@
 
     label {
       flex: 0 0 auto;
-      background-color: var(--color-blue);
+      background-color: var(--color-white);
       min-width: 2rem;
       min-height: 2rem;
       padding: 0.25rem 0.45rem;
       font-size: 14px;
-      border: 0.1rem var(--border-blue);
+      border: 1px solid rgb(45 150 205 / 34%);
       border-radius: 0.25rem;
-      color: #ffffff;
+      color: var(--color-bg-dark);
       cursor: pointer;
       line-height: 1.35;
       text-align: center;
@@ -569,10 +564,17 @@
     }
 
     input[type='radio']:hover + label,
-    input[type='radio']:focus-visible + label,
-    input[type='radio']:checked + label {
-      background: var(--color-blue-hover);
+    input[type='radio']:focus-visible + label {
       border-color: var(--color-blue);
+      background: color-mix(in srgb, var(--color-blue) 13%, var(--color-white));
+      box-shadow: 0 0 0 3px rgb(45 150 205 / 12%);
+    }
+
+    input[type='radio']:checked + label {
+      border-color: var(--color-blue-hover);
+      background: var(--color-blue);
+      color: var(--color-on-primary);
+      box-shadow: 0 0 0 3px rgb(45 150 205 / 18%);
     }
   }
 

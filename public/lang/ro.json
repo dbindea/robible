@@ -16,19 +16,24 @@
       "version_label": "Versiunea Bibliei"
     },
     "footer": {
-      "title": "Biblia pentru Studiu",
-      "copyright": "robible.com",
-      "text": "RoBible - Biblia pentru Studiu | consulting@iberbind.com"
+      "made_with_love": "Facut cu drag în Arganda del Rey",
+      "maranata": "Maranata - Domnul nostru vine!",
+      "about_action": "Despre",
+      "about_title": "Biblie online, ușor de citit",
+      "about_text": "RoBible este o aplicație gratuită pentru citirea și căutarea versetelor Bibliei. Proiectul este deschis pentru îmbunătățiri pe GitHub.",
+      "close_about": "Închide informația",
+      "theme_dark": "Activează modul noapte",
+      "theme_light": "Activează modul zi"
     },
     "pwa": {
-      "install_title": "Instaleaza RoBible",
-      "install_text": "Deschide Biblia pe tot ecranul si citeste fara conexiune.",
-      "install_action": "Instaleaza",
-      "ios_title": "Adauga pe ecran",
-      "ios_text": "Pe iPhone sau iPad: Partajare > Adauga pe ecranul principal.",
-      "update_title": "Versiune noua disponibila",
-      "update_text": "Actualizeaza pentru cea mai recenta versiune.",
-      "update_action": "Actualizeaza",
+      "install_title": "Instalează RoBible",
+      "install_text": "Deschide Biblia pe tot ecranul și citește fără conexiune.",
+      "install_action": "Instalează",
+      "ios_title": "Adaugă pe ecran",
+      "ios_text": "Pe iPhone sau iPad: Partajare > Adaugă pe ecranul principal.",
+      "update_title": "Versiune nouă disponibilă",
+      "update_text": "Actualizează pentru cea mai recentă versiune.",
+      "update_action": "Actualizează",
       "dismiss": "Nu acum"
     },
     "sidebar": {
