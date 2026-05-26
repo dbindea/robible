@@ -47,7 +47,12 @@
   <div class="book-drawer__overlay" aria-hidden="true" on:click={onClose}></div>
 {/if}
 
-<aside class:book-drawer--open={open} class="book-drawer" aria-hidden={!open} aria-label={$_('app.book_drawer.aria_label')}>
+<aside
+  class:book-drawer--open={open}
+  class="book-drawer"
+  aria-hidden={!open}
+  aria-label={$_('app.book_drawer.aria_label')}
+>
   <div class="book-drawer__header">
     <div>
       <p>{$_('app.book_drawer.eyebrow')}</p>
@@ -171,7 +176,7 @@
   }
 
   .book-group {
-    border: 1px solid rgb(63 88 103 / 14%);
+    border: 1px solid color-mix(in srgb, var(--color-bg-dark) 14%, transparent);
     border-radius: 0.5rem;
     padding: 1rem;
   }
@@ -190,7 +195,7 @@
     }
 
     span {
-      color: color-mix(in srgb, var(--color-bg-dark) 62%, white);
+      color: color-mix(in srgb, var(--color-bg-dark) 62%, var(--color-white));
       font-size: 0.82rem;
       font-weight: 600;
       white-space: nowrap;
@@ -205,19 +210,25 @@
 
   .book-button {
     min-height: 2.35rem;
-    border: 1px solid rgb(45 150 205 / 20%);
-    border-radius: 0.35rem;
-    background-color: #eeeff7;
+    border: 1px solid rgb(45 150 205 / 34%);
+    border-radius: 0.25rem;
+    background-color: var(--color-white);
     color: var(--color-bg-dark);
     font-weight: 500;
     transition: var(--transition);
 
     &:hover,
-    &:focus-visible,
-    &--active {
+    &:focus-visible {
       border-color: var(--color-blue);
-      background-color: rgb(45 150 205 / 26%);
-      box-shadow: 0 0 4px 3px rgba(45, 150, 205, 0.12);
+      background: color-mix(in srgb, var(--color-blue) 13%, var(--color-white));
+      box-shadow: 0 0 0 3px rgb(45 150 205 / 12%);
+    }
+
+    &--active {
+      border-color: var(--color-blue-hover);
+      background: var(--color-blue);
+      color: var(--color-on-primary);
+      box-shadow: 0 0 0 3px rgb(45 150 205 / 18%);
     }
   }
 
