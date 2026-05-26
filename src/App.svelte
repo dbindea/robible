@@ -5,18 +5,11 @@
   import PwaManager from './layouts/pwa/PwaManager.svelte';
   import { _, DEFAULT_LOCALE, setupI18n } from './services/i18n.service';
   import { applySeoMetadata } from './services/seo.service';
-  import {
-    getBibleVersionConfigOrDefault,
-    isValidBibleVersion,
-    resetFilter,
-    selectedBibleVersion,
-  } from './store/stores';
+  import { getBibleVersionConfigOrDefault, isValidBibleVersion, selectedBibleVersion } from './store/stores';
 
   let bibleLoadRequestId = 0;
   let localeLoadRequestId = 0;
-  let activeBibleVersion = '';
   let isBibleLocaleReady = false;
-  let hasLoadedBible = false;
   let isBibleLoading = true;
   let bibleLoadError = '';
   let failedBibleVersion = '';
@@ -36,12 +29,6 @@
     }
 
     return response.json();
-  };
-
-  const clearVerseLocation = () => {
-    if (window.location.hash || window.location.pathname.startsWith('/verse/')) {
-      window.history.replaceState(null, '', '/');
-    }
   };
 
   const loadLocaleForBibleVersion = async (version) => {
@@ -75,18 +62,12 @@
 
   const loadBibleVersion = async (version) => {
     const requestId = ++bibleLoadRequestId;
-    const isVersionChange = hasLoadedBible && version !== activeBibleVersion;
 
     isBibleLoading = true;
     bibleLoadError = '';
     failedBibleVersion = '';
     map = {};
     bible = [];
-
-    if (isVersionChange) {
-      resetFilter();
-      clearVerseLocation();
-    }
 
     if (!isValidBibleVersion(version)) {
       isBibleLoading = false;
@@ -107,8 +88,6 @@
 
       map = nextMap;
       bible = nextBible;
-      activeBibleVersion = version;
-      hasLoadedBible = true;
     } catch (error) {
       if (requestId !== bibleLoadRequestId) {
         return;

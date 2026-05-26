@@ -16,9 +16,14 @@
       "version_label": "Versión de la Biblia"
     },
     "footer": {
-      "title": "Biblia para Estudio",
-      "copyright": "robible.com",
-      "text": "RoBible - Biblia para Estudio | consulting@iberbind.com"
+      "made_with_love": "Hecho con cariño en Arganda del Rey",
+      "maranata": "¡Maranatha - Nuestro Señor viene!",
+      "about_action": "Acerca de",
+      "about_title": "Biblia online, facil de leer",
+      "about_text": "RoBible es una app gratuita para leer y buscar en la Biblia con facilidad. El proyecto esta abierto a mejoras en GitHub.",
+      "close_about": "Cerrar información",
+      "theme_dark": "Activar modo noche",
+      "theme_light": "Activar modo día"
     },
     "pwa": {
       "install_title": "Instalar RoBible",

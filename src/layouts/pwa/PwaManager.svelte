@@ -215,7 +215,7 @@
   .pwa-notice__primary {
     border: 1px solid var(--color-blue);
     background: var(--color-blue);
-    color: var(--color-white);
+    color: var(--color-on-primary);
 
     &:hover,
     &:focus-visible {

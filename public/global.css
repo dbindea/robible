@@ -6,12 +6,14 @@
   --color-link: #0064c8;
   --color-link-visited: #0050a0;
   --color-white: #ffffff;
+  --color-on-primary: #ffffff;
+  --color-sidebar: #3f5867;
   --color-blue: #2d96cd;
   --color-blue-hover: #236f97;
 
   /* FONT */
   --font-default-size: 16px;
-  --font-family-base: 'Open Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-family-base: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, 'Open Sans', sans-serif;
 
   /* EFFECT */
   --border-blue: solid var(--color-blue);
@@ -23,6 +25,22 @@
   /* SIZE */
   --button-height: 2.35rem;
   --input-height: 3rem;
+}
+
+html[data-theme='dark'] {
+  color-scheme: dark;
+  --color-bg-light: #0f1720;
+  --color-bg-dark: #d8e6ee;
+  --color-text-dark: #edf3f7;
+  --color-link: #79c8ff;
+  --color-link-visited: #b7c5ff;
+  --color-white: #17212b;
+  --color-blue: #4db2e6;
+  --color-blue-hover: #75c7ee;
+  --color-sidebar: #1d3040;
+  --border-gray: solid #516575;
+  --box-shadow-up: 0 0.2rem 0.8rem rgb(0 0 0 / 28%);
+  --box-shadow-down: 0 0.35rem 1rem rgb(0 0 0 / 34%);
 }
 
 @font-face {
@@ -82,7 +100,6 @@
 
 html {
   background-color: var(--color-bg-light);
-  color-scheme: light;
   font-family: var(--font-family-base);
 }
 

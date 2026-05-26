@@ -7,6 +7,7 @@ import {
 } from '../config/bible-versions';
 
 export const BIBLE_VERSION_STORAGE_KEY = 'selectedBibleVersion';
+export const THEME_STORAGE_KEY = 'robible:theme';
 export { DEFAULT_BIBLE_VERSION, getBibleVersionConfig, getBibleVersionConfigOrDefault };
 export const bibleVersions = BIBLE_VERSIONS;
 
@@ -39,6 +40,37 @@ const getSavedBibleVersion = () => {
   }
 };
 
+const isValidThemeMode = (value) => value === 'light' || value === 'dark';
+
+const getSystemThemeMode = () => {
+  try {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  } catch {
+    return 'light';
+  }
+};
+
+const getSavedThemeMode = () => {
+  try {
+    const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+    return isValidThemeMode(savedTheme) ? savedTheme : getSystemThemeMode();
+  } catch {
+    return getSystemThemeMode();
+  }
+};
+
+const applyThemeMode = (themeMode) => {
+  try {
+    document.documentElement.dataset.theme = themeMode;
+    document.documentElement.style.colorScheme = themeMode;
+    document
+      .querySelector('meta[name="theme-color"]')
+      ?.setAttribute('content', themeMode === 'dark' ? '#0f1720' : '#3f5867');
+  } catch {
+    // The theme store can still be used in memory if document is unavailable.
+  }
+};
+
 export const createDefaultSearchForm = () => ({
   searchText: null,
   searchType: 'match',
@@ -58,6 +90,7 @@ const createSearchForm = (form = {}) => ({
 export const filter = writable(createSearchForm(getSavedFilter()));
 
 export const selectedBibleVersion = writable(getSavedBibleVersion());
+export const themeMode = writable(getSavedThemeMode());
 
 selectedBibleVersion.subscribe((version) => {
   try {
@@ -68,6 +101,39 @@ selectedBibleVersion.subscribe((version) => {
     // localStorage can be unavailable; the in-memory store still works.
   }
 });
+
+themeMode.subscribe((mode) => {
+  if (!isValidThemeMode(mode)) {
+    return;
+  }
+
+  applyThemeMode(mode);
+});
+
+try {
+  const systemTheme = window.matchMedia('(prefers-color-scheme: dark)');
+  systemTheme.addEventListener('change', (event) => {
+    if (!localStorage.getItem(THEME_STORAGE_KEY)) {
+      themeMode.set(event.matches ? 'dark' : 'light');
+    }
+  });
+} catch {
+  // System theme detection is optional.
+}
+
+export const toggleThemeMode = () => {
+  themeMode.update((mode) => {
+    const nextMode = mode === 'dark' ? 'light' : 'dark';
+
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, nextMode);
+    } catch {
+      // Theme changes still apply for this session if storage is unavailable.
+    }
+
+    return nextMode;
+  });
+};
 
 export const resetFilter = () => {
   const searchForm = createDefaultSearchForm();

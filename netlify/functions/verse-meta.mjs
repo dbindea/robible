@@ -1,13 +1,16 @@
+/* global process */
+
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { getBibleVersionConfig } from '../../src/config/bible-versions.js';
 
 const SITE_URL = 'https://robible.com';
 const DEFAULT_IMAGE = `${SITE_URL}/assets/img/logo.png`;
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
+const DATA_DIRECTORIES = [
+  path.resolve(process.cwd(), 'public', 'data'),
+  path.resolve(process.env.LAMBDA_TASK_ROOT || process.cwd(), 'public', 'data'),
+];
 
 function isValidBibleVersion(value) {
   return typeof value === 'string' && /^[a-z0-9][a-z0-9_-]*$/i.test(value);
@@ -32,8 +35,18 @@ function truncateText(text = '', maxLength = 180) {
   return `${normalizedText.slice(0, maxLength - 1).trim()}...`;
 }
 
-async function readJson(filePath) {
-  return JSON.parse(await readFile(filePath, 'utf8'));
+async function readJsonFromDataDirectory(version, fileName) {
+  const errors = [];
+
+  for (const dataDirectory of [...new Set(DATA_DIRECTORIES)]) {
+    try {
+      return JSON.parse(await readFile(path.join(dataDirectory, version, fileName), 'utf8'));
+    } catch (error) {
+      errors.push(error);
+    }
+  }
+
+  throw errors[0];
 }
 
 function getVerseParams(event) {
@@ -141,12 +154,10 @@ export async function handler(event) {
   if (!versionConfig) {
     return { statusCode: 404, body: 'Verse not found' };
   }
-  const dataDirectory = path.resolve(REPO_ROOT, 'public', 'data', versionConfig.value);
-
   try {
     const [map, bible] = await Promise.all([
-      readJson(path.join(dataDirectory, 'bible.map.json')),
-      readJson(path.join(dataDirectory, 'bible.json')),
+      readJsonFromDataDirectory(versionConfig.value, 'bible.map.json'),
+      readJsonFromDataDirectory(versionConfig.value, 'bible.json'),
     ]);
 
     const verseText = bible[params.book]?.[params.chapter - 1]?.[params.verse - 1];
