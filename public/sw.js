@@ -1,4 +1,4 @@
-const CACHE_NAME = 'robible-v5';
+const CACHE_NAME = 'robible-v6';
 
 const CORE_ASSETS = [
   '/',
@@ -17,8 +17,19 @@ const CORE_ASSETS = [
   '/maskable-icon-192x192.png',
   '/maskable-icon-512x512.png',
   '/assets/img/logo.png',
+  '/assets/font/open-sans-v28-latin-300.woff2',
+  '/assets/font/open-sans-v28-latin-500.woff2',
+  '/assets/font/open-sans-v28-latin-500italic.woff2',
+  '/assets/font/open-sans-v28-latin-600.woff2',
+  '/assets/font/open-sans-v28-latin-600italic.woff2',
   '/assets/font/open-sans-v28-latin-regular.woff2',
   '/assets/font/open-sans-v28-latin-700.woff2',
+  '/assets/font/open-sans-v28-latin-700italic.woff2',
+  '/assets/font/open-sans-v28-latin-italic.woff2',
+  '/assets/icon/fonts/icomoon.eot?bx6h1k',
+  '/assets/icon/fonts/icomoon.svg?bx6h1k',
+  '/assets/icon/fonts/icomoon.ttf?bx6h1k',
+  '/assets/icon/fonts/icomoon.woff?bx6h1k',
   '/lang/ro.json',
   '/lang/es.json',
   '/data/vdc/bible.map.json',
@@ -96,9 +107,14 @@ self.addEventListener('install', (event) => {
         }),
       );
       await cacheAppBuildAssets(cache).catch(() => {});
-      await self.skipWaiting();
     }),
   );
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') {
+    event.waitUntil(self.skipWaiting());
+  }
 });
 
 self.addEventListener('activate', (event) => {

@@ -2,6 +2,7 @@
   import Navbar from './layouts/header/Navbar.svelte';
   import Footer from './layouts/footer/Footer.svelte';
   import Main from './layouts/main/Main.svelte';
+  import PwaManager from './layouts/pwa/PwaManager.svelte';
   import { _, DEFAULT_LOCALE, setupI18n } from './services/i18n.service';
   import { applySeoMetadata } from './services/seo.service';
   import {
@@ -153,6 +154,7 @@
     {/if}
 
     <Footer />
+    <PwaManager />
   {:else}
     <p class="loading" role="status">Loading...</p>
   {/if}

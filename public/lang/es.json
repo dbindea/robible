@@ -20,6 +20,17 @@
       "copyright": "robible.com",
       "text": "RoBible - Biblia para Estudio | consulting@iberbind.com"
     },
+    "pwa": {
+      "install_title": "Instalar RoBible",
+      "install_text": "Abre la Biblia en pantalla completa y con lectura sin conexion.",
+      "install_action": "Instalar",
+      "ios_title": "Anadir a inicio",
+      "ios_text": "En iPhone o iPad: Compartir > Anadir a pantalla de inicio.",
+      "update_title": "Nueva version disponible",
+      "update_text": "Actualiza para usar la version mas reciente.",
+      "update_action": "Actualizar",
+      "dismiss": "Ahora no"
+    },
     "sidebar": {
       "all_bible": "Toda la Biblia",
       "filter": "Filtro",
