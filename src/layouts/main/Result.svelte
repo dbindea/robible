@@ -1,5 +1,11 @@
 <script>
   import { onDestroy, onMount, tick } from 'svelte';
+  import {
+    buildBiblePath,
+    getBookIdFromSlug,
+    parseBiblePath,
+    parseLegacyVersePath,
+  } from '../../services/bible-route.service';
   import { replaceDiacritics } from '../../services/filter.service';
   import { _ } from '../../services/i18n.service';
   import { applySeoMetadata, buildCurrentBibleSeo, buildVerseSeo } from '../../services/seo.service';
@@ -19,6 +25,9 @@
   let highlightTimer;
   let highlightedVerseId = '';
   let currentVerseSeoItem = null;
+  let activeVerseTarget = null;
+  let resultElement;
+  let isMounted = false;
 
   $: searchForm = $filter;
   $: keywords = searchForm.searchText || '';
@@ -26,14 +35,22 @@
   $: selectedBookName = selectedBook !== null && selectedBook !== undefined ? map[selectedBook] : null;
   $: selectedChapter = Array.isArray(searchForm.chapter) ? searchForm.chapter[0] : null;
   $: if (
-    currentVerseSeoItem &&
+    activeVerseTarget &&
     (searchForm.searchText ||
-      selectedBook !== currentVerseSeoItem.book ||
+      selectedBook !== activeVerseTarget.book ||
       selectedChapter === null ||
       selectedChapter === undefined ||
-      Number(selectedChapter) !== currentVerseSeoItem.chapter - 1)
+      Number(selectedChapter) !== activeVerseTarget.chapter - 1)
   ) {
+    activeVerseTarget = null;
     currentVerseSeoItem = null;
+  }
+  $: if (activeVerseTarget) {
+    const verseText = bible[activeVerseTarget.book]?.[activeVerseTarget.chapter - 1]?.[activeVerseTarget.index - 1];
+
+    if (verseText) {
+      currentVerseSeoItem = { ...activeVerseTarget, text: verseText };
+    }
   }
   $: selectedChapterLabel =
     selectedChapter !== null && selectedChapter !== undefined ? Number(selectedChapter) + 1 : null;
@@ -49,14 +66,24 @@
         : buildCurrentBibleSeo({ searchForm, map, versionConfig: bibleVersionConfig }),
     );
   }
+  $: if (
+    isMounted &&
+    Object.keys(map).length &&
+    (searchForm.searchText || selectedBook !== undefined || selectedChapterLabel !== undefined || activeVerseTarget || $selectedBibleVersion)
+  ) {
+    syncCurrentBiblePath();
+  }
 
   $: chapterArray =
     Array.isArray(searchForm.book) && searchForm.book.length
       ? Array.from(Array(bible[searchForm.book[0]]?.length || 0).keys())
       : [];
 
-  const updateChapterForm = () => {
+  const updateChapterForm = async () => {
+    activeVerseTarget = null;
+    currentVerseSeoItem = null;
     filter.set({ ...searchForm, chapter: [chapterForm.chapter] });
+    await scrollToResultTop();
   };
 
   const getPageTitle = (searchText, bookName, chapterLabel, bibleName, translate) => {
@@ -124,10 +151,17 @@
   };
 
   const getVerseId = (item) => `verse-${item.book}-${item.chapter}-${item.index}`;
-  const getVerseSharePath = (item) => `/verse/${$selectedBibleVersion}/${item.book}/${item.chapter}/${item.index}`;
+  const getVerseSharePath = (item) =>
+    buildBiblePath({
+      version: $selectedBibleVersion,
+      map,
+      book: item.book,
+      chapter: item.chapter,
+      verse: item.index,
+    });
   const getVerseShareUrl = (item) => `${window.location.origin}${getVerseSharePath(item)}`;
 
-  const getVerseFromLocation = () => {
+  const getRouteTargetFromLocation = () => {
     const [, hashBook, hashChapter, hashIndex] = window.location.hash.match(/^#verse-(\d+)-(\d+)-(\d+)$/) || [];
 
     if (hashBook && hashChapter && hashIndex) {
@@ -138,22 +172,93 @@
       };
     }
 
-    const [, pathBook, pathChapter, pathIndex] =
-      window.location.pathname.match(/^\/verse\/[^/]+\/(\d+)\/(\d+)\/(\d+)\/?$/) || [];
+    const legacyVerse = parseLegacyVersePath(window.location.pathname);
 
-    if (pathBook && pathChapter && pathIndex) {
+    if (legacyVerse) {
       return {
-        book: Number(pathBook),
-        chapter: Number(pathChapter),
-        index: Number(pathIndex),
+        book: legacyVerse.book,
+        chapter: legacyVerse.chapter,
+        index: legacyVerse.verse,
       };
     }
 
-    return null;
+    const bibleRoute = parseBiblePath(window.location.pathname);
+
+    if (!bibleRoute) {
+      return null;
+    }
+
+    const bookFromSlug = getBookIdFromSlug(map, bibleRoute.bookSlug);
+    const fallbackBook = Array.isArray(searchForm.book) ? searchForm.book[0] : null;
+    const book = bookFromSlug ?? fallbackBook;
+
+    if (book === null || book === undefined) {
+      return null;
+    }
+
+    if (bibleRoute.chapter) {
+      return {
+        book: Number(book),
+        chapter: bibleRoute.chapter,
+        index: bibleRoute.verse,
+      };
+    }
+
+    return {
+      book: Number(book),
+      chapter: null,
+      index: null,
+    };
   };
 
-  const applyVerseMetadata = (item) => {
-    currentVerseSeoItem = item;
+  const syncCurrentBiblePath = () => {
+    if (searchForm.searchText) {
+      if (window.location.pathname.startsWith('/biblia/') || window.location.pathname.startsWith('/verse/')) {
+        window.history.replaceState(null, '', '/');
+      }
+      return;
+    }
+
+    if (selectedBook === null || selectedBook === undefined) {
+      if (window.location.pathname.startsWith('/biblia/') || window.location.pathname.startsWith('/verse/')) {
+        window.history.replaceState(null, '', '/');
+      }
+      return;
+    }
+
+    const nextPath = activeVerseTarget
+      ? getVerseSharePath(activeVerseTarget)
+      : buildBiblePath({
+          version: $selectedBibleVersion,
+          map,
+          book: selectedBook,
+          chapter: selectedChapterLabel,
+        });
+
+    if (window.location.pathname !== nextPath) {
+      window.history.replaceState(null, '', nextPath);
+    }
+  };
+
+  const setActiveVerseTarget = (item) => {
+    activeVerseTarget = {
+      book: item.book,
+      chapter: item.chapter,
+      index: item.index,
+    };
+    currentVerseSeoItem = item.text ? item : null;
+  };
+
+  const scrollToResultTop = async () => {
+    await tick();
+    const scrollTarget = resultElement || document.querySelector('.result');
+
+    if (!scrollTarget) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const scrollToVerse = async (verseId) => {
@@ -175,11 +280,11 @@
 
   const navigateToVerse = async (item) => {
     const verseId = getVerseId(item);
-    applyVerseMetadata(item);
+    setActiveVerseTarget(item);
     filter.set({
       ...searchForm,
       searchText: null,
-      testament: Number(item.book) < 39 ? 'ot' : 'nt',
+      testament: 'all',
       book: [item.book],
       chapter: [item.chapter - 1],
     });
@@ -188,24 +293,34 @@
   };
 
   onMount(() => {
-    const verse = getVerseFromLocation();
+    const routeTarget = getRouteTargetFromLocation();
 
-    if (verse) {
+    if (routeTarget) {
       const item = {
-        ...verse,
-        text: bible[verse.book]?.[verse.chapter - 1]?.[verse.index - 1] || '',
+        ...routeTarget,
+        text:
+          routeTarget.chapter && routeTarget.index
+            ? bible[routeTarget.book]?.[routeTarget.chapter - 1]?.[routeTarget.index - 1] || ''
+            : '',
       };
       filter.set({
         ...searchForm,
         searchText: null,
-        testament: Number(verse.book) < 39 ? 'ot' : 'nt',
-        book: [verse.book],
-        chapter: [verse.chapter - 1],
+        testament: 'all',
+        book: [routeTarget.book],
+        chapter: routeTarget.chapter ? [routeTarget.chapter - 1] : [],
       });
-      applyVerseMetadata(item);
-      window.history.replaceState(null, '', getVerseSharePath(item));
-      scrollToVerse(getVerseId(verse));
+
+      if (routeTarget.chapter && routeTarget.index) {
+        setActiveVerseTarget(item);
+        window.history.replaceState(null, '', getVerseSharePath(item));
+        scrollToVerse(getVerseId(routeTarget));
+      } else {
+        scrollToResultTop();
+      }
     }
+
+    isMounted = true;
   });
 
   onDestroy(() => {
@@ -287,7 +402,7 @@
   </div>
 {/if}
 
-<div class="result">
+<div class="result" bind:this={resultElement}>
   <nav class="breadcrumbs" aria-label={$_('app.result.breadcrumb_label')}>
     <a href="/">RoBible</a>
     <span aria-hidden="true">/</span>
@@ -360,6 +475,16 @@
 {#if toastMessage}
   <div class="toast" role="status" aria-live="polite">{toastMessage}</div>
 {/if}
+
+<button
+  type="button"
+  class="scroll-top-button"
+  aria-label={$_('app.result.actions.scroll_top')}
+  title={$_('app.result.actions.scroll_top')}
+  on:click={scrollToResultTop}
+>
+  <span aria-hidden="true"></span>
+</button>
 
 <style lang="scss">
   .result {
@@ -593,6 +718,37 @@
     font-weight: 600;
   }
 
+  .scroll-top-button {
+    position: fixed;
+    right: 1rem;
+    bottom: 1rem;
+    z-index: 8;
+    display: none;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border: 1px solid var(--color-blue);
+    border-radius: 0.35rem;
+    background: var(--color-blue);
+    color: var(--color-on-primary);
+    box-shadow: var(--box-shadow-down);
+    transition: var(--transition);
+
+    span {
+      width: 0.8rem;
+      height: 0.8rem;
+      border-top: 2px solid currentcolor;
+      border-left: 2px solid currentcolor;
+      transform: translateY(0.2rem) rotate(45deg);
+    }
+
+    &:hover,
+    &:focus-visible {
+      background: var(--color-blue-hover);
+      box-shadow: 0 0 0 3px rgb(45 150 205 / 18%);
+    }
+  }
+
   @media (max-width: 38rem) {
     .result {
       border-radius: 0;
@@ -619,6 +775,10 @@
 
     .verse {
       line-height: 1.65;
+    }
+
+    .scroll-top-button {
+      display: grid;
     }
   }
 </style>

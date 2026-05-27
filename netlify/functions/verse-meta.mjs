@@ -3,9 +3,9 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { getBibleVersionConfig } from '../../src/config/bible-versions.js';
+import { buildBiblePath, getBookIdFromSlug, parseBiblePath } from '../../src/services/bible-route.service.js';
 
 const SITE_URL = 'https://robible.com';
-const DEFAULT_IMAGE = `${SITE_URL}/assets/img/logo.png`;
 
 const DATA_DIRECTORIES = [
   path.resolve(process.cwd(), 'public', 'data'),
@@ -61,6 +61,26 @@ function getVerseParams(event) {
     };
   }
 
+  if (query.version && query.book_slug && query.chapter && query.verse) {
+    return {
+      version: query.version,
+      bookSlug: query.book_slug,
+      chapter: Number(query.chapter),
+      verse: Number(query.verse),
+    };
+  }
+
+  const bibleRoute = parseBiblePath(event.path);
+
+  if (bibleRoute?.verse) {
+    return {
+      version: bibleRoute.version,
+      bookSlug: bibleRoute.bookSlug,
+      chapter: bibleRoute.chapter,
+      verse: bibleRoute.verse,
+    };
+  }
+
   const pathname = event.path;
   const [, version, book, chapter, verse] = pathname.match(/^\/verse\/([^/]+)\/(\d+)\/(\d+)\/(\d+)\/?$/) || [];
 
@@ -82,6 +102,7 @@ function buildHtml({
   verseText,
   reference,
   bibleName,
+  ogImage,
 }) {
   const safeTitle = escapeHtml(title);
   const safeDescription = escapeHtml(description);
@@ -89,6 +110,7 @@ function buildHtml({
   const safeRedirectPath = escapeHtml(redirectPath);
   const safeLocale = escapeHtml(locale);
   const safeOgLocale = escapeHtml(ogLocale);
+  const safeOgImage = escapeHtml(ogImage);
   const schema = {
     '@context': 'https://schema.org',
     '@type': 'CreativeWork',
@@ -119,14 +141,14 @@ function buildHtml({
     <meta property="og:title" content="${safeTitle}" />
     <meta property="og:description" content="${safeDescription}" />
     <meta property="og:url" content="${safeCanonicalUrl}" />
-    <meta property="og:image" content="${DEFAULT_IMAGE}" />
-    <meta property="og:image:width" content="512" />
-    <meta property="og:image:height" content="512" />
-    <meta property="og:image:alt" content="RoBible" />
-    <meta name="twitter:card" content="summary" />
+    <meta property="og:image" content="${safeOgImage}" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="${escapeHtml(reference)}" />
+    <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="${safeTitle}" />
     <meta name="twitter:description" content="${safeDescription}" />
-    <meta name="twitter:image" content="${DEFAULT_IMAGE}" />
+    <meta name="twitter:image" content="${safeOgImage}" />
     <script type="application/ld+json">
       ${safeSchema}
     </script>
@@ -145,7 +167,10 @@ export async function handler(event) {
     return { statusCode: 404, body: 'Verse not found' };
   }
 
-  if (![params.book, params.chapter, params.verse].every((value) => Number.isInteger(value) && value >= 0)) {
+  const hasBookReference =
+    (Number.isInteger(params.book) && params.book >= 0) || (typeof params.bookSlug === 'string' && params.bookSlug);
+
+  if (!hasBookReference || ![params.chapter, params.verse].every((value) => Number.isInteger(value) && value > 0)) {
     return { statusCode: 404, body: 'Verse not found' };
   }
 
@@ -160,8 +185,9 @@ export async function handler(event) {
       readJsonFromDataDirectory(versionConfig.value, 'bible.json'),
     ]);
 
-    const verseText = bible[params.book]?.[params.chapter - 1]?.[params.verse - 1];
-    const bookName = map[params.book];
+    const book = Number.isInteger(params.book) ? params.book : getBookIdFromSlug(map, params.bookSlug);
+    const verseText = bible[book]?.[params.chapter - 1]?.[params.verse - 1];
+    const bookName = map[book];
 
     if (!verseText || !bookName) {
       return { statusCode: 404, body: 'Verse not found' };
@@ -170,8 +196,18 @@ export async function handler(event) {
     const reference = `${bookName} ${params.chapter}:${params.verse}`;
     const title = `${reference} | ${versionConfig.bibleName}`;
     const description = `${truncateText(verseText)} (${versionConfig.bibleName})`;
-    const canonicalUrl = `${SITE_URL}/verse/${versionConfig.value}/${params.book}/${params.chapter}/${params.verse}`;
-    const redirectPath = `/?version=${encodeURIComponent(versionConfig.value)}#verse-${params.book}-${params.chapter}-${params.verse}`;
+    const canonicalPath = buildBiblePath({
+      version: versionConfig.value,
+      map,
+      book,
+      chapter: params.chapter,
+      verse: params.verse,
+    });
+    const canonicalUrl = `${SITE_URL}${canonicalPath}`;
+    const redirectPath = event.path.startsWith('/verse/')
+      ? canonicalPath
+      : `/?version=${encodeURIComponent(versionConfig.value)}#verse-${book}-${params.chapter}-${params.verse}`;
+    const ogImage = `${SITE_URL}/og/verse/${versionConfig.value}/${book}/${params.chapter}/${params.verse}.svg`;
 
     return {
       statusCode: 200,
@@ -189,6 +225,7 @@ export async function handler(event) {
         verseText,
         reference,
         bibleName: versionConfig.bibleName,
+        ogImage,
       }),
     };
   } catch (error) {

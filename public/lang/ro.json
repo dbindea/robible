@@ -16,7 +16,7 @@
       "version_label": "Versiunea Bibliei"
     },
     "footer": {
-      "made_with_love": "Facut cu drag în Arganda del Rey",
+      "made_with_love": "Facută cu dăruire în Arganda del Rey",
       "maranata": "Maranata - Domnul nostru vine!",
       "about_action": "Despre",
       "about_title": "Biblie online, ușor de citit",
@@ -87,8 +87,8 @@
         "chapter": "{book}, capitolul {chapter}"
       },
       "page_lead": {
-        "search": "Rezultate rapide, clare și ușor de parcurs în textul biblic românesc.",
-        "chapter": "Citește capitolul într-un format curat, optimizat pentru lectură liniștită și studiu biblic.",
+        "search": "Rezultate rapide, clare și ușor de parcurs în textul biblic.",
+        "chapter": "Citește capitolul optimizat pentru studiu biblic.",
         "default": "Citește Scriptura online, cu acces rapid la cărți, capitole și versete."
       },
       "toast": {
@@ -98,7 +98,8 @@
       "actions": {
         "open_chapter": "Deschide capitolul complet",
         "copy_verse": "Copiază versetul",
-        "copy_verse_reference": "Copiază {reference}"
+        "copy_verse_reference": "Copiază {reference}",
+        "scroll_top": "Sus"
       }
     }
   }
