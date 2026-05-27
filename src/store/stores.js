@@ -5,6 +5,7 @@ import {
   getBibleVersionConfig,
   getBibleVersionConfigOrDefault,
 } from '../config/bible-versions';
+import { parseBiblePath, parseLegacyVersePath } from '../services/bible-route.service';
 
 export const BIBLE_VERSION_STORAGE_KEY = 'selectedBibleVersion';
 export const THEME_STORAGE_KEY = 'robible:theme';
@@ -26,7 +27,7 @@ const getSavedFilter = () => {
 const getSavedBibleVersion = () => {
   try {
     const url = new URL(window.location.href);
-    const pathVersion = url.pathname.match(/^\/verse\/([^/]+)\//)?.[1];
+    const pathVersion = parseBiblePath(url.pathname)?.version || parseLegacyVersePath(url.pathname)?.version;
     const requestedVersion = url.searchParams.get('version') || pathVersion;
 
     if (isValidBibleVersion(requestedVersion)) {

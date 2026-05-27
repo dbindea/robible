@@ -1,7 +1,7 @@
 <script>
   import { onDestroy, onMount } from 'svelte';
   import { _ } from '../../services/i18n.service';
-  import { bibleVersions, selectedBibleVersion } from '../../store/stores';
+  import { bibleVersions, resetFilter, selectedBibleVersion } from '../../store/stores';
 
   let isVersionMenuOpen = false;
   let versionPickerElement;
@@ -16,6 +16,12 @@
   const selectVersion = (version) => {
     selectedBibleVersion.set(version.value);
     isVersionMenuOpen = false;
+  };
+
+  const handleLogoClick = () => {
+    resetFilter();
+    window.history.replaceState(null, '', '/');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleDocumentClick = (event) => {
@@ -42,7 +48,7 @@
 </script>
 
 <div class="header">
-  <a class="logo" href="/" aria-label={$_('app.nav.logo_label')}>
+  <a class="logo" href="/" aria-label={$_('app.nav.logo_label')} on:click|preventDefault={handleLogoClick}>
     <img class="logo__img" src="/assets/img/logo.png" alt="" width="48" height="48" />
     <span class="logo__text">{$_('app.nav.logo_text')}</span>
   </a>

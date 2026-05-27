@@ -7,6 +7,11 @@
   included_files = ["public/data/**"]
 
 [[redirects]]
+  from = "/og/verse/:version/:book/:chapter/:verse.svg"
+  to = "/.netlify/functions/og-image?version=:version&book=:book&chapter=:chapter&verse=:verse"
+  status = 200
+
+[[redirects]]
   from = "/verse/:version/:book/:chapter/:verse"
   to = "/.netlify/functions/verse-meta?version=:version&book=:book&chapter=:chapter&verse=:verse"
   status = 200

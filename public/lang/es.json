@@ -76,7 +76,7 @@
       }
     },
     "result": {
-      "breadcrumb_label": "Miga de pan",
+      "breadcrumb_label": "Breadcrumb",
       "chapters_label": "Capítulos",
       "chapter_form_label": "Selecciona el capítulo",
       "chapter_breadcrumb": "Capítulo {chapter}",
@@ -87,9 +87,9 @@
         "chapter": "{book}, capítulo {chapter}"
       },
       "page_lead": {
-        "search": "Resultados rápidos, claros y fáciles de recorrer en el texto bíblico.",
-        "chapter": "Lee el capítulo en un formato limpio, optimizado para una lectura tranquila y estudio bíblico.",
-        "default": "Lee la Escritura online, con acceso rápido a libros, capítulos y versículos."
+        "search": "Resultados rápidos y fáciles para recorrer el texto bíblico.",
+        "chapter": "Lee el capítulo optimizado para estudio bíblico.",
+        "default": "Lee la Biblia online, con acceso rápido a libros, capítulos y versículos."
       },
       "toast": {
         "copied": "¡Versículo copiado!",
@@ -98,7 +98,8 @@
       "actions": {
         "open_chapter": "Abrir capítulo completo",
         "copy_verse": "Copiar versículo",
-        "copy_verse_reference": "Copiar {reference}"
+        "copy_verse_reference": "Copiar {reference}",
+        "scroll_top": "Subir arriba"
       }
     }
   }

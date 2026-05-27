@@ -22,7 +22,7 @@
   $: searchForm = $filter;
   $: selectedBook = Array.isArray(searchForm.book) ? searchForm.book[0] : null;
   $: selectedBookName =
-    selectedBook !== null && selectedBook !== undefined ? map[selectedBook] : $_('app.sidebar.all_bible');
+    selectedBook !== null && selectedBook !== undefined ? map[selectedBook] : $_('app.sidebar.scope.'+searchForm.testament);
 
   onMount(() => {
     if (window.matchMedia('(min-width: 58rem)').matches) {
@@ -54,8 +54,7 @@
   const selectBook = (bookId) => {
     searchForm = {
       ...searchForm,
-      searchText: null,
-      testament: Number(bookId) < 39 ? 'ot' : 'nt',
+      testament: 'all',
       book: [bookId],
       chapter: [],
     };
@@ -160,10 +159,16 @@
 
     <div class="book-picker">
       <div>
-        <span>{$_('app.sidebar.selected_book')}</span>
         <strong>{selectedBookName}</strong>
       </div>
-      <button type="button" on:click={() => (isBookDrawerOpen = true)}> {$_('app.sidebar.choose_book')} </button>
+      <button
+        type="button"
+        class:book-picker__button--active={selectedBook !== null && selectedBook !== undefined}
+        class="book-picker__button"
+        on:click={() => (isBookDrawerOpen = true)}
+      >
+        {$_('app.sidebar.choose_book')}
+      </button>
     </div>
   </form>
 </div>
@@ -349,36 +354,33 @@
       line-height: 1.3;
     }
 
-    button {
+    .book-picker__button {
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 0.5rem;
       width: 100%;
-      min-height: var(--button-height);
-      border: 1px solid var(--color-blue);
-      border: 0.1rem var(--border-blue);
-      background-color: var(--color-blue);
-      color: var(--color-on-primary);
-      transition: var(--transition);
-
-      background-color: var(--color-blue);
-      color: var(--color-on-primary);
-
-      height: var(--button-height);
+      min-height: 2.35rem;
+      border: 1px solid rgb(45 150 205 / 54%);
+      background: rgb(255 255 255 / 8%);
+      color: #ffffff;
       font-size: 14px;
-      transition: var(--transition);
+      font-weight: 600;
       border-radius: 0.25rem;
+      transition: var(--transition);
 
-      &:hover {
-        background-color: var(--color-blue-hover);
+      &:hover,
+      &:focus-visible {
+        background: rgb(45 150 205 / 28%);
         border-color: var(--color-blue);
-        box-shadow: 0 0 4px 1px var(--color-blue);
+        box-shadow: 0 0 0 3px rgb(45 150 205 / 18%);
       }
 
-      &:focus-visible {
-        background-color: var(--color-blue-hover);
-        box-shadow: 0 0 0 3px rgb(255 255 255 / 18%);
+      &--active {
+        border-color: var(--color-blue-hover);
+        background: var(--color-blue);
+        color: var(--color-on-primary);
+        box-shadow: 0 0 0 3px rgb(45 150 205 / 22%);
       }
     }
   }

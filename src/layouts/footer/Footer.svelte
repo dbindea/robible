@@ -32,7 +32,7 @@
   <div class="footer__content">
     <p class="footer__meta">
       <span>{$_('app.footer.made_with_love')}</span>
-      <span aria-hidden="true">·</span>
+      <span class="only-desktop">·</span>
       <strong>{$_('app.footer.maranata')}</strong>
     </p>
   </div>
@@ -289,6 +289,10 @@
 
     .footer__actions {
       justify-content: space-between;
+    }
+
+    .only-desktop {
+      display: none;
     }
   }
 </style>
