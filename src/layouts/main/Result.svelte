@@ -29,6 +29,19 @@
   let resultElement;
   let isMounted = false;
 
+  // Swipe gesture state
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let touchCurrentX = 0;
+  let touchStartTime = 0;
+  let isSwiping = false;
+  let swipeDirection = ''; // 'left' | 'right'
+  let canSwipeLeft = false;
+  let canSwipeRight = false;
+
+  $: canSwipeLeft = selectedChapter !== null && selectedChapter < (chapterArray.length - 1);
+  $: canSwipeRight = selectedChapter !== null && selectedChapter > 0;
+
   $: searchForm = $filter;
   $: keywords = searchForm.searchText || '';
   $: selectedBook = Array.isArray(searchForm.book) ? searchForm.book[0] : null;
@@ -84,6 +97,86 @@
     currentVerseSeoItem = null;
     filter.set({ ...searchForm, chapter: [chapterForm.chapter] });
     await scrollToResultTop();
+  };
+
+  const goToNextChapter = async () => {
+    if (!canSwipeLeft) return;
+    chapterForm.chapter = (selectedChapter ?? 0) + 1;
+    await updateChapterForm();
+    showToast($_('app.result.swipe.next_chapter'));
+  };
+
+  const goToPrevChapter = async () => {
+    if (!canSwipeRight) return;
+    chapterForm.chapter = (selectedChapter ?? 0) - 1;
+    await updateChapterForm();
+    showToast($_('app.result.swipe.prev_chapter'));
+  };
+
+  const onTouchStart = (e) => {
+    // Only enable swipe when reading a book chapter (not in search mode)
+    if (searchForm.searchText || !chapterArray.length) return;
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    touchCurrentX = touchStartX;
+    touchStartTime = Date.now();
+    isSwiping = false;
+    swipeDirection = '';
+  };
+
+  const onTouchMove = (e) => {
+    if (!touchStartTime) return;
+    touchCurrentX = e.touches[0].clientX;
+    const dx = touchCurrentX - touchStartX;
+    const dy = e.touches[0].clientY - touchStartY;
+
+    // Only track horizontal swipes, ignore vertical scrolling
+    if (!isSwiping && Math.abs(dx) > 10) {
+      // Small threshold to differentiate from scroll
+      if (Math.abs(dx) > Math.abs(dy)) {
+        isSwiping = true;
+        e.preventDefault(); // Prevent horizontal scroll
+      }
+    }
+
+    if (isSwiping) {
+      e.preventDefault();
+      swipeDirection = dx < 0 ? 'left' : 'right';
+    }
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStartTime || !isSwiping) {
+      resetSwipeState();
+      return;
+    }
+
+    const dx = touchCurrentX - touchStartX;
+    const dt = Date.now() - touchStartTime;
+    const velocity = Math.abs(dx) / dt; // px/ms
+    const distance = Math.abs(dx);
+
+    // Valid swipe: distance > 50px OR velocity > 0.3 px/ms (fast flick)
+    const isValidSwipe = distance > 50 || velocity > 0.3;
+
+    if (isValidSwipe) {
+      if (dx < 0 && canSwipeLeft) {
+        goToNextChapter();
+      } else if (dx > 0 && canSwipeRight) {
+        goToPrevChapter();
+      }
+    }
+
+    resetSwipeState();
+  };
+
+  const resetSwipeState = () => {
+    touchStartX = 0;
+    touchStartY = 0;
+    touchCurrentX = 0;
+    touchStartTime = 0;
+    isSwiping = false;
+    swipeDirection = '';
   };
 
   const getPageTitle = (searchText, bookName, chapterLabel, bibleName, translate) => {
@@ -293,6 +386,14 @@
   };
 
   onMount(() => {
+    // Add swipe gesture listeners to the result element
+    const el = resultElement;
+    if (el) {
+      el.addEventListener('touchstart', onTouchStart, { passive: true });
+      el.addEventListener('touchmove', onTouchMove, { passive: false });
+      el.addEventListener('touchend', onTouchEnd);
+    }
+
     const routeTarget = getRouteTargetFromLocation();
 
     if (routeTarget) {
@@ -326,6 +427,11 @@
   onDestroy(() => {
     window.clearTimeout(toastTimer);
     window.clearTimeout(highlightTimer);
+    if (resultElement) {
+      resultElement.removeEventListener('touchstart', onTouchStart);
+      resultElement.removeEventListener('touchmove', onTouchMove);
+      resultElement.removeEventListener('touchend', onTouchEnd);
+    }
   });
 
   function getMarkedParts(text, keywords) {
@@ -402,7 +508,33 @@
   </div>
 {/if}
 
-<div class="result" bind:this={resultElement}>
+<div
+  class="result"
+  class:result--swiping={isSwiping}
+  class:result--swipe-left={isSwiping && swipeDirection === 'left'}
+  class:result--swipe-right={isSwiping && swipeDirection === 'right'}
+  bind:this={resultElement}
+>
+  <!-- Swipe direction indicators -->
+  {#if isSwiping && !searchForm.searchText && chapterArray.length}
+    <div class="swipe-indicator swipe-indicator--left" aria-hidden="true">
+      {#if canSwipeRight}
+        <span class="swipe-arrow"></span>
+        <span class="swipe-label">{$_('app.result.swipe.previous')}</span>
+      {:else}
+        <span class="swipe-blocked">—</span>
+      {/if}
+    </div>
+    <div class="swipe-indicator swipe-indicator--right" aria-hidden="true">
+      {#if canSwipeLeft}
+        <span class="swipe-arrow"></span>
+        <span class="swipe-label">{$_('app.result.swipe.next')}</span>
+      {:else}
+        <span class="swipe-blocked">—</span>
+      {/if}
+    </div>
+  {/if}
+  <div class="result-content">
   <nav class="breadcrumbs" aria-label={$_('app.result.breadcrumb_label')}>
     <a href="/">RoBible</a>
     <span aria-hidden="true">/</span>
@@ -470,6 +602,7 @@
     </div>
     <div class="verse-divider" aria-hidden="true"></div>
   {/each}
+  </div>
 </div>
 
 {#if toastMessage}
@@ -779,6 +912,109 @@
 
     .scroll-top-button {
       display: grid;
+    }
+  }
+
+  /* === Swipe Gesture Styles === */
+  .result {
+    position: relative;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: pan-y; // Allow vertical scroll, block horizontal
+  }
+
+  .result--swiping {
+    cursor: ew-resize;
+  }
+
+  .result--swipe-left .result-content {
+    transform: translateX(-4px);
+    opacity: 0.85;
+  }
+
+  .result--swipe-right .result-content {
+    transform: translateX(4px);
+    opacity: 0.85;
+  }
+
+  .result-content {
+    transition: transform 0.15s ease, opacity 0.15s ease;
+  }
+
+  .swipe-indicator {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.75rem 0.5rem;
+    background-color: rgb(45 150 205 / 14%);
+    border-radius: 0.35rem;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+
+    &--left {
+      left: 0;
+      border-left: 3px solid var(--color-blue);
+    }
+
+    &--right {
+      right: 0;
+      border-right: 3px solid var(--color-blue);
+    }
+  }
+
+  .swipe-arrow {
+    display: block;
+    width: 1.1rem;
+    height: 1.1rem;
+    border-right: 2.5px solid var(--color-blue);
+    border-bottom: 2.5px solid var(--color-blue);
+  }
+
+  .swipe-indicator--left .swipe-arrow {
+    transform: rotate(135deg);
+  }
+
+  .swipe-indicator--right .swipe-arrow {
+    transform: rotate(-45deg);
+  }
+
+  .swipe-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--color-blue);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+  }
+
+  .swipe-blocked {
+    font-size: 1.2rem;
+    color: rgb(45 150 205 / 30%);
+    font-weight: 300;
+  }
+
+  @media (max-width: 38rem) {
+    .swipe-indicator {
+      padding: 0.5rem 0.35rem;
+
+      &--left {
+        left: 0;
+      }
+
+      &--right {
+        right: 0;
+      }
+    }
+
+    .swipe-label {
+      display: none;
     }
   }
 </style>

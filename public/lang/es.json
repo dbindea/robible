@@ -93,7 +93,13 @@
       },
       "toast": {
         "copied": "¡Versículo copiado!",
-        "copy_failed": "No se pudo copiar el versículo"
+        "copy_failed": "No se pudo copiar el versículo",
+        "next_chapter": "Siguiente capítulo →",
+        "prev_chapter": "← Capítulo anterior"
+      },
+      "swipe": {
+        "next": "Siguiente",
+        "previous": "Anterior"
       },
       "actions": {
         "open_chapter": "Abrir capítulo completo",

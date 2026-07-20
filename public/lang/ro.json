@@ -93,7 +93,13 @@
       },
       "toast": {
         "copied": "Verset copiat!",
-        "copy_failed": "Nu s-a putut copia versetul"
+        "copy_failed": "Nu s-a putut copia versetul",
+        "next_chapter": "Capitolul următor →",
+        "prev_chapter": "← Capitolul anterior"
+      },
+      "swipe": {
+        "next": "Următor",
+        "previous": "Anterior"
       },
       "actions": {
         "open_chapter": "Deschide capitolul complet",
