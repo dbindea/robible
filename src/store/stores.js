@@ -9,6 +9,7 @@ import { parseBiblePath, parseLegacyVersePath } from '../services/bible-route.se
 
 export const BIBLE_VERSION_STORAGE_KEY = 'selectedBibleVersion';
 export const THEME_STORAGE_KEY = 'robible:theme';
+export const IMMERSIVE_STORAGE_KEY = 'robible:immersive';
 export { DEFAULT_BIBLE_VERSION, getBibleVersionConfig, getBibleVersionConfigOrDefault };
 export const bibleVersions = BIBLE_VERSIONS;
 
@@ -147,4 +148,32 @@ export const resetFilter = () => {
 
   filter.set(searchForm);
   return searchForm;
+};
+
+// Immersive reading mode
+const getSavedImmersiveMode = () => {
+  try {
+    const saved = localStorage.getItem(IMMERSIVE_STORAGE_KEY);
+    return saved === 'true';
+  } catch {
+    return false;
+  }
+};
+
+export const immersiveMode = writable(getSavedImmersiveMode());
+
+immersiveMode.subscribe((value) => {
+  try {
+    localStorage.setItem(IMMERSIVE_STORAGE_KEY, String(value));
+  } catch {
+    // localStorage can be unavailable.
+  }
+  // Also toggle body class for CSS targeting
+  if (typeof document !== 'undefined') {
+    document.body.classList.toggle('immersive-mode', value);
+  }
+});
+
+export const toggleImmersiveMode = () => {
+  immersiveMode.update((v) => !v);
 };

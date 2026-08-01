@@ -5,7 +5,7 @@
   import PwaManager from './layouts/pwa/PwaManager.svelte';
   import { _, DEFAULT_LOCALE, setupI18n } from './services/i18n.service';
   import { applySeoMetadata } from './services/seo.service';
-  import { getBibleVersionConfigOrDefault, isValidBibleVersion, selectedBibleVersion } from './store/stores';
+  import { getBibleVersionConfigOrDefault, isValidBibleVersion, selectedBibleVersion, immersiveMode } from './store/stores';
 
   let bibleLoadRequestId = 0;
   let localeLoadRequestId = 0;
@@ -105,6 +105,7 @@
 
   $: currentBibleVersion = $selectedBibleVersion;
   $: currentBibleVersionConfig = getBibleVersionConfigOrDefault(currentBibleVersion);
+  $: isImmersive = $immersiveMode;
   $: if (currentBibleVersion) {
     applySeoMetadata({ versionConfig: currentBibleVersionConfig });
     loadLocaleForBibleVersion(currentBibleVersion);
@@ -112,9 +113,11 @@
   }
 </script>
 
-<main class="main">
+<main class="main" class:main--immersive={isImmersive}>
   {#if isBibleLocaleReady}
-    <Navbar />
+    {#if !isImmersive}
+      <Navbar />
+    {/if}
 
     {#if bibleLoadError}
       <section class="load-error" role="alert">
@@ -132,7 +135,9 @@
       <Main {map} {bible} />
     {/if}
 
-    <Footer />
+    {#if !isImmersive}
+      <Footer />
+    {/if}
     <PwaManager />
   {:else}
     <p class="loading" role="status">Loading...</p>
@@ -143,6 +148,10 @@
   .main {
     min-height: 100dvh;
     background-color: var(--color-bg-light);
+  }
+
+  .main--immersive {
+    padding-top: 0;
   }
 
   .loading {

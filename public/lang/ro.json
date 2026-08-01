@@ -101,6 +101,10 @@
         "next": "Următor",
         "previous": "Anterior"
       },
+      "immersive": {
+        "enter": "Mod lectură",
+        "exit": "Ieși din modul lectură"
+      },
       "actions": {
         "open_chapter": "Deschide capitolul complet",
         "copy_verse": "Copiază versetul",

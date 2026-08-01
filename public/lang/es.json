@@ -101,6 +101,10 @@
         "next": "Siguiente",
         "previous": "Anterior"
       },
+      "immersive": {
+        "enter": "Modo lectura",
+        "exit": "Salir del modo lectura"
+      },
       "actions": {
         "open_chapter": "Abrir capítulo completo",
         "copy_verse": "Copiar versículo",

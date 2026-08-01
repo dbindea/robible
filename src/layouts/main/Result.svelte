@@ -9,7 +9,7 @@
   import { replaceDiacritics } from '../../services/filter.service';
   import { _ } from '../../services/i18n.service';
   import { applySeoMetadata, buildCurrentBibleSeo, buildVerseSeo } from '../../services/seo.service';
-  import { filter, getBibleVersionConfigOrDefault, selectedBibleVersion } from '../../store/stores';
+  import { filter, getBibleVersionConfigOrDefault, immersiveMode, selectedBibleVersion, toggleImmersiveMode } from '../../store/stores';
 
   export let bible;
   export let map;
@@ -28,6 +28,8 @@
   let activeVerseTarget = null;
   let resultElement;
   let isMounted = false;
+  let hasScrolled = false;
+  let scrollTimer;
 
   // Swipe gesture state
   let touchStartX = 0;
@@ -92,6 +94,8 @@
       ? Array.from(Array(bible[searchForm.book[0]]?.length || 0).keys())
       : [];
 
+  $: isImmersive = $immersiveMode;
+
   const updateChapterForm = async () => {
     activeVerseTarget = null;
     currentVerseSeoItem = null;
@@ -103,14 +107,14 @@
     if (!canSwipeLeft) return;
     chapterForm.chapter = (selectedChapter ?? 0) + 1;
     await updateChapterForm();
-    showToast($_('app.result.swipe.next_chapter'));
+    showToast($_('app.result.toast.next_chapter'));
   };
 
   const goToPrevChapter = async () => {
     if (!canSwipeRight) return;
     chapterForm.chapter = (selectedChapter ?? 0) - 1;
     await updateChapterForm();
-    showToast($_('app.result.swipe.prev_chapter'));
+    showToast($_('app.result.toast.prev_chapter'));
   };
 
   const onTouchStart = (e) => {
@@ -394,6 +398,20 @@
       el.addEventListener('touchend', onTouchEnd);
     }
 
+    // Scroll handler to show/hide chapter nav arrows
+    const handleScroll = () => {
+      const scrollY = window.scrollY;
+      const shouldShow = scrollY > 120;
+      if (shouldShow !== hasScrolled) {
+        hasScrolled = shouldShow;
+      }
+      window.clearTimeout(scrollTimer);
+      scrollTimer = window.setTimeout(() => {
+        hasScrolled = scrollY > 120;
+      }, 100);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+
     const routeTarget = getRouteTargetFromLocation();
 
     if (routeTarget) {
@@ -427,10 +445,14 @@
   onDestroy(() => {
     window.clearTimeout(toastTimer);
     window.clearTimeout(highlightTimer);
+    window.clearTimeout(scrollTimer);
     if (resultElement) {
       resultElement.removeEventListener('touchstart', onTouchStart);
       resultElement.removeEventListener('touchmove', onTouchMove);
       resultElement.removeEventListener('touchend', onTouchEnd);
+    }
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('scroll', () => {});
     }
   });
 
@@ -618,6 +640,37 @@
 >
   <span aria-hidden="true"></span>
 </button>
+
+<!-- Floating chapter navigation (appears after scrolling) -->
+{#if !searchForm.searchText && chapterArray.length && hasScrolled}
+  {#if canSwipeRight}
+    <button
+      type="button"
+      class="chapter-nav chapter-nav--prev"
+      aria-label={$_('app.result.swipe.previous')}
+      title={$_('app.result.swipe.previous')}
+      on:click={goToPrevChapter}
+    >
+      <span class="chapter-nav__arrow"></span>
+      <span class="chapter-nav__label">{$_('app.result.swipe.previous')}</span>
+    </button>
+  {/if}
+  {#if canSwipeLeft}
+    <button
+      type="button"
+      class="chapter-nav chapter-nav--next"
+      aria-label={$_('app.result.swipe.next')}
+      title={$_('app.result.swipe.next')}
+      on:click={goToNextChapter}
+    >
+      <span class="chapter-nav__label">{$_('app.result.swipe.next')}</span>
+      <span class="chapter-nav__arrow"></span>
+    </button>
+  {/if}
+{/if}
+
+<!-- Keyboard shortcut: Escape exits immersive mode -->
+<svelte:window on:keydown={(e) => { if (e.key === 'Escape' && $immersiveMode) toggleImmersiveMode(); }} />
 
 <style lang="scss">
   .result {
@@ -1015,6 +1068,97 @@
 
     .swipe-label {
       display: none;
+    }
+  }
+
+  /* === Chapter Navigation (Desktop) === */
+  .chapter-nav {
+    position: fixed;
+    bottom: 2.5rem;
+    z-index: 8;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 0.85rem;
+    border: 1px solid var(--color-blue);
+    border-radius: 999px;
+    background: var(--color-white);
+    color: var(--color-bg-dark);
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: var(--transition);
+    box-shadow: var(--box-shadow-down);
+    animation: chapterNavFadeIn 0.2s ease;
+
+    &:hover,
+    &:focus-visible {
+      background: var(--color-blue);
+      color: var(--color-white);
+      box-shadow: 0 0 0 3px rgb(45 150 205 / 25%), var(--box-shadow-down);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--color-blue);
+      outline-offset: 2px;
+    }
+
+    &--prev {
+      left: 1rem;
+    }
+
+    &--next {
+      right: 1rem;
+    }
+
+    &__arrow {
+      display: block;
+      width: 0.6rem;
+      height: 0.6rem;
+      border-right: 2px solid currentColor;
+      border-bottom: 2px solid currentColor;
+      flex-shrink: 0;
+    }
+
+    &--prev &__arrow {
+      transform: rotate(135deg);
+    }
+
+    &--next &__arrow {
+      transform: rotate(-45deg);
+    }
+
+    &__label {
+      white-space: nowrap;
+    }
+  }
+
+  @keyframes chapterNavFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(0.5rem);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @media (max-width: 38rem) {
+    .chapter-nav {
+      display: none; // On mobile use swipe gestures instead
+    }
+  }
+
+  // Dark mode chapter nav
+  :global(html[data-theme='dark']) .chapter-nav {
+    background: var(--color-white);
+    color: var(--color-bg-dark);
+
+    &:hover,
+    &:focus-visible {
+      background: var(--color-blue);
+      color: var(--color-white);
     }
   }
 </style>
