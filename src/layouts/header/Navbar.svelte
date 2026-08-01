@@ -49,7 +49,17 @@
 
 <div class="header">
   <a class="logo" href="/" aria-label={$_('app.nav.logo_label')} on:click|preventDefault={handleLogoClick}>
-    <img class="logo__img" src="/assets/img/logo.png" alt="" width="48" height="48" />
+    <!-- Inline SVG logo that adapts to dark/light mode automatically -->
+    <svg class="logo__img" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <circle cx="256" cy="256" r="240" fill="#2E7D9B"/>
+      <path class="logo-book" d="M100 130 Q130 100 256 115 Q382 100 412 130" fill="none" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round"/>
+      <path class="logo-book" d="M100 130 Q130 120 256 145 Q382 120 412 130 L412 340 Q382 330 256 355 Q130 330 100 340 Z" fill="none" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+      <line class="logo-spine" x1="256" y1="145" x2="256" y2="195" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round"/>
+      <line class="logo-spine" x1="256" y1="305" x2="256" y2="355" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round"/>
+      <path class="logo-book" d="M100 340 Q130 370 256 355 Q382 370 412 340" fill="none" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round"/>
+      <rect x="230" y="195" width="52" height="110" rx="8" fill="#D4A853"/>
+      <rect x="202" y="220" width="108" height="52" rx="8" fill="#D4A853"/>
+    </svg>
     <span class="logo__text">{$_('app.nav.logo_text')}</span>
   </a>
 
@@ -216,6 +226,13 @@
   a.logo:hover {
     text-decoration: none;
   }
+
+  // Logo SVG adapts to dark mode
+  .logo-book { stroke: #FFFFFF; }
+  .logo-spine { stroke: #FFFFFF; }
+
+  :global(html[data-theme='dark']) .logo-book { stroke: #1d3040; }
+  :global(html[data-theme='dark']) .logo-spine { stroke: #1d3040; }
 
   @media (max-width: 32rem) {
     .version-picker {
