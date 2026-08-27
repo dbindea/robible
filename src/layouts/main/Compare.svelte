@@ -292,62 +292,91 @@
 <!-- Header Bar -->
 <div class="compare-header">
   <div class="compare-header__inner">
-    <button
-      type="button"
-      class="compare-book-btn"
-      on:click={() => (isBookDrawerOpen = true)}
-    >
-      <span class="compare-book-btn__label">{$_('app.compare.select_book')}</span>
-      {#if selectedBookName}
-        <strong class="compare-book-btn__book">{selectedBookName}</strong>
-      {:else}
-        <strong class="compare-book-btn__book compare-book-btn__book--placeholder">
-          {$_('app.compare.select_book')}
-        </strong>
-      {/if}
-    </button>
+    <!-- ROW 1: Book selector + Exit -->
+    <div class="compare-header__row compare-header__row--top">
+      <button
+        type="button"
+        class="compare-book-btn"
+        on:click={() => (isBookDrawerOpen = true)}
+      >
+        <span class="compare-book-btn__label">{$_('app.compare.select_book')}</span>
+        {#if selectedBookName}
+          <strong class="compare-book-btn__book">{selectedBookName}</strong>
+        {:else}
+          <strong class="compare-book-btn__book compare-book-btn__book--placeholder">
+            {$_('app.compare.select_book')}
+          </strong>
+        {/if}
+      </button>
 
+      <!-- Botón Salir del modo comparación -->
+      <button
+        type="button"
+        class="compare-exit-btn"
+        on:click={exitCompareMode}
+        title={$_('app.compare.exit_compare')}
+        aria-label={$_('app.compare.exit_compare')}
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M18 6L6 18M6 6l12 12"/>
+        </svg>
+        <span>{$_('app.compare.exit_compare')}</span>
+      </button>
+    </div>
+
+    <!-- ROW 2: Chapter navigation (prev/next + chapter buttons) -->
     {#if selectedBook !== null && chapterArray.length}
-      <div class="compare-chapters" role="group">
-        {#each chapterArray as ch (ch)}
+      <div class="compare-header__row compare-header__row--chapters">
+        {#if canGoPrev}
           <button
             type="button"
-            class="compare-chapter-btn"
-            class:compare-chapter-btn--active={ch === selectedChapter}
-            on:click={() => selectChapter(ch)}
+            class="compare-nav-btn"
+            on:click={goPrevChapter}
+            title={$_('app.compare.chapter_nav.previous')}
+            aria-label={$_('app.compare.chapter_nav.previous')}
           >
-            {Number(ch + 1)}
+            <span aria-hidden="true">&#8592;</span>
           </button>
-        {/each}
+        {/if}
+
+        <div class="compare-chapters" role="group">
+          {#each chapterArray as ch (ch)}
+            <button
+              type="button"
+              class="compare-chapter-btn"
+              class:compare-chapter-btn--active={ch === selectedChapter}
+              on:click={() => selectChapter(ch)}
+            >
+              {Number(ch + 1)}
+            </button>
+          {/each}
+        </div>
+
+        {#if canGoNext}
+          <button
+            type="button"
+            class="compare-nav-btn"
+            on:click={goNextChapter}
+            title={$_('app.compare.chapter_nav.next')}
+            aria-label={$_('app.compare.chapter_nav.next')}
+          >
+            <span aria-hidden="true">&#8594;</span>
+          </button>
+        {/if}
       </div>
     {/if}
 
-    <div class="compare-header__nav">
-      {#if canGoPrev}
-        <button type="button" class="compare-nav-btn" on:click={goPrevChapter}>
-          <span aria-hidden="true">&#8592;</span>
-          <span>{$_('app.compare.chapter_nav.previous')}</span>
-        </button>
-      {/if}
-      {#if canGoNext}
-        <button type="button" class="compare-nav-btn" on:click={goNextChapter}>
-          <span>{$_('app.compare.chapter_nav.next')}</span>
-          <span aria-hidden="true">&#8594;</span>
-        </button>
-      {/if}
-    </div>
-
-    <div class="compare-header__actions">
-      <!-- Selector de versión a comparar -->
-      {#if otherVersionOptions.length > 0}
+    <!-- ROW 3: Version picker (centered, below) -->
+    {#if otherVersionOptions.length > 0}
+      <div class="compare-header__row compare-header__row--version">
         <div class="compare-version-picker" bind:this={versionMenuElement}>
+          <span class="compare-version-picker__label">{$_('app.compare.choose_version')}</span>
           <button
             type="button"
             class="compare-version-btn"
             on:click|stopPropagation={toggleVersionMenu}
             aria-haspopup="listbox"
             aria-expanded={isVersionMenuOpen}
-            title={$_('app.compare.choose_version')}
           >
             <span class="compare-version-btn__icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -378,22 +407,8 @@
             </div>
           {/if}
         </div>
-      {/if}
-
-      <!-- Botón Salir del modo comparación -->
-      <button
-        type="button"
-        class="compare-exit-btn"
-        on:click={exitCompareMode}
-        title={$_('app.compare.exit_compare')}
-        aria-label={$_('app.compare.exit_compare')}
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M18 6L6 18M6 6l12 12"/>
-        </svg>
-        <span>{$_('app.compare.exit_compare')}</span>
-      </button>
-    </div>
+      </div>
+    {/if}
   </div>
 </div>
 
@@ -636,30 +651,48 @@
       margin-inline: auto;
       padding: 0.75rem clamp(1rem, 5vw, 5rem);
       display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 0.75rem;
+      flex-direction: column;
+      gap: 0.6rem;
     }
 
-    &__nav {
+    // === ROW LAYOUTS ===
+    &__row {
       display: flex;
-      gap: 0.5rem;
-      margin-left: auto;
-      flex-wrap: wrap;
-    }
-
-    &__actions {
-      display: flex;
-      gap: 0.5rem;
-      flex-wrap: wrap;
       align-items: center;
+      gap: 0.6rem;
+      width: 100%;
+
+      &--top {
+        justify-content: space-between;
+      }
+
+      &--chapters {
+        justify-content: center;
+      }
+
+      &--version {
+        justify-content: center;
+        padding-top: 0.25rem;
+        border-top: 1px dashed rgb(45 150 205 / 18%);
+      }
     }
   }
 
   // === VERSION PICKER ===
   .compare-version-picker {
     position: relative;
-    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    &__label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--color-blue);
+      white-space: nowrap;
+    }
   }
 
   .compare-version-btn {
@@ -1316,22 +1349,43 @@
     }
 
     .compare-header__inner {
-      flex-direction: column;
-      align-items: stretch;
+      padding: 0.6rem 0.75rem;
+      gap: 0.5rem;
     }
 
-    .compare-header__nav {
-      margin-left: 0;
-      justify-content: center;
+    .compare-header__row {
+      &--chapters {
+        flex-wrap: nowrap;
+      }
     }
 
     .compare-book-btn {
       min-width: 0;
-      width: 100%;
+      flex: 1 1 auto;
+      min-width: 0;
     }
 
     .compare-chapters {
       max-height: 3rem;
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    // Exit button más compacto en mobile: solo X
+    .compare-exit-btn {
+      padding: 0.4rem 0.55rem;
+      flex: 0 0 auto;
+
+      span {
+        display: none;
+      }
+    }
+
+    // Nav buttons (prev/next) más compactos
+    .compare-nav-btn {
+      padding: 0.4rem 0.55rem;
+      flex: 0 0 auto;
+      font-size: 0.85rem;
     }
 
     // Hide desktop side-by-side on mobile
@@ -1344,7 +1398,7 @@
     .compare-split {
       display: flex;
       flex-direction: column;
-      height: calc(100dvh - 14rem);
+      height: calc(100dvh - 16rem);
       min-height: 30rem;
       gap: 0;
     }
