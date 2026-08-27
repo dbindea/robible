@@ -13,7 +13,8 @@
     "nav": {
       "logo_label": "RoBible",
       "logo_text": "Biblia",
-      "version_label": "Versión de la Biblia"
+      "version_label": "Versión de la Biblia",
+      "back_to_home": "Volver a la Biblia"
     },
     "footer": {
       "made_with_love": "Hecho con cariño en Arganda del Rey",
@@ -23,7 +24,9 @@
       "about_text": "RoBible es una app gratuita para leer y buscar en la Biblia con facilidad. El proyecto esta abierto a mejoras en GitHub.",
       "close_about": "Cerrar información",
       "theme_dark": "Activar modo noche",
-      "theme_light": "Activar modo día"
+      "theme_light": "Activar modo día",
+      "version_app": "Versión de la app",
+      "version_sw": "Versión del service worker"
     },
     "pwa": {
       "install_title": "Instalar RoBible",
@@ -177,6 +180,40 @@
       "speed": "Velocidad",
       "minimize": "Ocultar lectura continua",
       "open": "Abrir lectura continua"
+    },
+    "app_menu": {
+      "aria_label": "Menú de la aplicación",
+      "eyebrow": "Navegación",
+      "title": "Menú",
+      "close": "Cerrar menú",
+      "coming_soon": "Pronto",
+      "footer_text": "RoBible — lectura, estudio y comparación.",
+      "items": {
+        "home": {
+          "label": "Inicio",
+          "hint": "Volver a la Biblia"
+        },
+        "compare": {
+          "label": "Comparar",
+          "hint": "Ver un pasaje en dos versiones"
+        },
+        "index": {
+          "label": "Índice temático",
+          "hint": "Tus versículos organizados por temas"
+        },
+        "favorites": {
+          "label": "Favoritos",
+          "hint": "Tus versículos preferidos"
+        },
+        "user": {
+          "label": "Perfil",
+          "hint": "Preferencias de tu cuenta"
+        },
+        "auth": {
+          "label": "Iniciar sesión",
+          "hint": "Sincronizar entre dispositivos"
+        }
+      }
     }
   }
 }

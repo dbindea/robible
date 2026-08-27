@@ -3,6 +3,7 @@
   import Footer from './layouts/footer/Footer.svelte';
   import Main from './layouts/main/Main.svelte';
   import PwaManager from './layouts/pwa/PwaManager.svelte';
+  import AppMenu from './layouts/header/AppMenu.svelte';
   import { _, DEFAULT_LOCALE, setupI18n } from './services/i18n.service';
   import { applySeoMetadata } from './services/seo.service';
   import {
@@ -161,6 +162,16 @@
   $: currentBibleVersionConfig = getBibleVersionConfigOrDefault(currentBibleVersion);
   $: isImmersive = $immersiveMode;
 
+  // AppMenu: navega a la ruta destino usando el path-based routing
+  const onNavigate = (href) => {
+    if (!href) return;
+    if (window.location.pathname !== href) {
+      window.history.pushState(null, '', href);
+    }
+    window.dispatchEvent(new PopStateEvent('popstate'));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   // Cargar Biblia primaria cuando cambia
   $: if (currentBibleVersion) {
     applySeoMetadata({ versionConfig: currentBibleVersionConfig });
@@ -203,6 +214,7 @@
       <Footer />
     {/if}
     <PwaManager />
+    <AppMenu {onNavigate} />
   {:else}
     <p class="loading" role="status">Loading...</p>
   {/if}

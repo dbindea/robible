@@ -663,23 +663,29 @@
     position: fixed;
     inset: 0;
     z-index: 100;
-    display: grid;
-    place-items: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     padding: 1rem;
+    min-height: 100dvh;
     background: rgb(0 0 0 / 45%);
     backdrop-filter: blur(2px);
     animation: fadeIn 0.15s ease;
+    overflow-y: auto;
   }
 
   .modal {
     width: 100%;
     max-width: 24rem;
+    max-height: calc(100dvh - 2rem);
+    overflow-y: auto;
     background: var(--color-white);
     border-radius: 0.6rem;
     box-shadow: var(--box-shadow-down);
     padding: 1.25rem;
     color: var(--color-bg-dark);
     animation: scaleIn 0.15s ease;
+    margin: auto;
 
     &__title {
       margin: 0 0 1rem;

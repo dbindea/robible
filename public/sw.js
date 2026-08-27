@@ -1,4 +1,4 @@
-const CACHE_NAME = 'robible-v11';
+const CACHE_NAME = 'robible-v13';
 
 const CORE_ASSETS = [
   '/',
@@ -84,6 +84,28 @@ const cacheFirst = async (request) => {
   return response;
 };
 
+// Stale-while-revalidate: sirve cache inmediatamente, en paralelo descarga
+// la versión nueva del servidor y actualiza la cache para la próxima vez.
+// Usado para archivos de traducción y otros assets que se actualizan con deploy.
+const staleWhileRevalidate = async (request) => {
+  const cachedResponse = await caches.match(request);
+
+  // Lanzamos la petición de red en paralelo (sin await del set)
+  const networkUpdate = fetch(request)
+    .then((response) => putInCache(request, response))
+    .catch(() => {
+      // Red caída: nos quedamos con la cache
+    });
+
+  if (cachedResponse) {
+    return cachedResponse;
+  }
+
+  // No hay cache, esperamos a la red
+  await networkUpdate;
+  return (await caches.match(request)) || new Response('', { status: 504 });
+};
+
 const networkFirst = async (request) => {
   try {
     const response = await fetch(request);
@@ -141,9 +163,16 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (
+    url.pathname.startsWith('/lang/')
+  ) {
+    // Traducciones: stale-while-revalidate para que siempre estén al día
+    event.respondWith(staleWhileRevalidate(request));
+    return;
+  }
+
+  if (
     url.pathname.startsWith('/assets/') ||
     url.pathname.startsWith('/data/') ||
-    url.pathname.startsWith('/lang/') ||
     url.pathname.endsWith('.png') ||
     url.pathname.endsWith('.svg') ||
     url.pathname.endsWith('.ico') ||

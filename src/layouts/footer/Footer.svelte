@@ -6,8 +6,22 @@
 
   let isAboutOpen = false;
   const appVersion = packageInfo.version;
+  let swVersion = '—';
 
   $: isDarkMode = $themeMode === 'dark';
+
+  // Lee la versión del SW desde /sw.js (línea CACHE_NAME = 'robible-vXX')
+  const fetchSwVersion = async () => {
+    try {
+      const response = await fetch('/sw.js', { cache: 'no-store' });
+      if (!response.ok) return;
+      const text = await response.text();
+      const match = text.match(/CACHE_NAME\s*=\s*['"]([^'"]+)['"]/);
+      if (match) swVersion = match[1];
+    } catch {
+      // Si falla, dejamos el placeholder
+    }
+  };
 
   const closeAbout = () => {
     isAboutOpen = false;
@@ -21,6 +35,7 @@
 
   onMount(() => {
     document.addEventListener('keydown', handleKeydown);
+    fetchSwVersion();
   });
 
   onDestroy(() => {
@@ -40,7 +55,7 @@
   <div class="footer__actions">
     <button type="button" class="footer__about" on:click={() => (isAboutOpen = true)}>
       {$_('app.footer.about_action')}
-      <span>v{appVersion}</span>
+      <span>v{appVersion} · {swVersion}</span>
     </button>
     <button
       type="button"
@@ -74,6 +89,16 @@
       <a class="footer-modal__repo" href="https://github.com/dbindea/robible" target="_blank" rel="noreferrer">
         dbindea/robible
       </a>
+      <dl class="footer-modal__versions">
+        <div>
+          <dt>{$_('app.footer.version_app')}</dt>
+          <dd>v{appVersion}</dd>
+        </div>
+        <div>
+          <dt>{$_('app.footer.version_sw')}</dt>
+          <dd>{swVersion}</dd>
+        </div>
+      </dl>
       <p class="footer-modal__blessing">{$_('app.footer.maranata')}</p>
     </div>
   </div>
@@ -240,6 +265,40 @@
   .footer-modal__blessing {
     color: color-mix(in srgb, var(--color-bg-dark) 76%, var(--color-white));
     font-weight: 700;
+  }
+
+  .footer-modal__versions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0.5rem 0.65rem;
+    border: 1px solid color-mix(in srgb, var(--color-bg-dark) 10%, transparent);
+    border-radius: 0.3rem;
+    background: color-mix(in srgb, var(--color-bg-dark) 4%, var(--color-white));
+    list-style: none;
+
+    div {
+      display: grid;
+      gap: 0.1rem;
+      min-width: 0;
+    }
+
+    dt {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: color-mix(in srgb, var(--color-bg-dark) 60%, transparent);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    dd {
+      margin: 0;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--color-blue);
+      font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace;
+    }
   }
 
   .footer-modal__close {
