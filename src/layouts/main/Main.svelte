@@ -6,6 +6,8 @@
   import Sidebar from './Sidebar.svelte';
   import Result from './Result.svelte';
   import Compare from './Compare.svelte';
+  import Index from './Index.svelte';
+  import { getBibleVersionConfigOrDefault } from '../../store/stores';
 
   export let bible;
   export let map;
@@ -19,6 +21,23 @@
     path.startsWith('/compara/') || path.startsWith('/comparar/');
 
   let isCompareMode = typeof window !== 'undefined' ? isComparePath(window.location.pathname) : false;
+
+  // Detectar ruta del índice temático (depende del idioma de la biblia activa)
+  const getIndexPath = () => {
+    if (typeof window === 'undefined') return null;
+    const version = window.localStorage.getItem('selectedBibleVersion') || 'vdc';
+    const config = getBibleVersionConfigOrDefault(version);
+    return config?.indexPath || 'indice';
+  };
+
+  let isIndexMode = false;
+  const updateIndexMode = () => {
+    if (typeof window === 'undefined') return;
+    const indexPath = getIndexPath();
+    const path = window.location.pathname;
+    isIndexMode = path === `/${indexPath}` || path.startsWith(`/${indexPath}/`);
+  };
+  updateIndexMode();
 
   $: searchForm = $filter;
   $: fullResult = Object.keys(searchForm).length ? getFilterResult(bible, map, searchForm) : [];
@@ -34,17 +53,22 @@
 
   onMount(() => {
     updateCompareMode();
+    updateIndexMode();
     window.addEventListener('popstate', updateCompareMode);
     window.addEventListener('robibile:navigate', updateCompareMode);
+    window.addEventListener('popstate', updateIndexMode);
+    window.addEventListener('robibile:navigate', updateIndexMode);
     return () => {
       window.removeEventListener('popstate', updateCompareMode);
       window.removeEventListener('robibile:navigate', updateCompareMode);
+      window.removeEventListener('popstate', updateIndexMode);
+      window.removeEventListener('robibile:navigate', updateIndexMode);
     };
   });
 </script>
 
-<div class="main" class:main--immersive={isImmersive} class:main--compare={isCompareMode}>
-  {#if !isImmersive && !isCompareMode}
+<div class="main" class:main--immersive={isImmersive} class:main--compare={isCompareMode} class:main--index={isIndexMode}>
+  {#if !isImmersive && !isCompareMode && !isIndexMode}
     <div class="sidebar">
       <Sidebar {map} {result} {count} />
     </div>
@@ -53,6 +77,8 @@
     {#if Object.keys(bible).length}
       {#if isCompareMode}
         <Compare {bible} {map} {compareBible} {compareMap} />
+      {:else if isIndexMode}
+        <Index {bible} {map} />
       {:else}
         <Result {bible} {map} {result} {count} />
       {/if}
@@ -97,9 +123,10 @@
     min-height: calc(100dvh - 9rem);
   }
 
-  // Immersive mode AND compare mode: full width, no sidebar column
+  // Immersive mode, compare mode AND index mode: full width, no sidebar
   .main--immersive,
-  .main--compare {
+  .main--compare,
+  .main--index {
     grid-template-columns: minmax(0, 1fr);
     gap: 0;
   }
@@ -118,7 +145,8 @@
   }
 
   .main--immersive .layout,
-  .main--compare .layout {
+  .main--compare .layout,
+  .main--index .layout {
     padding: clamp(0.5rem, 2vw, 1.5rem) clamp(0.5rem, 3vw, 3rem) clamp(1rem, 4vw, 3rem);
   }
 
