@@ -1,0 +1,22 @@
+# JSONs de las Biblias: cachear 1 año, inmutable
+# (los JSONs solo cambian al redesplegar, el SW los refresca)
+/data/*
+  Cache-Control: public, max-age=31536000, immutable
+  X-Robots-Tag: noai, noimageai
+
+# Mapas (más pequeños, mismo tratamiento)
+/data/*/bible.map.json
+  Cache-Control: public, max-age=31536000, immutable
+  X-Robots-Tag: noai, noimageai
+
+# Service worker: siempre fresh (puede cambiar entre deploys)
+/sw.js
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Idiomas: cambian al redesplegar
+/lang/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Assets versionados (Vite ya mete hash en el nombre)
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
