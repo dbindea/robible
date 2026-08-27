@@ -211,9 +211,65 @@
         },
         "auth": {
           "label": "Iniciar sesión",
-          "hint": "Sincronizar entre dispositivos"
+          "hint": "Sincronizar entre dispositivos",
+          "signed_in_hint": "Conectado — toca para gestionar la cuenta"
         }
       }
+    }
+  },
+  "auth": {
+    "close": "Cerrar",
+    "welcome": "Bienvenido",
+    "signed_in": "Conectado",
+    "login_title": "Inicia sesión",
+    "register_title": "Crear cuenta",
+    "recover_title": "Recuperar contraseña",
+    "recover_eyebrow": "Recuperación",
+    "create_account": "Cuenta nueva",
+    "nickname": "Nombre de usuario",
+    "nickname_hint": "3-24 caracteres: letras, números, _ . -",
+    "password": "Contraseña",
+    "security_question": "Pregunta de seguridad",
+    "custom_question": "Otra pregunta (escríbela abajo)",
+    "custom_question_placeholder": "Ej: ¿Cuántos libros leí el año pasado?",
+    "security_answer": "Respuesta numérica",
+    "security_answer_hint": "Ej: 3",
+    "security_answer_help": "La respuesta debe ser solo dígitos (máx 6).",
+    "your_question": "Tu pregunta de seguridad",
+    "new_password": "Contraseña nueva",
+    "login_action": "Conectar",
+    "register_action": "Crear cuenta",
+    "reset_password": "Restablecer contraseña",
+    "continue": "Continuar",
+    "working": "Procesando…",
+    "forgot_password": "¿Olvidaste la contraseña?",
+    "no_account": "¿No tienes cuenta? Crea una",
+    "have_account": "¿Ya tienes cuenta? Conecta",
+    "back_to_login": "Volver a iniciar sesión",
+    "logout": "Cerrar sesión",
+    "profile_lead": "Tu cuenta RoBible — datos locales en este dispositivo.",
+    "member_since": "Miembro desde",
+    "logged_out": "Sesión cerrada",
+    "password_reset_ok": "¡Contraseña restablecida — conectado!",
+    "welcome_back": "¡Bienvenido de nuevo, {nickname}!",
+    "welcome_new": "Cuenta creada — ¡bienvenido, {nickname}!",
+    "questions": {
+      "siblings": "¿Cuántos hermanos tienes?",
+      "favorite_number": "¿Cuál es tu número favorito?",
+      "bible_start_year": "¿En qué año empezaste a leer la Biblia?",
+      "pets_count": "¿Cuántas mascotas tienes?",
+      "countries_visited": "¿Cuántos países has visitado?"
+    },
+    "errors": {
+      "invalid_nickname": "Nombre inválido (3-24 caracteres: letras, números, _, ., -).",
+      "invalid_password": "Contraseña inválida (mínimo 6 caracteres).",
+      "invalid_security_answer": "La respuesta debe ser solo dígitos (máx 6).",
+      "nickname_taken": "Este nombre de usuario ya está ocupado.",
+      "user_not_found": "No encontramos una cuenta con ese nombre.",
+      "invalid_credentials": "Nombre o contraseña incorrectos.",
+      "missing_credentials": "Completa el nombre y la contraseña.",
+      "security_question_required": "Elige o escribe una pregunta de seguridad.",
+      "reset_token_expired": "La sesión de recuperación expiró. Empieza de nuevo."
     }
   }
 }

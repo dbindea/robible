@@ -2,47 +2,18 @@
   import { onDestroy } from 'svelte';
   import { _ } from '../../services/i18n.service';
   import { appMenuOpen, closeAppMenu } from '../../store/appMenuStore';
+  import { openAuthMenu } from '../../store/authMenuStore';
+  import { isAuthenticated, currentUser } from '../../store/authStore';
 
   export let onNavigate = () => {};
 
-  // Menú principal (orden pensado para escalar)
-  const menuItems = [
-    {
-      key: 'home',
-      href: '/',
-      icon: 'home',
-      enabled: true,
-    },
-    {
-      key: 'compare',
-      href: '/compara',
-      icon: 'compare',
-      enabled: true,
-    },
-    {
-      key: 'index',
-      href: '/indice',
-      icon: 'bookmark',
-      enabled: true,
-    },
-    {
-      key: 'favorites',
-      href: '/favoritos',
-      icon: 'star',
-      enabled: false,
-    },
-    {
-      key: 'user',
-      href: '/usuario',
-      icon: 'user',
-      enabled: false,
-    },
-    {
-      key: 'auth',
-      href: '/login',
-      icon: 'auth',
-      enabled: false,
-    },
+  // Items estáticos del menú (los que navegan a una ruta)
+  const staticItems = [
+    { key: 'home', href: '/', icon: 'home', enabled: true },
+    { key: 'compare', href: '/compara', icon: 'compare', enabled: true },
+    { key: 'index', href: '/indice', icon: 'bookmark', enabled: true },
+    { key: 'favorites', href: '/favoritos', icon: 'star', enabled: false },
+    { key: 'user', href: '/usuario', icon: 'user', enabled: false },
   ];
 
   $: if (typeof document !== 'undefined') {
@@ -59,6 +30,12 @@
     if (!item.enabled) return;
     onNavigate(item.href);
     closeAppMenu();
+  };
+
+  // El item de auth abre el modal de auth (no navega)
+  const handleAuthClick = () => {
+    closeAppMenu();
+    openAuthMenu();
   };
 
   onDestroy(() => {
@@ -98,7 +75,7 @@
 
   <nav class="app-menu__nav" aria-label={$_('app.app_menu.title')}>
     <ul>
-      {#each menuItems as item (item.key)}
+      {#each staticItems as item (item.key)}
         <li>
           <button
             type="button"
@@ -133,12 +110,6 @@
                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
                   <circle cx="12" cy="7" r="4"/>
                 </svg>
-              {:else if item.icon === 'auth'}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
-                  <polyline points="10 17 15 12 10 7"/>
-                  <line x1="15" y1="12" x2="3" y2="12"/>
-                </svg>
               {/if}
             </span>
             <span class="app-menu__text">
@@ -151,6 +122,47 @@
           </button>
         </li>
       {/each}
+
+      <!-- Auth item (separado porque abre modal, no navega) -->
+      <li class="app-menu__separator" aria-hidden="true"></li>
+      <li>
+        <button
+          type="button"
+          class="app-menu__item"
+          tabindex={$appMenuOpen ? 0 : -1}
+          on:click={handleAuthClick}
+          aria-label={$isAuthenticated ? $_('auth.signed_in') : $_('app.app_menu.items.auth.label')}
+        >
+          <span class="app-menu__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              {#if $isAuthenticated}
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              {:else}
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                <polyline points="10 17 15 12 10 7"/>
+                <line x1="15" y1="12" x2="3" y2="12"/>
+              {/if}
+            </svg>
+          </span>
+          <span class="app-menu__text">
+            <span class="app-menu__label">
+              {#if $isAuthenticated}
+                {$currentUser?.nickname}
+              {:else}
+                {$_('app.app_menu.items.auth.label')}
+              {/if}
+            </span>
+            <span class="app-menu__hint">
+              {#if $isAuthenticated}
+                {$_('app.app_menu.items.auth.signed_in_hint')}
+              {:else}
+                {$_('app.app_menu.items.auth.hint')}
+              {/if}
+            </span>
+          </span>
+        </button>
+      </li>
     </ul>
   </nav>
 
@@ -245,6 +257,13 @@
       display: grid;
       gap: 0.35rem;
     }
+  }
+
+  .app-menu__separator {
+    list-style: none;
+    height: 1px;
+    margin: 0.45rem 0.25rem;
+    background: color-mix(in srgb, var(--color-bg-dark) 12%, transparent);
   }
 
   .app-menu__item {

@@ -21,21 +21,10 @@ function interpolateMessage(message, params = {}) {
 }
 
 function setupI18n({ withLocale: _locale } = { withLocale: DEFAULT_LOCALE }) {
-  const loadedDictionaries = get(dictionaries);
-
-  if (get(locale) === _locale && loadedDictionaries[_locale]) {
-    return Promise.resolve();
-  }
-
   pendingLocale = _locale;
 
-  if (loadedDictionaries[_locale]) {
-    locale.set(_locale);
-    return Promise.resolve();
-  }
-
   const messagesFileUrl = MESSAGE_FILE_URL_TEMPLATE.replace('{locale}', _locale);
-  return fetch(messagesFileUrl)
+  return fetch(messagesFileUrl, { cache: 'no-store' })
     .then((response) => {
       if (!response.ok) {
         throw new Error(`Could not load locale "${_locale}"`);

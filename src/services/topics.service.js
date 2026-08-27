@@ -2,9 +2,9 @@
  * Topics / themed-favorites service.
  *
  * Persists user-defined categories and the verses assigned to them.
- * Currently uses localStorage. The interface is designed so we can swap
- * the storage backend (e.g. a REST API when we add users + DB) without
- * touching the consumers.
+ * Storage is namespaced per user: `robible:topics:v1:{userId|anonymous}`.
+ * The interface is designed so we can swap the storage backend
+ * (REST API when we add users + DB) without touching consumers.
  *
  * Data shape (v1):
  * {
@@ -19,7 +19,21 @@
  * }
  */
 
-const STORAGE_KEY = 'robible:topics:v1';
+const STORAGE_PREFIX = 'robible:topics:v1';
+// Versión legacy (sin namespace por usuario) — se migra al primer login
+const LEGACY_KEY = 'robible:topics:v1';
+
+// Estado del usuario actual (lo cambia el store)
+let currentUserId = null;
+
+/** Lo llama el topicsStore cuando cambia el usuario. */
+export const setCurrentUser = (userId) => {
+  currentUserId = userId || null;
+};
+
+const getStorageKey = () => {
+  return currentUserId ? `${STORAGE_PREFIX}:${currentUserId}` : `${STORAGE_PREFIX}:anonymous`;
+};
 
 const DEFAULT_TOPIC_TEMPLATES = {
   ro: [
@@ -79,17 +93,31 @@ const safeParse = (raw) => {
 
 const readState = () => {
   if (typeof window === 'undefined') return { topics: [], verseRefs: {} };
-  const existing = safeParse(localStorage.getItem(STORAGE_KEY));
+  const key = getStorageKey();
+
+  // Migración desde la key legacy (sin namespace) al namespace anonymous
+  if (key === `${STORAGE_PREFIX}:anonymous`) {
+    const legacy = safeParse(localStorage.getItem(LEGACY_KEY));
+    if (legacy) {
+      localStorage.setItem(key, JSON.stringify(legacy));
+      localStorage.removeItem(LEGACY_KEY);
+      return legacy;
+    }
+  }
+
+  const existing = safeParse(localStorage.getItem(key));
   if (existing) return existing;
+
+  // Si es un usuario nuevo (no hay datos), seedear defaults del locale actual
   const locale = (typeof document !== 'undefined' && document.documentElement?.lang) || 'es';
   const seeded = seedDefaults(locale);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
+  localStorage.setItem(key, JSON.stringify(seeded));
   return seeded;
 };
 
 const writeState = (state) => {
   if (typeof window === 'undefined') return;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  localStorage.setItem(getStorageKey(), JSON.stringify(state));
 };
 
 // === PUBLIC API ===
@@ -126,7 +154,7 @@ export const deleteTopic = (id) => {
   const state = readState();
   const topic = state.topics.find((t) => t.id === id);
   if (!topic) return false;
-  if (topic.isDefault) return false; // No borrar defaults
+  if (topic.isDefault) return false;
   state.topics = state.topics.filter((t) => t.id !== id);
   delete state.verseRefs[id];
   writeState(state);
@@ -168,5 +196,5 @@ export const getTopicsContaining = (ref) => {
 
 export const resetAll = () => {
   if (typeof window === 'undefined') return;
-  localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(getStorageKey());
 };

@@ -211,9 +211,65 @@
         },
         "auth": {
           "label": "Autentificare",
-          "hint": "Sincronizare între dispozitive"
+          "hint": "Sincronizare între dispozitive",
+          "signed_in_hint": "Conectat — atinge pentru gestionare cont"
         }
       }
+    }
+  },
+  "auth": {
+    "close": "Închide",
+    "welcome": "Bine ai venit",
+    "signed_in": "Conectat",
+    "login_title": "Conectează-te",
+    "register_title": "Creează cont",
+    "recover_title": "Recuperare parolă",
+    "recover_eyebrow": "Recuperare",
+    "create_account": "Cont nou",
+    "nickname": "Nume de utilizator",
+    "nickname_hint": "3-24 caractere: litere, cifre, _ . -",
+    "password": "Parolă",
+    "security_question": "Întrebare de securitate",
+    "custom_question": "Altă întrebare (scrie-o mai jos)",
+    "custom_question_placeholder": "Ex: Câte cărți am citit anul trecut?",
+    "security_answer": "Răspuns numeric",
+    "security_answer_hint": "Ex: 3",
+    "security_answer_help": "Răspunsul trebuie să fie doar cifre (maxim 6).",
+    "your_question": "Întrebarea ta de securitate",
+    "new_password": "Parolă nouă",
+    "login_action": "Conectare",
+    "register_action": "Creează cont",
+    "reset_password": "Resetează parola",
+    "continue": "Continuă",
+    "working": "Se procesează…",
+    "forgot_password": "Ai uitat parola?",
+    "no_account": "Nu ai cont? Creează unul",
+    "have_account": "Ai deja cont? Conectează-te",
+    "back_to_login": "Înapoi la conectare",
+    "logout": "Deconectare",
+    "profile_lead": "Contul tău RoBible — date locale pe acest dispozitiv.",
+    "member_since": "Membru din",
+    "logged_out": "Deconectat cu succes",
+    "password_reset_ok": "Parolă resetată — conectat!",
+    "welcome_back": "Bine ai revenit, {nickname}!",
+    "welcome_new": "Cont creat — bine ai venit, {nickname}!",
+    "questions": {
+      "siblings": "Câți frați sau surori ai?",
+      "favorite_number": "Care este numărul tău preferat?",
+      "bible_start_year": "În ce an ai început să citești Biblia?",
+      "pets_count": "Câte animale de companie ai?",
+      "countries_visited": "Câte țări ai vizitat?"
+    },
+    "errors": {
+      "invalid_nickname": "Nume invalid (3-24 caractere: litere, cifre, _, ., -).",
+      "invalid_password": "Parolă invalidă (mínimo 6 caracteres).",
+      "invalid_security_answer": "Răspunsul trebuie să fie doar cifre (maxim 6).",
+      "nickname_taken": "Acest nume de utilizator este deja ocupat.",
+      "user_not_found": "Nu am găsit un cont cu acest nume.",
+      "invalid_credentials": "Nume sau parolă incorecte.",
+      "missing_credentials": "Completează numele și parola.",
+      "security_question_required": "Alege sau scrie o întrebare de securitate.",
+      "reset_token_expired": "Sesiunea de recuperare a expirat. Începe din nou."
     }
   }
 }

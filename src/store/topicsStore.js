@@ -1,5 +1,15 @@
 import { writable, derived, get } from 'svelte/store';
 import * as topicsService from '../services/topics.service';
+import { currentUser } from './authStore';
+
+// Reaccionar al usuario actual: cuando cambia, recargar topics del namespace
+currentUser.subscribe((user) => {
+  topicsService.setCurrentUser(user?.id || null);
+  // Forzar recarga del store
+  setTimeout(() => {
+    topicsStore.refresh();
+  }, 0);
+});
 
 const initial = {
   topics: topicsService.loadTopics(),

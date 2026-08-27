@@ -4,6 +4,8 @@
   import Main from './layouts/main/Main.svelte';
   import PwaManager from './layouts/pwa/PwaManager.svelte';
   import AppMenu from './layouts/header/AppMenu.svelte';
+  import AuthModal from './layouts/auth/AuthModal.svelte';
+  import { authMenuOpen } from './store/authMenuStore';
   import { _, DEFAULT_LOCALE, setupI18n } from './services/i18n.service';
   import { applySeoMetadata } from './services/seo.service';
   import {
@@ -215,6 +217,9 @@
     {/if}
     <PwaManager />
     <AppMenu {onNavigate} />
+    {#if $authMenuOpen}
+      <AuthModal />
+    {/if}
   {:else}
     <p class="loading" role="status">Loading...</p>
   {/if}
