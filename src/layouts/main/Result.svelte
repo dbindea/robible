@@ -12,6 +12,8 @@
   import { applySeoMetadata, buildCurrentBibleSeo, buildVerseSeo } from '../../services/seo.service';
   import { filter, getBibleVersionConfigOrDefault, getAvailableBibleVersions, immersiveMode, selectedBibleVersion, compareWithVersion, toggleImmersiveMode } from '../../store/stores';
   import { topicsStore, topicsContainingVerse } from '../../store/topicsStore';
+  import { favoritesStore } from '../../store/favoritesStore';
+  import { isAuthenticated } from '../../store/authStore';
   import AutoRead from '../../components/AutoRead.svelte';
   import { registerAutoReadCallback, unregisterAutoReadCallback } from '../../store/autoReadStore';
 
@@ -774,6 +776,28 @@
             <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
           </svg>
         </button>
+        <button
+          type="button"
+          class="icon-btn favorite-btn"
+          class:favorite-btn--active={$favoritesStore.some((f) => f.book === item.book && f.chapter === item.chapter && f.verse === item.index)}
+          class:icon-btn--disabled={!$isAuthenticated}
+          title={$isAuthenticated
+            ? ($favoritesStore.some((f) => f.book === item.book && f.chapter === item.chapter && f.verse === item.index)
+                ? $_('app.result.actions.unfavorite')
+                : $_('app.result.actions.favorite'))
+            : $_('app.result.actions.favorite_login_required')}
+          aria-label={$isAuthenticated
+            ? ($favoritesStore.some((f) => f.book === item.book && f.chapter === item.chapter && f.verse === item.index)
+                ? $_('app.result.actions.unfavorite_reference', { reference: `${map[item.book]} ${item.chapter}:${item.index}` })
+                : $_('app.result.actions.favorite_reference', { reference: `${map[item.book]} ${item.chapter}:${item.index}` }))
+            : $_('app.result.actions.favorite_login_required')}
+          disabled={!$isAuthenticated}
+          on:click={() => $isAuthenticated && favoritesStore.toggle(item.book, item.chapter, item.index)}
+        >
+          <svg viewBox="0 0 24 24" fill={$favoritesStore.some((f) => f.book === item.book && f.chapter === item.chapter && f.verse === item.index) ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+          </svg>
+        </button>
         {#if availableOtherVersions.length > 0}
           <span class="verse-compare" bind:this={compareMenuElement}>
             <button
@@ -1492,6 +1516,46 @@
     background: rgb(45 150 205 / 15%);
     color: #7ec8e3;
     border-color: rgb(45 150 205 / 25%);
+  }
+
+  // === FAVORITE BUTTON ===
+  // Siempre visible (es la acción primaria). Estado activo = estrella rellena en color.
+  .favorite-btn {
+    opacity: 1;
+
+    svg {
+      transition: transform 0.15s ease, fill 0.15s ease;
+    }
+
+    &:hover:not(:disabled) svg {
+      transform: scale(1.15);
+    }
+
+    &--active {
+      border-color: #D4A853;
+      background: rgb(212 168 83 / 18%);
+      color: #D4A853;
+
+      svg { fill: #D4A853; }
+    }
+
+    &--disabled,
+    &:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+  }
+
+  :global(html[data-theme='dark']) .favorite-btn {
+    color: #ffffff;
+    border-color: rgb(255 255 255 / 14%);
+
+    &--active {
+      background: rgb(212 168 83 / 22%);
+      border-color: #D4A853;
+      color: #D4A853;
+      svg { fill: #D4A853; }
+    }
   }
 
   :global(html[data-theme='dark']) .save-topic-menu {

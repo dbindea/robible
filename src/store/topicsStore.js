@@ -1,14 +1,16 @@
-import { writable, derived, get } from 'svelte/store';
+import { writable, get } from 'svelte/store';
 import * as topicsService from '../services/topics.service';
 import { currentUser } from './authStore';
+import { tokenStore } from '../services/apiClient';
 
 // Reaccionar al usuario actual: cuando cambia, recargar topics del namespace
-currentUser.subscribe((user) => {
+// y, si hay token, sincronizar del backend (multi-device).
+currentUser.subscribe(async (user) => {
   topicsService.setCurrentUser(user?.id || null);
-  // Forzar recarga del store
-  setTimeout(() => {
-    topicsStore.refresh();
-  }, 0);
+  if (user && tokenStore.get()) {
+    await topicsService.syncFromServer();
+  }
+  setTimeout(() => topicsStore.refresh(), 0);
 });
 
 const initial = {
@@ -17,7 +19,7 @@ const initial = {
 };
 
 const createTopicsStore = () => {
-  const { subscribe, set, update } = writable(initial);
+  const { subscribe, set } = writable(initial);
 
   const refresh = () => {
     set({
@@ -28,28 +30,28 @@ const createTopicsStore = () => {
 
   return {
     subscribe,
-    create: (data) => {
-      const t = topicsService.createTopic(data);
+    create: async (data) => {
+      const t = await topicsService.createTopic(data);
       refresh();
       return t;
     },
-    update: (id, patch) => {
-      const t = topicsService.updateTopic(id, patch);
+    update: async (id, patch) => {
+      const t = await topicsService.updateTopic(id, patch);
       refresh();
       return t;
     },
-    remove: (id) => {
-      const ok = topicsService.deleteTopic(id);
+    remove: async (id) => {
+      const ok = await topicsService.deleteTopic(id);
       refresh();
       return ok;
     },
-    addVerse: (topicId, ref) => {
-      const ok = topicsService.addVerseRef(topicId, ref);
+    addVerse: async (topicId, ref) => {
+      const ok = await topicsService.addVerseRef(topicId, ref);
       if (ok) refresh();
       return ok;
     },
-    removeVerse: (topicId, ref) => {
-      const ok = topicsService.removeVerseRef(topicId, ref);
+    removeVerse: async (topicId, ref) => {
+      const ok = await topicsService.removeVerseRef(topicId, ref);
       if (ok) refresh();
       return ok;
     },
@@ -63,7 +65,6 @@ const createTopicsStore = () => {
 
 export const topicsStore = createTopicsStore();
 
-// Helpers
 export const topicsContainingVerse = (book, chapter, verse) => {
   const state = get(topicsStore);
   return state.topics.filter((t) =>
