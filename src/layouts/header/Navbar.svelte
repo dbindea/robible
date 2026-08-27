@@ -75,6 +75,17 @@
     <span>{$_('app.compare.title')}</span>
   </a>
 
+  <a
+    class="index-link"
+    href="/indice"
+    title={$_('app.topics.title')}
+  >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/>
+    </svg>
+    <span>{$_('app.topics.title')}</span>
+  </a>
+
   <div class="version-picker" bind:this={versionPickerElement}>
     <button
       type="button"
@@ -281,12 +292,77 @@
   :global(html[data-theme='dark']) .logo-book { stroke: #1d3040; }
   :global(html[data-theme='dark']) .logo-spine { stroke: #1d3040; }
 
+  :global(html[data-theme='dark']) .compare-link {
+    background: rgb(255 255 255 / 8%);
+    color: #ffffff;
+
+    &:hover,
+    &:focus-visible {
+      background: rgb(45 150 205 / 18%);
+      border-color: var(--color-blue);
+      color: #ffffff;
+    }
+  }
+
+  .index-link {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.5rem 0.85rem;
+    border: 1px solid rgb(45 150 205 / 42%);
+    border-radius: 0.28rem;
+    background: color-mix(in srgb, var(--color-blue) 11%, var(--color-white));
+    color: var(--color-bg-dark);
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: var(--transition);
+    white-space: nowrap;
+
+    svg {
+      width: 1.1rem;
+      height: 1.1rem;
+      flex: 0 0 auto;
+    }
+
+    &:hover,
+    &:focus-visible {
+      border-color: var(--color-blue);
+      background: color-mix(in srgb, var(--color-blue) 18%, var(--color-white));
+      box-shadow: 0 0 0 3px rgb(45 150 205 / 14%);
+      text-decoration: none;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--color-blue);
+      outline-offset: 2px;
+    }
+  }
+
+  :global(html[data-theme='dark']) .index-link {
+    background: rgb(255 255 255 / 8%);
+    color: #ffffff;
+
+    &:hover,
+    &:focus-visible {
+      background: rgb(45 150 205 / 18%);
+      border-color: var(--color-blue);
+      color: #ffffff;
+    }
+  }
+
   @media (max-width: 32rem) {
     .version-picker {
       min-width: min(11rem, 48vw);
     }
 
     .compare-link {
+      padding: 0.3rem 0.55rem;
+      font-size: 0.78rem;
+      span { display: none; }
+    }
+
+    .index-link {
       padding: 0.3rem 0.55rem;
       font-size: 0.78rem;
       span { display: none; }
@@ -302,15 +378,4 @@
     }
   }
 
-  :global(html[data-theme='dark']) .compare-link {
-    background: rgb(255 255 255 / 8%);
-    color: #ffffff;
-
-    &:hover,
-    &:focus-visible {
-      background: rgb(45 150 205 / 18%);
-      border-color: var(--color-blue);
-      color: #ffffff;
-    }
-  }
 </style>

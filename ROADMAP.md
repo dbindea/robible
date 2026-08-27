@@ -83,37 +83,46 @@ RoBible es una app web (PWA) bilingüe de la Biblia (rumano + español) con sopo
 
 ## 🚧 En curso
 
-### Phase 2.2 — Índice temático
-- [ ] Ruta `/indice` o `/temas`
-- [ ] 7 categorías: Amor, Fe, Promesas, Milagros, Sanaciones, Apocalípticos, Profecías de Isaías
-- [ ] Lista de versículos por categoría
-- [ ] Click en versículo → navega a ese versículo
-- [ ] Mobile-first (cards o lista colapsable)
+### Phase 2.2 — Índice temático ✅ COMPLETADA
+Ver sección en "Pendientes por fase" más abajo.
 
-### Phase 2.3 — Lectura continua
-- [ ] Auto-advance al siguiente capítulo después de N segundos
-- [ ] Velocidad configurable (slider: 30s, 60s, 90s, 2min, 5min)
-- [ ] Botón play/pause
-- [ ] Indicador de progreso
-- [ ] Persistir velocidad en localStorage
+### Phase 2.3 — Lectura continua ✅ COMPLETADA
+Ver sección en "Pendientes por fase" más abajo.
 
 ---
 
 ## 📅 Pendientes por fase
 
-### Phase 2.2 — Índice temático
-- [ ] Ruta `/indice` o `/temas`
-- [ ] 7 categorías: Amor, Fe, Promesas, Milagros, Sanaciones, Apocalípticos, Profecías de Isaías
-- [ ] Lista de versículos por categoría
-- [ ] Click en versículo → navega a ese versículo
-- [ ] Mobile-first (cards o lista colapsable)
+### Phase 2.2 — Índice temático ✅ COMPLETADA
+- [x] Ruta `/indice` (y `/temas`/`/index` según idioma, via `indexPath` config)
+- [x] Service `topics.service.js` con localStorage (interface lista para migrar a DB)
+- [x] Store reactivo `topicsStore` con CRUD completo
+- [x] 3 categorías iniciales seedeadas: Mântuire/Salvación, Îndurare/Misericordia, Vindecare/Sanación
+- [x] Index.svelte: grid responsive de categorías con icono + nombre + contador
+- [x] Vista de detalle de categoría con versículos (referencia clickable + texto + botón eliminar)
+- [x] Modal para crear nueva categoría (nombre, icono, color)
+- [x] Result.svelte: botón "Guardar en tema" en cada versículo con dropdown
+- [x] Crear categoría inline desde el dropdown del versículo
+- [x] Dark mode completo
+- [x] Mobile-first: 1 columna en mobile, multi en desktop
+- [x] Funcionalidad dual: favoritos + índice temático (versículos favoritos por categoría)
+- [x] Persistencia en localStorage (`robible:topics:v1`) — schema versionado para migración futura
 
-### Phase 2.3 — Lectura continua
-- [ ] Auto-advance al siguiente capítulo después de N segundos
-- [ ] Velocidad configurable (slider: 30s, 60s, 90s, 2min, 5min)
-- [ ] Botón play/pause
-- [ ] Indicador de progreso
-- [ ] Persistir velocidad en localStorage
+### Phase 2.3 — Lectura continua ✅ COMPLETADA
+- [x] Auto-advance al siguiente capítulo cuando el timer expira
+- [x] Velocidades: 30s / 1 min / 1.5 min / 2 min / 5 min (dropdown con 5 opciones)
+- [x] Botón play/pause (icono cambia según estado)
+- [x] Indicador de progreso (barra con gradiente teal→gold)
+- [x] Tiempo restante visible (formato M:SS, monospace)
+- [x] Persistencia de velocidad en `robible:autoRead` localStorage
+- [x] Auto-resume tras auto-advance (continúa reproduciendo el siguiente capítulo)
+- [x] Minimize → FAB flotante (bottom-right) para reabrir
+- [x] Oculto automáticamente en modo búsqueda
+- [x] Mobile-first: full-width en < 640px, pill centrado en desktop
+- [x] Dark mode: gradiente + glass-blur adaptado al tema
+- [x] FAB oculto en immersive mode (no estorba la lectura)
+- [x] Service worker bumped a `robible-v11`
+- [x] Verificado con Playwright: desktop + mobile + auto-advance + auto-resume + search + minimize
 
 ### Phase 3 — Personalización
 - [ ] Favoritos (★ por versículo, lista de favoritos)
@@ -171,7 +180,7 @@ RoBible es una app web (PWA) bilingüe de la Biblia (rumano + español) con sopo
 - `node scripts/resize-logo.js` — regenera todos los favicons
 
 ### Service Worker
-- Cache version: `robible-v9`
+- Cache version: `robible-v11`
 - Pre-cachea: ambas Biblias, todos los assets, lang files
 - Network-first para navegación
 - Cache-first para assets/data/lang

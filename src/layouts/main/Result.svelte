@@ -11,6 +11,9 @@
   import { _ } from '../../services/i18n.service';
   import { applySeoMetadata, buildCurrentBibleSeo, buildVerseSeo } from '../../services/seo.service';
   import { filter, getBibleVersionConfigOrDefault, getAvailableBibleVersions, immersiveMode, selectedBibleVersion, compareWithVersion, toggleImmersiveMode } from '../../store/stores';
+  import { topicsStore, topicsContainingVerse } from '../../store/topicsStore';
+  import AutoRead from '../../components/AutoRead.svelte';
+  import { registerAutoReadCallback, unregisterAutoReadCallback } from '../../store/autoReadStore';
 
   export let bible;
   export let map;
@@ -33,6 +36,18 @@
   let compareMenuElement;
   $: availableOtherVersions = getAvailableBibleVersions().filter((v) => v.value !== $selectedBibleVersion);
 
+  // Save-to-topic menu state
+  let saveToTopicVerseKey = null;
+  let saveToTopicMenuElement;
+  let newTopicInline = { name: '', icon: '📌', color: '#2E7D9B' };
+  let showInlineCreate = false;
+
+  // Auto-read state
+  let autoReadVisible = false;
+
+  $: topics = $topicsStore.topics;
+  $: verseRefs = $topicsStore.verseRefs;
+
   const toggleCompareMenu = (verseKey, event) => {
     if (event) event.stopPropagation();
     compareMenuVerseKey = compareMenuVerseKey === verseKey ? null : verseKey;
@@ -47,6 +62,74 @@
     if (compareMenuElement && !compareMenuElement.contains(event.target)) {
       closeCompareMenu();
     }
+  };
+
+  // === Save to topic ===
+  const toggleSaveToTopicMenu = (verseKey, event) => {
+    if (event) event.stopPropagation();
+    saveToTopicVerseKey = saveToTopicVerseKey === verseKey ? null : verseKey;
+    showInlineCreate = false;
+    newTopicInline = { name: '', icon: '📌', color: '#2E7D9B' };
+  };
+
+  const closeSaveToTopicMenu = () => {
+    saveToTopicVerseKey = null;
+    showInlineCreate = false;
+  };
+
+  const handleSaveToTopicMenuOutside = (event) => {
+    if (saveToTopicVerseKey === null) return;
+    if (saveToTopicMenuElement && !saveToTopicMenuElement.contains(event.target)) {
+      closeSaveToTopicMenu();
+    }
+  };
+
+  const addToTopic = (item, topicId) => {
+    const ok = topicsStore.addVerse(topicId, {
+      book: item.book,
+      chapter: item.chapter,
+      verse: item.index,
+    });
+    if (ok) showToastMessage($_('app.topics.saved'));
+    else showToastMessage($_('app.topics.already_in_topic'));
+    closeSaveToTopicMenu();
+  };
+
+  const removeFromTopic = (item, topicId) => {
+    topicsStore.removeVerse(topicId, {
+      book: item.book,
+      chapter: item.chapter,
+      verse: item.index,
+    });
+    showToastMessage($_('app.topics.removed'));
+  };
+
+  const createTopicInline = (item) => {
+    if (!newTopicInline.name.trim()) return;
+    const created = topicsStore.create(newTopicInline);
+    if (created) {
+      topicsStore.addVerse(created.id, {
+        book: item.book,
+        chapter: item.chapter,
+        verse: item.index,
+      });
+      showToastMessage($_('app.topics.saved'));
+      closeSaveToTopicMenu();
+    }
+  };
+
+  const isVerseInTopic = (topicId, item) => {
+    return (verseRefs[topicId] || []).some(
+      (v) => v.book === item.book && v.chapter === item.chapter && v.verse === item.index,
+    );
+  };
+
+  const showToastMessage = (message) => {
+    toastMessage = message;
+    window.clearTimeout(toastTimer);
+    toastTimer = window.setTimeout(() => {
+      toastMessage = '';
+    }, 2200);
   };
 
   // Iniciar compare con el versículo actual y la versión elegida
@@ -149,10 +232,24 @@
   };
 
   const goToNextChapter = async () => {
-    if (!canSwipeLeft) return;
+    if (!canSwipeLeft) return false;
     chapterForm.chapter = (selectedChapter ?? 0) + 1;
     await updateChapterForm();
     showToast($_('app.result.toast.next_chapter'));
+    return true;
+  };
+
+  // Wrapper para auto-read: avanza al siguiente capítulo y reanuda el play
+  const handleAutoAdvance = async () => {
+    const advanced = await goToNextChapter();
+    if (advanced) {
+      // Pequeño delay para que el usuario vea el cambio antes de continuar
+      setTimeout(() => {
+        import('../../store/autoReadStore').then(({ autoReadPlay }) => {
+          autoReadPlay();
+        });
+      }, 1200);
+    }
   };
 
   const goToPrevChapter = async () => {
@@ -486,12 +583,18 @@
 
     isMounted = true;
     document.addEventListener('click', handleCompareMenuOutside);
+    document.addEventListener('click', handleSaveToTopicMenuOutside);
+
+    // Auto-read: mostrar controles y registrar callback de avance
+    autoReadVisible = true;
+    registerAutoReadCallback(handleAutoAdvance);
   });
 
   onDestroy(() => {
     window.clearTimeout(toastTimer);
     window.clearTimeout(highlightTimer);
     window.clearTimeout(scrollTimer);
+    unregisterAutoReadCallback();
     if (resultElement) {
       resultElement.removeEventListener('touchstart', onTouchStart);
       resultElement.removeEventListener('touchmove', onTouchMove);
@@ -500,6 +603,7 @@
     if (typeof window !== 'undefined') {
       window.removeEventListener('scroll', () => {});
       document.removeEventListener('click', handleCompareMenuOutside);
+      document.removeEventListener('click', handleSaveToTopicMenuOutside);
     }
   });
 
@@ -702,6 +806,104 @@
             {/if}
           </span>
         {/if}
+
+        <!-- Save to topic -->
+        <span class="verse-save-topic" bind:this={saveToTopicMenuElement}>
+          <button
+            type="button"
+            class="save-topic-btn"
+            title={$_('app.topics.add_verse_to_topic')}
+            aria-label={$_('app.topics.add_verse_to_topic')}
+            on:click={(e) => toggleSaveToTopicMenu(item.key, e)}
+            aria-haspopup="listbox"
+            aria-expanded={saveToTopicVerseKey === item.key}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/>
+            </svg>
+          </button>
+          {#if saveToTopicVerseKey === item.key}
+            <div class="save-topic-menu" role="listbox">
+              <div class="save-topic-menu__label">{$_('app.topics.add_to_existing')}</div>
+              {#if topics.length === 0}
+                <p class="save-topic-menu__empty">{$_('app.topics.create_first_topic')}</p>
+              {:else}
+                <ul class="save-topic-menu__list">
+                  {#each topics as topic (topic.id)}
+                    {@const inTopic = isVerseInTopic(topic.id, item)}
+                    <li>
+                      <button
+                        type="button"
+                        class="save-topic-option"
+                        class:save-topic-option--active={inTopic}
+                        on:click={() => inTopic ? removeFromTopic(item, topic.id) : addToTopic(item, topic.id)}
+                      >
+                        <span class="save-topic-option__icon" aria-hidden="true">{topic.icon}</span>
+                        <span class="save-topic-option__name">{topic.name}</span>
+                        <span class="save-topic-option__check" aria-hidden="true">{inTopic ? '✓' : '+'}</span>
+                      </button>
+                    </li>
+                  {/each}
+                </ul>
+              {/if}
+              <div class="save-topic-menu__divider" aria-hidden="true"></div>
+              {#if !showInlineCreate}
+                <button
+                  type="button"
+                  class="save-topic-menu__add-new"
+                  on:click={() => (showInlineCreate = true)}
+                >
+                  <span aria-hidden="true">+</span>
+                  <span>{$_('app.topics.create_new_inline')}</span>
+                </button>
+              {:else}
+                <div class="save-topic-menu__inline">
+                  <input
+                    type="text"
+                    bind:value={newTopicInline.name}
+                    placeholder={$_('app.topics.new_topic_placeholder')}
+                    maxlength="40"
+                    autofocus
+                  />
+                  <div class="save-topic-menu__inline-row">
+                    <input
+                      type="text"
+                      bind:value={newTopicInline.icon}
+                      placeholder="📌"
+                      maxlength="2"
+                      class="save-topic-menu__inline-icon"
+                    />
+                    <input
+                      type="color"
+                      bind:value={newTopicInline.color}
+                      class="save-topic-menu__inline-color"
+                    />
+                  </div>
+                  <div class="save-topic-menu__inline-actions">
+                    <button
+                      type="button"
+                      class="save-topic-menu__inline-cancel"
+                      on:click={() => {
+                        showInlineCreate = false;
+                        newTopicInline = { name: '', icon: '📌', color: '#2E7D9B' };
+                      }}
+                    >
+                      {$_('app.topics.cancel')}
+                    </button>
+                    <button
+                      type="button"
+                      class="save-topic-menu__inline-save"
+                      on:click={() => createTopicInline(item)}
+                      disabled={!newTopicInline.name.trim()}
+                    >
+                      {$_('app.topics.save')}
+                    </button>
+                  </div>
+                </div>
+              {/if}
+            </div>
+          {/if}
+        </span>
       </p>
     </div>
     <div class="verse-divider" aria-hidden="true"></div>
@@ -753,6 +955,11 @@
 
 <!-- Keyboard shortcut: Escape exits immersive mode -->
 <svelte:window on:keydown={(e) => { if (e.key === 'Escape' && $immersiveMode) toggleImmersiveMode(); }} />
+
+<!-- Auto-read controls (only when reading a chapter, not in search) -->
+{#if !searchForm.searchText && chapterArray.length}
+  <AutoRead visible={autoReadVisible} />
+{/if}
 
 <style lang="scss">
   .result {
@@ -1030,6 +1237,309 @@
     background: rgb(45 150 205 / 15%);
     color: #7ec8e3;
     border-color: rgb(45 150 205 / 25%);
+  }
+
+  // === SAVE TO TOPIC ===
+  .verse-save-topic {
+    position: relative;
+    display: inline-flex;
+  }
+
+  .save-topic-btn {
+    display: inline-grid;
+    place-items: center;
+    width: 1.65rem;
+    height: 1.65rem;
+    margin-left: 0.2rem;
+    border: 1px solid rgb(45 150 205 / 24%);
+    border-radius: 0.28rem;
+    background: rgb(45 150 205 / 7%);
+    color: var(--color-link);
+    cursor: pointer;
+    transition: var(--transition);
+    opacity: 0;
+
+    svg {
+      width: 0.85rem;
+      height: 0.85rem;
+    }
+
+    &:hover,
+    &:focus-visible {
+      border-color: var(--color-blue);
+      background: rgb(45 150 205 / 18%);
+      box-shadow: 0 0 0 3px rgb(45 150 205 / 14%);
+      opacity: 1;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--color-blue);
+      outline-offset: 2px;
+      opacity: 1;
+    }
+  }
+
+  .verse:hover .save-topic-btn,
+  .verse:focus-within .save-topic-btn,
+  .save-topic-btn[aria-expanded="true"] {
+    opacity: 1;
+  }
+
+  .save-topic-menu {
+    position: absolute;
+    top: calc(100% + 0.4rem);
+    right: auto;
+    left: 0;
+    z-index: 25;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    width: min(20rem, calc(100vw - 2rem));
+    max-height: min(70vh, 32rem);
+    overflow-y: auto;
+    padding: 0.55rem;
+    border: 1px solid rgb(63 88 103 / 18%);
+    border-radius: 0.4rem;
+    background: var(--color-white);
+    box-shadow: var(--box-shadow-down);
+
+    &__label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-blue);
+      padding: 0.25rem 0.4rem 0;
+    }
+
+    &__empty {
+      margin: 0;
+      padding: 0.5rem 0.4rem;
+      font-size: 0.85rem;
+      color: color-mix(in srgb, var(--color-bg-dark) 60%, transparent);
+    }
+
+    &__list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+
+    &__divider {
+      height: 1px;
+      margin: 0.2rem 0;
+      background: rgb(45 150 205 / 18%);
+    }
+
+    &__add-new {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      width: 100%;
+      padding: 0.5rem 0.65rem;
+      border: 1px dashed rgb(45 150 205 / 38%);
+      border-radius: 0.3rem;
+      background: transparent;
+      color: var(--color-blue);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+
+      span[aria-hidden] {
+        font-size: 1.1rem;
+        line-height: 1;
+      }
+
+      &:hover,
+      &:focus-visible {
+        background: color-mix(in srgb, var(--color-blue) 8%, var(--color-white));
+        border-style: solid;
+      }
+    }
+
+    &__inline {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      padding: 0.4rem;
+      border: 1px solid rgb(45 150 205 / 22%);
+      border-radius: 0.3rem;
+      background: rgb(45 150 205 / 4%);
+
+      input[type='text'],
+      input[type='color'] {
+        width: 100%;
+        padding: 0.4rem 0.55rem;
+        border: 1px solid rgb(45 150 205 / 28%);
+        border-radius: 0.25rem;
+        background: var(--color-white);
+        color: var(--color-bg-dark);
+        font-size: 0.88rem;
+        transition: var(--transition);
+
+        &:focus {
+          outline: none;
+          border-color: var(--color-blue);
+          box-shadow: 0 0 0 2px rgb(45 150 205 / 16%);
+        }
+      }
+
+      input[type='color'] {
+        padding: 0.1rem;
+        height: 2rem;
+        cursor: pointer;
+      }
+
+      &-row {
+        display: flex;
+        gap: 0.3rem;
+      }
+
+      &-icon {
+        flex: 0 0 3rem;
+        text-align: center;
+      }
+
+      &-color {
+        flex: 1 1 auto;
+      }
+
+      &-actions {
+        display: flex;
+        gap: 0.4rem;
+        justify-content: flex-end;
+      }
+
+      &-cancel,
+      &-save {
+        padding: 0.4rem 0.85rem;
+        border-radius: 999px;
+        font-size: 0.82rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: var(--transition);
+      }
+
+      &-cancel {
+        background: transparent;
+        border: 1px solid rgb(45 150 205 / 30%);
+        color: var(--color-bg-dark);
+
+        &:hover {
+          background: rgb(45 150 205 / 8%);
+        }
+      }
+
+      &-save {
+        background: var(--color-blue);
+        border: 1px solid var(--color-blue);
+        color: var(--color-white);
+
+        &:hover:not(:disabled) {
+          background: var(--color-blue-hover);
+        }
+
+        &:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+      }
+    }
+  }
+
+  .save-topic-option {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.4rem 0.6rem;
+    border: 1px solid transparent;
+    border-radius: 0.25rem;
+    background: transparent;
+    color: var(--color-bg-dark);
+    text-align: left;
+    cursor: pointer;
+    transition: var(--transition);
+    font-size: 0.88rem;
+
+    &__icon {
+      flex: 0 0 auto;
+      font-size: 1rem;
+    }
+
+    &__name {
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-weight: 500;
+    }
+
+    &__check {
+      flex: 0 0 auto;
+      font-weight: 700;
+      color: var(--color-blue);
+      min-width: 1rem;
+      text-align: center;
+    }
+
+    &--active {
+      background: color-mix(in srgb, var(--color-blue) 12%, var(--color-white));
+      border-color: rgb(45 150 205 / 30%);
+
+      .save-topic-option__check {
+        color: var(--color-blue);
+      }
+    }
+
+    &:hover,
+    &:focus-visible {
+      background: color-mix(in srgb, var(--color-blue) 8%, var(--color-white));
+      border-color: rgb(45 150 205 / 28%);
+    }
+  }
+
+  :global(html[data-theme='dark']) .save-topic-btn {
+    background: rgb(45 150 205 / 15%);
+    color: #7ec8e3;
+    border-color: rgb(45 150 205 / 25%);
+  }
+
+  :global(html[data-theme='dark']) .save-topic-menu {
+    background: #1e2d3d;
+    border-color: rgb(255 255 255 / 15%);
+  }
+
+  :global(html[data-theme='dark']) .save-topic-option {
+    color: #ffffff;
+
+    &--active {
+      background: rgb(45 150 205 / 18%);
+      border-color: var(--color-blue);
+    }
+
+    &:hover,
+    &:focus-visible {
+      background: rgb(45 150 205 / 15%);
+      border-color: var(--color-blue);
+    }
+  }
+
+  :global(html[data-theme='dark']) .save-topic-menu__inline {
+    background: rgb(255 255 255 / 4%);
+    border-color: rgb(255 255 255 / 15%);
+
+    input[type='text'],
+    input[type='color'] {
+      background: rgb(255 255 255 / 8%);
+      border-color: rgb(255 255 255 / 20%);
+      color: #ffffff;
+    }
   }
 
   .count {
