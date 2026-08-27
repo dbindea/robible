@@ -766,16 +766,19 @@
           aria-label={$_('app.result.actions.copy_verse_reference', {
             reference: `${map[item.book]} ${item.chapter}:${item.index}`,
           })}
-          class="copy-link"
+          class="icon-btn"
           on:click={() => copyVerse(item)}
         >
-          <span aria-hidden="true"></span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+          </svg>
         </button>
         {#if availableOtherVersions.length > 0}
           <span class="verse-compare" bind:this={compareMenuElement}>
             <button
               type="button"
-              class="compare-link-btn"
+              class="icon-btn compare-link-btn"
               title={$_('app.result.actions.compare_with')}
               aria-label={$_('app.result.actions.compare_with', {
                 reference: `${map[item.book]} ${item.chapter}:${item.index}`,
@@ -796,7 +799,7 @@
                     class="verse-compare-option"
                     role="option"
                     aria-selected="false"
-                    on:click={() => compareVerseWith(item, opt.value)}
+                    on:click={(e) => { e.stopPropagation(); compareVerseWith(item, opt.value); }}
                   >
                     <span class="verse-compare-option__name">{opt.bibleName}</span>
                     <span class="verse-compare-option__locale">{opt.label}</span>
@@ -811,7 +814,7 @@
         <span class="verse-save-topic" bind:this={saveToTopicMenuElement}>
           <button
             type="button"
-            class="save-topic-btn"
+            class="icon-btn save-topic-btn"
             title={$_('app.topics.add_verse_to_topic')}
             aria-label={$_('app.topics.add_verse_to_topic')}
             on:click={(e) => toggleSaveToTopicMenu(item.key, e)}
@@ -851,7 +854,7 @@
                 <button
                   type="button"
                   class="save-topic-menu__add-new"
-                  on:click={() => (showInlineCreate = true)}
+                  on:click={(e) => { e.stopPropagation(); showInlineCreate = true; }}
                 >
                   <span aria-hidden="true">+</span>
                   <span>{$_('app.topics.create_new_inline')}</span>
@@ -864,6 +867,8 @@
                     placeholder={$_('app.topics.new_topic_placeholder')}
                     maxlength="40"
                     autofocus
+                    on:click={(e) => e.stopPropagation()}
+                    on:mousedown|stopPropagation
                   />
                   <div class="save-topic-menu__inline-row">
                     <input
@@ -872,18 +877,23 @@
                       placeholder="📌"
                       maxlength="2"
                       class="save-topic-menu__inline-icon"
+                      on:click={(e) => e.stopPropagation()}
+                      on:mousedown|stopPropagation
                     />
                     <input
                       type="color"
                       bind:value={newTopicInline.color}
                       class="save-topic-menu__inline-color"
+                      on:click={(e) => e.stopPropagation()}
+                      on:mousedown|stopPropagation
                     />
                   </div>
                   <div class="save-topic-menu__inline-actions">
                     <button
                       type="button"
                       class="save-topic-menu__inline-cancel"
-                      on:click={() => {
+                      on:click={(e) => {
+                        e.stopPropagation();
                         showInlineCreate = false;
                         newTopicInline = { name: '', icon: '📌', color: '#2E7D9B' };
                       }}
@@ -893,7 +903,7 @@
                     <button
                       type="button"
                       class="save-topic-menu__inline-save"
-                      on:click={() => createTopicInline(item)}
+                      on:click={(e) => { e.stopPropagation(); createTopicInline(item); }}
                       disabled={!newTopicInline.name.trim()}
                     >
                       {$_('app.topics.save')}
@@ -1080,52 +1090,10 @@
     }
   }
 
-  .copy-link {
-    display: inline-grid;
-    place-items: center;
-    width: 1.65rem;
-    height: 1.65rem;
-    margin-left: 0.2rem;
-    border: 1px solid rgb(45 150 205 / 24%);
-    border-radius: 0.28rem;
-    background: rgb(45 150 205 / 7%);
-    color: var(--color-link);
-    transition: var(--transition);
-
-    span {
-      position: relative;
-      width: 0.8rem;
-      height: 0.9rem;
-      border: 1.7px solid currentcolor;
-      border-radius: 0.12rem;
-
-      &::before {
-        content: '';
-        position: absolute;
-        inset: -0.28rem auto auto 0.22rem;
-        width: 0.8rem;
-        height: 0.9rem;
-        border: 1.7px solid currentcolor;
-        border-radius: 0.12rem;
-        background: var(--color-white);
-      }
-    }
-
-    &:hover,
-    &:focus-visible {
-      border-color: var(--color-blue);
-      background: rgb(45 150 205 / 14%);
-      box-shadow: 0 0 0 3px rgb(45 150 205 / 12%);
-    }
-  }
-
-  // === COMPARE PER VERSE ===
-  .verse-compare {
-    position: relative;
-    display: inline-flex;
-  }
-
-  .compare-link-btn {
+  // === ICON BUTTONS (copy, compare, save-to-topic) ===
+  // Estilo unificado para todos los iconos inline de cada versículo.
+  // Ver clases específicas abajo para comportamiento de hover/opacity.
+  .icon-btn {
     display: inline-grid;
     place-items: center;
     width: 1.65rem;
@@ -1137,7 +1105,6 @@
     color: var(--color-link);
     cursor: pointer;
     transition: var(--transition);
-    opacity: 0;
 
     svg {
       width: 0.85rem;
@@ -1149,19 +1116,56 @@
       border-color: var(--color-blue);
       background: rgb(45 150 205 / 18%);
       box-shadow: 0 0 0 3px rgb(45 150 205 / 14%);
-      opacity: 1;
     }
 
     &:focus-visible {
       outline: 2px solid var(--color-blue);
       outline-offset: 2px;
+    }
+  }
+
+  // El copy-link está siempre visible (no depende de hover del versículo)
+  // Compare y save-topic aparecen solo en hover (sus selectores están abajo).
+  .copy-link {
+    // Hereda todo de .icon-btn — la clase copy-link solo se mantiene
+    // por compatibilidad con selectores :hover y dark mode.
+    opacity: 0;
+
+    &:hover,
+    &:focus-visible {
+      opacity: 1;
+    }
+
+    &:focus-visible {
+      opacity: 1;
+    }
+  }
+
+  // === COMPARE PER VERSE ===
+  .verse-compare {
+    position: relative;
+    display: inline-flex;
+  }
+
+  .compare-link-btn {
+    // Hereda de .icon-btn — solo añade el reveal on hover
+    opacity: 0;
+
+    &:hover,
+    &:focus-visible {
+      opacity: 1;
+    }
+
+    &:focus-visible {
       opacity: 1;
     }
   }
 
   .verse:hover .compare-link-btn,
   .verse:focus-within .compare-link-btn,
-  .compare-link-btn[aria-expanded="true"] {
+  .compare-link-btn[aria-expanded="true"],
+  .verse:hover .copy-link,
+  .verse:focus-within .copy-link {
     opacity: 1;
   }
 
@@ -1246,35 +1250,15 @@
   }
 
   .save-topic-btn {
-    display: inline-grid;
-    place-items: center;
-    width: 1.65rem;
-    height: 1.65rem;
-    margin-left: 0.2rem;
-    border: 1px solid rgb(45 150 205 / 24%);
-    border-radius: 0.28rem;
-    background: rgb(45 150 205 / 7%);
-    color: var(--color-link);
-    cursor: pointer;
-    transition: var(--transition);
+    // Hereda de .icon-btn — solo añade el reveal on hover
     opacity: 0;
-
-    svg {
-      width: 0.85rem;
-      height: 0.85rem;
-    }
 
     &:hover,
     &:focus-visible {
-      border-color: var(--color-blue);
-      background: rgb(45 150 205 / 18%);
-      box-shadow: 0 0 0 3px rgb(45 150 205 / 14%);
       opacity: 1;
     }
 
     &:focus-visible {
-      outline: 2px solid var(--color-blue);
-      outline-offset: 2px;
       opacity: 1;
     }
   }

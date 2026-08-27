@@ -13,7 +13,8 @@
     "nav": {
       "logo_label": "RoBible",
       "logo_text": "Biblia",
-      "version_label": "Versiunea Bibliei"
+      "version_label": "Versiunea Bibliei",
+      "back_to_home": "Înapoi la Biblie"
     },
     "footer": {
       "made_with_love": "Facută cu dăruire în Arganda del Rey",
@@ -23,7 +24,9 @@
       "about_text": "RoBible este o aplicație gratuită pentru citirea și căutarea versetelor Bibliei. Proiectul este deschis pentru îmbunătățiri pe GitHub.",
       "close_about": "Închide informația",
       "theme_dark": "Activează modul noapte",
-      "theme_light": "Activează modul zi"
+      "theme_light": "Activează modul zi",
+      "version_app": "Versiune aplicație",
+      "version_sw": "Versiune service worker"
     },
     "pwa": {
       "install_title": "Instalează RoBible",
@@ -177,6 +180,40 @@
       "speed": "Viteză",
       "minimize": "Ascunde citirea continuă",
       "open": "Deschide citirea continuă"
+    },
+    "app_menu": {
+      "aria_label": "Meniul aplicației",
+      "eyebrow": "Navigare",
+      "title": "Meniu",
+      "close": "Închide meniul",
+      "coming_soon": "Curând",
+      "footer_text": "RoBible — citire, studiu și comparație.",
+      "items": {
+        "home": {
+          "label": "Acasă",
+          "hint": "Înapoi la Biblie"
+        },
+        "compare": {
+          "label": "Compară",
+          "hint": "Vezi un pasaj în două versiuni"
+        },
+        "index": {
+          "label": "Indice tematic",
+          "hint": "Versetele tale organizate pe teme"
+        },
+        "favorites": {
+          "label": "Favorite",
+          "hint": "Versetele tale preferate"
+        },
+        "user": {
+          "label": "Profil",
+          "hint": "Preferințele contului tău"
+        },
+        "auth": {
+          "label": "Autentificare",
+          "hint": "Sincronizare între dispozitive"
+        }
+      }
     }
   }
 }
