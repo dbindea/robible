@@ -60,8 +60,8 @@
   </div>
 </div>
 
-<!-- Floating immersive mode button -->
-{#if !isImmersive}
+<!-- Floating immersive mode button (hidden in compare mode to avoid competing with the version picker) -->
+{#if !isImmersive && !isCompareMode}
   <button
     type="button"
     class="immersive-toggle"
