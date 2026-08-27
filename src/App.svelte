@@ -5,7 +5,14 @@
   import PwaManager from './layouts/pwa/PwaManager.svelte';
   import { _, DEFAULT_LOCALE, setupI18n } from './services/i18n.service';
   import { applySeoMetadata } from './services/seo.service';
-  import { getBibleVersionConfigOrDefault, isValidBibleVersion, selectedBibleVersion, immersiveMode } from './store/stores';
+  import {
+    getBibleVersionConfigOrDefault,
+    isValidBibleVersion,
+    selectedBibleVersion,
+    compareWithVersion,
+    immersiveMode,
+  } from './store/stores';
+  import { onMount } from 'svelte';
 
   let bibleLoadRequestId = 0;
   let localeLoadRequestId = 0;
@@ -15,6 +22,13 @@
   let failedBibleVersion = '';
   let map = {},
     bible = [];
+
+  // Cache de Bible data por versión
+  let bibleCache = {};
+  let compareMap = {};
+  let compareBible = [];
+  let compareLoadError = '';
+  let isCompareLoading = false;
 
   const buildBibleDataUrl = (version, fileName) => {
     return `/data/${encodeURIComponent(version)}/${fileName}`;
@@ -88,6 +102,9 @@
 
       map = nextMap;
       bible = nextBible;
+
+      // Cachear también para uso futuro
+      bibleCache = { ...bibleCache, [version]: { map: nextMap, bible: nextBible } };
     } catch (error) {
       if (requestId !== bibleLoadRequestId) {
         return;
@@ -103,13 +120,60 @@
     }
   };
 
+  // Carga la versión de comparación (compareWithVersion) y expone compareMap/compareBible
+  const loadCompareVersion = async (version) => {
+    if (!version || version === $selectedBibleVersion) {
+      compareMap = {};
+      compareBible = [];
+      compareLoadError = '';
+      return;
+    }
+
+    isCompareLoading = true;
+    compareLoadError = '';
+
+    try {
+      // Reusar cache si ya existe
+      if (bibleCache[version]) {
+        compareMap = bibleCache[version].map;
+        compareBible = bibleCache[version].bible;
+        isCompareLoading = false;
+        return;
+      }
+
+      const [nextMap, nextBible] = await Promise.all([
+        fetchBibleJson(version, 'bible.map.json'),
+        fetchBibleJson(version, 'bible.json'),
+      ]);
+
+      bibleCache = { ...bibleCache, [version]: { map: nextMap, bible: nextBible } };
+      compareMap = nextMap;
+      compareBible = nextBible;
+    } catch (error) {
+      console.error('Failed to load compare version:', error);
+      compareLoadError = 'app.errors.bible_load_failed';
+    } finally {
+      isCompareLoading = false;
+    }
+  };
+
   $: currentBibleVersion = $selectedBibleVersion;
   $: currentBibleVersionConfig = getBibleVersionConfigOrDefault(currentBibleVersion);
   $: isImmersive = $immersiveMode;
+
+  // Cargar Biblia primaria cuando cambia
   $: if (currentBibleVersion) {
     applySeoMetadata({ versionConfig: currentBibleVersionConfig });
     loadLocaleForBibleVersion(currentBibleVersion);
     loadBibleVersion(currentBibleVersion);
+  }
+
+  // Cargar versión de comparación cuando cambia
+  $: if ($compareWithVersion && $compareWithVersion !== $selectedBibleVersion) {
+    loadCompareVersion($compareWithVersion);
+  } else if ($compareWithVersion === $selectedBibleVersion) {
+    compareMap = {};
+    compareBible = [];
   }
 </script>
 
@@ -132,7 +196,7 @@
     {:else if isBibleLoading || !Object.keys(map).length}
       <p class="loading" role="status">{$_('app.loading')}</p>
     {:else}
-      <Main {map} {bible} />
+      <Main {map} {bible} {compareMap} {compareBible} />
     {/if}
 
     {#if !isImmersive}

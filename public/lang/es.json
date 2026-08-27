@@ -109,8 +109,30 @@
         "open_chapter": "Abrir capítulo completo",
         "copy_verse": "Copiar versículo",
         "copy_verse_reference": "Copiar {reference}",
-        "scroll_top": "Subir arriba"
+        "scroll_top": "Subir arriba",
+        "compare_with": "Comparar con otra versión",
+        "compare_with_ref": "Comparar {reference} con otra versión"
       }
+    },
+    "compare": {
+      "title": "Compara traducciones",
+      "subtitle": "Ver el mismo pasaje en dos traducciones",
+      "select_book": "Elegir libro",
+      "select_chapter": "Elegir capítulo",
+      "loading_vdc": "Cargando Biblia Română...",
+      "loading_rvl": "Cargando Biblia Español...",
+      "verse_count": "{count} versículos",
+      "versions_label": "Traducciones",
+      "copy_verse": "Copiar versículo",
+      "copied": "¡Versículo copiado!",
+      "no_selection": "Selecciona un libro y un capítulo para comparar",
+      "chapter_nav": {
+        "previous": "Capítulo anterior",
+        "next": "Siguiente capítulo"
+      },
+      "choose_version": "Comparar con",
+      "exit_compare": "Salir",
+      "choose_version_hint": "Elige la versión con la que quieres comparar"
     }
   }
 }

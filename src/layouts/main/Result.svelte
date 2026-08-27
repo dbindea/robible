@@ -3,13 +3,14 @@
   import {
     buildBiblePath,
     getBookIdFromSlug,
+    getBookSlug,
     parseBiblePath,
     parseLegacyVersePath,
   } from '../../services/bible-route.service';
   import { replaceDiacritics } from '../../services/filter.service';
   import { _ } from '../../services/i18n.service';
   import { applySeoMetadata, buildCurrentBibleSeo, buildVerseSeo } from '../../services/seo.service';
-  import { filter, getBibleVersionConfigOrDefault, immersiveMode, selectedBibleVersion, toggleImmersiveMode } from '../../store/stores';
+  import { filter, getBibleVersionConfigOrDefault, getAvailableBibleVersions, immersiveMode, selectedBibleVersion, compareWithVersion, toggleImmersiveMode } from '../../store/stores';
 
   export let bible;
   export let map;
@@ -26,6 +27,50 @@
   let highlightedVerseId = '';
   let currentVerseSeoItem = null;
   let activeVerseTarget = null;
+
+  // Compare-by-verse menu state
+  let compareMenuVerseKey = null;
+  let compareMenuElement;
+  $: availableOtherVersions = getAvailableBibleVersions().filter((v) => v.value !== $selectedBibleVersion);
+
+  const toggleCompareMenu = (verseKey, event) => {
+    if (event) event.stopPropagation();
+    compareMenuVerseKey = compareMenuVerseKey === verseKey ? null : verseKey;
+  };
+
+  const closeCompareMenu = () => {
+    compareMenuVerseKey = null;
+  };
+
+  const handleCompareMenuOutside = (event) => {
+    if (compareMenuVerseKey === null) return;
+    if (compareMenuElement && !compareMenuElement.contains(event.target)) {
+      closeCompareMenu();
+    }
+  };
+
+  // Iniciar compare con el versículo actual y la versión elegida
+  const compareVerseWith = (item, version) => {
+    closeCompareMenu();
+    if (!version || version === $selectedBibleVersion) return;
+    compareWithVersion.set(version);
+    // Guardar el versículo destino para que el Compare lo resalte al cargar
+    try {
+      sessionStorage.setItem(
+        'robible:pendingCompareVerse',
+        JSON.stringify({ book: item.book, chapter: item.chapter, index: item.index }),
+      );
+    } catch {
+      // ignore
+    }
+    const bookSlug = getBookSlug(map, item.book);
+    const path = `/compara/${encodeURIComponent(bookSlug)}/${item.chapter}`;
+    if (window.location.pathname !== path) {
+      window.history.pushState(null, '', path);
+      window.dispatchEvent(new CustomEvent('robibile:navigate'));
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    }
+  };
   let resultElement;
   let isMounted = false;
   let hasScrolled = false;
@@ -440,6 +485,7 @@
     }
 
     isMounted = true;
+    document.addEventListener('click', handleCompareMenuOutside);
   });
 
   onDestroy(() => {
@@ -453,6 +499,7 @@
     }
     if (typeof window !== 'undefined') {
       window.removeEventListener('scroll', () => {});
+      document.removeEventListener('click', handleCompareMenuOutside);
     }
   });
 
@@ -620,6 +667,41 @@
         >
           <span aria-hidden="true"></span>
         </button>
+        {#if availableOtherVersions.length > 0}
+          <span class="verse-compare" bind:this={compareMenuElement}>
+            <button
+              type="button"
+              class="compare-link-btn"
+              title={$_('app.result.actions.compare_with')}
+              aria-label={$_('app.result.actions.compare_with', {
+                reference: `${map[item.book]} ${item.chapter}:${item.index}`,
+              })}
+              on:click={(e) => toggleCompareMenu(item.key, e)}
+              aria-haspopup="listbox"
+              aria-expanded={compareMenuVerseKey === item.key}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M17 3l4 4-4 4M21 7H8M7 21l-4-4 4-4M3 17h13"/>
+              </svg>
+            </button>
+            {#if compareMenuVerseKey === item.key}
+              <div class="verse-compare-menu" role="listbox">
+                {#each availableOtherVersions as opt (opt.value)}
+                  <button
+                    type="button"
+                    class="verse-compare-option"
+                    role="option"
+                    aria-selected="false"
+                    on:click={() => compareVerseWith(item, opt.value)}
+                  >
+                    <span class="verse-compare-option__name">{opt.bibleName}</span>
+                    <span class="verse-compare-option__locale">{opt.label}</span>
+                  </button>
+                {/each}
+              </div>
+            {/if}
+          </span>
+        {/if}
       </p>
     </div>
     <div class="verse-divider" aria-hidden="true"></div>
@@ -828,6 +910,126 @@
       background: rgb(45 150 205 / 14%);
       box-shadow: 0 0 0 3px rgb(45 150 205 / 12%);
     }
+  }
+
+  // === COMPARE PER VERSE ===
+  .verse-compare {
+    position: relative;
+    display: inline-flex;
+  }
+
+  .compare-link-btn {
+    display: inline-grid;
+    place-items: center;
+    width: 1.65rem;
+    height: 1.65rem;
+    margin-left: 0.2rem;
+    border: 1px solid rgb(45 150 205 / 24%);
+    border-radius: 0.28rem;
+    background: rgb(45 150 205 / 7%);
+    color: var(--color-link);
+    cursor: pointer;
+    transition: var(--transition);
+    opacity: 0;
+
+    svg {
+      width: 0.85rem;
+      height: 0.85rem;
+    }
+
+    &:hover,
+    &:focus-visible {
+      border-color: var(--color-blue);
+      background: rgb(45 150 205 / 18%);
+      box-shadow: 0 0 0 3px rgb(45 150 205 / 14%);
+      opacity: 1;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--color-blue);
+      outline-offset: 2px;
+      opacity: 1;
+    }
+  }
+
+  .verse:hover .compare-link-btn,
+  .verse:focus-within .compare-link-btn,
+  .compare-link-btn[aria-expanded="true"] {
+    opacity: 1;
+  }
+
+  .verse-compare-menu {
+    position: absolute;
+    top: calc(100% + 0.4rem);
+    right: 0;
+    z-index: 20;
+    display: grid;
+    gap: 0.25rem;
+    width: max(14rem, 100%);
+    max-width: calc(100vw - 2rem);
+    padding: 0.35rem;
+    border: 1px solid rgb(63 88 103 / 18%);
+    border-radius: 0.35rem;
+    background: var(--color-white);
+    box-shadow: var(--box-shadow-down);
+  }
+
+  .verse-compare-option {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.1rem;
+    width: 100%;
+    padding: 0.4rem 0.65rem;
+    border: 1px solid transparent;
+    border-radius: 0.25rem;
+    background: transparent;
+    color: var(--color-bg-dark);
+    text-align: left;
+    cursor: pointer;
+    transition: var(--transition);
+
+    &__name {
+      font-size: 0.85rem;
+      font-weight: 600;
+      line-height: 1.2;
+    }
+
+    &__locale {
+      font-size: 0.7rem;
+      color: color-mix(in srgb, var(--color-bg-dark) 60%, transparent);
+    }
+
+    &:hover,
+    &:focus-visible {
+      border-color: rgb(45 150 205 / 34%);
+      background: color-mix(in srgb, var(--color-blue) 12%, var(--color-white));
+    }
+  }
+
+  :global(html[data-theme='dark']) .verse-compare-menu {
+    background: #1e2d3d;
+    border-color: rgb(255 255 255 / 15%);
+  }
+
+  :global(html[data-theme='dark']) .verse-compare-option {
+    color: #ffffff;
+
+    &__locale {
+      color: rgb(255 255 255 / 50%);
+    }
+
+    &:hover,
+    &:focus-visible {
+      background: rgb(45 150 205 / 18%);
+      border-color: var(--color-blue);
+    }
+  }
+
+  :global(html[data-theme='dark']) .compare-link-btn {
+    background: rgb(45 150 205 / 15%);
+    color: #7ec8e3;
+    border-color: rgb(45 150 205 / 25%);
   }
 
   .count {

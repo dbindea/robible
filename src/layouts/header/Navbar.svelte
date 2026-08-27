@@ -63,6 +63,18 @@
     <span class="logo__text">{$_('app.nav.logo_text')}</span>
   </a>
 
+  <a
+    class="compare-link"
+    href="/compara"
+    title={$_('app.compare.title')}
+  >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="3" y="3" width="7" height="18" rx="1"/>
+      <rect x="14" y="3" width="7" height="18" rx="1"/>
+    </svg>
+    <span>{$_('app.compare.title')}</span>
+  </a>
+
   <div class="version-picker" bind:this={versionPickerElement}>
     <button
       type="button"
@@ -227,6 +239,41 @@
     text-decoration: none;
   }
 
+  .compare-link {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.35rem 0.75rem;
+    border: 1px solid rgb(45 150 205 / 42%);
+    border-radius: 0.28rem;
+    background: color-mix(in srgb, var(--color-blue) 11%, var(--color-white));
+    color: var(--color-bg-dark);
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: var(--transition);
+    white-space: nowrap;
+
+    svg {
+      width: 1.1rem;
+      height: 1.1rem;
+      flex: 0 0 auto;
+    }
+
+    &:hover,
+    &:focus-visible {
+      border-color: var(--color-blue);
+      background: color-mix(in srgb, var(--color-blue) 18%, var(--color-white));
+      box-shadow: 0 0 0 3px rgb(45 150 205 / 14%);
+      text-decoration: none;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--color-blue);
+      outline-offset: 2px;
+    }
+  }
+
   // Logo SVG adapts to dark mode
   .logo-book { stroke: #FFFFFF; }
   .logo-spine { stroke: #FFFFFF; }
@@ -237,6 +284,33 @@
   @media (max-width: 32rem) {
     .version-picker {
       min-width: min(11rem, 48vw);
+    }
+
+    .compare-link {
+      padding: 0.3rem 0.55rem;
+      font-size: 0.78rem;
+      span { display: none; }
+    }
+
+    // Hide logo text on small screens to give room to other elements
+    .logo__text {
+      display: none;
+    }
+
+    .logo {
+      gap: 0;
+    }
+  }
+
+  :global(html[data-theme='dark']) .compare-link {
+    background: rgb(255 255 255 / 8%);
+    color: #ffffff;
+
+    &:hover,
+    &:focus-visible {
+      background: rgb(45 150 205 / 18%);
+      border-color: var(--color-blue);
+      color: #ffffff;
     }
   }
 </style>

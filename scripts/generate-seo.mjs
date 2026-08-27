@@ -576,8 +576,10 @@ function getTopicContent(versionData, topic, matches) {
 }
 
 async function loadVersionData() {
+  // Filtrar solo versiones con datos disponibles (excluir placeholders)
+  const available = BIBLE_VERSIONS.filter((v) => v.available !== false);
   return Promise.all(
-    BIBLE_VERSIONS.map(async (config) => {
+    available.map(async (config) => {
       const [map, bible] = await Promise.all([
         readFile(path.join(DATA_DIR, config.value, 'bible.map.json'), 'utf8').then(JSON.parse),
         readFile(path.join(DATA_DIR, config.value, 'bible.json'), 'utf8').then(JSON.parse),

@@ -4,13 +4,16 @@ import {
   DEFAULT_BIBLE_VERSION,
   getBibleVersionConfig,
   getBibleVersionConfigOrDefault,
+  getAvailableBibleVersions,
+  getDefaultCompareWith,
 } from '../config/bible-versions';
 import { parseBiblePath, parseLegacyVersePath } from '../services/bible-route.service';
 
 export const BIBLE_VERSION_STORAGE_KEY = 'selectedBibleVersion';
+export const COMPARE_WITH_STORAGE_KEY = 'robible:compareWith';
 export const THEME_STORAGE_KEY = 'robible:theme';
 export const IMMERSIVE_STORAGE_KEY = 'robible:immersive';
-export { DEFAULT_BIBLE_VERSION, getBibleVersionConfig, getBibleVersionConfigOrDefault };
+export { DEFAULT_BIBLE_VERSION, getBibleVersionConfig, getBibleVersionConfigOrDefault, getAvailableBibleVersions, getDefaultCompareWith };
 export const bibleVersions = BIBLE_VERSIONS;
 
 export const isValidBibleVersion = (value) => {
@@ -94,6 +97,38 @@ export const filter = writable(createSearchForm(getSavedFilter()));
 export const selectedBibleVersion = writable(getSavedBibleVersion());
 export const themeMode = writable(getSavedThemeMode());
 
+// Compare-with version: which secondary Bible to load for compare mode
+const isValidCompareWith = (value, primary) => {
+  if (typeof value !== 'string' || !isValidBibleVersion(value)) return false;
+  // No puede ser igual a la versión primaria
+  if (value === primary) return false;
+  // Tiene que estar en la lista de versiones disponibles
+  return BIBLE_VERSIONS.some((v) => v.value === value && v.available);
+};
+
+const getSavedCompareWith = () => {
+  try {
+    const saved = localStorage.getItem(COMPARE_WITH_STORAGE_KEY);
+    const primary = localStorage.getItem(BIBLE_VERSION_STORAGE_KEY) || DEFAULT_BIBLE_VERSION;
+    if (isValidCompareWith(saved, primary)) return saved;
+  } catch {
+    // ignore
+  }
+  return getDefaultCompareWith(getSavedBibleVersion());
+};
+
+export const compareWithVersion = writable(getSavedCompareWith());
+
+compareWithVersion.subscribe((value) => {
+  try {
+    if (isValidBibleVersion(value)) {
+      localStorage.setItem(COMPARE_WITH_STORAGE_KEY, value);
+    }
+  } catch {
+    // ignore
+  }
+});
+
 selectedBibleVersion.subscribe((version) => {
   try {
     if (isValidBibleVersion(version)) {
@@ -102,6 +137,15 @@ selectedBibleVersion.subscribe((version) => {
   } catch {
     // localStorage can be unavailable; the in-memory store still works.
   }
+
+  // Si la versión primaria cambia y coincide con compareWith, reset compareWith al default
+  compareWithVersion.update((cw) => {
+    if (cw === version) {
+      const fallback = getDefaultCompareWith(version);
+      return fallback;
+    }
+    return cw;
+  });
 });
 
 themeMode.subscribe((mode) => {

@@ -109,8 +109,30 @@
         "open_chapter": "Deschide capitolul complet",
         "copy_verse": "Copiază versetul",
         "copy_verse_reference": "Copiază {reference}",
-        "scroll_top": "Sus"
+        "scroll_top": "Sus",
+        "compare_with": "Compară cu altă versiune",
+        "compare_with_ref": "Compară {reference} cu altă versiune"
       }
+    },
+    "compare": {
+      "title": "Compară traducerile",
+      "subtitle": "Vezi același pasaj în două traduceri",
+      "select_book": "Alege cartea",
+      "select_chapter": "Alege capitolul",
+      "loading_vdc": "Se încarcă Biblia Română...",
+      "loading_rvl": "Se încarcă Biblia Español...",
+      "verse_count": "{count} versete",
+      "versions_label": "Traduceri",
+      "copy_verse": "Copie versetul",
+      "copied": "Verset copiat!",
+      "no_selection": "Selectează o carte și un capitol pentru a compara",
+      "chapter_nav": {
+        "previous": "Capitolul anterior",
+        "next": "Capitolul următor"
+      },
+      "choose_version": "Compară cu",
+      "exit_compare": "Ieși din comparare",
+      "choose_version_hint": "Alege versiunea cu care vrei să compari"
     }
   }
 }

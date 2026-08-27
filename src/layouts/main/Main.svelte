@@ -2,11 +2,23 @@
   import { filter, immersiveMode, toggleImmersiveMode } from '../../store/stores';
   import { getFilterResult } from '../../services/filter.service';
   import { _ } from '../../services/i18n.service';
+  import { onMount } from 'svelte';
   import Sidebar from './Sidebar.svelte';
   import Result from './Result.svelte';
+  import Compare from './Compare.svelte';
 
   export let bible;
   export let map;
+  export let compareBible = [];
+  export let compareMap = {};
+
+  // Detect compare mode from window.location (updated on navigation)
+  // Initialize immediately from pathname so it works on first render
+  const isComparePath = (path) =>
+    path === '/compara' || path === '/comparar' ||
+    path.startsWith('/compara/') || path.startsWith('/comparar/');
+
+  let isCompareMode = typeof window !== 'undefined' ? isComparePath(window.location.pathname) : false;
 
   $: searchForm = $filter;
   $: fullResult = Object.keys(searchForm).length ? getFilterResult(bible, map, searchForm) : [];
@@ -14,30 +26,36 @@
   $: result = fullResult.slice(0, 200);
   $: isImmersive = $immersiveMode;
 
-  // Double-tap detection for immersive mode toggle
-  let lastTapTime = 0;
-  const DOUBLE_TAP_DELAY = 300; // ms
-
-  const handleDoubleTap = () => {
-    const now = Date.now();
-    if (now - lastTapTime < DOUBLE_TAP_DELAY) {
-      toggleImmersiveMode();
-      lastTapTime = 0;
-    } else {
-      lastTapTime = now;
-    }
+  // Update isCompareMode when pathname changes
+  const updateCompareMode = () => {
+    if (typeof window === 'undefined') return;
+    isCompareMode = isComparePath(window.location.pathname);
   };
+
+  onMount(() => {
+    updateCompareMode();
+    window.addEventListener('popstate', updateCompareMode);
+    window.addEventListener('robibile:navigate', updateCompareMode);
+    return () => {
+      window.removeEventListener('popstate', updateCompareMode);
+      window.removeEventListener('robibile:navigate', updateCompareMode);
+    };
+  });
 </script>
 
-<div class="main" class:main--immersive={isImmersive}>
-  {#if !isImmersive}
+<div class="main" class:main--immersive={isImmersive} class:main--compare={isCompareMode}>
+  {#if !isImmersive && !isCompareMode}
     <div class="sidebar">
       <Sidebar {map} {result} {count} />
     </div>
   {/if}
   <div class="layout">
     {#if Object.keys(bible).length}
-      <Result {bible} {map} {result} {count} />
+      {#if isCompareMode}
+        <Compare {bible} {map} {compareBible} {compareMap} />
+      {:else}
+        <Result {bible} {map} {result} {count} />
+      {/if}
     {/if}
   </div>
 </div>
@@ -79,7 +97,9 @@
     min-height: calc(100dvh - 9rem);
   }
 
-  .main--immersive {
+  // Immersive mode AND compare mode: full width, no sidebar column
+  .main--immersive,
+  .main--compare {
     grid-template-columns: minmax(0, 1fr);
     gap: 0;
   }
@@ -97,7 +117,8 @@
     padding: clamp(1rem, 3vw, 2.5rem) clamp(1rem, 5vw, 5rem) clamp(2rem, 6vw, 4rem);
   }
 
-  .main--immersive .layout {
+  .main--immersive .layout,
+  .main--compare .layout {
     padding: clamp(0.5rem, 2vw, 1.5rem) clamp(0.5rem, 3vw, 3rem) clamp(1rem, 4vw, 3rem);
   }
 
