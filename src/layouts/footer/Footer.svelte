@@ -3,12 +3,23 @@
   import packageInfo from '../../../package.json';
   import { _ } from '../../services/i18n.service';
   import { themeMode, toggleThemeMode } from '../../store/stores';
+  import { isAuthenticated, currentUser, logout } from '../../store/authStore';
+  import { openAuthMenu } from '../../store/authMenuStore';
 
   let isAboutOpen = false;
   const appVersion = packageInfo.version;
   let swVersion = '—';
 
   $: isDarkMode = $themeMode === 'dark';
+
+  // Botón auth del footer: muestra nickname o "Login" según estado
+  const handleAuthClick = () => {
+    if ($isAuthenticated) {
+      logout();
+    } else {
+      openAuthMenu();
+    }
+  };
 
   // Lee la versión del SW desde /sw.js (línea CACHE_NAME = 'robible-vXX')
   const fetchSwVersion = async () => {
@@ -53,6 +64,21 @@
   </div>
 
   <div class="footer__actions">
+    <button
+      type="button"
+      class="footer__auth"
+      class:footer__auth--signed={$isAuthenticated}
+      on:click={handleAuthClick}
+      title={$isAuthenticated ? $_('auth.logout') : $_('app.app_menu.items.auth.label')}
+    >
+      {#if $isAuthenticated}
+        <span class="footer__auth-dot" aria-hidden="true"></span>
+        {$currentUser?.nickname}
+        <span class="footer__auth-action">· {$_('auth.logout')}</span>
+      {:else}
+        {$_('app.app_menu.items.auth.label')}
+      {/if}
+    </button>
     <button type="button" class="footer__about" on:click={() => (isAboutOpen = true)}>
       {$_('app.footer.about_action')}
       <span>v{appVersion} · {swVersion}</span>
@@ -169,6 +195,56 @@
       background: color-mix(in srgb, var(--color-blue) 15%, var(--color-white));
       box-shadow: 0 0 0 3px rgb(45 150 205 / 12%);
     }
+  }
+
+  .footer__auth {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 2.35rem;
+    border: 1px solid color-mix(in srgb, var(--color-bg-dark) 14%, transparent);
+    border-radius: 0.25rem;
+    background: transparent;
+    color: var(--color-bg-dark);
+    padding: 0 0.75rem;
+    transition: var(--transition);
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+
+    .footer__auth-action {
+      color: color-mix(in srgb, var(--color-bg-dark) 55%, transparent);
+      font-weight: 500;
+    }
+
+    &:hover,
+    &:focus-visible {
+      border-color: var(--color-blue);
+      background: color-mix(in srgb, var(--color-blue) 10%, var(--color-white));
+      box-shadow: 0 0 0 3px rgb(45 150 205 / 12%);
+    }
+
+    &--signed {
+      border-color: rgb(40 167 69 / 40%);
+      background: rgb(40 167 69 / 10%);
+      color: rgb(20 110 45);
+
+      &:hover,
+      &:focus-visible {
+        border-color: rgb(220 53 69 / 50%);
+        background: rgb(220 53 69 / 10%);
+        color: rgb(150 25 40);
+        box-shadow: 0 0 0 3px rgb(220 53 69 / 14%);
+      }
+    }
+  }
+
+  .footer__auth-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 999px;
+    background: rgb(40 167 69);
+    box-shadow: 0 0 0 3px rgb(40 167 69 / 22%);
   }
 
   .theme-toggle {
@@ -339,6 +415,33 @@
     }
   }
 
+  // Dark mode auth button
+  :global(html[data-theme='dark']) .footer__auth {
+    color: #ffffff;
+    border-color: rgb(255 255 255 / 14%);
+
+    .footer__auth-action { color: rgb(255 255 255 / 55%); }
+
+    &:hover,
+    &:focus-visible {
+      background: rgb(45 150 205 / 14%);
+      border-color: #7ec8e3;
+    }
+
+    &--signed {
+      background: rgb(40 167 69 / 18%);
+      border-color: rgb(40 167 69 / 40%);
+      color: #7ee79a;
+
+      &:hover,
+      &:focus-visible {
+        background: rgb(220 53 69 / 18%);
+        border-color: rgb(220 53 69 / 50%);
+        color: #ff8b95;
+      }
+    }
+  }
+
   @media (max-width: 32rem) {
     .footer {
       align-items: stretch;
@@ -348,6 +451,8 @@
 
     .footer__actions {
       justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.4rem;
     }
 
     .only-desktop {
