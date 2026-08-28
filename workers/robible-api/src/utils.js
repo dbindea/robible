@@ -231,19 +231,23 @@ export async function requireAuth(request, db, env) {
   if (!match) return { user: null, error: 'missing_token' };
 
   const token = match[1].trim();
+  // 1) Verificar firma del token (HMAC)
   const payload = await readToken(token, env.JWT_SECRET);
-  if (!payload) {
-    // Verificar si el token está en DB (puede haber sido invalidado)
-    const session = await db
-      .prepare('SELECT user_id, expires_at FROM auth_sessions WHERE token = ?')
-      .bind(token)
-      .first()
-      .catch(() => null);
-    if (!session || session.expires_at < Date.now()) {
-      return { user: null, error: 'invalid_or_expired_token' };
-    }
+  if (!payload) return { user: null, error: 'invalid_token' };
+
+  // 2) Verificar que la sesión existe en DB y no está expirada.
+  //    Si el usuario hizo logout, esta fila se elimina y la sesión queda inválida
+  //    aunque la firma HMAC siga siendo válida.
+  const session = await db
+    .prepare('SELECT user_id, expires_at FROM auth_sessions WHERE token = ?')
+    .bind(token)
+    .first()
+    .catch(() => null);
+  if (!session || session.expires_at < Date.now()) {
+    return { user: null, error: 'invalid_or_expired_token' };
   }
 
+  // 3) Cargar usuario
   const user = await db
     .prepare(
       'SELECT id, nickname, created_at, updated_at FROM users WHERE id = ?',

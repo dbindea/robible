@@ -10,7 +10,7 @@ compatibility_date = "2024-09-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "robible-db"
-database_id = "REEMPLAZAR_CON_EL_ID_DE_D1"
+database_id = "e81cde5b-230d-44cb-8d6c-07276e6be777"
 
 # Variables de entorno (secret)
 # Setup: `npx wrangler secret put JWT_SECRET` y pega un valor aleatorio fuerte
@@ -20,6 +20,7 @@ ALLOWED_ORIGIN = "https://robible.app,https://www.robible.app,http://localhost:5
 RATE_LIMIT_PER_MINUTE = "30"
 RATE_LIMIT_PER_HOUR = "500"
 
-# Límite de tamaño de Workers (free = 10ms CPU time)
-[limits]
-cpu_ms = 50
+# Límite de CPU: solo disponible en plan de pago. En plan Free se omite.
+# (Antes: [limits] cpu_ms = 50 — comentado para no romper el deploy en Free)
+#[limits]
+#cpu_ms = 50
