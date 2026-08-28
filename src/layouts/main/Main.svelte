@@ -217,13 +217,17 @@
     }
   }
 
-  // Enter immersive: top-right, beside version picker
+  // Enter immersive: bottom-left, junto al exit (estilo outline)
+  // Antes estaba en top-right pero se solapaba con el botón de cerrar
+  // el AppMenu (que también vive en la zona superior derecha).
   .immersive-toggle {
-    top: 0.6rem;
-    right: 0.6rem;
+    bottom: 1rem;
+    left: 1rem;
   }
 
-  // Exit immersive: bottom-left, always visible, high contrast
+  // Exit immersive: bottom-left, siempre visible, alto contraste
+  // (un pelín más arriba que el toggle para que se distingan si coincidieran
+  // en el mismo punto, y un poco más pequeño).
   .immersive-exit {
     bottom: 1rem;
     left: 1rem;
