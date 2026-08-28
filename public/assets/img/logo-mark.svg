@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <!--
-    RoBible logo (full, con fondo teal).
-    Versión con fondo opaco para usar en navbar, og:image, etc.
+    RoBible logo mark (sin fondo, transparente).
+    Emblema solo, para usar en espacios con fondo propio o donde no se
+    quiera el cuadrado teal (open graph, badges, etc).
   -->
-  <rect x="0" y="0" width="512" height="512" rx="96" ry="96" fill="#1f4a5c"/>
   <g fill="none" stroke="#d28456" stroke-linecap="round" stroke-linejoin="round">
     <circle cx="256" cy="240" r="168" stroke-width="14"/>
     <circle cx="256" cy="240" r="126" stroke-width="11"/>
