@@ -114,8 +114,25 @@
         "copy_verse_reference": "Copiază {reference}",
         "scroll_top": "Sus",
         "compare_with": "Compară cu altă versiune",
-        "compare_with_ref": "Compară {reference} cu altă versiune"
+        "compare_with_ref": "Compară {reference} cu altă versiune",
+        "favorite": "Adaugă la favorite",
+        "unfavorite": "Scoate de la favorite",
+        "favorite_reference": "Adaugă {reference} la favorite",
+        "unfavorite_reference": "Scoate {reference} de la favorite",
+        "favorite_login_required": "Conectează-te pentru a adăuga la favorite"
       }
+    },
+    "favorites": {
+      "eyebrow": "Favorite",
+      "title": "Versetele tale preferate",
+      "lead": "{count} verset salvat — sincronizat între dispozitive",
+      "empty": "Nu ai încă niciun favorit",
+      "empty_hint": "Apasă pe ⭐ de lângă orice verset pentru a-l salva aici",
+      "login_required": "Conectează-te pentru a vedea favoritele",
+      "login_required_hint": "Favorite sunt salvate per utilizator și sincronizate între dispozitive.",
+      "open_verse": "Deschide versetul în context",
+      "remove": "Șterge de la favorite",
+      "remove_reference": "Șterge {reference} de la favorite"
     },
     "compare": {
       "title": "Compară traducerile",
@@ -269,7 +286,23 @@
       "invalid_credentials": "Nume sau parolă incorecte.",
       "missing_credentials": "Completează numele și parola.",
       "security_question_required": "Alege sau scrie o întrebare de securitate.",
-      "reset_token_expired": "Sesiunea de recuperare a expirat. Începe din nou."
+      "reset_token_expired": "Sesiunea de recuperare a expirat. Începe din nou.",
+      "invalid_json": "Date invalide. Încearcă din nou.",
+      "missing_fields": "Completează toate câmpurile obligatorii.",
+      "invalid_current_password": "Parola actuală este incorectă.",
+      "topic_not_found": "Categoria nu a fost găsită.",
+      "topic_name_taken": "Ai deja o categorie cu acest nume.",
+      "cannot_delete_default": "Categoriile implicite nu pot fi șterse.",
+      "verse_already_in_topic": "Versetul este deja în această categorie.",
+      "verse_not_found": "Versetul nu a fost găsit în categorie.",
+      "favorite_already_exists": "Versetul este deja la favorite.",
+      "favorite_not_found": "Versetul nu este la favorite.",
+      "invalid_verse_ref": "Referință la verset invalidă.",
+      "invalid_name": "Nume invalid.",
+      "invalid_icon": "Iconiță invalidă.",
+      "invalid_color": "Culoare invalidă.",
+      "backend_unavailable": "Serverul nu este disponibil. Se folosește cache local.",
+      "unknown": "A apărut o eroare. Încearcă din nou."
     }
   }
 }

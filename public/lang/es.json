@@ -114,8 +114,25 @@
         "copy_verse_reference": "Copiar {reference}",
         "scroll_top": "Subir arriba",
         "compare_with": "Comparar con otra versión",
-        "compare_with_ref": "Comparar {reference} con otra versión"
+        "compare_with_ref": "Comparar {reference} con otra versión",
+        "favorite": "Añadir a favoritos",
+        "unfavorite": "Quitar de favoritos",
+        "favorite_reference": "Añadir {reference} a favoritos",
+        "unfavorite_reference": "Quitar {reference} de favoritos",
+        "favorite_login_required": "Inicia sesión para añadir a favoritos"
       }
+    },
+    "favorites": {
+      "eyebrow": "Favoritos",
+      "title": "Tus versículos preferidos",
+      "lead": "{count} versículo guardado — sincronizado entre dispositivos",
+      "empty": "Aún no tienes favoritos",
+      "empty_hint": "Pulsa ⭐ junto a cualquier versículo para guardarlo aquí",
+      "login_required": "Inicia sesión para ver tus favoritos",
+      "login_required_hint": "Los favoritos se guardan por usuario y se sincronizan entre dispositivos.",
+      "open_verse": "Abrir versículo en contexto",
+      "remove": "Quitar de favoritos",
+      "remove_reference": "Quitar {reference} de favoritos"
     },
     "compare": {
       "title": "Compara traducciones",
@@ -269,7 +286,23 @@
       "invalid_credentials": "Nombre o contraseña incorrectos.",
       "missing_credentials": "Completa el nombre y la contraseña.",
       "security_question_required": "Elige o escribe una pregunta de seguridad.",
-      "reset_token_expired": "La sesión de recuperación expiró. Empieza de nuevo."
+      "reset_token_expired": "La sesión de recuperación expiró. Empieza de nuevo.",
+      "invalid_json": "Datos inválidos. Inténtalo de nuevo.",
+      "missing_fields": "Completa todos los campos obligatorios.",
+      "invalid_current_password": "La contraseña actual es incorrecta.",
+      "topic_not_found": "Categoría no encontrada.",
+      "topic_name_taken": "Ya tienes una categoría con ese nombre.",
+      "cannot_delete_default": "Las categorías por defecto no se pueden eliminar.",
+      "verse_already_in_topic": "El versículo ya está en esta categoría.",
+      "verse_not_found": "Versículo no encontrado en la categoría.",
+      "favorite_already_exists": "El versículo ya está en favoritos.",
+      "favorite_not_found": "El versículo no está en favoritos.",
+      "invalid_verse_ref": "Referencia de versículo inválida.",
+      "invalid_name": "Nombre inválido.",
+      "invalid_icon": "Icono inválido.",
+      "invalid_color": "Color inválido.",
+      "backend_unavailable": "Servidor no disponible. Usando caché local.",
+      "unknown": "Ha ocurrido un error. Inténtalo de nuevo."
     }
   }
 }

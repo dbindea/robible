@@ -4,17 +4,27 @@
   import { appMenuOpen, closeAppMenu } from '../../store/appMenuStore';
   import { openAuthMenu } from '../../store/authMenuStore';
   import { isAuthenticated, currentUser } from '../../store/authStore';
+  import { selectedBibleVersion } from '../../store/stores';
+  import { getBibleVersionConfigOrDefault } from '../../config/bible-versions';
 
   export let onNavigate = () => {};
 
-  // Items estáticos del menú (los que navegan a una ruta)
-  const staticItems = [
-    { key: 'home', href: '/', icon: 'home', enabled: true },
-    { key: 'compare', href: '/compara', icon: 'compare', enabled: true },
-    { key: 'index', href: '/indice', icon: 'bookmark', enabled: true },
-    { key: 'favorites', href: '/favoritos', icon: 'star', enabled: false },
-    { key: 'user', href: '/usuario', icon: 'user', enabled: false },
+  // Items estáticos del menú. Los href se resuelven reactivamente
+  // según el idioma de la biblia activa (rumano/español).
+  const staticItemDefs = [
+    { key: 'home', icon: 'home', enabled: true },
+    { key: 'compare', icon: 'compare', enabled: true, pathKey: 'comparePath', defaultHref: '/compara' },
+    { key: 'index', icon: 'bookmark', enabled: true, pathKey: 'indexPath', defaultHref: '/indice' },
+    { key: 'favorites', icon: 'star', enabled: true, pathKey: 'favoritesPath', defaultHref: '/favoriti' },
+    { key: 'user', icon: 'user', enabled: false },
   ];
+
+  $: staticItems = staticItemDefs.map((def) => {
+    if (def.key === 'home') return { ...def, href: '/' };
+    const config = getBibleVersionConfigOrDefault($selectedBibleVersion);
+    const href = config?.[def.pathKey] ? `/${config[def.pathKey]}` : def.defaultHref;
+    return { ...def, href };
+  });
 
   $: if (typeof document !== 'undefined') {
     document.body.classList.toggle('app-menu-open', $appMenuOpen);

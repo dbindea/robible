@@ -1,0 +1,26 @@
+# Cloudflare Workers + D1 configuration
+# Docs: https://developers.cloudflare.com/workers/wrangler/configuration/
+
+name = "robible-api"
+main = "src/index.js"
+compatibility_date = "2024-09-01"
+
+# D1 database (SQLite at the edge)
+# Setup: `npx wrangler d1 create robible-db` y reemplaza el database_id abajo
+[[d1_databases]]
+binding = "DB"
+database_name = "robible-db"
+database_id = "e81cde5b-230d-44cb-8d6c-07276e6be777"
+
+# Variables de entorno (secret)
+# Setup: `npx wrangler secret put JWT_SECRET` y pega un valor aleatorio fuerte
+# (por ejemplo: `openssl rand -hex 32`)
+[vars]
+ALLOWED_ORIGIN = "https://robible.app,https://www.robible.app,http://localhost:5173,http://127.0.0.1:5173"
+RATE_LIMIT_PER_MINUTE = "30"
+RATE_LIMIT_PER_HOUR = "500"
+
+# Límite de CPU: solo disponible en plan de pago. En plan Free se omite.
+# (Antes: [limits] cpu_ms = 50 — comentado para no romper el deploy en Free)
+#[limits]
+#cpu_ms = 50

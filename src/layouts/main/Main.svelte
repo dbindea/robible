@@ -7,6 +7,7 @@
   import Result from './Result.svelte';
   import Compare from './Compare.svelte';
   import Index from './Index.svelte';
+  import Favorites from './Favorites.svelte';
   import { getBibleVersionConfigOrDefault } from '../../store/stores';
 
   export let bible;
@@ -22,22 +23,36 @@
 
   let isCompareMode = typeof window !== 'undefined' ? isComparePath(window.location.pathname) : false;
 
-  // Detectar ruta del índice temático (depende del idioma de la biblia activa)
-  const getIndexPath = () => {
-    if (typeof window === 'undefined') return null;
+  // Helper: get path from bible-versions config
+  const getBiblePath = (key, fallback) => {
+    if (typeof window === 'undefined') return fallback;
     const version = window.localStorage.getItem('selectedBibleVersion') || 'vdc';
     const config = getBibleVersionConfigOrDefault(version);
-    return config?.indexPath || 'indice';
+    return config?.[key] || fallback;
   };
 
+  // Detectar ruta del índice temático (depende del idioma de la biblia activa)
+  const getIndexPath = () => getBiblePath('indexPath', 'indice');
+
+  // Detectar ruta de favoritos (depende del idioma)
+  const getFavoritesPath = () => getBiblePath('favoritesPath', 'favoriti');
+
   let isIndexMode = false;
+  let isFavoritesMode = false;
   const updateIndexMode = () => {
     if (typeof window === 'undefined') return;
     const indexPath = getIndexPath();
     const path = window.location.pathname;
     isIndexMode = path === `/${indexPath}` || path.startsWith(`/${indexPath}/`);
   };
+  const updateFavoritesMode = () => {
+    if (typeof window === 'undefined') return;
+    const favPath = getFavoritesPath();
+    const path = window.location.pathname;
+    isFavoritesMode = path === `/${favPath}` || path.startsWith(`/${favPath}/`);
+  };
   updateIndexMode();
+  updateFavoritesMode();
 
   $: searchForm = $filter;
   $: fullResult = Object.keys(searchForm).length ? getFilterResult(bible, map, searchForm) : [];
@@ -54,21 +69,26 @@
   onMount(() => {
     updateCompareMode();
     updateIndexMode();
+    updateFavoritesMode();
     window.addEventListener('popstate', updateCompareMode);
     window.addEventListener('robibile:navigate', updateCompareMode);
     window.addEventListener('popstate', updateIndexMode);
     window.addEventListener('robibile:navigate', updateIndexMode);
+    window.addEventListener('popstate', updateFavoritesMode);
+    window.addEventListener('robibile:navigate', updateFavoritesMode);
     return () => {
       window.removeEventListener('popstate', updateCompareMode);
       window.removeEventListener('robibile:navigate', updateCompareMode);
       window.removeEventListener('popstate', updateIndexMode);
       window.removeEventListener('robibile:navigate', updateIndexMode);
+      window.removeEventListener('popstate', updateFavoritesMode);
+      window.removeEventListener('robibile:navigate', updateFavoritesMode);
     };
   });
 </script>
 
-<div class="main" class:main--immersive={isImmersive} class:main--compare={isCompareMode} class:main--index={isIndexMode}>
-  {#if !isImmersive && !isCompareMode && !isIndexMode}
+<div class="main" class:main--immersive={isImmersive} class:main--compare={isCompareMode} class:main--index={isIndexMode} class:main--favorites={isFavoritesMode}>
+  {#if !isImmersive && !isCompareMode && !isIndexMode && !isFavoritesMode}
     <div class="sidebar">
       <Sidebar {map} {result} {count} />
     </div>
@@ -79,6 +99,8 @@
         <Compare {bible} {map} {compareBible} {compareMap} />
       {:else if isIndexMode}
         <Index {bible} {map} />
+      {:else if isFavoritesMode}
+        <Favorites {bible} {map} />
       {:else}
         <Result {bible} {map} {result} {count} />
       {/if}
@@ -126,7 +148,8 @@
   // Immersive mode, compare mode AND index mode: full width, no sidebar
   .main--immersive,
   .main--compare,
-  .main--index {
+  .main--index,
+  .main--favorites {
     grid-template-columns: minmax(0, 1fr);
     gap: 0;
   }
@@ -146,7 +169,8 @@
 
   .main--immersive .layout,
   .main--compare .layout,
-  .main--index .layout {
+  .main--index .layout,
+  .main--favorites .layout {
     padding: clamp(0.5rem, 2vw, 1.5rem) clamp(0.5rem, 3vw, 3rem) clamp(1rem, 4vw, 3rem);
   }
 
