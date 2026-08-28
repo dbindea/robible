@@ -8,8 +8,8 @@
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui", "browser"],
   "orientation": "any",
-  "background_color": "#2E7D9B",
-  "theme_color": "#2E7D9B",
+  "background_color": "#1f4a5c",
+  "theme_color": "#1f4a5c",
   "lang": "ro",
   "categories": ["books", "education", "reference"],
   "icons": [
@@ -28,6 +28,12 @@
     {
       "src": "/favicon-32x32.png",
       "sizes": "32x32",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon-48x48.png",
+      "sizes": "48x48",
       "type": "image/png",
       "purpose": "any"
     },
