@@ -93,6 +93,61 @@ CREATE TABLE IF NOT EXISTS rate_limits (
 
 CREATE INDEX IF NOT EXISTS idx_rate_limits_ip ON rate_limits(ip, window_start);
 
+-- ============== NOTES (Phase 3.3) ==============
+-- Notas personales del usuario por versículo. UNIQUE por (user, versículo)
+-- permite upsert natural (sobrescribir la nota de un versículo).
+CREATE TABLE IF NOT EXISTS notes (
+  id TEXT PRIMARY KEY,                              -- 'note-<uuid>'
+  user_id TEXT NOT NULL,
+  book INTEGER NOT NULL,                            -- 0-65
+  chapter INTEGER NOT NULL,                          -- 1-based
+  verse INTEGER NOT NULL,                            -- 1-based
+  text TEXT NOT NULL,                               -- 1-500 chars
+  color TEXT,                                       -- '#xxxxxx' o null
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE (user_id, book, chapter, verse),            -- una nota por versículo
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_notes_user ON notes(user_id);
+CREATE INDEX IF NOT EXISTS idx_notes_user_verse ON notes(user_id, book, chapter, verse);
+
+-- ============== USER PROFILES (Phase 3.5 extendido) ==============
+-- Datos de perfil NO sensibles (el nickname + password siguen en `users`).
+-- settings y colors son JSON blobs para que el cliente pueda extender
+-- el schema sin migraciones constantes.
+-- email es único cuando se setea, pero opcional (SQLite permite múltiples NULLs).
+CREATE TABLE IF NOT EXISTS user_profiles (
+  user_id TEXT PRIMARY KEY,
+  name TEXT,                                        -- display name (libre, 1-80 chars)
+  email TEXT,                                       -- validado formato en backend, UNIQUE si se setea
+  confession TEXT,                                  -- libre: "católico", "protestante", "ortodoxo", etc.
+  avatar_url TEXT,                                  -- URL externa (puede ser Gravatar, GitHub, etc.)
+  settings TEXT,                                    -- JSON: theme override, font size, etc.
+  colors TEXT,                                      -- JSON: paleta personalizada del usuario
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_user_profiles_email ON user_profiles(email) WHERE email IS NOT NULL;
+
+-- ============== USER SEARCHES (Phase 3.4) ==============
+-- Historial de búsquedas persistente multi-device. Cap de 25 enforced en código.
+-- UNIQUE(user_id, search_text) permite upsert idempotente (mover a top + actualizar timestamp).
+CREATE TABLE IF NOT EXISTS user_searches (
+  id TEXT PRIMARY KEY,                              -- 'search-<uuid>'
+  user_id TEXT NOT NULL,
+  search_text TEXT NOT NULL,                         -- texto tal como lo escribió el usuario
+  search_type TEXT NOT NULL DEFAULT 'match',         -- 'match' | 'every' | 'some'
+  testament TEXT NOT NULL DEFAULT 'all',             -- 'all' | 'ot' | 'nt'
+  book_json TEXT,                                   -- JSON array de book indices
+  chapter_json TEXT,                                -- JSON array de chapter indices
+  last_used_at TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  UNIQUE (user_id, search_text),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_user_searches_user_used ON user_searches(user_id, last_used_at DESC);
+
 -- ============== CLEANUP JOBS ==============
 -- Se ejecuta al inicio de cada request para limpiar sesiones/rate_limits expirados.
 -- (Cloudflare Workers no tiene cron, así que la limpieza es best-effort on-request.)
@@ -102,4 +157,4 @@ CREATE TABLE IF NOT EXISTS _meta (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL
 );
-INSERT OR IGNORE INTO _meta (key, value) VALUES ('schema_version', '1');
+INSERT OR IGNORE INTO _meta (key, value) VALUES ('schema_version', '4');
