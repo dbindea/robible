@@ -1027,7 +1027,8 @@
               : $_('app.result.actions.note_login_required')}
             aria-haspopup={$isAuthenticated ? 'dialog' : undefined}
             aria-expanded={noteModalVerseKey === item.key}
-            on:click={() => {
+            on:click={(e) => {
+              e.stopPropagation();
               if (!$isAuthenticated) {
                 openAuthMenu();
                 return;
