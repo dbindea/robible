@@ -80,7 +80,9 @@ npm run dev
 
 ## Despliegue en Cloudflare
 
-1. **Instalar wrangler**:
+> **Importante**: ejecuta los comandos desde el directorio `workers/robible-api/`. Si wrangler dice `Required Worker name missing`, casi siempre es porque lo estás lanzando desde un nivel superior.
+
+1. **Instalar wrangler** (≥ 4.0):
 
    ```bash
    npm install -g wrangler
@@ -92,10 +94,11 @@ npm run dev
    ```bash
    cd workers/robible-api
    wrangler d1 create robible-db
+   # Si ya existe y quieres reciclar: wrangler d1 list
    # Copia el `database_id` que imprime y reemplaza en wrangler.toml
    ```
 
-3. **Configurar secreto JWT**:
+3. **Configurar secreto JWT** (token HMAC para firmar sesiones):
 
    ```bash
    wrangler secret put JWT_SECRET
@@ -105,28 +108,51 @@ npm run dev
 4. **Aplicar schema**:
 
    ```bash
-   wrangler d1 execute robible-db --file=schema.sql
+   wrangler d1 execute robible-db --file=schema.sql --remote
    ```
 
-5. **Configurar ALLOWED_ORIGIN** (en `wrangler.toml` ya hay valores por defecto, ajústalos si tu frontend vive en otro dominio):
+5. **(Solo la primera vez por cuenta) Registrar subdominio `workers.dev`**:
+
+   Sin subdominio, el deploy no asigna URL pública. Solo hay que hacerlo una vez por cuenta de Cloudflare.
+
+   ```bash
+   # El subdominio debe ser DNS-compliant (a-z, 0-9, guion)
+   # Reemplaza con tu nombre preferido. La API de Cloudflare lo rechaza si ya existe.
+   curl -X PUT \
+     -H "Authorization: Bearer $(wrangler auth whoami --json | jq -r .access_token)" \
+     -H "Content-Type: application/json" \
+     -d '{"subdomain":"robible"}' \
+     "https://api.cloudflare.com/client/v4/accounts/$(wrangler whoami --json | jq -r .accounts[0].id)/workers/subdomain/robible"
+   ```
+
+   Si lo prefieres por UI: **Workers & Pages → Subdomain → Setup**.
+
+6. **Configurar ALLOWED_ORIGIN** (en `wrangler.toml` ya hay valores por defecto, ajústalos si tu frontend vive en otro dominio):
 
    ```toml
    ALLOWED_ORIGIN = "https://robible.app,https://www.robible.app"
    ```
 
-6. **Desplegar**:
+7. **Desplegar**:
 
    ```bash
    wrangler deploy
-   # Output: Published robible-api (X.XX sec)
+   # Output: Uploaded robible-api (X.XX sec)
+   #         Deployed robible-api triggers (X.XX sec)
    #         https://robible-api.<tu-subdomain>.workers.dev
    ```
 
-7. **Configurar el frontend** con la URL del Worker:
+   Si sale error `CPU limits are not supported for the Free plan`, edita `wrangler.toml` y comenta el bloque `[limits] cpu_ms = 50` (ya viene comentado en la última versión).
+
+8. **Configurar el frontend** (en Netlify o tu hosting):
+
+   Variable de entorno de build:
 
    ```
    VITE_API_BASE_URL=https://robible-api.<tu-subdomain>.workers.dev
    ```
+
+   Eso activa automáticamente `USE_BACKEND=true` en el frontend, que prefiere el backend y cae a localStorage solo si la API no responde.
 
 ## Rate limiting
 

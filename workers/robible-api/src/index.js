@@ -30,7 +30,7 @@ app.options('*', (c) => {
 app.get('/api/health', async (c) => {
   applyCors(c);
   const result = await data.health(c.env.DB);
-  return c.json(result, 200);
+  return c.json({ ok: true, ...result }, 200);
 });
 
 // ── Auth endpoints (no auth required) ──────────────────
@@ -87,7 +87,7 @@ app.get('/api/topics', requireAuthMw, async (c) => {
   const user = c.get('user');
   applyCors(c);
   const result = await data.listTopics(c.env.DB, user.id);
-  return c.json(result, 200);
+  return c.json({ ok: true, ...result }, 200);
 });
 
 app.post('/api/topics', requireAuthMw, async (c) => {
@@ -125,7 +125,7 @@ app.get('/api/favorites', requireAuthMw, async (c) => {
   const user = c.get('user');
   applyCors(c);
   const result = await data.listFavorites(c.env.DB, user.id);
-  return c.json(result, 200);
+  return c.json({ ok: true, ...result }, 200);
 });
 
 app.post('/api/favorites', requireAuthMw, async (c) => {
@@ -145,7 +145,7 @@ app.get('/api/data/export', requireAuthMw, async (c) => {
   const user = c.get('user');
   applyCors(c);
   const result = await data.exportUserData(c.env.DB, user.id);
-  return c.json(result, 200);
+  return c.json({ ok: true, ...result }, 200);
 });
 
 // ── 404 ─────────────────────────────────────────────────
