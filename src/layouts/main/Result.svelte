@@ -13,7 +13,9 @@
   import { filter, getBibleVersionConfigOrDefault, getAvailableBibleVersions, immersiveMode, selectedBibleVersion, compareWithVersion, toggleImmersiveMode } from '../../store/stores';
   import { topicsStore, topicsContainingVerse } from '../../store/topicsStore';
   import { favoritesStore } from '../../store/favoritesStore';
+  import { notesStore } from '../../store/notesStore';
   import { isAuthenticated } from '../../store/authStore';
+  import { openAuthMenu } from '../../store/authMenuStore';
 
   export let bible;
   export let map;
@@ -43,6 +45,14 @@
   let saveToTopicMenuPosition = { top: 0, right: 0 };
   let newTopicInline = { name: '', icon: '📌', color: '#2E7D9B' };
   let showInlineCreate = false;
+
+  // Note modal state
+  let noteModalVerseKey = null;
+  let noteModalElement;
+  let noteModalPosition = { top: 0, right: 0 };
+  let noteText = '';
+  let noteColor = '#3B82F6';
+  let noteSaving = false;
 
   $: topics = $topicsStore.topics;
   $: verseRefs = $topicsStore.verseRefs;
@@ -132,6 +142,58 @@
       });
       showToastMessage($_('app.topics.saved'));
       closeSaveToTopicMenu();
+    }
+  };
+
+  // === Note modal ===
+  const getNoteForVerse = (item) => {
+    return $notesStore.find((n) => n.book === item.book && n.chapter === item.chapter && n.verse === item.index) || null;
+  };
+
+  const openNoteModal = (item) => {
+    const existing = getNoteForVerse(item);
+    noteText = existing?.text || '';
+    noteColor = existing?.color || '#3B82F6';
+    // Position relative to the verse element for better UX
+    const verseEl = document.getElementById(getVerseId(item));
+    if (verseEl) {
+      noteModalPosition = { top: verseEl.getBoundingClientRect().bottom + 8, right: 8 };
+    }
+    noteModalVerseKey = item.key;
+  };
+
+  const closeNoteModal = () => {
+    noteModalVerseKey = null;
+    noteText = '';
+    noteColor = '#3B82F6';
+  };
+
+  const handleNoteModalOutside = (event) => {
+    if (noteModalVerseKey === null) return;
+    if (noteModalElement && !noteModalElement.contains(event.target)) {
+      closeNoteModal();
+    }
+  };
+
+  const saveNoteForVerse = async (item) => {
+    if (!noteText.trim()) return;
+    noteSaving = true;
+    try {
+      const result = await notesStore.save(item.book, item.chapter, item.index, noteText.trim(), noteColor);
+      if (result.ok) {
+        showToastMessage($_('app.notes.saved'));
+        closeNoteModal();
+      }
+    } finally {
+      noteSaving = false;
+    }
+  };
+
+  const deleteNoteForVerse = async (item) => {
+    const result = await notesStore.remove(item.book, item.chapter, item.index);
+    if (result.ok) {
+      showToastMessage($_('app.notes.deleted'));
+      closeNoteModal();
     }
   };
 
@@ -588,6 +650,7 @@
     isMounted = true;
     document.addEventListener('click', handleCompareMenuOutside);
     document.addEventListener('click', handleSaveToTopicMenuOutside);
+    document.addEventListener('click', handleNoteModalOutside);
   });
 
   onDestroy(() => {
@@ -603,6 +666,7 @@
       window.removeEventListener('scroll', () => {});
       document.removeEventListener('click', handleCompareMenuOutside);
       document.removeEventListener('click', handleSaveToTopicMenuOutside);
+      document.removeEventListener('click', handleNoteModalOutside);
     }
   });
 
@@ -940,6 +1004,113 @@
                   </div>
                 </div>
               {/if}
+            </div>
+          {/if}
+        </span>
+
+        <!-- Note -->
+        <span class="verse-note" bind:this={noteModalElement}>
+          <button
+            type="button"
+            class="icon-btn note-btn"
+            class:note-btn--active={!!$notesStore.find((n) => n.book === item.book && n.chapter === item.chapter && n.verse === item.index)}
+            class:icon-btn--disabled={!$isAuthenticated}
+            title={$isAuthenticated
+              ? ($notesStore.find((n) => n.book === item.book && n.chapter === item.chapter && n.verse === item.index)
+                  ? $_('app.notes.edit_note')
+                  : $_('app.notes.add_note'))
+              : $_('app.result.actions.note_login_required')}
+            aria-label={$isAuthenticated
+              ? ($notesStore.find((n) => n.book === item.book && n.chapter === item.chapter && n.verse === item.index)
+                  ? $_('app.notes.edit_note')
+                  : $_('app.notes.add_note'))
+              : $_('app.result.actions.note_login_required')}
+            aria-haspopup={$isAuthenticated ? 'dialog' : undefined}
+            aria-expanded={noteModalVerseKey === item.key}
+            on:click={() => {
+              if (!$isAuthenticated) {
+                openAuthMenu();
+                return;
+              }
+              if (noteModalVerseKey === item.key) closeNoteModal();
+              else openNoteModal(item);
+            }}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+          </button>
+          {#if noteModalVerseKey === item.key}
+            <div
+              class="note-modal"
+              role="dialog"
+              aria-label={$_('app.notes.modal_title')}
+              style="top: {noteModalPosition.top}px; right: {noteModalPosition.right}px;"
+              on:click|stopPropagation
+            >
+              <div class="note-modal__header">
+                <span class="note-modal__title">{$_('app.notes.modal_title')}</span>
+                <span class="note-modal__ref">{map[item.book]} {item.chapter}:{item.index}</span>
+              </div>
+              <textarea
+                class="note-modal__textarea"
+                bind:value={noteText}
+                placeholder={$_('app.notes.placeholder')}
+                maxlength="500"
+                rows="4"
+                autofocus
+                on:click|stopPropagation
+                on:mousedown|stopPropagation
+              ></textarea>
+              <div class="note-modal__footer">
+                <div class="note-modal__color-row">
+                  <label class="note-modal__color-label" for="note-color-{item.key}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="14" height="14">
+                      <circle cx="13.5" cy="6.5" r="0.5" fill="currentColor"/>
+                      <circle cx="17.5" cy="10.5" r="0.5" fill="currentColor"/>
+                      <circle cx="8.5" cy="7.5" r="0.5" fill="currentColor"/>
+                      <circle cx="6.5" cy="12.5" r="0.5" fill="currentColor"/>
+                      <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 011.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
+                    </svg>
+                  </label>
+                  <input
+                    type="color"
+                    id="note-color-{item.key}"
+                    bind:value={noteColor}
+                    class="note-modal__color-picker"
+                    title={$_('app.notes.color')}
+                    on:click|stopPropagation
+                    on:mousedown|stopPropagation
+                  />
+                </div>
+                <div class="note-modal__actions">
+                  {#if $notesStore.find((n) => n.book === item.book && n.chapter === item.chapter && n.verse === item.index)}
+                    <button
+                      type="button"
+                      class="note-modal__delete"
+                      on:click={(e) => { e.stopPropagation(); deleteNoteForVerse(item); }}
+                    >
+                      {$_('app.notes.delete')}
+                    </button>
+                  {/if}
+                  <button
+                    type="button"
+                    class="note-modal__cancel"
+                    on:click={(e) => { e.stopPropagation(); closeNoteModal(); }}
+                  >
+                    {$_('app.notes.cancel')}
+                  </button>
+                  <button
+                    type="button"
+                    class="note-modal__save"
+                    disabled={!noteText.trim() || noteSaving}
+                    on:click={(e) => { e.stopPropagation(); saveNoteForVerse(item); }}
+                  >
+                    {noteSaving ? '...' : $_('app.notes.save')}
+                  </button>
+                </div>
+              </div>
             </div>
           {/if}
         </span>
@@ -1920,6 +2091,228 @@
     &:focus-visible {
       background: var(--color-blue);
       color: var(--color-white);
+    }
+  }
+
+  /* === Note button === */
+  .note-btn {
+    opacity: 0;
+
+    &--active {
+      color: var(--color-blue);
+    }
+  }
+
+  .verse:hover .note-btn,
+  .verse:focus-within .note-btn,
+  .note-btn[aria-expanded="true"] {
+    opacity: 1;
+  }
+
+  /* === Note modal (same style as save-topic-menu) === */
+  .note-modal {
+    position: fixed;
+    z-index: 100;
+    width: 260px;
+    background: var(--color-white);
+    border: 1px solid rgb(63 88 103 / 18%);
+    border-radius: 0.75rem;
+    box-shadow: var(--box-shadow-down);
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    animation: menuFadeIn 0.15s ease;
+
+    &__header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    &__title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--color-bg-dark);
+    }
+
+    &__ref {
+      font-size: 0.72rem;
+      color: color-mix(in srgb, var(--color-bg-dark) 55%, transparent);
+      font-weight: 600;
+    }
+
+    &__textarea {
+      width: 100%;
+      resize: none;
+      border: 1px solid rgb(63 88 103 / 20%);
+      border-radius: 0.5rem;
+      padding: 0.5rem 0.6rem;
+      font-size: 0.85rem;
+      font-family: inherit;
+      color: var(--color-bg-dark);
+      background: var(--color-bg-light);
+      line-height: 1.5;
+      outline: none;
+      transition: border-color 0.15s;
+
+      &:focus {
+        border-color: var(--color-blue);
+        box-shadow: 0 0 0 2px rgb(45 150 205 / 16%);
+      }
+
+      &::placeholder {
+        color: color-mix(in srgb, var(--color-bg-dark) 45%, transparent);
+      }
+    }
+
+    &__footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    &__color-row {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    &__color-label {
+      color: color-mix(in srgb, var(--color-bg-dark) 50%, transparent);
+      display: flex;
+      align-items: center;
+      cursor: default;
+    }
+
+    &__color-picker {
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      border: 1px solid rgb(63 88 103 / 22%);
+      border-radius: 0.35rem;
+      cursor: pointer;
+      background: none;
+
+      &::-webkit-color-swatch-wrapper {
+        padding: 2px;
+      }
+
+      &::-webkit-color-swatch {
+        border: none;
+        border-radius: 0.2rem;
+      }
+    }
+
+    &__actions {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    &__delete {
+      font-size: 0.75rem;
+      color: #ef4444;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0.2rem 0.3rem;
+      border-radius: 0.3rem;
+      transition: background 0.15s;
+
+      &:hover {
+        background: rgb(239 68 68 / 0.1);
+      }
+    }
+
+    &__cancel {
+      font-size: 0.75rem;
+      color: var(--color-bg-dark);
+      background: transparent;
+      border: 1px solid rgb(45 150 205 / 30%);
+      border-radius: 999px;
+      cursor: pointer;
+      padding: 0.3rem 0.7rem;
+      transition: background 0.15s;
+
+      &:hover {
+        background: rgb(45 150 205 / 8%);
+      }
+    }
+
+    &__save {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #ffffff;
+      background: var(--color-blue);
+      border: none;
+      border-radius: 999px;
+      cursor: pointer;
+      padding: 0.3rem 0.85rem;
+      transition: background 0.15s;
+
+      &:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+
+      &:not(:disabled):hover {
+        background: var(--color-blue-hover);
+      }
+    }
+  }
+
+  // Dark mode note modal — same pattern as save-topic-menu
+  :global(html[data-theme='dark']) .note-modal {
+    background: #1e2d3d;
+    border-color: rgb(255 255 255 / 15%);
+
+    &__title {
+      color: #ffffff;
+    }
+
+    &__ref {
+      color: rgb(255 255 255 / 55%);
+    }
+
+    &__textarea {
+      background: rgb(255 255 255 / 8%);
+      border-color: rgb(255 255 255 / 20%);
+      color: #ffffff;
+
+      &:focus {
+        border-color: var(--color-blue);
+        box-shadow: 0 0 0 2px rgb(77 178 230 / 30%);
+      }
+
+      &::placeholder {
+        color: rgb(255 255 255 / 45%);
+      }
+    }
+
+    &__cancel {
+      color: #ffffff;
+      border-color: rgb(255 255 255 / 25%);
+
+      &:hover {
+        background: rgb(255 255 255 / 8%);
+      }
+    }
+
+    &__color-picker {
+      border-color: rgb(255 255 255 / 25%);
+    }
+  }
+
+  @keyframes menuFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-0.3rem);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
     }
   }
 </style>

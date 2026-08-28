@@ -122,7 +122,8 @@
         "unfavorite": "Quitar de favoritos",
         "favorite_reference": "Añadir {reference} a favoritos",
         "unfavorite_reference": "Quitar {reference} de favoritos",
-        "favorite_login_required": "Inicia sesión para añadir a favoritos"
+        "favorite_login_required": "Inicia sesión para añadir a favoritos",
+        "note_login_required": "Inicia sesión para añadir una nota"
       }
     },
     "favorites": {
@@ -193,6 +194,28 @@
       "or": "o",
       "create_new_inline": "Crear una nueva"
     },
+    "notes": {
+      "add_note": "Añadir una nota",
+      "edit_note": "Editar nota",
+      "modal_title": "Nota personal",
+      "placeholder": "Escribe una nota para este versículo...",
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "delete": "Eliminar",
+      "color": "Color",
+      "saved": "Nota guardada",
+      "deleted": "Nota eliminada",
+      "eyebrow": "Notas",
+      "title": "Tus notas",
+      "lead": "{count} nota guardada — sincronizada entre dispositivos",
+      "empty": "Aún no tienes notas",
+      "empty_hint": "Pulsa 📝 junto a cualquier versículo para añadir una nota",
+      "login_required": "Inicia sesión para ver tus notas",
+      "login_required_hint": "Las notas se guardan por usuario y se sincronizan entre dispositivos.",
+      "open_verse": "Abrir versículo en contexto",
+      "remove": "Eliminar nota",
+      "remove_reference": "Eliminar nota de {reference}"
+    },
     "app_menu": {
       "aria_label": "Menú de la aplicación",
       "eyebrow": "Navegación",
@@ -216,6 +239,10 @@
         "favorites": {
           "label": "Favoritos",
           "hint": "Tus versículos preferidos"
+        },
+        "notes": {
+          "label": "Notas",
+          "hint": "Tus notas personales"
         },
         "user": {
           "label": "Perfil",

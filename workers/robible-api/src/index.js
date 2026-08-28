@@ -140,6 +140,46 @@ app.delete('/api/favorites', requireAuthMw, async (c) => {
   return data.removeFavorite(c.req.raw, c.env.DB, user.id, corsFor(c));
 });
 
+// ── Notes (auth required) ──────────────────────────────
+app.get('/api/notes', requireAuthMw, async (c) => {
+  const user = c.get('user');
+  applyCors(c);
+  const result = await data.listNotes(c.env.DB, user.id);
+  return c.json({ ok: true, ...result }, 200);
+});
+
+app.post('/api/notes', requireAuthMw, async (c) => {
+  const user = c.get('user');
+  applyCors(c);
+  return data.upsertNote(c.req.raw, c.env.DB, user.id, corsFor(c));
+});
+
+app.delete('/api/notes', requireAuthMw, async (c) => {
+  const user = c.get('user');
+  applyCors(c);
+  return data.removeNote(c.req.raw, c.env.DB, user.id, corsFor(c));
+});
+
+// ── Searches (auth required) ────────────────────────────
+app.get('/api/searches', requireAuthMw, async (c) => {
+  const user = c.get('user');
+  applyCors(c);
+  const result = await data.listSearches(c.env.DB, user.id);
+  return c.json({ ok: true, ...result }, 200);
+});
+
+app.post('/api/searches', requireAuthMw, async (c) => {
+  const user = c.get('user');
+  applyCors(c);
+  return data.upsertSearch(c.req.raw, c.env.DB, user.id, corsFor(c));
+});
+
+app.delete('/api/searches', requireAuthMw, async (c) => {
+  const user = c.get('user');
+  applyCors(c);
+  return data.removeSearch(c.req.raw, c.env.DB, user.id, corsFor(c));
+});
+
 // ── Export (sync) ──────────────────────────────────────
 app.get('/api/data/export', requireAuthMw, async (c) => {
   const user = c.get('user');
