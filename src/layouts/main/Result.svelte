@@ -14,8 +14,6 @@
   import { topicsStore, topicsContainingVerse } from '../../store/topicsStore';
   import { favoritesStore } from '../../store/favoritesStore';
   import { isAuthenticated } from '../../store/authStore';
-  import AutoRead from '../../components/AutoRead.svelte';
-  import { registerAutoReadCallback, unregisterAutoReadCallback } from '../../store/autoReadStore';
 
   export let bible;
   export let map;
@@ -36,22 +34,36 @@
   // Compare-by-verse menu state
   let compareMenuVerseKey = null;
   let compareMenuElement;
+  let compareMenuPosition = { top: 0, right: 0 };
   $: availableOtherVersions = getAvailableBibleVersions().filter((v) => v.value !== $selectedBibleVersion);
 
   // Save-to-topic menu state
   let saveToTopicVerseKey = null;
   let saveToTopicMenuElement;
+  let saveToTopicMenuPosition = { top: 0, right: 0 };
   let newTopicInline = { name: '', icon: '📌', color: '#2E7D9B' };
   let showInlineCreate = false;
-
-  // Auto-read state
-  let autoReadVisible = false;
 
   $: topics = $topicsStore.topics;
   $: verseRefs = $topicsStore.verseRefs;
 
+  // Calcula coordenadas del menu como position: fixed (relativas al viewport).
+  // Esto evita que el menu se recorte cuando hay un ancestor con overflow:hidden
+  // (caso del .result que tiene overflow:hidden para el swipe gesture).
+  // anchor: el botón que abre el menu; menuWidth: ancho estimado del menu.
+  const computeMenuPosition = (anchor) => {
+    if (!anchor) return { top: 0, right: 0 };
+    const r = anchor.getBoundingClientRect();
+    const top = r.bottom + 6; // 0.4rem debajo del botón
+    const right = Math.max(0, window.innerWidth - r.right);
+    return { top, right };
+  };
+
   const toggleCompareMenu = (verseKey, event) => {
     if (event) event.stopPropagation();
+    if (event?.currentTarget) {
+      compareMenuPosition = computeMenuPosition(event.currentTarget);
+    }
     compareMenuVerseKey = compareMenuVerseKey === verseKey ? null : verseKey;
   };
 
@@ -69,6 +81,9 @@
   // === Save to topic ===
   const toggleSaveToTopicMenu = (verseKey, event) => {
     if (event) event.stopPropagation();
+    if (event?.currentTarget) {
+      saveToTopicMenuPosition = computeMenuPosition(event.currentTarget);
+    }
     saveToTopicVerseKey = saveToTopicVerseKey === verseKey ? null : verseKey;
     showInlineCreate = false;
     newTopicInline = { name: '', icon: '📌', color: '#2E7D9B' };
@@ -239,19 +254,6 @@
     await updateChapterForm();
     showToast($_('app.result.toast.next_chapter'));
     return true;
-  };
-
-  // Wrapper para auto-read: avanza al siguiente capítulo y reanuda el play
-  const handleAutoAdvance = async () => {
-    const advanced = await goToNextChapter();
-    if (advanced) {
-      // Pequeño delay para que el usuario vea el cambio antes de continuar
-      setTimeout(() => {
-        import('../../store/autoReadStore').then(({ autoReadPlay }) => {
-          autoReadPlay();
-        });
-      }, 1200);
-    }
   };
 
   const goToPrevChapter = async () => {
@@ -586,17 +588,12 @@
     isMounted = true;
     document.addEventListener('click', handleCompareMenuOutside);
     document.addEventListener('click', handleSaveToTopicMenuOutside);
-
-    // Auto-read: mostrar controles y registrar callback de avance
-    autoReadVisible = true;
-    registerAutoReadCallback(handleAutoAdvance);
   });
 
   onDestroy(() => {
     window.clearTimeout(toastTimer);
     window.clearTimeout(highlightTimer);
     window.clearTimeout(scrollTimer);
-    unregisterAutoReadCallback();
     if (resultElement) {
       resultElement.removeEventListener('touchstart', onTouchStart);
       resultElement.removeEventListener('touchmove', onTouchMove);
@@ -816,7 +813,11 @@
               </svg>
             </button>
             {#if compareMenuVerseKey === item.key}
-              <div class="verse-compare-menu" role="listbox">
+              <div
+                class="verse-compare-menu"
+                role="listbox"
+                style="top: {compareMenuPosition.top}px; right: {compareMenuPosition.right}px;"
+              >
                 {#each availableOtherVersions as opt (opt.value)}
                   <button
                     type="button"
@@ -850,7 +851,11 @@
             </svg>
           </button>
           {#if saveToTopicVerseKey === item.key}
-            <div class="save-topic-menu" role="listbox">
+            <div
+              class="save-topic-menu"
+              role="listbox"
+              style="top: {saveToTopicMenuPosition.top}px; right: {saveToTopicMenuPosition.right}px;"
+            >
               <div class="save-topic-menu__label">{$_('app.topics.add_to_existing')}</div>
               {#if topics.length === 0}
                 <p class="save-topic-menu__empty">{$_('app.topics.create_first_topic')}</p>
@@ -989,11 +994,6 @@
 
 <!-- Keyboard shortcut: Escape exits immersive mode -->
 <svelte:window on:keydown={(e) => { if (e.key === 'Escape' && $immersiveMode) toggleImmersiveMode(); }} />
-
-<!-- Auto-read controls (only when reading a chapter, not in search) -->
-{#if !searchForm.searchText && chapterArray.length}
-  <AutoRead visible={autoReadVisible} />
-{/if}
 
 <style lang="scss">
   .result {
@@ -1194,13 +1194,15 @@
   }
 
   .verse-compare-menu {
-    position: absolute;
-    top: calc(100% + 0.4rem);
-    right: 0;
-    z-index: 20;
+    // position: fixed para escapar de cualquier ancestor con overflow:hidden
+    // (caso del .result, que oculta el overflow durante el swipe gesture).
+    // Las coordenadas se calculan dinámicamente en JS (compareMenuPosition)
+    // basándose en el bounding rect del botón que abre el menu.
+    position: fixed;
+    z-index: 50;
     display: grid;
     gap: 0.25rem;
-    width: max(14rem, 100%);
+    width: 14rem;
     max-width: calc(100vw - 2rem);
     padding: 0.35rem;
     border: 1px solid rgb(63 88 103 / 18%);
@@ -1294,11 +1296,10 @@
   }
 
   .save-topic-menu {
-    position: absolute;
-    top: calc(100% + 0.4rem);
-    right: auto;
-    left: 0;
-    z-index: 25;
+    // position: fixed (igual que .verse-compare-menu) para escapar de
+    // cualquier ancestor con overflow:hidden.
+    position: fixed;
+    z-index: 55;
     display: flex;
     flex-direction: column;
     gap: 0.4rem;

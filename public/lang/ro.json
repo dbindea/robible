@@ -14,7 +14,10 @@
       "logo_label": "RoBible",
       "logo_text": "Biblia",
       "version_label": "Versiunea Bibliei",
-      "back_to_home": "Înapoi la Biblie"
+      "back_to_home": "Înapoi la Biblie",
+      "menu_label": "Meniu",
+      "menu_open": "Deschide meniul",
+      "menu_close": "Închide meniul"
     },
     "footer": {
       "made_with_love": "Facută cu dăruire în Arganda del Rey",
@@ -189,14 +192,6 @@
       "add_to_existing": "Adaugă la o categorie existentă",
       "or": "sau",
       "create_new_inline": "Creează una nouă"
-    },
-    "autoRead": {
-      "label": "Lectură continuă",
-      "play": "Pornește citirea continuă",
-      "pause": "Oprește citirea continuă",
-      "speed": "Viteză",
-      "minimize": "Ascunde citirea continuă",
-      "open": "Deschide citirea continuă"
     },
     "app_menu": {
       "aria_label": "Meniul aplicației",

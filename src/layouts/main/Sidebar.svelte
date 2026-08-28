@@ -24,7 +24,17 @@
   $: selectedBookName =
     selectedBook !== null && selectedBook !== undefined ? map[selectedBook] : $_('app.sidebar.scope.'+searchForm.testament);
 
+  // Si el estado restaurado dice "toda la biblia" pero quedó un libro
+  // seleccionado de una búsqueda anterior, limpiamos para que el radio
+  // "All Bible" signifique realmente TODOS los libros.
+  // (Bug antiguo: el radio mostraba "all" pero searchForm.book seguía
+  // restringido a un libro específico, devolviendo 0 resultados.
+  // El usuario descubría que cambiando a NT y volviendo a All funcionaba.)
   onMount(() => {
+    if ($filter.testament === 'all' && Array.isArray($filter.book) && $filter.book.length > 0) {
+      const cleaned = { ...$filter, book: [], chapter: [] };
+      filter.set(cleaned);
+    }
     if (window.matchMedia('(min-width: 58rem)').matches) {
       searchTextInput?.focus();
     }

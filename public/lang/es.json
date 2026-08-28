@@ -14,7 +14,10 @@
       "logo_label": "RoBible",
       "logo_text": "Biblia",
       "version_label": "Versión de la Biblia",
-      "back_to_home": "Volver a la Biblia"
+      "back_to_home": "Volver a la Biblia",
+      "menu_label": "Menú",
+      "menu_open": "Abrir menú",
+      "menu_close": "Cerrar menú"
     },
     "footer": {
       "made_with_love": "Hecho con cariño en Arganda del Rey",
@@ -189,14 +192,6 @@
       "add_to_existing": "Agregar a una categoría existente",
       "or": "o",
       "create_new_inline": "Crear una nueva"
-    },
-    "autoRead": {
-      "label": "Lectura continua",
-      "play": "Iniciar lectura continua",
-      "pause": "Pausar lectura continua",
-      "speed": "Velocidad",
-      "minimize": "Ocultar lectura continua",
-      "open": "Abrir lectura continua"
     },
     "app_menu": {
       "aria_label": "Menú de la aplicación",
