@@ -16,7 +16,7 @@ database_id = "e81cde5b-230d-44cb-8d6c-07276e6be777"
 # Setup: `npx wrangler secret put JWT_SECRET` y pega un valor aleatorio fuerte
 # (por ejemplo: `openssl rand -hex 32`)
 [vars]
-ALLOWED_ORIGIN = "https://robible.app,https://www.robible.app,http://localhost:5173,http://127.0.0.1:5173"
+ALLOWED_ORIGIN = "https://robible.com,https://www.robible.com,https://robible.app,https://www.robible.app,http://localhost:5173,http://127.0.0.1:5173"
 RATE_LIMIT_PER_MINUTE = "30"
 RATE_LIMIT_PER_HOUR = "500"
 

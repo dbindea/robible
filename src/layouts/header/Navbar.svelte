@@ -2,7 +2,7 @@
   import { onDestroy, onMount } from 'svelte';
   import { _ } from '../../services/i18n.service';
   import { bibleVersions, resetFilter, selectedBibleVersion } from '../../store/stores';
-  import { openAppMenu } from '../../store/appMenuStore';
+  import { appMenuOpen, closeAppMenu, openAppMenu } from '../../store/appMenuStore';
 
   let isVersionMenuOpen = false;
   let versionPickerElement;
@@ -24,10 +24,14 @@
     isVersionMenuOpen = false;
   };
 
-  // Logo: abre el menú lateral
-  const handleLogoClick = (event) => {
+  // Botón hamburguesa: alterna el menú lateral
+  const handleMenuToggle = (event) => {
     event.preventDefault();
-    openAppMenu();
+    if ($appMenuOpen) {
+      closeAppMenu();
+    } else {
+      openAppMenu();
+    }
   };
 
   // Navegación con toggle: si ya estás en la ruta, vuelve a Home (/)
@@ -75,24 +79,22 @@
 </script>
 
 <div class="header">
-  <a class="logo" href="/" aria-label={$_('app.nav.logo_label')} on:click|preventDefault={handleLogoClick}>
-    <!-- Logo SVG — emblema RoBible: doble anillo + planta/llama de 3 hojas + pedestal -->
-    <svg class="logo__img" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <rect class="logo-bg" x="0" y="0" width="512" height="512" rx="96" ry="96"/>
-      <g class="logo-accent" fill="none" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="256" cy="232" r="172" stroke-width="14"/>
-        <circle cx="256" cy="232" r="126" stroke-width="11"/>
-        <path d="M 256 100 C 360 180, 360 280, 256 336 C 152 280, 152 180, 256 100 Z" stroke-width="13"/>
-        <path d="M 256 156 C 312 200, 312 270, 256 312 C 200 270, 200 200, 256 156 Z" stroke-width="13"/>
-        <path d="M 124 148 C 198 188, 232 280, 256 336 C 200 268, 148 220, 124 148 Z" stroke-width="13"/>
-        <path d="M 388 148 C 314 188, 280 280, 256 336 C 312 268, 364 220, 388 148 Z" stroke-width="13"/>
-        <line x1="56" y1="336" x2="456" y2="336" stroke-width="14"/>
-        <line x1="256" y1="336" x2="256" y2="420" stroke-width="14"/>
-        <line x1="200" y1="420" x2="312" y2="420" stroke-width="14"/>
-      </g>
-    </svg>
-    <span class="logo__text">{$_('app.nav.logo_text')}</span>
-  </a>
+  <button
+    type="button"
+    class="hamburger"
+    class:hamburger--open={$appMenuOpen}
+    aria-label={$appMenuOpen ? $_('app.nav.menu_close') : $_('app.nav.menu_open')}
+    aria-expanded={$appMenuOpen}
+    aria-controls="app-menu"
+    on:click={handleMenuToggle}
+  >
+    <span class="hamburger__lines" aria-hidden="true">
+      <span class="hamburger__line"></span>
+      <span class="hamburger__line"></span>
+      <span class="hamburger__line"></span>
+    </span>
+    <span class="hamburger__text">{$_('app.nav.menu_label')}</span>
+  </button>
 
   <div class="header__actions">
     <a
@@ -331,41 +333,94 @@
     transform: translateY(-0.08rem) rotate(-45deg);
   }
 
-  .logo {
-    display: flex;
+  // ── Botón hamburguesa ───────────────────────────────────────────
+  // Reemplaza al logo anterior como acceso al menú lateral.
+  // 3 líneas → X cuando está abierto. La línea central se desvanece,
+  // las dos exteriores rotan y se juntan formando la X.
+  .hamburger {
+    display: inline-flex;
     align-items: center;
-    min-width: 0;
-    gap: 0.65rem;
+    gap: 0.55rem;
+    min-height: var(--button-height);
+    padding: 0 0.85rem 0 0.7rem;
+    border: 1px solid rgb(45 150 205 / 42%);
+    border-radius: 0.28rem;
+    background: color-mix(in srgb, var(--color-blue) 11%, var(--color-white));
+    color: var(--color-bg-dark);
+    font-weight: 700;
+    font-size: 0.92rem;
+    cursor: pointer;
     flex-shrink: 0;
+    transition: var(--transition);
+    font-family: inherit;
 
-    &__img {
-      width: 2.75rem;
-      height: 2.75rem;
-      flex: 0 0 auto;
-      display: block;
+    &:hover,
+    &:focus-visible {
+      border-color: var(--color-blue);
+      background: color-mix(in srgb, var(--color-blue) 18%, var(--color-white));
+      box-shadow: 0 0 0 3px rgb(45 150 205 / 14%);
     }
 
-    &__text {
-      color: var(--color-bg-dark);
-      font-size: 1.35rem;
-      font-weight: 700;
-      line-height: 1;
-      white-space: nowrap;
+    &:focus-visible {
+      outline: 2px solid var(--color-blue);
+      outline-offset: 2px;
+    }
+
+    // Cuando el menu está abierto, el botón refleja ese estado
+    // con un color sólido (mismo lenguaje visual que nav-link--active).
+    &--open {
+      background: var(--color-blue);
+      border-color: var(--color-blue-hover);
+      color: var(--color-on-primary);
+      box-shadow: 0 0 0 3px rgb(45 150 205 / 18%);
     }
   }
 
-  a.logo:hover {
-    text-decoration: none;
+  // Las 3 líneas. 22px de ancho total, centradas, con gap.
+  .hamburger__lines {
+    position: relative;
+    display: inline-block;
+    width: 1.35rem;
+    height: 0.95rem;
+    flex: 0 0 auto;
   }
 
-  // Logo colors: usan variables para que se adapten al tema sin perder
-  // la identidad de marca. En light usa el teal profundo; en dark el
-  // mismo teal luce sobre el fondo casi-negro sin perder contraste.
-  .logo-bg { fill: #1f4a5c; }
-  .logo-accent { stroke: #d28456; }
+  .hamburger__line {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: currentcolor;
+    border-radius: 2px;
+    transition: transform 0.24s ease, opacity 0.16s ease, top 0.24s ease;
+    transform-origin: center;
+  }
 
-  :global(html[data-theme='dark']) .logo-bg { fill: #1f4a5c; }
-  :global(html[data-theme='dark']) .logo-accent { stroke: #d28456; }
+  .hamburger__line:nth-child(1) { top: 0; }
+  .hamburger__line:nth-child(2) { top: 0.45rem; }
+  .hamburger__line:nth-child(3) { top: 0.9rem; }
+
+  // Cuando está abierto, las dos exteriores rotan y se cruzan
+  // en el centro, la del medio se desvanece → forma una X.
+  .hamburger--open .hamburger__line:nth-child(1) {
+    top: 0.45rem;
+    transform: rotate(45deg);
+  }
+  .hamburger--open .hamburger__line:nth-child(2) {
+    opacity: 0;
+    transform: scaleX(0.4);
+  }
+  .hamburger--open .hamburger__line:nth-child(3) {
+    top: 0.45rem;
+    transform: rotate(-45deg);
+  }
+
+  // Texto al lado del icono. Visible en desktop, oculto en mobile
+  // para ganar espacio (junto con el resto del header).
+  .hamburger__text {
+    white-space: nowrap;
+    line-height: 1;
+  }
 
   :global(html[data-theme='dark']) .nav-link {
     background: rgb(255 255 255 / 8%);
@@ -419,16 +474,16 @@
   }
 
   // ── Breakpoint 2: mobile (<40rem = 640px) ──
-  // Logo solo icono, version-picker se reduce al mínimo
+  // Hamburger solo icono, version-picker se reduce al mínimo
   // y los nav-links siguen icono-only.
   @media (max-width: 40rem) {
     .header {
       padding: 0.5rem 0.75rem;
       gap: 0.5rem;
     }
-    .logo {
-      gap: 0;
-      &__text { display: none; }
+    .hamburger {
+      padding: 0 0.55rem;
+      .hamburger__text { display: none; }
     }
     .version-picker__button {
       min-width: 0;
