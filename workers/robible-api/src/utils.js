@@ -121,6 +121,7 @@ export const validators = {
     Number.isInteger(r.chapter) && r.chapter >= 1 &&
     Number.isInteger(r.verse) && r.verse >= 1
   ),
+  noteText: (t) => typeof t === 'string' && t.trim().length >= 1 && t.trim().length <= 500,
 };
 
 // ── Helpers de respuesta ────────────────────────────────

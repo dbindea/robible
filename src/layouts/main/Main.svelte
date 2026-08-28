@@ -8,6 +8,7 @@
   import Compare from './Compare.svelte';
   import Index from './Index.svelte';
   import Favorites from './Favorites.svelte';
+  import Notes from './Notes.svelte';
   import { getBibleVersionConfigOrDefault } from '../../store/stores';
 
   export let bible;
@@ -37,8 +38,12 @@
   // Detectar ruta de favoritos (depende del idioma)
   const getFavoritesPath = () => getBiblePath('favoritesPath', 'favoriti');
 
+  // Detectar ruta de notas (depende del idioma)
+  const getNotesPath = () => getBiblePath('notesPath', 'note');
+
   let isIndexMode = false;
   let isFavoritesMode = false;
+  let isNotesMode = false;
   const updateIndexMode = () => {
     if (typeof window === 'undefined') return;
     const indexPath = getIndexPath();
@@ -51,8 +56,15 @@
     const path = window.location.pathname;
     isFavoritesMode = path === `/${favPath}` || path.startsWith(`/${favPath}/`);
   };
+  const updateNotesMode = () => {
+    if (typeof window === 'undefined') return;
+    const notesPath = getNotesPath();
+    const path = window.location.pathname;
+    isNotesMode = path === `/${notesPath}` || path.startsWith(`/${notesPath}/`);
+  };
   updateIndexMode();
   updateFavoritesMode();
+  updateNotesMode();
 
   $: searchForm = $filter;
   $: fullResult = Object.keys(searchForm).length ? getFilterResult(bible, map, searchForm) : [];
@@ -70,12 +82,15 @@
     updateCompareMode();
     updateIndexMode();
     updateFavoritesMode();
+    updateNotesMode();
     window.addEventListener('popstate', updateCompareMode);
     window.addEventListener('robibile:navigate', updateCompareMode);
     window.addEventListener('popstate', updateIndexMode);
     window.addEventListener('robibile:navigate', updateIndexMode);
     window.addEventListener('popstate', updateFavoritesMode);
     window.addEventListener('robibile:navigate', updateFavoritesMode);
+    window.addEventListener('popstate', updateNotesMode);
+    window.addEventListener('robibile:navigate', updateNotesMode);
     return () => {
       window.removeEventListener('popstate', updateCompareMode);
       window.removeEventListener('robibile:navigate', updateCompareMode);
@@ -83,12 +98,14 @@
       window.removeEventListener('robibile:navigate', updateIndexMode);
       window.removeEventListener('popstate', updateFavoritesMode);
       window.removeEventListener('robibile:navigate', updateFavoritesMode);
+      window.removeEventListener('popstate', updateNotesMode);
+      window.removeEventListener('robibile:navigate', updateNotesMode);
     };
   });
 </script>
 
-<div class="main" class:main--immersive={isImmersive} class:main--compare={isCompareMode} class:main--index={isIndexMode} class:main--favorites={isFavoritesMode}>
-  {#if !isImmersive && !isCompareMode && !isIndexMode && !isFavoritesMode}
+<div class="main" class:main--immersive={isImmersive} class:main--compare={isCompareMode} class:main--index={isIndexMode} class:main--favorites={isFavoritesMode} class:main--notes={isNotesMode}>
+  {#if !isImmersive && !isCompareMode && !isIndexMode && !isFavoritesMode && !isNotesMode}
     <div class="sidebar">
       <Sidebar {map} {result} {count} />
     </div>
@@ -101,6 +118,8 @@
         <Index {bible} {map} />
       {:else if isFavoritesMode}
         <Favorites {bible} {map} />
+      {:else if isNotesMode}
+        <Notes {bible} {map} />
       {:else}
         <Result {bible} {map} {result} {count} />
       {/if}
@@ -149,7 +168,8 @@
   .main--immersive,
   .main--compare,
   .main--index,
-  .main--favorites {
+  .main--favorites,
+  .main--notes {
     grid-template-columns: minmax(0, 1fr);
     gap: 0;
   }
@@ -170,7 +190,8 @@
   .main--immersive .layout,
   .main--compare .layout,
   .main--index .layout,
-  .main--favorites .layout {
+  .main--favorites .layout,
+  .main--notes .layout {
     padding: clamp(0.5rem, 2vw, 1.5rem) clamp(0.5rem, 3vw, 3rem) clamp(1rem, 4vw, 3rem);
   }
 

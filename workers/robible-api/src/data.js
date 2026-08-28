@@ -282,16 +282,207 @@ export async function removeFavorite(request, db, userId, cors) {
   return json({ ok: true }, 200, cors);
 }
 
+// ── NOTES ────────────────────────────────────────────────
+
+// GET /api/notes
+export async function listNotes(db, userId) {
+  const rows = await db
+    .prepare(
+      `SELECT id, book, chapter, verse, text, color, created_at, updated_at
+       FROM notes WHERE user_id = ? ORDER BY book ASC, chapter ASC, verse ASC`,
+    )
+    .bind(userId)
+    .all();
+  return {
+    notes: (rows.results || []).map((r) => ({
+      id: r.id,
+      book: r.book,
+      chapter: r.chapter,
+      verse: r.verse,
+      text: r.text,
+      color: r.color,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
+    })),
+  };
+}
+
+// POST /api/notes — upsert (sobrescribe si ya existe nota en ese versículo)
+export async function upsertNote(request, db, userId, cors) {
+  let body;
+  try { body = await request.json(); } catch { return error('invalid_json', 400, cors); }
+  const { book, chapter, verse, text, color } = body || {};
+
+  if (!validators.verseRef({ book, chapter, verse })) {
+    return error('invalid_verse_ref', 400, cors);
+  }
+  if (!validators.noteText(text)) {
+    return error('invalid_note_text', 400, cors);
+  }
+  if (color !== undefined && color !== null && !validators.color(color)) {
+    return error('invalid_color', 400, cors);
+  }
+
+  const now = nowIso();
+  const id = genId('note');
+
+  // Upsert: INSERT OR REPLACE sobre la constraint UNIQUE(user_id, book, chapter, verse)
+  await db
+    .prepare(
+      `INSERT INTO notes (id, user_id, book, chapter, verse, text, color, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(user_id, book, chapter, verse) DO UPDATE SET
+         text = excluded.text,
+         color = excluded.color,
+         updated_at = excluded.updated_at`,
+    )
+    .bind(id, userId, book, chapter, verse, text.trim(), color || null, now, now)
+    .run();
+
+  return json({
+    ok: true,
+    note: { id, book, chapter, verse, text: text.trim(), color: color || null, createdAt: now, updatedAt: now },
+  }, 201, cors);
+}
+
+// DELETE /api/notes (body: { book, chapter, verse })
+export async function removeNote(request, db, userId, cors) {
+  let body;
+  try { body = await request.json(); } catch { return error('invalid_json', 400, cors); }
+  const { book, chapter, verse } = body || {};
+  if (!validators.verseRef({ book, chapter, verse })) {
+    return error('invalid_verse_ref', 400, cors);
+  }
+
+  const result = await db
+    .prepare(
+      `DELETE FROM notes WHERE user_id = ? AND book = ? AND chapter = ? AND verse = ?`,
+    )
+    .bind(userId, book, chapter, verse)
+    .run();
+  if (!result.meta || result.meta.changes === 0) {
+    return error('note_not_found', 404, cors);
+  }
+  return json({ ok: true }, 200, cors);
+}
+
+// ── SEARCHES (Phase 3.4 — historial persistente multi-device) ───
+
+// GET /api/searches
+export async function listSearches(db, userId) {
+  const rows = await db
+    .prepare(
+      `SELECT id, search_text, search_type, testament, book_json, chapter_json, last_used_at, created_at
+       FROM user_searches WHERE user_id = ? ORDER BY last_used_at DESC LIMIT 25`,
+    )
+    .bind(userId)
+    .all();
+  return {
+    searches: (rows.results || []).map((r) => ({
+      id: r.id,
+      searchText: r.search_text,
+      searchType: r.search_type,
+      testament: r.testament,
+      books: r.book_json ? JSON.parse(r.book_json) : null,
+      chapters: r.chapter_json ? JSON.parse(r.chapter_json) : null,
+      lastUsedAt: r.last_used_at,
+      createdAt: r.created_at,
+    })),
+  };
+}
+
+// POST /api/searches — upsert (mueve búsqueda existente a top)
+export async function upsertSearch(request, db, userId, cors) {
+  let body;
+  try { body = await request.json(); } catch { return error('invalid_json', 400, cors); }
+  const { searchText, searchType = 'match', testament = 'all', books, chapters } = body || {};
+
+  if (typeof searchText !== 'string' || searchText.trim().length < 1 || searchText.trim().length > 200) {
+    return error('invalid_search_text', 400, cors);
+  }
+  const validTypes = ['match', 'every', 'some'];
+  if (!validTypes.includes(searchType)) return error('invalid_search_type', 400, cors);
+  const validTestaments = ['all', 'ot', 'nt'];
+  if (!validTestaments.includes(testament)) return error('invalid_testament', 400, cors);
+
+  const now = nowIso();
+  const id = genId('search');
+  const normalizedText = searchText.trim();
+
+  // Upsert by user+text
+  await db
+    .prepare(
+      `INSERT INTO user_searches (id, user_id, search_text, search_type, testament, book_json, chapter_json, last_used_at, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(user_id, search_text) DO UPDATE SET
+         search_type = excluded.search_type,
+         testament = excluded.testament,
+         book_json = excluded.book_json,
+         chapter_json = excluded.chapter_json,
+         last_used_at = excluded.last_used_at`,
+    )
+    .bind(
+      id, userId, normalizedText, searchType, testament,
+      books ? JSON.stringify(books) : null,
+      chapters ? JSON.stringify(chapters) : null,
+      now, now,
+    )
+    .run();
+
+  // Obtener el id real (puede ser el existente tras ON CONFLICT)
+  const row = await db
+    .prepare('SELECT id, last_used_at, created_at FROM user_searches WHERE user_id = ? AND search_text = ?')
+    .bind(userId, normalizedText)
+    .first();
+
+  return json({
+    ok: true,
+    search: {
+      id: row.id,
+      searchText: normalizedText,
+      searchType,
+      testament,
+      books: books || null,
+      chapters: chapters || null,
+      lastUsedAt: row.last_used_at,
+      createdAt: row.created_at,
+    },
+  }, 201, cors);
+}
+
+// DELETE /api/searches (body: { id })
+export async function removeSearch(request, db, userId, cors) {
+  let body;
+  try { body = await request.json(); } catch { return error('invalid_json', 400, cors); }
+  const { id } = body || {};
+  if (typeof id !== 'string' || !id.startsWith('search_')) {
+    return error('invalid_id', 400, cors);
+  }
+
+  const result = await db
+    .prepare(`DELETE FROM user_searches WHERE id = ? AND user_id = ?`)
+    .bind(id, userId)
+    .run();
+  if (!result.meta || result.meta.changes === 0) {
+    return error('search_not_found', 404, cors);
+  }
+  return json({ ok: true }, 200, cors);
+}
+
 // ── EXPORT (todo del usuario para sync) ──────────────────
 export async function exportUserData(db, userId) {
   const topics = await listTopics(db, userId);
   const favorites = await listFavorites(db, userId);
+  const notes = await listNotes(db, userId);
+  const searches = await listSearches(db, userId);
   return {
     ok: true,
     data: {
       topics: topics.topics,
       verseRefs: topics.verseRefs,
       favorites: favorites.favorites,
+      notes: notes.notes,
+      searches: searches.searches,
       exportedAt: nowIso(),
     },
   };

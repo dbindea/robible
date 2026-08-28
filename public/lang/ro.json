@@ -122,7 +122,8 @@
         "unfavorite": "Scoate de la favorite",
         "favorite_reference": "Adaugă {reference} la favorite",
         "unfavorite_reference": "Scoate {reference} de la favorite",
-        "favorite_login_required": "Conectează-te pentru a adăuga la favorite"
+        "favorite_login_required": "Conectează-te pentru a adăuga la favorite",
+        "note_login_required": "Conectează-te pentru a adăuga o notiță"
       }
     },
     "favorites": {
@@ -193,6 +194,28 @@
       "or": "sau",
       "create_new_inline": "Creează una nouă"
     },
+    "notes": {
+      "add_note": "Adaugă o notiță",
+      "edit_note": "Editează notița",
+      "modal_title": "Notiță personală",
+      "placeholder": "Scrie o notiță pentru acest verset...",
+      "save": "Salvează",
+      "cancel": "Anulează",
+      "delete": "Șterge",
+      "color": "Culoare",
+      "saved": "Notiță salvată",
+      "deleted": "Notiță ștearsă",
+      "eyebrow": "Notițe",
+      "title": "Notițele tale",
+      "lead": "{count} notiță salvată — sincronizată între dispozitive",
+      "empty": "Nu ai încă nicio notiță",
+      "empty_hint": "Apasă pe 📝 de lângă orice verset pentru a adăuga o notiță",
+      "login_required": "Conectează-te pentru a vedea notițele",
+      "login_required_hint": "Notițele sunt salvate per utilizator și sincronizate între dispozitive.",
+      "open_verse": "Deschide versetul în context",
+      "remove": "Șterge notița",
+      "remove_reference": "Șterge notița de la {reference}"
+    },
     "app_menu": {
       "aria_label": "Meniul aplicației",
       "eyebrow": "Navigare",
@@ -216,6 +239,10 @@
         "favorites": {
           "label": "Favorite",
           "hint": "Versetele tale preferate"
+        },
+        "notes": {
+          "label": "Notițe",
+          "hint": "Notițele tale personale"
         },
         "user": {
           "label": "Profil",
