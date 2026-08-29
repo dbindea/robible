@@ -349,13 +349,6 @@
     padding: 0.9rem;
     background-color: rgb(255 255 255 / 7%);
 
-    span {
-      display: block;
-      margin-bottom: 0.2rem;
-      color: rgb(255 255 255 / 74%);
-      font-size: 1rem;
-    }
-
     strong {
       display: block;
       color: #ffffff;

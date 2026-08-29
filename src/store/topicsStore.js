@@ -9,6 +9,11 @@ currentUser.subscribe(async (user) => {
   topicsService.setCurrentUser(user?.id || null);
   if (user && tokenStore.get()) {
     await topicsService.syncFromServer();
+    // Si tras sincronizar no tiene topics, seedear defaults
+    const topics = topicsService.loadTopics();
+    if (topics.length === 0) {
+      await topicsService.seedDefaultsForUser();
+    }
   }
   setTimeout(() => topicsStore.refresh(), 0);
 });
