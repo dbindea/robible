@@ -123,7 +123,8 @@
         "favorite_reference": "Añadir {reference} a favoritos",
         "unfavorite_reference": "Quitar {reference} de favoritos",
         "favorite_login_required": "Inicia sesión para añadir a favoritos",
-        "note_login_required": "Inicia sesión para añadir una nota"
+        "note_login_required": "Inicia sesión para añadir una nota",
+        "topics_login_required": "Inicia sesión para guardar en una categoría"
       }
     },
     "favorites": {
@@ -136,7 +137,8 @@
       "login_required_hint": "Los favoritos se guardan por usuario y se sincronizan entre dispositivos.",
       "open_verse": "Abrir versículo en contexto",
       "remove": "Quitar de favoritos",
-      "remove_reference": "Quitar {reference} de favoritos"
+      "remove_reference": "Quitar {reference} de favoritos",
+      "login_prompt_action": "Iniciar sesión"
     },
     "compare": {
       "title": "Compara traducciones",
@@ -171,7 +173,7 @@
       "add_verse_to_topic": "Guardar en una categoría",
       "select_topic": "Elige una categoría",
       "new_topic_placeholder": "Nombre de la categoría (ej: Esperanza)",
-      "topic_icon": "Icono (emoji)",
+      "topic_icon": "Icono",
       "topic_color": "Color",
       "topic_name": "Nombre",
       "cancel": "Cancelar",
@@ -192,7 +194,10 @@
       "close": "Cerrar",
       "add_to_existing": "Agregar a una categoría existente",
       "or": "o",
-      "create_new_inline": "Crear una nueva"
+      "create_new_inline": "Crear una nueva",
+      "login_required": "Inicia sesión para ver las categorías",
+      "login_required_hint": "Las categorías se guardan por usuario y se sincronizan entre dispositivos.",
+      "login_prompt_action": "Iniciar sesión",
     },
     "notes": {
       "add_note": "Añadir una nota",
@@ -214,7 +219,8 @@
       "login_required_hint": "Las notas se guardan por usuario y se sincronizan entre dispositivos.",
       "open_verse": "Abrir versículo en contexto",
       "remove": "Eliminar nota",
-      "remove_reference": "Eliminar nota de {reference}"
+      "remove_reference": "Eliminar nota de {reference}",
+      "login_prompt_action": "Iniciar sesión"
     },
     "app_menu": {
       "aria_label": "Menú de la aplicación",

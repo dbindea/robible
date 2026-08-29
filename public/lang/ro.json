@@ -123,7 +123,8 @@
         "favorite_reference": "Adaugă {reference} la favorite",
         "unfavorite_reference": "Scoate {reference} de la favorite",
         "favorite_login_required": "Conectează-te pentru a adăuga la favorite",
-        "note_login_required": "Conectează-te pentru a adăuga o notiță"
+        "note_login_required": "Conectează-te pentru a adăuga o notiță",
+        "topics_login_required": "Conectează-te pentru a salva într-o categorie"
       }
     },
     "favorites": {
@@ -136,7 +137,8 @@
       "login_required_hint": "Favorite sunt salvate per utilizator și sincronizate între dispozitive.",
       "open_verse": "Deschide versetul în context",
       "remove": "Șterge de la favorite",
-      "remove_reference": "Șterge {reference} de la favorite"
+      "remove_reference": "Șterge {reference} de la favorite",
+      "login_prompt_action": "Autentificare"
     },
     "compare": {
       "title": "Compară traducerile",
@@ -171,7 +173,7 @@
       "add_verse_to_topic": "Salvează într-o categorie",
       "select_topic": "Alege o categorie",
       "new_topic_placeholder": "Numele categoriei (ex: Speranță)",
-      "topic_icon": "Iconiță (emoji)",
+      "topic_icon": "Iconiță",
       "topic_color": "Culoare",
       "topic_name": "Nume",
       "cancel": "Anulează",
@@ -188,6 +190,9 @@
       "back_to_topics": "Înapoi la categorii",
       "verses_in": "Versete în {topic}",
       "delete_verse": "Șterge din categorie",
+      "login_required": "Conectează-te pentru a vedea categoriile",
+      "login_required_hint": "Categoriile sunt salvate per utilizator și sincronizate între dispozitive.",
+      "login_prompt_action": "Autentificare",
       "create_first_topic": "Creează prima ta categorie",
       "close": "Închide",
       "add_to_existing": "Adaugă la o categorie existentă",
@@ -214,7 +219,8 @@
       "login_required_hint": "Notițele sunt salvate per utilizator și sincronizate între dispozitive.",
       "open_verse": "Deschide versetul în context",
       "remove": "Șterge notița",
-      "remove_reference": "Șterge notița de la {reference}"
+      "remove_reference": "Șterge notița de la {reference}",
+      "login_prompt_action": "Autentificare"
     },
     "app_menu": {
       "aria_label": "Meniul aplicației",

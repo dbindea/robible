@@ -7,14 +7,37 @@
     getBibleVersionConfigOrDefault,
   } from '../../store/stores';
   import { getBookSlug } from '../../services/bible-route.service';
+  import { isAuthenticated } from '../../store/authStore';
+  import { openAuthMenu } from '../../store/authMenuStore';
+  import IconPicker from '../../components/IconPicker.svelte';
 
   export let bible = [];
   export let map = {};
 
+  // Helper para renderizar icono SVG de topic
+  const TOPIC_ICONS = {
+    cross: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 12h20"/></svg>`,
+    heart: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>`,
+    star: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`,
+    bookmark: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>`,
+    sun: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`,
+    moon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>`,
+    shield: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
+    crown: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7z"/><line x1="5" y1="20" x2="19" y2="20"/></svg>`,
+    dove: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20c-4-4-8-6-8-10a4 4 0 018 0 4 4 0 018 0c0 4-4 6-8 10z"/><path d="M12 10c-2 0-4-1-4-3"/><line x1="12" y1="7" x2="12" y2="10"/></svg>`,
+    hands: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8V6a2 2 0 00-2-2H4a2 2 0 00-2 2v7a2 2 0 002 2h8"/><path d="M14 4v8a6 6 0 0012 0V6"/></svg>`,
+    flame: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 01-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg>`,
+    water: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z"/></svg>`,
+    home: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
+    light: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`,
+    peace: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 000 20 14.5 14.5 0 000-20"/><path d="M2 12h20"/></svg>`,
+  };
+  const getTopicIconSvg = (iconKey) => TOPIC_ICONS[iconKey] || TOPIC_ICONS.bookmark;
+
   let view = 'list'; // 'list' | 'detail'
   let selectedTopicId = null;
   let isCreateOpen = false;
-  let editForm = { name: '', icon: '📌', color: '#2E7D9B' };
+  let editForm = { name: '', icon: 'bookmark', color: '#2E7D9B' };
   let isSubmitting = false;
 
   $: topics = $topicsStore.topics;
@@ -80,7 +103,11 @@
   };
 
   const openCreate = () => {
-    editForm = { name: '', icon: '📌', color: '#2E7D9B' };
+    if (!$isAuthenticated) {
+      openAuthMenu();
+      return;
+    }
+    editForm = { name: '', icon: 'bookmark', color: '#2E7D9B' };
     isCreateOpen = true;
   };
 
@@ -171,7 +198,16 @@
   </div>
 
   <div class="index-content">
-    {#if view === 'list'}
+    {#if !$isAuthenticated}
+      <div class="auth-prompt">
+        <p class="auth-prompt__icon" aria-hidden="true">📋</p>
+        <p class="auth-prompt__text">{$_('app.topics.login_required')}</p>
+        <p class="auth-prompt__hint">{$_('app.topics.login_required_hint')}</p>
+        <button type="button" class="auth-prompt__btn" on:click={openAuthMenu}>
+          {$_('app.topics.login_prompt_action')}
+        </button>
+      </div>
+    {:else if view === 'list'}
       {#if topics.length === 0}
         <div class="index-empty">
           <p>{$_('app.topics.empty_topics')}</p>
@@ -190,7 +226,7 @@
               style:--topic-color={topic.color}
               on:click={() => openTopic(topic.id)}
             >
-              <span class="topic-card__icon" aria-hidden="true">{topic.icon}</span>
+              <span class="topic-card__icon" aria-hidden="true">{@html getTopicIconSvg(topic.icon)}</span>
               <span class="topic-card__name">{topic.name}</span>
               <span class="topic-card__count">
                 {count === 1
@@ -222,7 +258,7 @@
     {:else if view === 'detail' && selectedTopic}
       <div class="topic-detail">
         <header class="topic-detail__header" style:--topic-color={selectedTopic.color}>
-          <span class="topic-detail__icon" aria-hidden="true">{selectedTopic.icon}</span>
+          <span class="topic-detail__icon" aria-hidden="true">{@html getTopicIconSvg(selectedTopic.icon)}</span>
           <div class="topic-detail__meta">
             <h2>{selectedTopic.name}</h2>
             <p>
@@ -287,11 +323,9 @@
           <label class="modal__field modal__field--row">
             <div class="modal__field-col">
               <span class="modal__label">{$_('app.topics.topic_icon')}</span>
-              <input
-                type="text"
-                bind:value={editForm.icon}
-                placeholder="📌"
-                maxlength="2"
+              <IconPicker
+                value={editForm.icon}
+                onChange={(icon) => { editForm = { ...editForm, icon }; }}
               />
             </div>
             <div class="modal__field-col">
@@ -433,6 +467,58 @@
     }
   }
 
+  .auth-prompt {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    min-height: 40vh;
+    text-align: center;
+    padding: 3rem 1.5rem;
+    border: 2px dashed color-mix(in srgb, var(--color-bg-dark) 14%, transparent);
+    border-radius: 0.75rem;
+    background: color-mix(in srgb, var(--color-bg-dark) 3%, var(--color-white));
+
+    &__icon {
+      margin: 0;
+      font-size: 3rem;
+      opacity: 0.6;
+    }
+
+    &__text {
+      margin: 0;
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--color-bg-dark);
+    }
+
+    &__hint {
+      margin: 0;
+      font-size: 0.9rem;
+      color: color-mix(in srgb, var(--color-bg-dark) 60%, transparent);
+    }
+
+    &__btn {
+      margin-top: 0.5rem;
+      padding: 0.6rem 1.4rem;
+      border: 1px solid var(--color-blue);
+      border-radius: 0.4rem;
+      background: var(--color-blue);
+      color: var(--color-white);
+      font-size: 0.92rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: var(--transition);
+
+      &:hover,
+      &:focus-visible {
+        background: var(--color-blue-hover);
+        border-color: var(--color-blue-hover);
+      }
+    }
+  }
+
   // === TOPICS GRID ===
   .topics-grid {
     display: grid;
@@ -470,8 +556,16 @@
     }
 
     &__icon {
-      font-size: 1.85rem;
-      line-height: 1;
+      display: grid;
+      place-items: center;
+      width: 2.2rem;
+      height: 2.2rem;
+
+      :global(svg) {
+        width: 1.6rem;
+        height: 1.6rem;
+        color: var(--topic-color);
+      }
     }
 
     &__name {
@@ -545,8 +639,16 @@
     }
 
     &__icon {
-      font-size: 2.25rem;
-      line-height: 1;
+      display: grid;
+      place-items: center;
+      width: 3rem;
+      height: 3rem;
+
+      :global(svg) {
+        width: 2rem;
+        height: 2rem;
+        color: var(--topic-color);
+      }
     }
 
     &__meta {
@@ -820,6 +922,14 @@
 
     .index-empty p {
       color: rgb(255 255 255 / 60%);
+    }
+
+    .auth-prompt {
+      background: rgb(255 255 255 / 3%);
+      border-color: rgb(255 255 255 / 14%);
+
+      &__text { color: #ffffff; }
+      &__hint { color: rgb(255 255 255 / 55%); }
     }
 
     .topic-card {

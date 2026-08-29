@@ -16,6 +16,7 @@
   import { notesStore } from '../../store/notesStore';
   import { isAuthenticated } from '../../store/authStore';
   import { openAuthMenu } from '../../store/authMenuStore';
+  import IconPicker from '../../components/IconPicker.svelte';
 
   export let bible;
   export let map;
@@ -43,7 +44,7 @@
   let saveToTopicVerseKey = null;
   let saveToTopicMenuElement;
   let saveToTopicMenuPosition = { top: 0, right: 0 };
-  let newTopicInline = { name: '', icon: '📌', color: '#2E7D9B' };
+  let newTopicInline = { name: '', icon: 'bookmark', color: '#2E7D9B' };
   let showInlineCreate = false;
 
   // Note modal state
@@ -96,13 +97,33 @@
     }
     saveToTopicVerseKey = saveToTopicVerseKey === verseKey ? null : verseKey;
     showInlineCreate = false;
-    newTopicInline = { name: '', icon: '📌', color: '#2E7D9B' };
+    newTopicInline = { name: '', icon: 'bookmark', color: '#2E7D9B' };
   };
 
   const closeSaveToTopicMenu = () => {
     saveToTopicVerseKey = null;
     showInlineCreate = false;
   };
+
+  // Helper: devuelve el SVG del icono de un topic
+  const TOPIC_ICONS = {
+    cross: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 12h20"/></svg>`,
+    heart: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>`,
+    star: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`,
+    bookmark: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>`,
+    sun: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`,
+    moon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>`,
+    shield: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
+    crown: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7z"/><line x1="5" y1="20" x2="19" y2="20"/></svg>`,
+    dove: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20c-4-4-8-6-8-10a4 4 0 018 0 4 4 0 018 0c0 4-4 6-8 10z"/><path d="M12 10c-2 0-4-1-4-3"/><line x1="12" y1="7" x2="12" y2="10"/></svg>`,
+    hands: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8V6a2 2 0 00-2-2H4a2 2 0 00-2 2v7a2 2 0 002 2h8"/><path d="M14 4v8a6 6 0 0012 0V6"/></svg>`,
+    flame: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 01-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg>`,
+    water: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z"/></svg>`,
+    home: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
+    light: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`,
+    peace: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 000 20 14.5 14.5 0 000-20"/><path d="M2 12h20"/></svg>`,
+  };
+  const getTopicIconSvg = (iconKey) => TOPIC_ICONS[iconKey] || TOPIC_ICONS.bookmark;
 
   const handleSaveToTopicMenuOutside = (event) => {
     if (saveToTopicVerseKey === null) return;
@@ -111,8 +132,8 @@
     }
   };
 
-  const addToTopic = (item, topicId) => {
-    const ok = topicsStore.addVerse(topicId, {
+  const addToTopic = async (item, topicId) => {
+    const ok = await topicsStore.addVerse(topicId, {
       book: item.book,
       chapter: item.chapter,
       verse: item.index,
@@ -122,8 +143,8 @@
     closeSaveToTopicMenu();
   };
 
-  const removeFromTopic = (item, topicId) => {
-    topicsStore.removeVerse(topicId, {
+  const removeFromTopic = async (item, topicId) => {
+    await topicsStore.removeVerse(topicId, {
       book: item.book,
       chapter: item.chapter,
       verse: item.index,
@@ -131,11 +152,11 @@
     showToastMessage($_('app.topics.removed'));
   };
 
-  const createTopicInline = (item) => {
+  const createTopicInline = async (item) => {
     if (!newTopicInline.name.trim()) return;
-    const created = topicsStore.create(newTopicInline);
+    const created = await topicsStore.create(newTopicInline);
     if (created) {
-      topicsStore.addVerse(created.id, {
+      await topicsStore.addVerse(created.id, {
         book: item.book,
         chapter: item.chapter,
         verse: item.index,
@@ -904,9 +925,17 @@
           <button
             type="button"
             class="icon-btn save-topic-btn"
-            title={$_('app.topics.add_verse_to_topic')}
-            aria-label={$_('app.topics.add_verse_to_topic')}
-            on:click={(e) => toggleSaveToTopicMenu(item.key, e)}
+            class:icon-btn--disabled={!$isAuthenticated}
+            title={$isAuthenticated ? $_('app.topics.add_verse_to_topic') : $_('app.result.actions.topics_login_required')}
+            aria-label={$isAuthenticated ? $_('app.topics.add_verse_to_topic') : $_('app.result.actions.topics_login_required')}
+            on:click={(e) => {
+              e.stopPropagation();
+              if (!$isAuthenticated) {
+                openAuthMenu();
+                return;
+              }
+              toggleSaveToTopicMenu(item.key, e);
+            }}
             aria-haspopup="listbox"
             aria-expanded={saveToTopicVerseKey === item.key}
           >
@@ -934,7 +963,7 @@
                         class:save-topic-option--active={inTopic}
                         on:click={() => inTopic ? removeFromTopic(item, topic.id) : addToTopic(item, topic.id)}
                       >
-                        <span class="save-topic-option__icon" aria-hidden="true">{topic.icon}</span>
+                        <span class="save-topic-option__icon" aria-hidden="true">{@html getTopicIconSvg(topic.icon)}</span>
                         <span class="save-topic-option__name">{topic.name}</span>
                         <span class="save-topic-option__check" aria-hidden="true">{inTopic ? '✓' : '+'}</span>
                       </button>
@@ -964,15 +993,12 @@
                     on:mousedown|stopPropagation
                   />
                   <div class="save-topic-menu__inline-row">
-                    <input
-                      type="text"
-                      bind:value={newTopicInline.icon}
-                      placeholder="📌"
-                      maxlength="2"
-                      class="save-topic-menu__inline-icon"
-                      on:click={(e) => e.stopPropagation()}
-                      on:mousedown|stopPropagation
-                    />
+                    <div on:click|stopPropagation on:mousedown|stopPropagation>
+                      <IconPicker
+                        value={newTopicInline.icon}
+                        onChange={(icon) => { newTopicInline = { ...newTopicInline, icon }; }}
+                      />
+                    </div>
                     <input
                       type="color"
                       bind:value={newTopicInline.color}
@@ -988,7 +1014,7 @@
                       on:click={(e) => {
                         e.stopPropagation();
                         showInlineCreate = false;
-                        newTopicInline = { name: '', icon: '📌', color: '#2E7D9B' };
+                        newTopicInline = { name: '', icon: 'bookmark', color: '#2E7D9B' };
                       }}
                     >
                       {$_('app.topics.cancel')}
@@ -1649,7 +1675,15 @@
 
     &__icon {
       flex: 0 0 auto;
-      font-size: 1rem;
+      display: grid;
+      place-items: center;
+      width: 1.4rem;
+      height: 1.4rem;
+
+      :global(svg) {
+        width: 0.85rem;
+        height: 0.85rem;
+      }
     }
 
     &__name {
