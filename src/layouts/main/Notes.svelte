@@ -300,8 +300,10 @@
     &__note {
       margin: 0.25rem 0 0;
       font-size: 0.92rem;
-      line-height: 1.5;
+      line-height: 1.6;
       color: var(--color-bg-dark);
+      white-space: pre-wrap;
+      word-break: break-word;
     }
   }
 

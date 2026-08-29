@@ -112,6 +112,29 @@ const verseRefEqual = (a, b) => a.book === b.book && a.chapter === b.chapter && 
 
 // ── Public API: cada función intenta API y cae a LS ─────
 
+// Seed defaults para el usuario actual (se llama tras syncFromServer si no hay topics)
+export const seedDefaultsForUser = async () => {
+  const locale = detectLocale();
+  const defaults = (DEFAULT_TOPICS[locale] || DEFAULT_TOPICS.es);
+  const state = readLS() || { topics: [], verseRefs: {} };
+  for (const t of defaults) {
+    const id = genId(t.name);
+    const topic = { id, name: t.name, icon: t.icon, color: t.color, isDefault: true, createdAt: nowIso() };
+    state.topics.push(topic);
+    state.verseRefs[id] = [];
+    // Crear en backend si está activo
+    if (USE_BACKEND) {
+      try {
+        await api.post('/api/topics', { name: t.name, icon: t.icon, color: t.color });
+      } catch (e) {
+        console.warn('seedDefaultsForUser: failed to create topic on backend:', e.message);
+      }
+    }
+  }
+  writeLS(state);
+  return state;
+};
+
 export const loadTopics = () => {
   migrateLegacy();
   return (readLS() || seedDefaultsIfEmpty()).topics;

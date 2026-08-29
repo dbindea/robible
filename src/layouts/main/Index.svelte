@@ -306,7 +306,7 @@
   <!-- Create topic modal -->
   {#if isCreateOpen}
     <div class="modal-backdrop" on:click={closeCreate} role="presentation">
-      <div class="modal" on:click|stopPropagation role="dialog" aria-modal="true" aria-label={createTopicLabel}>
+      <div class="modal" on:click|stopPropagation on:keydown={(e) => e.key === 'Escape' && closeCreate()} role="dialog" tabindex="-1" aria-modal="true" aria-label={createTopicLabel}>
         <h3 class="modal__title">{createTopicLabel}</h3>
         <form class="modal__form" on:submit|preventDefault={submitCreate}>
           <label class="modal__field">
@@ -330,7 +330,9 @@
             </div>
             <div class="modal__field-col">
               <span class="modal__label">{$_('app.topics.topic_color')}</span>
-              <input type="color" bind:value={editForm.color} />
+              <div role="presentation" on:click|stopPropagation on:mousedown|stopPropagation>
+                <input type="color" bind:value={editForm.color} />
+              </div>
             </div>
           </label>
           <div class="modal__actions">

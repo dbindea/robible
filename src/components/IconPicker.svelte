@@ -95,7 +95,7 @@
       class:icon-picker__item--selected={value === icon.key}
       title={icon.label}
       aria-label={icon.label}
-      aria-selected={value === icon.key}
+      aria-pressed={value === icon.key}
       on:click={() => onChange(icon.key)}
     >
       {@html icon.svg}

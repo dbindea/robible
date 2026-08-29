@@ -826,7 +826,7 @@
       id={getVerseId(item)}
       tabindex="-1"
     >
-      <p>
+      <div>
         <span class="verse-index">{item.index}.</span>
         {#each getMarkedParts(item.text, keywords) as part, index (`${item.key}-${index}`)}
           {#if part.marked}
@@ -901,6 +901,8 @@
               <div
                 class="verse-compare-menu"
                 role="listbox"
+                tabindex="-1"
+                on:keydown={(e) => e.key === 'Escape' && closeCompareMenu()}
                 style="top: {compareMenuPosition.top}px; right: {compareMenuPosition.right}px;"
               >
                 {#each availableOtherVersions as opt (opt.value)}
@@ -947,6 +949,8 @@
             <div
               class="save-topic-menu"
               role="listbox"
+              tabindex="-1"
+              on:keydown={(e) => e.key === 'Escape' && closeSaveToTopicMenu()}
               style="top: {saveToTopicMenuPosition.top}px; right: {saveToTopicMenuPosition.right}px;"
             >
               <div class="save-topic-menu__label">{$_('app.topics.add_to_existing')}</div>
@@ -993,7 +997,7 @@
                     on:mousedown|stopPropagation
                   />
                   <div class="save-topic-menu__inline-row">
-                    <div on:click|stopPropagation on:mousedown|stopPropagation>
+                    <div role="presentation" on:click|stopPropagation on:mousedown|stopPropagation>
                       <IconPicker
                         value={newTopicInline.icon}
                         onChange={(icon) => { newTopicInline = { ...newTopicInline, icon }; }}
@@ -1072,9 +1076,11 @@
             <div
               class="note-modal"
               role="dialog"
+              tabindex="-1"
               aria-label={$_('app.notes.modal_title')}
               style="top: {noteModalPosition.top}px; right: {noteModalPosition.right}px;"
               on:click|stopPropagation
+              on:keydown={(e) => e.key === 'Escape' && closeNoteModal()}
             >
               <div class="note-modal__header">
                 <span class="note-modal__title">{$_('app.notes.modal_title')}</span>
@@ -1085,7 +1091,7 @@
                 bind:value={noteText}
                 placeholder={$_('app.notes.placeholder')}
                 maxlength="500"
-                rows="4"
+                rows="12"
                 autofocus
                 on:click|stopPropagation
                 on:mousedown|stopPropagation
@@ -1141,7 +1147,7 @@
             </div>
           {/if}
         </span>
-      </p>
+      </div>
     </div>
     <div class="verse-divider" aria-hidden="true"></div>
   {/each}
@@ -1346,23 +1352,6 @@
     }
   }
 
-  // El copy-link está siempre visible (no depende de hover del versículo)
-  // Compare y save-topic aparecen solo en hover (sus selectores están abajo).
-  .copy-link {
-    // Hereda todo de .icon-btn — la clase copy-link solo se mantiene
-    // por compatibilidad con selectores :hover y dark mode.
-    opacity: 0;
-
-    &:hover,
-    &:focus-visible {
-      opacity: 1;
-    }
-
-    &:focus-visible {
-      opacity: 1;
-    }
-  }
-
   // === COMPARE PER VERSE ===
   .verse-compare {
     position: relative;
@@ -1385,9 +1374,7 @@
 
   .verse:hover .compare-link-btn,
   .verse:focus-within .compare-link-btn,
-  .compare-link-btn[aria-expanded="true"],
-  .verse:hover .copy-link,
-  .verse:focus-within .copy-link {
+  .compare-link-btn[aria-expanded="true"] {
     opacity: 1;
   }
 
@@ -1606,11 +1593,6 @@
         gap: 0.3rem;
       }
 
-      &-icon {
-        flex: 0 0 3rem;
-        text-align: center;
-      }
-
       &-color {
         flex: 1 1 auto;
       }
@@ -1746,7 +1728,6 @@
       svg { fill: #D4A853; }
     }
 
-    &--disabled,
     &:disabled {
       opacity: 0.4;
       cursor: not-allowed;
@@ -2148,7 +2129,9 @@
   .note-modal {
     position: fixed;
     z-index: 100;
-    width: 260px;
+    width: min(320px, calc(100vw - 2rem));
+    max-height: 80vh;
+    overflow-y: auto;
     background: var(--color-white);
     border: 1px solid rgb(63 88 103 / 18%);
     border-radius: 0.75rem;
@@ -2179,7 +2162,9 @@
 
     &__textarea {
       width: 100%;
-      resize: none;
+      resize: vertical;
+      min-height: 8rem;
+      max-height: 40vh;
       border: 1px solid rgb(63 88 103 / 20%);
       border-radius: 0.5rem;
       padding: 0.5rem 0.6rem;
@@ -2187,7 +2172,7 @@
       font-family: inherit;
       color: var(--color-bg-dark);
       background: var(--color-bg-light);
-      line-height: 1.5;
+      line-height: 1.6;
       outline: none;
       transition: border-color 0.15s;
 

@@ -6,7 +6,7 @@
   import AppMenu from './layouts/header/AppMenu.svelte';
   import AuthModal from './layouts/auth/AuthModal.svelte';
   import { authMenuOpen } from './store/authMenuStore';
-  import { _, DEFAULT_LOCALE, setupI18n } from './services/i18n.service';
+  import { _, currentLocale, DEFAULT_LOCALE, setupI18n, loadLocaleSync, localeVersion, _pendingLocale } from './services/i18n.service';
   import { applySeoMetadata } from './services/seo.service';
   import {
     getBibleVersionConfigOrDefault,
@@ -15,11 +15,14 @@
     compareWithVersion,
     immersiveMode,
   } from './store/stores';
-  import { onMount } from 'svelte';
+  // ── Carga síncrona del locale inicial (antes del primer render) ──
+  // El .then() se ejecuta en el mismo tick del browser, antes de que el
+  // usuario vea nada. Esto evita el "locale errado → luego corrige" que
+  // ocurría con el approach async-only.
+  const _initialLocale = getBibleVersionConfigOrDefault($selectedBibleVersion)?.locale || DEFAULT_LOCALE;
+  loadLocaleSync(_initialLocale);
 
   let bibleLoadRequestId = 0;
-  let localeLoadRequestId = 0;
-  let isBibleLocaleReady = false;
   let isBibleLoading = true;
   let bibleLoadError = '';
   let failedBibleVersion = '';
@@ -49,31 +52,12 @@
   };
 
   const loadLocaleForBibleVersion = async (version) => {
-    const requestId = ++localeLoadRequestId;
     const locale = getBibleVersionConfigOrDefault(version)?.locale || DEFAULT_LOCALE;
-
-    isBibleLocaleReady = false;
-
     try {
       await setupI18n({ withLocale: locale });
-
-      if (requestId !== localeLoadRequestId) {
-        return;
-      }
-
-      document.documentElement.lang = locale;
-      localStorage.setItem('lang', locale);
-      isBibleLocaleReady = true;
     } catch (error) {
-      if (requestId !== localeLoadRequestId) {
-        return;
-      }
-
       console.error(error);
       await setupI18n({ withLocale: DEFAULT_LOCALE });
-      document.documentElement.lang = DEFAULT_LOCALE;
-      localStorage.setItem('lang', DEFAULT_LOCALE);
-      isBibleLocaleReady = true;
     }
   };
 
@@ -164,6 +148,10 @@
   $: currentBibleVersionConfig = getBibleVersionConfigOrDefault(currentBibleVersion);
   $: isImmersive = $immersiveMode;
 
+  // Contador de versiones en curso: evita que una versión anterior sobreescriba
+  // una más reciente cuando llegan en orden invertido.
+  let _localeVersionTag = 0;
+
   // AppMenu: navega a la ruta destino usando el path-based routing
   const onNavigate = (href) => {
     if (!href) return;
@@ -175,10 +163,23 @@
   };
 
   // Cargar Biblia primaria cuando cambia
-  $: if (currentBibleVersion) {
-    applySeoMetadata({ versionConfig: currentBibleVersionConfig });
-    loadLocaleForBibleVersion(currentBibleVersion);
-    loadBibleVersion(currentBibleVersion);
+  // DEPENDENCIA: $selectedBibleVersion (directo, no currentBibleVersion que captura stale).
+  // Esto evita que el reactive se dispare cuando loadBibleVersion cambia currentBibleVersion
+  // (sin cambiar la versión de la Biblia), lo cual causaba cascadas de loadLocaleSync.
+  $: if ($selectedBibleVersion) {
+    applySeoMetadata({ versionConfig: getBibleVersionConfigOrDefault($selectedBibleVersion) });
+    const tag = ++_localeVersionTag;
+    (async () => {
+      const versionToLoad = $selectedBibleVersion;
+      if (tag !== _localeVersionTag) return;
+      await loadLocaleForBibleVersion(versionToLoad);
+      if (tag !== _localeVersionTag) return;
+      // Leer $currentLocale DESPUÉS de await setupI18n — aquí ya se actualizó.
+      const actualLocale = $currentLocale;
+      // Guard: si el locale cambió mientras tanto (race), no cargar la Biblia con locale stale.
+      if (_pendingLocale !== actualLocale) return;
+      loadBibleVersion(versionToLoad);
+    })();
   }
 
   // Cargar versión de comparación cuando cambia
@@ -188,17 +189,25 @@
     compareMap = {};
     compareBible = [];
   }
+
+  // localeKey se usa para applySeoMetadata
+  $: localeKey = $currentLocale;
 </script>
 
+<!--
+  El {#key $localeVersion} fuerza re-render de Navbar+Main+Footer+AppMenu cada vez
+  que el locale cambia. El counter localeVersion se actualiza SINCRONAMENTE después
+  de _.set() en _applyTranslator(), asegurando que el bloque {#key} re-ejecute.
+-->
 <main class="main" class:main--immersive={isImmersive}>
-  {#if isBibleLocaleReady}
+  {#key $localeVersion}
     {#if !isImmersive}
       <Navbar />
     {/if}
 
     {#if bibleLoadError}
       <section class="load-error" role="alert">
-        <h1>{$_(bibleLoadError)}</h1>
+        <h1>{$_('app.errors.invalid_bible_version')}</h1>
         <p>
           {$_('app.errors.bible_file_hint')}
           <code>public/data/{failedBibleVersion}/bible.map.json</code>
@@ -215,13 +224,11 @@
     {#if !isImmersive}
       <Footer />
     {/if}
-    <PwaManager />
     <AppMenu {onNavigate} />
-    {#if $authMenuOpen}
-      <AuthModal />
-    {/if}
-  {:else}
-    <p class="loading" role="status">Loading...</p>
+  {/key}
+  <PwaManager />
+  {#if $authMenuOpen}
+    <AuthModal />
   {/if}
 </main>
 

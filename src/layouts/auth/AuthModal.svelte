@@ -155,9 +155,11 @@
     <div
       class="auth-modal__panel"
       role="dialog"
+      tabindex="-1"
       aria-modal="true"
       aria-labelledby="auth-title"
       on:click|stopPropagation
+      on:keydown={(e) => e.key === 'Escape' && close()}
     >
       <button class="auth-modal__close" type="button" aria-label={$_('auth.close')} on:click={close}>
         <span class="icon-cross" aria-hidden="true"></span>
