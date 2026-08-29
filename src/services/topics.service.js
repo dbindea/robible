@@ -54,14 +54,12 @@ const migrateLegacy = () => {
 // ── Defaults seed (cuando usuario nuevo, sin backend) ────
 const DEFAULT_TOPICS = {
   ro: [
-    { name: 'Mântuire', icon: '✝️', color: '#D4A853' },
-    { name: 'Îndurare', icon: '🤲', color: '#2E7D9B' },
-    { name: 'Vindecare', icon: '🩹', color: '#5BA89E' },
+    { name: 'Mântuire', icon: 'cross', color: '#D4A853' },
+    { name: 'Vindecare', icon: 'heart', color: '#5BA89E' },
   ],
   es: [
-    { name: 'Salvación', icon: '✝️', color: '#D4A853' },
-    { name: 'Misericordia', icon: '🤲', color: '#2E7D9B' },
-    { name: 'Sanación', icon: '🩹', color: '#5BA89E' },
+    { name: 'Salvación', icon: 'cross', color: '#D4A853' },
+    { name: 'Sanación', icon: 'heart', color: '#5BA89E' },
   ],
 };
 const detectLocale = () => {
@@ -103,7 +101,7 @@ const normalizeFromApi = (apiData) => ({
   topics: (apiData.topics || []).map((t) => ({
     id: t.id,
     name: t.name,
-    icon: t.icon || '📌',
+    icon: t.icon || 'bookmark',
     color: t.color || '#2E7D9B',
     isDefault: !!t.isDefault,
     createdAt: t.createdAt,
@@ -138,7 +136,7 @@ export const syncFromServer = async () => {
   }
 };
 
-export const createTopic = async ({ name, icon = '📌', color = '#2E7D9B' }) => {
+export const createTopic = async ({ name, icon = 'bookmark', color = '#2E7D9B' }) => {
   if (!name?.trim()) throw new Error('Topic name is required');
 
   if (USE_BACKEND) {
@@ -234,7 +232,6 @@ export const deleteTopic = async (id) => {
   if (!state) return false;
   const topic = state.topics.find((t) => t.id === id);
   if (!topic) return false;
-  if (topic.isDefault) return false;
   state.topics = state.topics.filter((t) => t.id !== id);
   delete state.verseRefs[id];
   writeLS(state);

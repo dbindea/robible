@@ -2,6 +2,7 @@
   import { _, setupI18n } from '../../services/i18n.service';
   import { notesStore } from '../../store/notesStore';
   import { isAuthenticated } from '../../store/authStore';
+  import { openAuthMenu } from '../../store/authMenuStore';
   import { buildBiblePath, getBookSlug } from '../../services/bible-route.service';
   import { selectedBibleVersion } from '../../store/stores';
   import { getBibleVersionConfigOrDefault } from '../../store/stores';
@@ -87,10 +88,13 @@
 </header>
 
 {#if !$isAuthenticated}
-  <div class="notes-empty">
-    <p class="notes-empty__icon" aria-hidden="true">📝</p>
-    <p class="notes-empty__text">{$_('app.notes.login_required')}</p>
-    <p class="notes-empty__hint">{$_('app.notes.login_required_hint')}</p>
+  <div class="auth-prompt">
+    <p class="auth-prompt__icon" aria-hidden="true">📝</p>
+    <p class="auth-prompt__text">{$_('app.notes.login_required')}</p>
+    <p class="auth-prompt__hint">{$_('app.notes.login_required_hint')}</p>
+    <button type="button" class="auth-prompt__btn" on:click={openAuthMenu}>
+      {$_('app.notes.login_prompt_action')}
+    </button>
   </div>
 {:else if notesCount === 0}
   <div class="notes-empty">
@@ -338,4 +342,64 @@
   :global(html[data-theme='dark']) .note-item__verse { color: rgb(255 255 255 / 55%); }
   :global(html[data-theme='dark']) .note-item__note { color: #e5edf3; }
   :global(html[data-theme='dark']) .note-item__date { color: rgb(255 255 255 / 50%); }
+
+  // === Auth prompt ===
+  .auth-prompt {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    min-height: 40vh;
+    text-align: center;
+    padding: 3rem 1.5rem;
+    border: 2px dashed color-mix(in srgb, var(--color-bg-dark) 14%, transparent);
+    border-radius: 0.75rem;
+    background: color-mix(in srgb, var(--color-bg-dark) 3%, var(--color-white));
+
+    &__icon {
+      margin: 0;
+      font-size: 3rem;
+      opacity: 0.6;
+    }
+
+    &__text {
+      margin: 0;
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--color-bg-dark);
+    }
+
+    &__hint {
+      margin: 0;
+      font-size: 0.9rem;
+      color: color-mix(in srgb, var(--color-bg-dark) 60%, transparent);
+    }
+
+    &__btn {
+      margin-top: 0.5rem;
+      padding: 0.6rem 1.4rem;
+      border: 1px solid var(--color-blue);
+      border-radius: 0.4rem;
+      background: var(--color-blue);
+      color: var(--color-white);
+      font-size: 0.92rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: var(--transition);
+
+      &:hover, &:focus-visible {
+        background: var(--color-blue-hover);
+        border-color: var(--color-blue-hover);
+      }
+    }
+  }
+
+  :global(html[data-theme='dark']) .auth-prompt {
+    background: rgb(255 255 255 / 3%);
+    border-color: rgb(255 255 255 / 14%);
+
+    &__text { color: #ffffff; }
+    &__hint { color: rgb(255 255 255 / 55%); }
+  }
 </style>
