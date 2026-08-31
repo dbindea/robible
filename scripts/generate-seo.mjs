@@ -479,17 +479,26 @@ function getBreadcrumbSchema(items) {
 }
 
 function getSitemapUrlXml(item) {
+  const alternates = (item.alternates || [])
+    .map(
+      (alt) => `    <xhtml:link rel="alternate" hreflang="${escapeHtml(alt.hreflang)}" href="${escapeHtml(alt.href)}" />`,
+    )
+    .join('\n');
   return `  <url>
     <loc>${escapeHtml(item.loc)}</loc>
     <lastmod>${escapeHtml(item.lastmod || TODAY)}</lastmod>
     <changefreq>${escapeHtml(item.changefreq || 'monthly')}</changefreq>
-    <priority>${escapeHtml(item.priority || '0.6')}</priority>
+    <priority>${escapeHtml(item.priority || '0.6')}</priority>${alternates ? `\n${alternates}` : ''}
   </url>`;
 }
 
 async function writeSitemap(fileName, urls) {
+  const hasAlternates = urls.some((item) => item.alternates && item.alternates.length > 0);
+  const xmlns = hasAlternates
+    ? 'xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml"'
+    : 'xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"';
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset ${xmlns}>
 ${urls.map(getSitemapUrlXml).join('\n')}
 </urlset>
 `;
@@ -500,7 +509,7 @@ ${urls.map(getSitemapUrlXml).join('\n')}
 
 async function writeSitemapIndex(entries) {
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
 ${entries
   .map(
     (entry) => `  <sitemap>
@@ -512,7 +521,10 @@ ${entries
 </sitemapindex>
 `;
 
+  // Also write to public/ so it stays in sync
   await writeFile(path.join(DIST_DIR, 'sitemap.xml'), xml);
+  const publicPath = path.join(ROOT_DIR, 'public', 'sitemap.xml');
+  await writeFile(publicPath, xml);
 }
 
 function getTopicMatches(versionData, topic) {
@@ -684,7 +696,7 @@ async function main() {
             content: getChapterContent(versionData, book, chapter),
           }),
         );
-        chapterUrls.push({ loc: absoluteUrl(chapterPath), lastmod: TODAY, priority: '0.7' });
+        chapterUrls.push({ loc: absoluteUrl(chapterPath), lastmod: TODAY, priority: '0.7', alternates: getAlternates(versionDataList, { book, chapter }) });
 
         for (const [verseIndex, text] of verses.entries()) {
           const verse = verseIndex + 1;
@@ -737,7 +749,7 @@ async function main() {
               content: getVerseContent(versionData, versionDataList, book, chapter, verse),
             }),
           );
-          verseUrls.push({ loc: absoluteUrl(versePath), lastmod: TODAY, priority: '0.6' });
+          verseUrls.push({ loc: absoluteUrl(versePath), lastmod: TODAY, priority: '0.6', alternates: getAlternates(versionDataList, { book, chapter, verse }) });
         }
       }
     }
@@ -796,6 +808,19 @@ async function main() {
     topicUrls.push({ loc: absoluteUrl(topic.path), lastmod: TODAY, priority: '0.7' });
   }
 
+  // Static SPA routes (not generated as HTML files but important for SEO)
+  const staticRoutes = [
+    { loc: absoluteUrl('/'), lastmod: TODAY, changefreq: 'weekly', priority: '1.0' },
+    { loc: absoluteUrl('/indice'), lastmod: TODAY, changefreq: 'monthly', priority: '0.8' },
+    { loc: absoluteUrl('/temas'), lastmod: TODAY, changefreq: 'monthly', priority: '0.8' },
+    { loc: absoluteUrl('/favorites'), lastmod: TODAY, changefreq: 'weekly', priority: '0.7' },
+    { loc: absoluteUrl('/favoritos'), lastmod: TODAY, changefreq: 'weekly', priority: '0.7' },
+    { loc: absoluteUrl('/favoriti'), lastmod: TODAY, changefreq: 'weekly', priority: '0.7' },
+    { loc: absoluteUrl('/notes'), lastmod: TODAY, changefreq: 'weekly', priority: '0.7' },
+    { loc: absoluteUrl('/notas'), lastmod: TODAY, changefreq: 'weekly', priority: '0.7' },
+    { loc: absoluteUrl('/notite'), lastmod: TODAY, changefreq: 'weekly', priority: '0.7' },
+  ];
+  await writeSitemap('sitemaps/static.xml', staticRoutes);
   await writeSitemap('sitemaps/books.xml', bookUrls);
   await writeSitemap('sitemaps/chapters.xml', chapterUrls);
   await writeSitemap('sitemaps/topics.xml', topicUrls);
@@ -808,7 +833,7 @@ async function main() {
     verseSitemapEntries.push(`/${sitemapPath}`);
   }
 
-  await writeSitemapIndex(['/sitemaps/books.xml', '/sitemaps/chapters.xml', '/sitemaps/topics.xml', ...verseSitemapEntries]);
+  await writeSitemapIndex(['/sitemaps/static.xml', '/sitemaps/books.xml', '/sitemaps/chapters.xml', '/sitemaps/topics.xml', ...verseSitemapEntries]);
 
   console.log(
     `Generated SEO pages: ${bookUrls.length} books, ${chapterUrls.length} chapters, ${verseUrls.length} verses, ${topicUrls.length} topics.`,

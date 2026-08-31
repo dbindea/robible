@@ -143,7 +143,7 @@ RoBible es una app web (PWA) bilingüe de la Biblia (rumano + español) con sopo
 - [ ] Frontend: al recibir `nickname_taken`, llamar a este endpoint y mostrar chips con sugerencias
 - [ ] i18n: "El nickname 'x' ya existe. Prueba con:" + chips clickables que rellenan el input
 
-### Phase 4.1 — Audio TTS con highlighting (Frontend — **punto fuerte innovative**)
+### Phase 4.1 — Audio TTS con highlighting (Frontend — **punto fuerte innovative**) ✅ COMPLETADA (2026-08-31)
 
 > Reemplaza el auto-advance timer. Lee el capítulo (o desde un versículo) en voz alta con IA, resaltando palabra por palabra.
 
@@ -201,7 +201,7 @@ RoBible es una app web (PWA) bilingüe de la Biblia (rumano + español) con sopo
 - [x] Función `initCompareVersion()` en stores.js restaura preferencia desde localStorage bajo demanda
 - [x] Impacto: reduce ~8MB de tráfico inicial por visitante
 
-### Phase 4.6 — SEO Review (Frontend, recurrente)
+### Phase 4.6 — SEO Review (Frontend, recurrente) ✅ COMPLETADA (2026-08-31)
 
 > **Acción continua**: revisar el SEO periódicamente conforme cambien las best practices y la app gane nuevas funcionalidades. Esto va más allá de las meta-tags básicas.
 
@@ -229,17 +229,6 @@ Tools a usar:
 - Lighthouse CI (integrar en el build para no degradar)
 
 Cuándo revisar: cada release mayor (Phase 4.1, 4.6, etc.) + cada 3 meses como mínimo.
-
-### Phase 4.5 — Eliminar plan de lectura + historial (Frontend)
-
-- [ ] Eliminar `AutoRead.svelte` (auto-advance con timer, reemplazado por TTS)
-- [ ] Eliminar cualquier componente relacionado con planes de lectura
-- [ ] Eliminar cualquier componente relacionado con historial de lectura
-- [ ] Limpiar referencias en `appMenu` y `App.svelte`
-- [ ] Limpiar i18n keys no usadas
-- [ ] Limpiar localStorage keys obsoletas
-- [ ] Bajar bundle size (era ~190kb, debería bajar a ~150kb)
-- [ ] Migrar usuarios: si tenían velocidad de auto-advance guardada, descartarla
 
 ---
 
@@ -271,9 +260,9 @@ Cuándo revisar: cada release mayor (Phase 4.1, 4.6, etc.) + cada 3 meses como m
 5. ✅ ~~Backend — Phase 3.3 Notas~~ (completado 2026-08-29)
 6. ✅ ~~Backend — Phase 3.4 Búsqueda persistente~~ (completado 2026-08-29)
 7. **Backend — Phase 3.5 Nickname hints + sugerencias**
-8. **Frontend — Phase 4.1 Audio TTS con highlighting** (la innovación fuerte, requiere más tiempo)
-9. **Frontend — Phase 4.4 Mobile play overlap** (post-TTS)
-10. **Frontend — Phase 4.6 SEO Review** (continuo, revisar tras cada release)
+8. ✅ ~~Frontend — Phase 4.1 Audio TTS con highlighting~~ (completado 2026-08-31)
+9. **Frontend — Phase 4.4 Mobile play overlap** (post-TTS, coordinar z-index con FAB)
+10. ✅ ~~Frontend — Phase 4.6 SEO Review~~ (completado 2026-08-31)
 
 ---
 
@@ -311,15 +300,19 @@ Cuándo revisar: cada release mayor (Phase 4.1, 4.6, etc.) + cada 3 meses como m
 - `src/layouts/main/Sidebar.svelte` — filtros y búsqueda
 - `src/layouts/header/Navbar.svelte` — logo, nav-links, version picker
 - `src/layouts/header/AppMenu.svelte` — menú lateral (hamburger)
+- `src/components/TtsPlayer.svelte` — FAB flotante + panel expandible para lectura en voz alta
 - `src/layouts/footer/Footer.svelte` — info, about
 - `src/layouts/auth/AuthModal.svelte` — login/register/recover
 - `src/layouts/pwa/PwaManager.svelte` — install prompt
 - `src/store/stores.js` — stores globales (filter, selectedBibleVersion, themeMode, immersiveMode)
+- `src/store/ttsStore.js` — TTS karaoke state (speed, ambient, volume, playback)
 - `src/services/{auth,topics,favorites,apiClient}.service.js` — API-first con fallback
+- `src/services/tts.service.js` — SpeechSynthesis wrapper con highlighting palabra por palabra
+- `src/services/music.service.js` — drone armónico procedural con Web Audio API
 - `src/services/filter.service.js` — búsqueda local
 - `src/services/i18n.service.js` — i18n
 - `src/config/{bible-versions,config}.js` — configuración
-- `src/components/AutoRead.svelte` — ~~auto-advance timer~~ (será reemplazado por TTS)
+- `src/components/AutoRead.svelte` — ~~eliminado~~ (reemplazado por TTS karaoke en Phase 4.1)
 
 ### Comandos
 - `npm run dev` — Vite dev server (puerto 5173)
@@ -329,7 +322,7 @@ Cuándo revisar: cada release mayor (Phase 4.1, 4.6, etc.) + cada 3 meses como m
 - `node workers/robible-api/dev-server.js` — emulador backend
 
 ### Service Worker
-- Cache version: `robible-v14` (a bumpar con cada release)
+- Cache version: `robible-v18` (a bumpar con cada release)
 - Pre-cachea: ambas Biblias, todos los assets, lang files
 - Network-first para navegación
 - Cache-first para assets/data/lang
@@ -337,6 +330,11 @@ Cuándo revisar: cada release mayor (Phase 4.1, 4.6, etc.) + cada 3 meses como m
 ---
 
 ## Historial de cambios recientes
+
+**2026-08-31 — Phase 4.1 TTS Karaoke + Phase 4.6 SEO completados**
+- **TTS Karaoke implementado**: lectura en voz alta con highlighting palabra por palabra usando Web Speech API. Drone armónico procedural con Web Audio API (música de fondo gratuita, sin dependencias externas). FAB flotante con panel expandible. Velocidades 0.75×, 1×, 1.25×, 1.5×. Ambient: sin música / drone ambiental. Volúmenes independientes. SW bumpeado a v18.
+- **SEO mejorado**: `generate-seo.mjs` ahora genera `sitemap.xml` automáticamente en `public/` y añade hreflang a todos los chapter/verse URLs. `sitemap.xml` actualizado con rutas estáticas (`/indice`, `/favorites`, `/notes`, topics).
+- **Build**: v1.1.0, bundle 237kb/67kb gzip.
 
 **2026-08-28 — Puntos 1-2-3-4 del plan completados + SEO añadido**
 - **Bug buscador RESUELTO**: `Sidebar.svelte` limpia automáticamente `book` cuando `testament='all'` y hay un book guardado del estado anterior. Verificado: 200 resultados vs 0 antes.

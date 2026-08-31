@@ -1,12 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
-  <url>
-    <loc>https://robible.com/</loc>
-    <lastmod>2026-05-20</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>1.0</priority>
-    <xhtml:link rel="alternate" hreflang="ro" href="https://robible.com/" />
-    <xhtml:link rel="alternate" hreflang="es" href="https://robible.com/" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://robible.com/" />
-  </url>
-</urlset>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <sitemap>
+    <loc>https://robible.com/sitemaps/static.xml</loc>
+    <lastmod>2026-08-31</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://robible.com/sitemaps/books.xml</loc>
+    <lastmod>2026-08-31</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://robible.com/sitemaps/chapters.xml</loc>
+    <lastmod>2026-08-31</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://robible.com/sitemaps/topics.xml</loc>
+    <lastmod>2026-08-31</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://robible.com/sitemaps/verses-1.xml</loc>
+    <lastmod>2026-08-31</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://robible.com/sitemaps/verses-2.xml</loc>
+    <lastmod>2026-08-31</lastmod>
+  </sitemap>
+</sitemapindex>
