@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { _ } from '../../services/i18n.service';
   import { filter } from '../../store/stores';
+  import { searchesStore } from '../../store/searchesStore';
   import BookDrawer from './BookDrawer.svelte';
 
   export let map;
@@ -18,6 +19,8 @@
 
   let searchTextInput;
   let isBookDrawerOpen = false;
+  let recentSearchesOpen = false;
+  let recentSearchesPanel;
 
   $: searchForm = $filter;
   $: selectedBook = Array.isArray(searchForm.book) ? searchForm.book[0] : null;
@@ -48,6 +51,16 @@
     };
     searchForm = nextForm;
     filter.set(nextForm);
+    // Guardar búsqueda cuando cambia con texto (radio buttons, book selection)
+    if (nextForm.searchText && nextForm.searchText.trim()) {
+      searchesStore.save({
+        searchText: nextForm.searchText,
+        searchType: nextForm.searchType,
+        testament: nextForm.testament,
+        books: nextForm.book,
+        chapters: nextForm.chapter,
+      });
+    }
   };
 
   const resetForm = () => {
@@ -81,6 +94,64 @@
     searchForm.searchText = null;
     updateFilter(searchForm);
   };
+
+  // ── Recent searches ────────────────────────────────
+  let recentSearches = [];
+
+  const openRecentSearches = () => {
+    recentSearches = searchesStore.recent(8);
+    recentSearchesOpen = recentSearches.length > 0;
+  };
+
+  const closeRecentSearches = () => {
+    recentSearchesOpen = false;
+  };
+
+  const applyRecentSearch = (s) => {
+    searchForm = {
+      ...searchForm,
+      searchText: s.searchText,
+      searchType: s.searchType || 'match',
+      testament: s.testament || 'all',
+      book: Array.isArray(s.books) ? s.books : [],
+      chapter: Array.isArray(s.chapters) ? s.chapters : [],
+    };
+    updateFilter(searchForm);
+    closeRecentSearches();
+  };
+
+  const deleteRecentSearch = async (e, id) => {
+    e.stopPropagation();
+    await searchesStore.remove(id);
+    recentSearches = searchesStore.recent(8);
+    if (recentSearches.length === 0) closeRecentSearches();
+  };
+
+  const handleInputFocus = () => {
+    openRecentSearches();
+  };
+
+  const handleInputBlur = (e) => {
+    // Delay para permitir click en los items del dropdown
+    setTimeout(() => {
+      if (recentSearchesPanel && !recentSearchesPanel.contains(document.activeElement)) {
+        closeRecentSearches();
+      }
+    }, 150);
+  };
+
+  // Guardar búsqueda cuando cambia el texto de búsqueda (tras unfocus)
+  const saveCurrentSearch = () => {
+    if (searchForm.searchText && searchForm.searchText.trim()) {
+      searchesStore.save({
+        searchText: searchForm.searchText,
+        searchType: searchForm.searchType,
+        testament: searchForm.testament,
+        books: searchForm.book,
+        chapters: searchForm.chapter,
+      });
+    }
+  };
 </script>
 
 <BookDrawer
@@ -104,7 +175,7 @@
     </div>
 
     <div class="divider"></div>
-    <div class="input-search">
+    <div class="input-search" class:input-search--with-dropdown={recentSearchesOpen}>
       <input
         id="searchText"
         type="text"
@@ -113,11 +184,47 @@
         bind:value={searchForm.searchText}
         placeholder={$_('app.sidebar.form.search_placeholder')}
         bind:this={searchTextInput}
+        on:focus={handleInputFocus}
+        on:blur={handleInputBlur}
+        on:change={saveCurrentSearch}
       />
       <button class="clear-search" type="button" aria-label={$_('app.sidebar.clear_search_text')} on:click={clearInput}>
         <span class="icon-error icon--input" aria-hidden="true"></span>
       </button>
     </div>
+
+    {#if recentSearchesOpen && recentSearches.length > 0}
+      <div class="recent-searches" bind:this={recentSearchesPanel} role="listbox" aria-label={$_('app.sidebar.recent_searches_label')}>
+        {#each recentSearches as s (s.id)}
+          <div
+            class="recent-search-item"
+            role="option"
+            aria-selected="false"
+            tabindex="0"
+            on:click={() => applyRecentSearch(s)}
+            on:keydown={(e) => e.key === 'Enter' && applyRecentSearch(s)}
+          >
+            <span class="recent-search-item__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
+                <circle cx="11" cy="11" r="8"/>
+                <path d="m21 21-4.35-4.35"/>
+              </svg>
+            </span>
+            <span class="recent-search-item__text">{s.searchText}</span>
+            <button
+              type="button"
+              class="recent-search-item__delete"
+              aria-label={$_('app.sidebar.recent_searches_delete')}
+              on:click={(e) => deleteRecentSearch(e, s.id)}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="12" height="12">
+                <path d="M18 6 6 18M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+        {/each}
+      </div>
+    {/if}
     {#if searchForm.searchText}
       <p class="search-result-count" aria-live="polite">
         {$_('app.result.result_count_start')}
@@ -380,10 +487,10 @@
       }
 
       &--active {
-        border-color: var(--color-blue-hover);
-        background: var(--color-blue);
-        color: var(--color-on-primary);
-        box-shadow: 0 0 0 3px rgb(45 150 205 / 22%);
+        border-color: rgb(40 167 69);
+        background: rgb(40 167 69);
+        color: #ffffff;
+        box-shadow: 0 0 0 3px rgb(40 167 69 / 22%);
       }
     }
   }
@@ -436,6 +543,75 @@
     span {
       color: #ffffff;
       font-weight: 600;
+    }
+  }
+
+  .recent-searches {
+    position: relative;
+    z-index: 10;
+    background: var(--color-sidebar);
+    border: 1px solid rgb(255 255 255 / 22%);
+    border-radius: 0.35rem;
+    overflow: hidden;
+    margin-top: -0.25rem;
+  }
+
+  .recent-search-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 0;
+    background: transparent;
+    color: rgb(255 255 255 / 85%);
+    font-size: 0.88rem;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.12s;
+    font-family: inherit;
+    font-weight: 300;
+
+    &:hover,
+    &:focus-visible {
+      background: rgb(45 150 205 / 28%);
+      outline: none;
+    }
+
+    &__icon {
+      flex-shrink: 0;
+      color: rgb(255 255 255 / 50%);
+      display: grid;
+      place-items: center;
+    }
+
+    &__text {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    &__delete {
+      flex-shrink: 0;
+      display: grid;
+      place-items: center;
+      width: 1.4rem;
+      height: 1.4rem;
+      border: 0;
+      border-radius: 0.2rem;
+      background: transparent;
+      color: rgb(255 255 255 / 40%);
+      cursor: pointer;
+      transition: color 0.12s, background 0.12s;
+      padding: 0;
+
+      &:hover,
+      &:focus-visible {
+        color: #ffffff;
+        background: rgb(255 100 100 / 30%);
+        outline: none;
+      }
     }
   }
 

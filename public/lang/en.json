@@ -47,6 +47,8 @@
       "filter": "Filter",
       "clear_search": "Clear search",
       "clear_search_text": "Clear search text",
+      "recent_searches_label": "Recent searches",
+      "recent_searches_delete": "Delete this search",
       "search_type_label": "How to search?",
       "search_scope_label": "Where to search?",
       "selected_book": "Selected book",

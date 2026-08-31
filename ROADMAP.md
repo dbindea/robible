@@ -104,31 +104,29 @@ RoBible es una app web (PWA) bilingüe de la Biblia (rumano + español) con sopo
 - En `Sidebar.svelte` onMount: si `form.testament === 'all'` y `form.book.length > 0`, se limpia el book y chapter automáticamente
 - Verificado: con estado bugueado inyectado (testament=all + book=[0]), al cargar la página el book se limpia y la búsqueda funciona correctamente (200 resultados vs 0 antes)
 
-### Phase 3.3 — Notas por versículo (Backend)
+### Phase 3.3 — Notas por versículo (Backend) ✅ COMPLETADA (2026-08-29)
 
-- [ ] Endpoint `GET /api/notes?book=X&chapter=Y&verse=Z` — lista notas del usuario
-- [ ] Endpoint `POST /api/notes` — crea nota `{book, chapter, verse, text, color?}`
-- [ ] Endpoint `PATCH /api/notes/:id` — edita texto/color
-- [ ] Endpoint `DELETE /api/notes/:id` — borra nota
-- [ ] D1 table: `notes(id, user_id, book, chapter, verse, text, color, created_at, updated_at)` con CASCADE
-- [ ] UNIQUE constraint: un usuario solo puede tener UNA nota por versículo (o permitir múltiples? decidir)
-- [ ] Rate limit específico (más permisivo, son notas personales)
-- [ ] Validación: text min 1, max 500 chars; color hex `#xxxxxx` o null
-- [ ] Service `notes.service.js` en frontend con API-first + localStorage fallback
-- [ ] Store `notesStore.js` reactivo
-- [ ] UI: icono de nota junto al versículo, badge si tiene nota, drawer/popover para editar
-- [ ] Migración: si el usuario ya tenía notas en localStorage, sincronizar al primer login
+- [x] Endpoint `GET /api/notes` — lista notas del usuario
+- [x] Endpoint `POST /api/notes` — upsert nota `{book, chapter, verse, text, color?}`
+- [x] Endpoint `DELETE /api/notes` — borra nota por versículo
+- [x] D1 table: `notes(id, user_id, book, chapter, verse, text, color, created_at, updated_at)` con CASCADE
+- [x] UNIQUE constraint: un usuario solo puede tener UNA nota por versículo (upsert natural)
+- [x] Validación: text min 1, max 500 chars; color hex `#xxxxxx` o null
+- [x] Service `notes.service.js` en frontend con API-first + localStorage fallback
+- [x] Store `notesStore.js` reactivo (con sync on login)
+- [x] UI: modal de nota junto al versículo en Result.svelte, página /notite con lista agrupada por libro
+- [x] Notas.svelte: grouped by book, with delete, navigate-to-verse, date display
 
-### Phase 3.4 — Búsqueda persistente multi-device (Backend)
+### Phase 3.4 — Búsqueda persistente multi-device (Backend) ✅ COMPLETADA (2026-08-29)
 
-- [ ] D1 table: `user_searches(id, user_id, search_text, search_type, testament, book_json, chapter_json, created_at, last_used_at)` con UNIQUE en `(user_id, search_text)`
-- [ ] Endpoint `GET /api/searches/recent` — últimas 10 búsquedas del usuario
-- [ ] Endpoint `POST /api/searches` — guarda una búsqueda (idempotente por text)
-- [ ] Endpoint `DELETE /api/searches/:id` — borra una del historial
-- [ ] Almacenamiento localStorage: `robible:searches:v1` (key versionada)
-- [ ] Frontend: dropdown con búsquedas recientes al hacer focus en el input
-- [ ] Sincronización: al login, merge local + server; al hacer una búsqueda, save a ambos
-- [ ] Respetar privacidad: solo se sincroniza si el usuario lo autoriza explícitamente (toggle en perfil)
+- [x] D1 table: `user_searches(id, user_id, search_text, search_type, testament, book_json, chapter_json, created_at, last_used_at)` con UNIQUE en `(user_id, search_text)`
+- [x] Endpoint `GET /api/searches` — últimas 25 búsquedas del usuario (ordenadas por last_used_at)
+- [x] Endpoint `POST /api/searches` — upsert búsqueda (idempotente por texto, mueve al top)
+- [x] Endpoint `DELETE /api/searches` — borra búsqueda por id
+- [x] Almacenamiento localStorage: `robible:searches:v1:{userId}` (key versionada por usuario)
+- [x] Frontend: dropdown con búsquedas recientes al hacer focus en el input (max 8 visibles)
+- [x] Sincronización: al login, merge local + server; al buscar, save a ambos
+- [x] Cada item del dropdown: click para aplicar, X para eliminar
 
 ### Phase 3.5 — Nickname hints + sugerencias en conflicto (Backend)
 
@@ -263,8 +261,8 @@ Cuándo revisar: cada release mayor (Phase 4.1, 4.6, etc.) + cada 3 meses como m
 2. ✅ ~~Frontend — Eliminar plan de lectura + historial~~ (completado 2026-08-28)
 3. ✅ ~~Frontend — Sidebar hamburger~~ (completado 2026-08-28)
 4. ✅ ~~Frontend — Fix CSS menus~~ (completado 2026-08-28)
-5. **Backend — Phase 3.3 Notas** (nueva feature core)
-6. **Backend — Phase 3.4 Búsqueda persistente**
+5. ✅ ~~Backend — Phase 3.3 Notas~~ (completado 2026-08-29)
+6. ✅ ~~Backend — Phase 3.4 Búsqueda persistente~~ (completado 2026-08-29)
 7. **Backend — Phase 3.5 Nickname hints + sugerencias**
 8. **Frontend — Phase 4.1 Audio TTS con highlighting** (la innovación fuerte, requiere más tiempo)
 9. **Frontend — Phase 4.4 Mobile play overlap** (post-TTS)
