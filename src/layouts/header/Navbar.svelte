@@ -3,6 +3,7 @@
   import { _ } from '../../services/i18n.service';
   import { bibleVersions, resetFilter, selectedBibleVersion } from '../../store/stores';
   import { appMenuOpen, closeAppMenu, openAppMenu } from '../../store/appMenuStore';
+  import { isAuthenticated } from '../../store/authStore';
 
   let isVersionMenuOpen = false;
   let versionPickerElement;
@@ -94,6 +95,9 @@
       <span class="hamburger__line"></span>
       <span class="hamburger__line"></span>
       <span class="hamburger__line"></span>
+      {#if $isAuthenticated}
+        <span class="hamburger__online-dot"></span>
+      {/if}
     </span>
     <span class="hamburger__text">{$_('app.nav.menu_label')}</span>
   </button>
@@ -401,6 +405,23 @@
   .hamburger__line:nth-child(1) { top: 0; }
   .hamburger__line:nth-child(2) { top: 0.45rem; }
   .hamburger__line:nth-child(3) { top: 0.9rem; }
+
+  // Online dot - positioned relative to hamburger__lines (which is position: relative)
+  .hamburger__online-dot {
+    position: absolute;
+    top: -0.1rem;
+    right: -0.1rem;
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 999px;
+    background: rgb(40 167 69);
+    box-shadow: 0 0 0 2px var(--color-white);
+    pointer-events: none;
+
+    :global(html[data-theme='dark']) & {
+      box-shadow: 0 0 0 2px #0d1920;
+    }
+  }
 
   // Cuando está abierto, las dos exteriores rotan y se cruzan
   // en el centro, la del medio se desvanece → forma una X.

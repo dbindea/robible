@@ -15,8 +15,8 @@
     { key: 'home', icon: 'home', enabled: true },
     { key: 'compare', icon: 'compare', enabled: true, pathKey: 'comparePath', defaultHref: '/compara' },
     { key: 'index', icon: 'bookmark', enabled: true, pathKey: 'indexPath', defaultHref: '/indice' },
-    { key: 'favorites', icon: 'star', enabled: true, pathKey: 'favoritesPath', defaultHref: '/favoriti' },
-    { key: 'notes', icon: 'notes', enabled: true, pathKey: 'notesPath', defaultHref: '/note' },
+    { key: 'favorites', icon: 'star', enabled: true, pathKey: 'favoritesPath', defaultHref: '/favorites' },
+    { key: 'notes', icon: 'notes', enabled: true, pathKey: 'notesPath', defaultHref: '/notes' },
     { key: 'user', icon: 'user', enabled: false },
   ];
 
@@ -107,6 +107,7 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <rect x="3" y="3" width="7" height="18" rx="1"/>
                   <rect x="14" y="3" width="7" height="18" rx="1"/>
+                  <path d="M10 12h4M10 8l-2 4 2 4M14 8l2 4-2 4"/>
                 </svg>
               {:else if item.icon === 'bookmark'}
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -163,6 +164,9 @@
                 <line x1="15" y1="12" x2="3" y2="12"/>
               {/if}
             </svg>
+            {#if $isAuthenticated}
+              <span class="app-menu__online-dot"></span>
+            {/if}
           </span>
           <span class="app-menu__text">
             <span class="app-menu__label">
@@ -301,6 +305,7 @@
     font-family: inherit;
 
     .app-menu__icon {
+      position: relative;
       display: grid;
       place-items: center;
       width: 2.25rem;
@@ -314,6 +319,17 @@
         width: 1.15rem;
         height: 1.15rem;
       }
+    }
+
+    .app-menu__online-dot {
+      position: absolute;
+      top: 0.15rem;
+      right: 0.15rem;
+      width: 0.55rem;
+      height: 0.55rem;
+      border-radius: 999px;
+      background: rgb(40 167 69);
+      box-shadow: 0 0 0 2px var(--color-white);
     }
 
     .app-menu__text {
@@ -408,6 +424,10 @@
     .app-menu__icon {
       background: rgb(45 150 205 / 18%);
       color: #7ec8e3;
+    }
+
+    .app-menu__online-dot {
+      box-shadow: 0 0 0 2px #1a2733;
     }
 
     .app-menu__hint {

@@ -19,8 +19,8 @@
   // Detect compare mode from window.location (updated on navigation)
   // Initialize immediately from pathname so it works on first render
   const isComparePath = (path) =>
-    path === '/compara' || path === '/comparar' ||
-    path.startsWith('/compara/') || path.startsWith('/comparar/');
+    path === '/compare' || path === '/compara' || path === '/comparar' ||
+    path.startsWith('/compare/') || path.startsWith('/compara/') || path.startsWith('/comparar/');
 
   let isCompareMode = typeof window !== 'undefined' ? isComparePath(window.location.pathname) : false;
 
@@ -36,10 +36,10 @@
   const getIndexPath = () => getBiblePath('indexPath', 'indice');
 
   // Detectar ruta de favoritos (depende del idioma)
-  const getFavoritesPath = () => getBiblePath('favoritesPath', 'favoriti');
+  const getFavoritesPath = () => getBiblePath('favoritesPath', 'favorites');
 
   // Detectar ruta de notas (depende del idioma)
-  const getNotesPath = () => getBiblePath('notesPath', 'note');
+  const getNotesPath = () => getBiblePath('notesPath', 'notes');
 
   let isIndexMode = false;
   let isFavoritesMode = false;

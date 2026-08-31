@@ -47,6 +47,8 @@
       "filter": "Filtru",
       "clear_search": "Șterge căutarea",
       "clear_search_text": "Șterge textul căutării",
+      "recent_searches_label": "Căutări recente",
+      "recent_searches_delete": "Elimină această căutare",
       "search_type_label": "Cum se face căutarea?",
       "search_scope_label": "Unde se face căutarea?",
       "selected_book": "Cartea selectată",

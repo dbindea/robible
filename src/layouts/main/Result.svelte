@@ -125,6 +125,12 @@
   };
   const getTopicIconSvg = (iconKey) => TOPIC_ICONS[iconKey] || TOPIC_ICONS.bookmark;
 
+  // Get filled version of icon (for topic badge) - removes fill="none" so it can be colored
+  const getFilledTopicIconSvg = (iconKey) => {
+    const svg = TOPIC_ICONS[iconKey] || TOPIC_ICONS.bookmark;
+    return svg.replace(/fill="none"\s*/g, '').replace(/stroke-width="2"\s*/g, 'stroke-width="1.5"');
+  };
+
   const handleSaveToTopicMenuOutside = (event) => {
     if (saveToTopicVerseKey === null) return;
     if (saveToTopicMenuElement && !saveToTopicMenuElement.contains(event.target)) {
@@ -181,12 +187,16 @@
       noteModalPosition = { top: verseEl.getBoundingClientRect().bottom + 8, right: 8 };
     }
     noteModalVerseKey = item.key;
+    // Block scroll when modal is open
+    document.body.style.overflow = 'hidden';
   };
 
   const closeNoteModal = () => {
     noteModalVerseKey = null;
     noteText = '';
     noteColor = '#3B82F6';
+    // Restore scroll when modal is closed
+    document.body.style.overflow = '';
   };
 
   const handleNoteModalOutside = (event) => {
@@ -770,6 +780,7 @@
   class:result--swiping={isSwiping}
   class:result--swipe-left={isSwiping && swipeDirection === 'left'}
   class:result--swipe-right={isSwiping && swipeDirection === 'right'}
+  class:result--immersive={isImmersive}
   bind:this={resultElement}
 >
   <!-- Swipe direction indicators -->
@@ -820,6 +831,9 @@
   {/if}
 
   {#each result as item (item.key)}
+    {@const verseTopics = topicsContainingVerse(item.book, item.chapter, item.index)}
+    {@const primaryTopic = verseTopics[0]}
+    {@const hasNote = !!$notesStore.find((n) => n.book === item.book && n.chapter === item.chapter && n.verse === item.index)}
     <div
       class:verse--highlighted={highlightedVerseId === getVerseId(item)}
       class="verse"
@@ -927,6 +941,8 @@
           <button
             type="button"
             class="icon-btn save-topic-btn"
+            class:save-topic-btn--has-topic={primaryTopic}
+            style={primaryTopic ? `--topic-color: ${primaryTopic.color};` : ''}
             class:icon-btn--disabled={!$isAuthenticated}
             title={$isAuthenticated ? $_('app.topics.add_verse_to_topic') : $_('app.result.actions.topics_login_required')}
             aria-label={$isAuthenticated ? $_('app.topics.add_verse_to_topic') : $_('app.result.actions.topics_login_required')}
@@ -941,11 +957,25 @@
             aria-haspopup="listbox"
             aria-expanded={saveToTopicVerseKey === item.key}
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/>
-            </svg>
+            {#if primaryTopic}
+              <svg viewBox="0 0 24 24" aria-hidden="true" style="color: {primaryTopic.color};">
+                {@html getFilledTopicIconSvg(primaryTopic.icon)}
+              </svg>
+            {:else}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/>
+              </svg>
+            {/if}
           </button>
           {#if saveToTopicVerseKey === item.key}
+            <!-- Backdrop for mobile modal view -->
+            <div
+              class="save-topic-backdrop"
+              role="presentation"
+              on:click={closeSaveToTopicMenu}
+              on:keydown={(e) => e.key === 'Escape' && closeSaveToTopicMenu()}
+              aria-hidden="true"
+            ></div>
             <div
               class="save-topic-menu"
               role="listbox"
@@ -953,7 +983,19 @@
               on:keydown={(e) => e.key === 'Escape' && closeSaveToTopicMenu()}
               style="top: {saveToTopicMenuPosition.top}px; right: {saveToTopicMenuPosition.right}px;"
             >
-              <div class="save-topic-menu__label">{$_('app.topics.add_to_existing')}</div>
+              <div class="save-topic-menu__header">
+                <div class="save-topic-menu__label">{$_('app.topics.add_to_existing')}</div>
+                <button
+                  type="button"
+                  class="save-topic-menu__close"
+                  aria-label={$_('app.notes.cancel')}
+                  on:click={closeSaveToTopicMenu}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="18" height="18">
+                    <path d="M18 6 6 18M6 6l12 12"/>
+                  </svg>
+                </button>
+              </div>
               {#if topics.length === 0}
                 <p class="save-topic-menu__empty">{$_('app.topics.create_first_topic')}</p>
               {:else}
@@ -1043,17 +1085,13 @@
           <button
             type="button"
             class="icon-btn note-btn"
-            class:note-btn--active={!!$notesStore.find((n) => n.book === item.book && n.chapter === item.chapter && n.verse === item.index)}
+            class:note-btn--active={hasNote}
             class:icon-btn--disabled={!$isAuthenticated}
             title={$isAuthenticated
-              ? ($notesStore.find((n) => n.book === item.book && n.chapter === item.chapter && n.verse === item.index)
-                  ? $_('app.notes.edit_note')
-                  : $_('app.notes.add_note'))
+              ? (hasNote ? $_('app.notes.edit_note') : $_('app.notes.add_note'))
               : $_('app.result.actions.note_login_required')}
             aria-label={$isAuthenticated
-              ? ($notesStore.find((n) => n.book === item.book && n.chapter === item.chapter && n.verse === item.index)
-                  ? $_('app.notes.edit_note')
-                  : $_('app.notes.add_note'))
+              ? (hasNote ? $_('app.notes.edit_note') : $_('app.notes.add_note'))
               : $_('app.result.actions.note_login_required')}
             aria-haspopup={$isAuthenticated ? 'dialog' : undefined}
             aria-expanded={noteModalVerseKey === item.key}
@@ -1067,25 +1105,40 @@
               else openNoteModal(item);
             }}
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class:note-icon--active={hasNote}>
               <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
               <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
             </svg>
           </button>
           {#if noteModalVerseKey === item.key}
+            <!-- Full overlay backdrop -->
             <div
-              class="note-modal"
+              class="note-overlay"
+              role="presentation"
+              on:click={closeNoteModal}
+              on:keydown={(e) => e.key === 'Escape' && closeNoteModal()}
+            ></div>
+            <!-- Centered panel (auth-modal style) -->
+            <div
+              class="note-modal auth-modal__panel"
               role="dialog"
               tabindex="-1"
               aria-label={$_('app.notes.modal_title')}
-              style="top: {noteModalPosition.top}px; right: {noteModalPosition.right}px;"
               on:click|stopPropagation
               on:keydown={(e) => e.key === 'Escape' && closeNoteModal()}
             >
-              <div class="note-modal__header">
-                <span class="note-modal__title">{$_('app.notes.modal_title')}</span>
-                <span class="note-modal__ref">{map[item.book]} {item.chapter}:{item.index}</span>
-              </div>
+              <button
+                type="button"
+                class="note-modal__close auth-modal__close"
+                aria-label={$_('app.notes.cancel')}
+                on:click={closeNoteModal}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M18 6 6 18M6 6l12 12"/>
+                </svg>
+              </button>
+              <p class="note-modal__eyebrow">{$_('app.notes.modal_title')}</p>
+              <h2 class="note-modal__title">{map[item.book]} {item.chapter}:{item.index}</h2>
               <textarea
                 class="note-modal__textarea"
                 bind:value={noteText}
@@ -1333,6 +1386,7 @@
     color: var(--color-link);
     cursor: pointer;
     transition: var(--transition);
+    box-shadow: 0 1px 3px rgb(0 0 0 / 10%);
 
     svg {
       width: 0.85rem;
@@ -1359,8 +1413,9 @@
   }
 
   .compare-link-btn {
-    // Hereda de .icon-btn — solo añade el reveal on hover
-    opacity: 0;
+    // Siempre visible con box-shadow consistente
+    opacity: 1;
+    box-shadow: 0 1px 3px rgb(0 0 0 / 10%);
 
     &:hover,
     &:focus-visible {
@@ -1372,8 +1427,6 @@
     }
   }
 
-  .verse:hover .compare-link-btn,
-  .verse:focus-within .compare-link-btn,
   .compare-link-btn[aria-expanded="true"] {
     opacity: 1;
   }
@@ -1461,8 +1514,9 @@
   }
 
   .save-topic-btn {
-    // Hereda de .icon-btn — solo añade el reveal on hover
-    opacity: 0;
+    // Siempre visible, con box-shadow consistente
+    opacity: 1;
+    box-shadow: 0 1px 3px rgb(0 0 0 / 10%);
 
     &:hover,
     &:focus-visible {
@@ -1472,10 +1526,20 @@
     &:focus-visible {
       opacity: 1;
     }
+
+    &--has-topic {
+      border-color: var(--topic-color, rgb(45 150 205));
+      background: color-mix(in srgb, var(--topic-color, rgb(45 150 205)) 15%, transparent);
+      color: var(--topic-color, var(--color-link));
+      box-shadow: 0 1px 3px color-mix(in srgb, var(--topic-color, rgb(45 150 205)) 30%, transparent);
+
+      &:hover,
+      &:focus-visible {
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--topic-color, rgb(45 150 205)) 25%, transparent);
+      }
+    }
   }
 
-  .verse:hover .save-topic-btn,
-  .verse:focus-within .save-topic-btn,
   .save-topic-btn[aria-expanded="true"] {
     opacity: 1;
   }
@@ -1483,6 +1547,7 @@
   .save-topic-menu {
     // position: fixed (igual que .verse-compare-menu) para escapar de
     // cualquier ancestor con overflow:hidden.
+    // Auth-modal panel style: backdrop blur, rounded corners, strong shadow
     position: fixed;
     z-index: 55;
     display: flex;
@@ -1493,9 +1558,61 @@
     overflow-y: auto;
     padding: 0.55rem;
     border: 1px solid rgb(63 88 103 / 18%);
-    border-radius: 0.4rem;
+    border-radius: 0.6rem;
     background: var(--color-white);
     box-shadow: var(--box-shadow-down);
+
+    // Mobile: full-screen centered modal (like note modal)
+    @media (max-width: 480px) {
+      position: fixed;
+      inset: 0;
+      width: 95%;
+      height: 90dvh;
+      max-width: none;
+      max-height: none;
+      margin: auto;
+      z-index: 110;
+      border-radius: 0.5rem;
+      overflow-y: auto;
+      // Override inline top/right positioning on mobile
+      top: auto !important;
+      right: auto !important;
+      // Better mobile spacing
+      padding: 1rem;
+      gap: 0.5rem;
+      // Center form vertically when inline form is shown
+      justify-content: center;
+    }
+  }
+
+  .save-topic-backdrop {
+    display: none;
+
+    @media (max-width: 480px) {
+      display: block;
+      position: fixed;
+      inset: 0;
+      z-index: 105;
+      background: rgb(0 0 0 / 50%);
+      backdrop-filter: blur(3px);
+    }
+  }
+
+  .save-topic-menu {
+    // ── Elementos internos ──────────────────────────────────────────
+    &__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      padding: 0 0.2rem 0.25rem;
+
+      @media (max-width: 480px) {
+        padding: 0 0 0.5rem;
+        border-bottom: 1px solid rgb(63 88 103 / 18%);
+        margin-bottom: 0.25rem;
+      }
+    }
 
     &__label {
       font-size: 0.7rem;
@@ -1504,11 +1621,44 @@
       letter-spacing: 0.06em;
       color: var(--color-blue);
       padding: 0.25rem 0.4rem 0;
+
+      @media (max-width: 480px) {
+        font-size: 1rem;
+        font-weight: 700;
+        padding: 0;
+        text-transform: none;
+        letter-spacing: 0;
+      }
+    }
+
+    &__close {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      width: 2rem;
+      height: 2rem;
+      border: 1px solid rgb(63 88 103 / 20%);
+      border-radius: 0.4rem;
+      background: transparent;
+      color: var(--color-bg-dark);
+      cursor: pointer;
+      transition: background 0.12s;
+
+      @media (max-width: 480px) {
+        display: grid;
+      }
+
+      &:hover,
+      &:focus-visible {
+        background: rgb(45 150 205 / 10%);
+        border-color: var(--color-blue);
+        outline: none;
+      }
     }
 
     &__empty {
       margin: 0;
-      padding: 0.5rem 0.4rem;
+      padding: 0.75rem 0.4rem;
       font-size: 0.85rem;
       color: color-mix(in srgb, var(--color-bg-dark) 60%, transparent);
     }
@@ -1519,13 +1669,21 @@
       padding: 0;
       display: flex;
       flex-direction: column;
-      gap: 0.2rem;
+      gap: 0.15rem;
+
+      @media (max-width: 480px) {
+        gap: 0.25rem;
+      }
     }
 
     &__divider {
       height: 1px;
-      margin: 0.2rem 0;
+      margin: 0.3rem 0;
       background: rgb(45 150 205 / 18%);
+
+      @media (max-width: 480px) {
+        margin: 0.5rem 0;
+      }
     }
 
     &__add-new {
@@ -1558,11 +1716,35 @@
     &__inline {
       display: flex;
       flex-direction: column;
-      gap: 0.4rem;
-      padding: 0.4rem;
+      gap: 0.5rem;
+      padding: 0.5rem;
       border: 1px solid rgb(45 150 205 / 22%);
-      border-radius: 0.3rem;
+      border-radius: 0.35rem;
       background: rgb(45 150 205 / 4%);
+
+      @media (max-width: 480px) {
+        width: 100%;
+        max-width: 300px;
+        margin: auto;
+        gap: 0.75rem;
+        padding: 1.5rem 1rem;
+        border-radius: 0.5rem;
+        background: var(--color-white);
+        border: 1px solid rgb(63 88 103 / 20%);
+        box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
+
+        input[type='text'] {
+          width: 100%;
+        }
+
+        &-row {
+          width: 100%;
+        }
+
+        &-actions {
+          width: 100%;
+        }
+      }
 
       input[type='text'],
       input[type='color'] {
@@ -1655,6 +1837,12 @@
     transition: var(--transition);
     font-size: 0.88rem;
 
+    @media (max-width: 480px) {
+      padding: 0.6rem 0.75rem;
+      font-size: 1rem;
+      border-radius: 0.35rem;
+    }
+
     &__icon {
       flex: 0 0 auto;
       display: grid;
@@ -1662,9 +1850,19 @@
       width: 1.4rem;
       height: 1.4rem;
 
+      @media (max-width: 480px) {
+        width: 1.8rem;
+        height: 1.8rem;
+      }
+
       :global(svg) {
         width: 0.85rem;
         height: 0.85rem;
+
+        @media (max-width: 480px) {
+          width: 1.1rem;
+          height: 1.1rem;
+        }
       }
     }
 
@@ -1675,14 +1873,24 @@
       text-overflow: ellipsis;
       white-space: nowrap;
       font-weight: 500;
+
+      @media (max-width: 480px) {
+        font-size: 1rem;
+      }
     }
 
     &__check {
       flex: 0 0 auto;
       font-weight: 700;
       color: var(--color-blue);
-      min-width: 1rem;
+      min-width: 1.2rem;
       text-align: center;
+      font-size: 1.1rem;
+
+      @media (max-width: 480px) {
+        min-width: 1.5rem;
+        font-size: 1.3rem;
+      }
     }
 
     &--active {
@@ -1705,6 +1913,12 @@
     background: rgb(45 150 205 / 15%);
     color: #7ec8e3;
     border-color: rgb(45 150 205 / 25%);
+  }
+
+  :global(html[data-theme='dark']) .save-topic-btn--has-topic {
+    background: color-mix(in srgb, var(--topic-color, rgb(45 150 205)) 25%, transparent);
+    color: var(--topic-color, #7ec8e3);
+    border-color: var(--topic-color, rgb(45 150 205));
   }
 
   // === FAVORITE BUTTON ===
@@ -1749,6 +1963,25 @@
   :global(html[data-theme='dark']) .save-topic-menu {
     background: #1e2d3d;
     border-color: rgb(255 255 255 / 15%);
+  }
+
+  :global(html[data-theme='dark']) .save-topic-menu__header {
+    border-color: rgb(255 255 255 / 15%);
+  }
+
+  :global(html[data-theme='dark']) .save-topic-menu__label {
+    color: #7ec8e3;
+  }
+
+  :global(html[data-theme='dark']) .save-topic-menu__close {
+    color: #ffffff;
+    border-color: rgb(255 255 255 / 20%);
+
+    &:hover,
+    &:focus-visible {
+      background: rgb(255 255 255 / 10%);
+      border-color: rgb(255 255 255 / 30%);
+    }
   }
 
   :global(html[data-theme='dark']) .save-topic-option {
@@ -2112,63 +2345,123 @@
 
   /* === Note button === */
   .note-btn {
-    opacity: 0;
+    opacity: 1;
+    box-shadow: 0 1px 3px rgb(0 0 0 / 10%);
 
     &--active {
-      color: var(--color-blue);
+      color: rgb(40, 167, 69);
+      border-color: rgb(40, 167, 69);
+      background: color-mix(in srgb, rgb(40, 167, 69) 12%, var(--color-white));
+    }
+
+    .note-icon--active {
+      stroke: rgb(40, 167, 69);
     }
   }
 
-  .verse:hover .note-btn,
-  .verse:focus-within .note-btn,
   .note-btn[aria-expanded="true"] {
     opacity: 1;
   }
 
-  /* === Note modal (same style as save-topic-menu) === */
-  .note-modal {
+  /* === Note modal — centered overlay (auth-modal style) === */
+  .note-overlay {
     position: fixed;
-    z-index: 100;
-    width: min(320px, calc(100vw - 2rem));
-    max-height: 80vh;
-    overflow-y: auto;
-    background: var(--color-white);
-    border: 1px solid rgb(63 88 103 / 18%);
-    border-radius: 0.75rem;
-    box-shadow: var(--box-shadow-down);
-    padding: 0.75rem;
+    inset: 0;
+    z-index: 105;
+    background: rgb(0 0 0 / 50%);
+    backdrop-filter: blur(3px);
+  }
+
+  .note-modal {
+    // Outer: fixed overlay with flex centering (like auth-modal)
+    position: fixed;
+    inset: 0;
+    z-index: 110;
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+
+    // Inner panel (like auth-modal__panel) — full screen on mobile, centered on desktop
+    position: relative;
     display: flex;
     flex-direction: column;
-    gap: 0.6rem;
-    animation: menuFadeIn 0.15s ease;
+    gap: 0.85rem;
+    width: 95%;
+    height: 95dvh;
+    margin: auto;
+    max-width: 26rem;
+    max-height: 40rem;
+    overflow: hidden;
+    padding: 1.25rem;
+    background: var(--color-white);
+    border-radius: 0.6rem;
+    box-shadow: var(--box-shadow-down);
+    color: var(--color-bg-dark);
+    animation: menuFadeIn 0.18s ease;
 
-    &__header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+    @media (max-width: 480px) {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 95%;
+      height: 75vh;
+      margin: 0;
+      max-width: none;
+      max-height: 75vh;
+      padding: 1rem;
+      gap: 0.65rem;
+      border-radius: 0.5rem;
+    }
+
+    &__eyebrow {
+      margin: 0;
+      color: var(--color-blue);
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
     }
 
     &__title {
-      font-size: 0.8rem;
+      margin: 0;
+      font-size: 1.35rem;
+      line-height: 1.2;
       font-weight: 700;
-      color: var(--color-bg-dark);
     }
 
-    &__ref {
-      font-size: 0.72rem;
-      color: color-mix(in srgb, var(--color-bg-dark) 55%, transparent);
-      font-weight: 600;
+    &__close {
+      position: absolute;
+      top: 0.75rem;
+      right: 0.75rem;
+      display: grid;
+      place-items: center;
+      width: 2rem;
+      height: 2rem;
+      border: 1px solid rgb(63 88 103 / 20%);
+      border-radius: 0.4rem;
+      background: transparent;
+      color: var(--color-bg-dark);
+      cursor: pointer;
+      transition: background 0.12s;
+
+      &:hover,
+      &:focus-visible {
+        background: rgb(45 150 205 / 10%);
+        border-color: var(--color-blue);
+        outline: none;
+      }
     }
 
     &__textarea {
       width: 100%;
-      resize: vertical;
-      min-height: 8rem;
-      max-height: 40vh;
+      flex: 1;
+      resize: none;
+      min-height: 0;
       border: 1px solid rgb(63 88 103 / 20%);
       border-radius: 0.5rem;
-      padding: 0.5rem 0.6rem;
-      font-size: 0.85rem;
+      padding: 0.75rem;
+      font-size: 0.9rem;
       font-family: inherit;
       color: var(--color-bg-dark);
       background: var(--color-bg-light);
@@ -2283,17 +2576,49 @@
     }
   }
 
-  // Dark mode note modal — same pattern as save-topic-menu
+  :global(html[data-theme='dark']) .icon-btn {
+    background: rgb(45 150 205 / 15%);
+    color: #7ec8e3;
+    border-color: rgb(45 150 205 / 25%);
+  }
+
+  :global(html[data-theme='dark']) .note-btn--active {
+    color: #5dde86;
+    border-color: #5dde86;
+    background: color-mix(in srgb, #5dde86 20%, #1e2d3d);
+
+    .note-icon--active {
+      stroke: #5dde86;
+    }
+  }
+
+  // Dark mode note modal — centered overlay (auth-modal style)
+  :global(html[data-theme='dark']) .note-overlay {
+    background: rgb(0 0 0 / 60%);
+  }
+
   :global(html[data-theme='dark']) .note-modal {
     background: #1e2d3d;
     border-color: rgb(255 255 255 / 15%);
+    color: #ffffff;
+
+    &__eyebrow {
+      color: #7ec8e3;
+    }
 
     &__title {
       color: #ffffff;
     }
 
-    &__ref {
-      color: rgb(255 255 255 / 55%);
+    &__close {
+      border-color: rgb(255 255 255 / 18%);
+      color: #ffffff;
+
+      &:hover,
+      &:focus-visible {
+        background: rgb(45 150 205 / 18%);
+        border-color: #7ec8e3;
+      }
     }
 
     &__textarea {
@@ -2333,6 +2658,25 @@
     to {
       opacity: 1;
       transform: translateY(0);
+    }
+  }
+
+  // === IMMERSIVE MODE — lectura limpia ===
+  .result--immersive {
+    .verse-divider {
+      display: none;
+    }
+
+    .reference {
+      display: none;
+    }
+
+    .icon-btn {
+      display: none;
+    }
+
+    .verse-save-topic {
+      display: none;
     }
   }
 </style>

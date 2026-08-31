@@ -13,7 +13,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = parseInt(process.env.PORT || '8787', 10);
 const DB_PATH = process.env.DB_PATH || join(__dirname, '.dev-data', 'robible.db');
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me-in-production-please-make-it-long';
-const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || 'http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://127.0.0.1:4173';
+const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || 'http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174,http://localhost:4173,http://127.0.0.1:4173';
 
 // ── Inicializar DB local con node:sqlite (Node 22+ built-in) ─
 let sqlite;
