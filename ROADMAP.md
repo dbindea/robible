@@ -194,6 +194,13 @@ RoBible es una app web (PWA) bilingüe de la Biblia (rumano + español) con sopo
 - [x] Config.js actualizado a v15
 - Bundle size debería bajar ~5-10kb al no incluir el componente
 
+### Phase 4.7 — Lazy Loading Biblias (optimización tráfico) ✅ COMPLETADA (2026-08-31)
+- [x] La segunda Biblia (compare version) ya no se carga al iniciar la app
+- [x] `compareWithVersion` ahora inicia como `null` en lugar de leer de localStorage
+- [x] Solo se descarga (~8MB) cuando usuario entra en modo comparación
+- [x] Función `initCompareVersion()` en stores.js restaura preferencia desde localStorage bajo demanda
+- [x] Impacto: reduce ~8MB de tráfico inicial por visitante
+
 ### Phase 4.6 — SEO Review (Frontend, recurrente)
 
 > **Acción continua**: revisar el SEO periódicamente conforme cambien las best practices y la app gane nuevas funcionalidades. Esto va más allá de las meta-tags básicas.

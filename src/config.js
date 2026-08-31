@@ -17,4 +17,4 @@ export const USE_BACKEND = !!import.meta.env?.VITE_API_BASE_URL
   || (typeof window !== 'undefined' && !window.location.hostname.endsWith('robible.app'));
 
 // Versión del SW cache (debe coincidir con la del SW y package.json)
-export const SW_CACHE_VERSION = 'robible-v16';
+export const SW_CACHE_VERSION = 'robible-v17';
