@@ -1,4 +1,4 @@
-const CACHE_NAME = 'robible-v16';
+const CACHE_NAME = 'robible-v17';
 
 const CORE_ASSETS = [
   '/',

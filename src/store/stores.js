@@ -117,17 +117,29 @@ const getSavedCompareWith = () => {
   return getDefaultCompareWith(getSavedBibleVersion());
 };
 
-export const compareWithVersion = writable(getSavedCompareWith());
+// LAZY LOADING: No cargamos la compare Bible hasta que el usuario entre en modo comparación
+// Esto evita descargar ~8MB (2 Biblias) en cada visita
+export const compareWithVersion = writable(null); // Inicia null, se setea cuando usuario entra en compare
 
 compareWithVersion.subscribe((value) => {
   try {
-    if (isValidBibleVersion(value)) {
+    if (value) {
       localStorage.setItem(COMPARE_WITH_STORAGE_KEY, value);
+    } else {
+      localStorage.removeItem(COMPARE_WITH_STORAGE_KEY);
     }
   } catch {
     // ignore
   }
 });
+
+// Helper para inicializar compareWith desde localStorage cuando usuario entra en modo comparación
+export const initCompareVersion = () => {
+  const saved = getSavedCompareWith();
+  if (saved) {
+    compareWithVersion.set(saved);
+  }
+};
 
 selectedBibleVersion.subscribe((version) => {
   try {

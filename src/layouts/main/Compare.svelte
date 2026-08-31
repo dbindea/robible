@@ -6,6 +6,7 @@
     compareWithVersion,
     getBibleVersionConfigOrDefault,
     getAvailableBibleVersions,
+    initCompareVersion,
   } from '../../store/stores';
   import { getBookIdFromSlug, getBookSlug, slugifyBookName } from '../../services/bible-route.service';
   import BookDrawer from './BookDrawer.svelte';
@@ -277,6 +278,8 @@
   onMount(async () => {
     await tick();
     parseComparePath();
+    // Lazy load: solo descarga la segunda Biblia cuando usuario entra en modo comparación
+    initCompareVersion();
     window.addEventListener('scroll', handleScroll, { passive: true });
     document.addEventListener('click', handleVersionMenuClickOutside);
   });
