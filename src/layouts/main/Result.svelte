@@ -16,6 +16,8 @@
   import { notesStore } from '../../store/notesStore';
   import { isAuthenticated } from '../../store/authStore';
   import { openAuthMenu } from '../../store/authMenuStore';
+  import { ttsState } from '../../store/ttsStore.js';
+  import TtsPlayer from '../../components/TtsPlayer.svelte';
   import IconPicker from '../../components/IconPicker.svelte';
 
   export let bible;
@@ -333,6 +335,7 @@
       : [];
 
   $: isImmersive = $immersiveMode;
+  $: isTtsActive = $ttsState.playing || $ttsState.paused;
 
   const updateChapterForm = async () => {
     activeVerseTarget = null;
@@ -758,6 +761,33 @@
 
     return parts;
   }
+
+  // TTS word highlighting: split text into word spans, mark the current one.
+  // Returns array of { word, ttsActive, ttsCurrent } for rendering.
+  function getTtsWordParts(text, verseKey) {
+    const words = text.trim().split(/\s+/).filter(Boolean);
+    const state = $ttsState;
+
+    if (!state.playing && !state.paused) {
+      return words.map((w) => ({ word: w, ttsActive: false, ttsCurrent: false }));
+    }
+
+    if (state.verseKey !== verseKey) {
+      return words.map((w) => ({ word: w, ttsActive: false, ttsCurrent: false }));
+    }
+
+    const currentIndex = state.wordIndex;
+    return words.map((w, i) => ({
+      word: w,
+      ttsActive: true,
+      ttsCurrent: i === currentIndex,
+    }));
+  }
+
+  // Computed: are we in TTS karaoke mode for a given verse?
+  function isVerseTtsActive(verseKey) {
+    return $ttsState.verseKey === verseKey && ($ttsState.playing || $ttsState.paused);
+  }
 </script>
 
 {#if !searchForm.searchText && chapterArray.length}
@@ -842,13 +872,27 @@
     >
       <div>
         <span class="verse-index">{item.index}.</span>
-        {#each getMarkedParts(item.text, keywords) as part, index (`${item.key}-${index}`)}
-          {#if part.marked}
-            <span class="marked-key">{part.text}</span>
-          {:else}
-            {part.text}
-          {/if}
-        {/each}
+        {#if isVerseTtsActive(item.key)}
+          <!-- TTS karaoke mode: word-by-word highlighting -->
+          {@const ttsParts = getTtsWordParts(item.text, item.key)}
+          {@const totalWords = ttsParts.length}
+          {#each ttsParts as { word, ttsCurrent }, wi (wi)}
+            <span
+              class="tts-word"
+              class:tts-word--active={ttsCurrent}
+              aria-current={ttsCurrent ? 'true' : undefined}
+            >{word}{wi < totalWords - 1 ? '\u00a0' : ''}</span>
+          {/each}
+        {:else}
+          <!-- Normal mode: search keyword highlighting -->
+          {#each getMarkedParts(item.text, keywords) as part, index (`${item.key}-${index}`)}
+            {#if part.marked}
+              <span class="marked-key">{part.text}</span>
+            {:else}
+              {part.text}
+            {/if}
+          {/each}
+        {/if}
         <button
           type="button"
           title={$_('app.result.actions.open_chapter')}
@@ -1214,6 +1258,7 @@
 <button
   type="button"
   class="scroll-top-button"
+  class:scroll-top-button--tts-active={isTtsActive}
   aria-label={$_('app.result.actions.scroll_top')}
   title={$_('app.result.actions.scroll_top')}
   on:click={scrollToResultTop}
@@ -1252,7 +1297,21 @@
 <!-- Keyboard shortcut: Escape exits immersive mode -->
 <svelte:window on:keydown={(e) => { if (e.key === 'Escape' && $immersiveMode) toggleImmersiveMode(); }} />
 
+<!-- TTS Karaoke Player (floating) -->
+<TtsPlayer
+  {bible}
+  {map}
+  book={selectedBook !== null ? Number(selectedBook) : null}
+  chapter={selectedChapterLabel !== null ? Number(selectedChapterLabel) : null}
+  lang={getBibleVersionConfigOrDefault()?.locale === 'es' ? 'es' : 'ro'}
+/>
+
 <style lang="scss">
+  // Push scroll-to-top button up when TTS mini-player is visible
+  :global(.scroll-top-button.scroll-top-button--tts-active) {
+    bottom: 3.5rem !important;
+  }
+
   .result {
     width: 100%;
     max-width: 72rem;
@@ -2678,5 +2737,29 @@
     .verse-save-topic {
       display: none;
     }
+  }
+
+  // === TTS KARAOKE — word highlighting ===
+  .tts-word {
+    display: inline;
+    border-radius: 0.2rem;
+    padding: 0 0.05em;
+    transition: background 0.15s ease, color 0.15s ease;
+    white-space: pre-wrap;
+    word-break: break-word;
+
+    &--active {
+      background: color-mix(in srgb, var(--color-blue, #2d96cd) 22%, transparent);
+      color: var(--color-blue, #2d96cd);
+      font-weight: 600;
+      box-decoration-break: clone;
+      -webkit-box-decoration-break: clone;
+      border-radius: 0.2rem;
+    }
+  }
+
+  // Make sure TTS words respect verse line height
+  .verse .tts-word {
+    line-height: inherit;
   }
 </style>

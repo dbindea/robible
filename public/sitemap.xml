@@ -1,216 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
-  <!-- Homepage (multilingual) -->
-  <url>
-    <loc>https://robible.com/</loc>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <sitemap>
+    <loc>https://robible.com/sitemaps/static.xml</loc>
     <lastmod>2026-08-31</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>1.0</priority>
-    <xhtml:link rel="alternate" hreflang="ro" href="https://robible.com/" />
-    <xhtml:link rel="alternate" hreflang="es" href="https://robible.com/" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://robible.com/" />
-  </url>
-  <!-- Thematic Index (RO) -->
-  <url>
-    <loc>https://robible.com/indice</loc>
+  </sitemap>
+  <sitemap>
+    <loc>https://robible.com/sitemaps/books.xml</loc>
     <lastmod>2026-08-31</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-    <xhtml:link rel="alternate" hreflang="ro" href="https://robible.com/indice" />
-    <xhtml:link rel="alternate" hreflang="es" href="https://robible.com/temas" />
-  </url>
-  <!-- Thematic Index (ES) -->
-  <url>
-    <loc>https://robible.com/temas</loc>
+  </sitemap>
+  <sitemap>
+    <loc>https://robible.com/sitemaps/chapters.xml</loc>
     <lastmod>2026-08-31</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-    <xhtml:link rel="alternate" hreflang="es" href="https://robible.com/temas" />
-    <xhtml:link rel="alternate" hreflang="ro" href="https://robible.com/indice" />
-  </url>
-  <!-- Favorites (multilingual routes) -->
-  <url>
-    <loc>https://robible.com/favorites</loc>
+  </sitemap>
+  <sitemap>
+    <loc>https://robible.com/sitemaps/topics.xml</loc>
     <lastmod>2026-08-31</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://robible.com/favorites" />
-  </url>
-  <url>
-    <loc>https://robible.com/favoritos</loc>
+  </sitemap>
+  <sitemap>
+    <loc>https://robible.com/sitemaps/verses-1.xml</loc>
     <lastmod>2026-08-31</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-    <xhtml:link rel="alternate" hreflang="es" href="https://robible.com/favoritos" />
-  </url>
-  <url>
-    <loc>https://robible.com/favoriti</loc>
+  </sitemap>
+  <sitemap>
+    <loc>https://robible.com/sitemaps/verses-2.xml</loc>
     <lastmod>2026-08-31</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-    <xhtml:link rel="alternate" hreflang="ro" href="https://robible.com/favoriti" />
-  </url>
-  <!-- Notes (multilingual routes) -->
-  <url>
-    <loc>https://robible.com/notes</loc>
-    <lastmod>2026-08-31</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://robible.com/notes" />
-  </url>
-  <url>
-    <loc>https://robible.com/notas</loc>
-    <lastmod>2026-08-31</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-    <xhtml:link rel="alternate" hreflang="es" href="https://robible.com/notas" />
-  </url>
-  <url>
-    <loc>https://robible.com/notite</loc>
-    <lastmod>2026-08-31</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-    <xhtml:link rel="alternate" hreflang="ro" href="https://robible.com/notite" />
-  </url>
-  <!-- Topic pages RO (versete) -->
-  <url>
-    <loc>https://robible.com/versete/dragoste</loc>
-    <lastmod>2026-08-31</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://robible.com/versete/speranta</loc>
-    <lastmod>2026-08-31</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://robible.com/versete/credinta</loc>
-    <lastmod>2026-08-31</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://robible.com/versete/casatorie</loc>
-    <lastmod>2026-08-31</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <!-- Topic pages ES (versiculos) -->
-  <url>
-    <loc>https://robible.com/versiculos/amor</loc>
-    <lastmod>2026-08-31</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://robible.com/versiculos/esperanza</loc>
-    <lastmod>2026-08-31</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://robible.com/versiculos/fe</loc>
-    <lastmod>2026-08-31</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://robible.com/versiculos/matrimonio</loc>
-    <lastmod>2026-08-31</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <!-- Individual chapter pages (sample of key chapters for Bible books) -->
-  <!-- Genesis -->
-  <url>
-    <loc>https://robible.com/biblia/vdc/romani/1/1</loc>
-    <lastmod>2026-08-31</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-    <xhtml:link rel="alternate" hreflang="ro" href="https://robible.com/biblia/vdc/romani/1/1" />
-    <xhtml:link rel="alternate" hreflang="es" href="https://robible.com/biblia/rvl/romanos/1/1" />
-  </url>
-  <!-- Psalms -->
-  <url>
-    <loc>https://robible.com/biblia/vdc/romani/19/1</loc>
-    <lastmod>2026-08-31</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-    <xhtml:link rel="alternate" hreflang="ro" href="https://robible.com/biblia/vdc/romani/19/1" />
-    <xhtml:link rel="alternate" hreflang="es" href="https://robible.com/biblia/rvl/romanos/19/1" />
-  </url>
-  <!-- John -->
-  <url>
-    <loc>https://robible.com/biblia/vdc/romani/43/1</loc>
-    <lastmod>2026-08-31</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-    <xhtml:link rel="alternate" hreflang="ro" href="https://robible.com/biblia/vdc/romani/43/1" />
-    <xhtml:link rel="alternate" hreflang="es" href="https://robible.com/biblia/rvl/romanos/43/1" />
-  </url>
-  <!-- Romans (ES) -->
-  <url>
-    <loc>https://robible.com/biblia/rvl/romanos/1/1</loc>
-    <lastmod>2026-08-31</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-    <xhtml:link rel="alternate" hreflang="es" href="https://robible.com/biblia/rvl/romanos/1/1" />
-    <xhtml:link rel="alternate" hreflang="ro" href="https://robible.com/biblia/vdc/romani/1/1" />
-  </url>
-  <!-- Salmos (ES) -->
-  <url>
-    <loc>https://robible.com/biblia/rvl/romanos/19/1</loc>
-    <lastmod>2026-08-31</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-    <xhtml:link rel="alternate" hreflang="es" href="https://robible.com/biblia/rvl/romanos/19/1" />
-    <xhtml:link rel="alternate" hreflang="ro" href="https://robible.com/biblia/vdc/romani/19/1" />
-  </url>
-  <!-- Juan (ES) -->
-  <url>
-    <loc>https://robible.com/biblia/rvl/romanos/43/1</loc>
-    <lastmod>2026-08-31</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-    <xhtml:link rel="alternate" hreflang="es" href="https://robible.com/biblia/rvl/romanos/43/1" />
-    <xhtml:link rel="alternate" hreflang="ro" href="https://robible.com/biblia/vdc/romani/43/1" />
-  </url>
-  <!-- Romans -->
-  <url>
-    <loc>https://robible.com/biblia/vdc/romani/45/1</loc>
-    <lastmod>2026-08-31</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-    <xhtml:link rel="alternate" hreflang="ro" href="https://robible.com/biblia/vdc/romani/45/1" />
-    <xhtml:link rel="alternate" hreflang="es" href="https://robible.com/biblia/rvl/romanos/45/1" />
-  </url>
-  <!-- 1 Corintios -->
-  <url>
-    <loc>https://robible.com/biblia/rvl/romanos/46/1</loc>
-    <lastmod>2026-08-31</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-    <xhtml:link rel="alternate" hreflang="es" href="https://robible.com/biblia/rvl/romanos/46/1" />
-    <xhtml:link rel="alternate" hreflang="ro" href="https://robible.com/biblia/vdc/romani/46/1" />
-  </url>
-  <!-- Apocalipsis -->
-  <url>
-    <loc>https://robible.com/biblia/vdc/romani/66/1</loc>
-    <lastmod>2026-08-31</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-    <xhtml:link rel="alternate" hreflang="ro" href="https://robible.com/biblia/vdc/romani/66/1" />
-    <xhtml:link rel="alternate" hreflang="es" href="https://robible.com/biblia/rvl/romanos/66/1" />
-  </url>
-  <!-- Apocalipsis (ES) -->
-  <url>
-    <loc>https://robible.com/biblia/rvl/romanos/66/1</loc>
-    <lastmod>2026-08-31</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-    <xhtml:link rel="alternate" hreflang="es" href="https://robible.com/biblia/rvl/romanos/66/1" />
-    <xhtml:link rel="alternate" hreflang="ro" href="https://robible.com/biblia/vdc/romani/66/1" />
-  </url>
-</urlset>
+  </sitemap>
+</sitemapindex>
