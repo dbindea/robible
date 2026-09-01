@@ -1,22 +1,40 @@
-# JSONs de las Biblias: cachear 1 año, inmutable
-# (los JSONs solo cambian al redesplegar, el SW los refresca)
+# ═══════════════════════════════════════════════════════════════════════════════
+# RoBible — Cabeceras de seguridad y anti-scraping
+# Netlify las aplica en CDN antes de llegar al origen
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ── Seguridad base para todo el sitio ──────────────────────────────────────
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  X-XSS-Protection: 1; mode=block
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://robible-api.robible.workers.dev; frame-ancestors 'none'
+
+# ── Datos biblicos: cache largo pero anti-scraping ─────────────────────────
+# El SW hace invalidate al hacer deploy, así que es seguro cachear 1 año
 /data/*
   Cache-Control: public, max-age=31536000, immutable
   X-Robots-Tag: noai, noimageai
+  # Proteger contra hotlinking
+  X-Permitted-Cross-Domain-Policies: none
 
-# Mapas (más pequeños, mismo tratamiento)
 /data/*/bible.map.json
   Cache-Control: public, max-age=31536000, immutable
   X-Robots-Tag: noai, noimageai
 
-# Service worker: siempre fresh (puede cambiar entre deploys)
-/sw.js
-  Cache-Control: public, max-age=0, must-revalidate
-
-# Idiomas: cambian al redesplegar
+# ── Idiomas y assets: cache largo e inmutable ───────────────────────────────
 /lang/*
   Cache-Control: public, max-age=31536000, immutable
 
-# Assets versionados (Vite ya mete hash en el nombre)
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
+
+# ── Service worker: siempre fresco ─────────────────────────────────────────
+/sw.js
+  Cache-Control: public, max-age=0, must-revalidate
+
+# ── OG images dinamicas: cache corto ──────────────────────────────────────
+/.netlify/functions/og-image*
+  Cache-Control: public, max-age=60, stale-while-revalidate=300

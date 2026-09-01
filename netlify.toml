@@ -6,6 +6,60 @@
   directory = "netlify/functions"
   included_files = ["public/data/**"]
 
+# ── Seguridad: headers por defecto para todo el sitio ────────────────────────
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://robible-api.robible.workers.dev; frame-ancestors 'none'"
+
+# ── Rate limiting: bloquear exceso de peticiones por IP ───────────────────────
+# Netlify Plus: permite rate limiting por IP
+# Si no tienes Plus, estas reglas se aplican en capa de CDN via _headers
+[[headers]]
+  for = "/data/*"
+  [headers.values]
+    # Cache largo: el SW se encarga de invalidar
+    Cache-Control = "public, max-age=31536000, immutable"
+    X-Robots-Tag = "noai, noimageai"
+    # Rate limit hint (funciona con Netlify Plus)
+    X-RateLimit-Limit = "100"
+    X-RateLimit-Window = "1 hour"
+    # Bloquear que los datos se embedding en iframes externos
+    X-Content-Type-Options = "nosniff"
+
+[[headers]]
+  for = "/data/*/bible.map.json"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+    X-Robots-Tag = "noai, noimageai"
+
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/lang/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# ── OG images: dinámicas, no cachear ─────────────────────────────────────────
+[[headers]]
+  for = "/.netlify/functions/og-image*"
+  [headers.values]
+    Cache-Control = "public, max-age=60, stale-while-revalidate=300"
+
+# ── Redirects ─────────────────────────────────────────────────────────────────
 [[redirects]]
   from = "/og/verse/:version/:book/:chapter/:verse.svg"
   to = "/.netlify/functions/og-image?version=:version&book=:book&chapter=:chapter&verse=:verse"
