@@ -747,6 +747,8 @@ async function main() {
               alternates: getAlternates(versionDataList, { book, chapter, verse }),
               schema: verseSchema,
               content: getVerseContent(versionData, versionDataList, book, chapter, verse),
+              // Versiculos individuales noindex para evitar crawling masivo
+              robots: 'noindex, follow',
             }),
           );
           verseUrls.push({ loc: absoluteUrl(versePath), lastmod: TODAY, priority: '0.6', alternates: getAlternates(versionDataList, { book, chapter, verse }) });
