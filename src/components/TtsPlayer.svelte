@@ -287,11 +287,6 @@
       background: var(--bg-primary-dark, #1e293b);
       border-color: var(--border-color-dark, #334155);
     }
-
-    // Hide scroll-to-top button overlap area (push it up when bar is active)
-    & + .scroll-top-button {
-      bottom: 4.5rem;
-    }
   }
 
   // ── Swipe handle tab ────────────────────────────────────────────────────────
