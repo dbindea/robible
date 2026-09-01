@@ -1,8 +1,15 @@
 import App from './App.svelte';
 import { mount } from 'svelte';
 
+// Limpiar el contenido pre-rendered (SEO) antes de montar la SPA
+// para que no se vea duplicado (seo-prerender + vista SPA).
+const appTarget = document.getElementById('app');
+if (appTarget) {
+  appTarget.innerHTML = '';
+}
+
 const app = mount(App, {
-  target: document.getElementById('app'),
+  target: appTarget,
 });
 
 window.addEventListener('beforeinstallprompt', (event) => {
