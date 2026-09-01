@@ -1,5 +1,6 @@
 <script>
   import { onDestroy, onMount, tick } from 'svelte';
+  import { ttsState } from '../../store/ttsStore.js';
   import {
     buildBiblePath,
     getBookIdFromSlug,
@@ -16,7 +17,6 @@
   import { notesStore } from '../../store/notesStore';
   import { isAuthenticated } from '../../store/authStore';
   import { openAuthMenu } from '../../store/authMenuStore';
-  import { ttsState } from '../../store/ttsStore.js';
   import TtsPlayer from '../../components/TtsPlayer.svelte';
   import IconPicker from '../../components/IconPicker.svelte';
 
@@ -336,6 +336,19 @@
 
   $: isImmersive = $immersiveMode;
   $: isTtsActive = $ttsState.playing || $ttsState.paused;
+
+  // Auto immersive mode: when TTS starts → enter immersive; when TTS stops → exit immersive
+  let prevTtsPlaying = false;
+  $: {
+    const currentlyPlaying = $ttsState.playing;
+    if (currentlyPlaying && !prevTtsPlaying && !$immersiveMode) {
+      toggleImmersiveMode();
+    }
+    if (!currentlyPlaying && prevTtsPlaying && $immersiveMode) {
+      toggleImmersiveMode();
+    }
+    prevTtsPlaying = currentlyPlaying;
+  }
 
   const updateChapterForm = async () => {
     activeVerseTarget = null;
@@ -1406,6 +1419,11 @@
       font-size: 14px;
       font-weight: 600;
     }
+  }
+
+  // Verse index in immersive mode: blue color from the palette
+  .result--immersive .verse-index {
+    color: var(--color-link, #0064c8);
   }
 
   .reference {
@@ -2739,22 +2757,23 @@
     }
   }
 
-  // === TTS KARAOKE — word highlighting ===
+  // === TTS KARAOKE — word highlighting (soft, non-intrusive) ===
   .tts-word {
     display: inline;
-    border-radius: 0.2rem;
-    padding: 0 0.05em;
-    transition: background 0.15s ease, color 0.15s ease;
+    transition: background 0.2s ease, color 0.2s ease;
     white-space: pre-wrap;
     word-break: break-word;
+    border-radius: 0.25rem;
+    padding: 0.04em 0.12em;
 
     &--active {
-      background: color-mix(in srgb, var(--color-blue, #2d96cd) 22%, transparent);
-      color: var(--color-blue, #2d96cd);
+      // Soft green with transparency — not strident, easy on the eyes
+      background: color-mix(in srgb, rgb(40 167 69) 18%, transparent);
+      color: rgb(20 100 45);
       font-weight: 600;
       box-decoration-break: clone;
       -webkit-box-decoration-break: clone;
-      border-radius: 0.2rem;
+      border-radius: 0.25rem;
     }
   }
 

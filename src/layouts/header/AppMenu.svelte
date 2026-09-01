@@ -323,13 +323,13 @@
 
     .app-menu__online-dot {
       position: absolute;
-      top: 0.15rem;
-      right: 0.15rem;
-      width: 0.55rem;
-      height: 0.55rem;
+      top: 0.1rem;
+      right: 0.1rem;
+      width: 0.5rem;
+      height: 0.5rem;
       border-radius: 999px;
       background: rgb(40 167 69);
-      box-shadow: 0 0 0 2px var(--color-white);
+      box-shadow: 0 0 0 3px rgb(40 167 69 / 22%);
     }
 
     .app-menu__text {
@@ -427,7 +427,7 @@
     }
 
     .app-menu__online-dot {
-      box-shadow: 0 0 0 2px #1a2733;
+      box-shadow: 0 0 0 3px rgb(40 167 69 / 22%);
     }
 
     .app-menu__hint {

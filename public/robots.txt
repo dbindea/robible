@@ -1,4 +1,66 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# RoBible robots.txt
+# indica a los bots ethical que NO indexen datos ni hagan crawling agresivo
+# los scrapers maliciosos lo ignoran, pero Cloudflare los bloquea
+# ═══════════════════════════════════════════════════════════════════════════════
+
 User-agent: *
 Allow: /
+Allow: /biblia/
+Allow: /compara/
+Allow: /indice/
+Allow: /temas/
+Allow: /favorites/
+Allow: /favoriti/
+Allow: /favoritos/
+Allow: /notes/
+Allow: /notite/
+Allow: /notas/
+Allow: /versete/
+Allow: /versiculos/
+
+# NO permitir acceso a datos biblicos crusos
+# (evita que Google indexe los JSON directamente)
+Disallow: /data/
+Disallow: /assets/
+
+# No permitir crawling de API ni functions
+Disallow: /.netlify/functions/
+Disallow: /api/
 
 Sitemap: https://robible.com/sitemap.xml
+
+# ── Reglas para crawlers especificos ─────────────────────────────────────────
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ChatGPT-User
+Disallow: /
+
+User-agent: Google-Extended
+Disallow: /data/
+Disallow: /assets/
+
+User-agent: anthropic-ai
+Disallow: /
+
+User-agent: Bytespider
+Disallow: /
+
+User-agent: Claude-Web
+Disallow: /
+
+User-agent: Diffbot
+Disallow: /
+
+User-agent: FacebookBot
+Disallow: /data/
+
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: *
+Crawl-delay: 2
