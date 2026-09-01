@@ -51,6 +51,7 @@
 
   // Note modal state
   let noteModalVerseKey = null;
+  let noteModalItem = null;
   let noteModalElement;
   let noteModalPosition = { top: 0, right: 0 };
   let noteText = '';
@@ -189,12 +190,14 @@
       noteModalPosition = { top: verseEl.getBoundingClientRect().bottom + 8, right: 8 };
     }
     noteModalVerseKey = item.key;
+    noteModalItem = item;
     // Block scroll when modal is open
     document.body.style.overflow = 'hidden';
   };
 
   const closeNoteModal = () => {
     noteModalVerseKey = null;
+    noteModalItem = null;
     noteText = '';
     noteColor = '#3B82F6';
     // Restore scroll when modal is closed
@@ -348,6 +351,15 @@
       toggleImmersiveMode();
     }
     prevTtsPlaying = currentlyPlaying;
+  }
+
+  // Auto-scroll: cuando cambia el versiculo activo, hacer scroll a el
+  $: if ($ttsState.verseKey && ($ttsState.playing || $ttsState.paused)) {
+    const verseId = `verse-${$ttsState.currentBook}-${$ttsState.currentChapter}-${$ttsState.currentVerse}`;
+    const el = document.getElementById(verseId);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
   }
 
   const updateChapterForm = async () => {
@@ -775,28 +787,6 @@
     return parts;
   }
 
-  // TTS word highlighting: split text into word spans, mark the current one.
-  // Returns array of { word, ttsActive, ttsCurrent } for rendering.
-  function getTtsWordParts(text, verseKey) {
-    const words = text.trim().split(/\s+/).filter(Boolean);
-    const state = $ttsState;
-
-    if (!state.playing && !state.paused) {
-      return words.map((w) => ({ word: w, ttsActive: false, ttsCurrent: false }));
-    }
-
-    if (state.verseKey !== verseKey) {
-      return words.map((w) => ({ word: w, ttsActive: false, ttsCurrent: false }));
-    }
-
-    const currentIndex = state.wordIndex;
-    return words.map((w, i) => ({
-      word: w,
-      ttsActive: true,
-      ttsCurrent: i === currentIndex,
-    }));
-  }
-
   // Computed: are we in TTS karaoke mode for a given verse?
   function isVerseTtsActive(verseKey) {
     return $ttsState.verseKey === verseKey && ($ttsState.playing || $ttsState.paused);
@@ -874,11 +864,12 @@
   {/if}
 
   {#each result as item (item.key)}
-    {@const verseTopics = topicsContainingVerse(item.book, item.chapter, item.index)}
+    {@const verseTopics = (() => { void $topicsStore; return topicsContainingVerse(item.book, item.chapter, item.index); })()}
     {@const primaryTopic = verseTopics[0]}
     {@const hasNote = !!$notesStore.find((n) => n.book === item.book && n.chapter === item.chapter && n.verse === item.index)}
     <div
       class:verse--highlighted={highlightedVerseId === getVerseId(item)}
+      class:verse--tts-active={isVerseTtsActive(item.key)}
       class="verse"
       id={getVerseId(item)}
       tabindex="-1"
@@ -886,16 +877,8 @@
       <div>
         <span class="verse-index">{item.index}.</span>
         {#if isVerseTtsActive(item.key)}
-          <!-- TTS karaoke mode: word-by-word highlighting -->
-          {@const ttsParts = getTtsWordParts(item.text, item.key)}
-          {@const totalWords = ttsParts.length}
-          {#each ttsParts as { word, ttsCurrent }, wi (wi)}
-            <span
-              class="tts-word"
-              class:tts-word--active={ttsCurrent}
-              aria-current={ttsCurrent ? 'true' : undefined}
-            >{word}{wi < totalWords - 1 ? '\u00a0' : ''}</span>
-          {/each}
+          <!-- TTS active: highlight whole verse with different background -->
+          <span class="tts-verse-text">{item.text}</span>
         {:else}
           <!-- Normal mode: search keyword highlighting -->
           {#each getMarkedParts(item.text, keywords) as part, index (`${item.key}-${index}`)}
@@ -1167,95 +1150,6 @@
               <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
             </svg>
           </button>
-          {#if noteModalVerseKey === item.key}
-            <!-- Full overlay backdrop -->
-            <div
-              class="note-overlay"
-              role="presentation"
-              on:click={closeNoteModal}
-              on:keydown={(e) => e.key === 'Escape' && closeNoteModal()}
-            ></div>
-            <!-- Centered panel (auth-modal style) -->
-            <div
-              class="note-modal auth-modal__panel"
-              role="dialog"
-              tabindex="-1"
-              aria-label={$_('app.notes.modal_title')}
-              on:click|stopPropagation
-              on:keydown={(e) => e.key === 'Escape' && closeNoteModal()}
-            >
-              <button
-                type="button"
-                class="note-modal__close auth-modal__close"
-                aria-label={$_('app.notes.cancel')}
-                on:click={closeNoteModal}
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M18 6 6 18M6 6l12 12"/>
-                </svg>
-              </button>
-              <p class="note-modal__eyebrow">{$_('app.notes.modal_title')}</p>
-              <h2 class="note-modal__title">{map[item.book]} {item.chapter}:{item.index}</h2>
-              <textarea
-                class="note-modal__textarea"
-                bind:value={noteText}
-                placeholder={$_('app.notes.placeholder')}
-                maxlength="500"
-                rows="12"
-                autofocus
-                on:click|stopPropagation
-                on:mousedown|stopPropagation
-              ></textarea>
-              <div class="note-modal__footer">
-                <div class="note-modal__color-row">
-                  <label class="note-modal__color-label" for="note-color-{item.key}">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="14" height="14">
-                      <circle cx="13.5" cy="6.5" r="0.5" fill="currentColor"/>
-                      <circle cx="17.5" cy="10.5" r="0.5" fill="currentColor"/>
-                      <circle cx="8.5" cy="7.5" r="0.5" fill="currentColor"/>
-                      <circle cx="6.5" cy="12.5" r="0.5" fill="currentColor"/>
-                      <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 011.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
-                    </svg>
-                  </label>
-                  <input
-                    type="color"
-                    id="note-color-{item.key}"
-                    bind:value={noteColor}
-                    class="note-modal__color-picker"
-                    title={$_('app.notes.color')}
-                    on:click|stopPropagation
-                    on:mousedown|stopPropagation
-                  />
-                </div>
-                <div class="note-modal__actions">
-                  {#if $notesStore.find((n) => n.book === item.book && n.chapter === item.chapter && n.verse === item.index)}
-                    <button
-                      type="button"
-                      class="note-modal__delete"
-                      on:click={(e) => { e.stopPropagation(); deleteNoteForVerse(item); }}
-                    >
-                      {$_('app.notes.delete')}
-                    </button>
-                  {/if}
-                  <button
-                    type="button"
-                    class="note-modal__cancel"
-                    on:click={(e) => { e.stopPropagation(); closeNoteModal(); }}
-                  >
-                    {$_('app.notes.cancel')}
-                  </button>
-                  <button
-                    type="button"
-                    class="note-modal__save"
-                    disabled={!noteText.trim() || noteSaving}
-                    on:click={(e) => { e.stopPropagation(); saveNoteForVerse(item); }}
-                  >
-                    {noteSaving ? '...' : $_('app.notes.save')}
-                  </button>
-                </div>
-              </div>
-            </div>
-          {/if}
         </span>
       </div>
     </div>
@@ -1263,6 +1157,95 @@
   {/each}
   </div>
 </div>
+
+<!-- Note modal: rendered at top level (not inside .verse) to escape stacking context -->
+{#if noteModalVerseKey && noteModalItem}
+  <div
+    class="note-overlay"
+    role="presentation"
+    on:click={closeNoteModal}
+    on:keydown={(e) => e.key === 'Escape' && closeNoteModal()}
+  ></div>
+  <div
+    class="note-modal auth-modal__panel"
+    role="dialog"
+    tabindex="-1"
+    aria-label={$_('app.notes.modal_title')}
+    on:click|stopPropagation
+    on:keydown={(e) => e.key === 'Escape' && closeNoteModal()}
+  >
+    <button
+      type="button"
+      class="note-modal__close auth-modal__close"
+      aria-label={$_('app.notes.cancel')}
+      on:click={closeNoteModal}
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M18 6 6 18M6 6l12 12"/>
+      </svg>
+    </button>
+    <p class="note-modal__eyebrow">{$_('app.notes.modal_title')}</p>
+    <h2 class="note-modal__title">{map[noteModalItem.book]} {noteModalItem.chapter}:{noteModalItem.index}</h2>
+    <textarea
+      class="note-modal__textarea"
+      bind:value={noteText}
+      placeholder={$_('app.notes.placeholder')}
+      maxlength="500"
+      rows="12"
+      autofocus
+      on:click|stopPropagation
+      on:mousedown|stopPropagation
+    ></textarea>
+    <div class="note-modal__footer">
+      <div class="note-modal__color-row">
+        <label class="note-modal__color-label" for="note-color-{noteModalItem.key}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="14" height="14">
+            <circle cx="13.5" cy="6.5" r="0.5" fill="currentColor"/>
+            <circle cx="17.5" cy="10.5" r="0.5" fill="currentColor"/>
+            <circle cx="8.5" cy="7.5" r="0.5" fill="currentColor"/>
+            <circle cx="6.5" cy="12.5" r="0.5" fill="currentColor"/>
+            <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 011.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
+          </svg>
+        </label>
+        <input
+          type="color"
+          id="note-color-{noteModalItem.key}"
+          bind:value={noteColor}
+          class="note-modal__color-picker"
+          title={$_('app.notes.color')}
+          on:click|stopPropagation
+          on:mousedown|stopPropagation
+        />
+      </div>
+      <div class="note-modal__actions">
+        {#if $notesStore.find((n) => n.book === noteModalItem.book && n.chapter === noteModalItem.chapter && n.verse === noteModalItem.index)}
+          <button
+            type="button"
+            class="note-modal__delete"
+            on:click={(e) => { e.stopPropagation(); deleteNoteForVerse(noteModalItem); }}
+          >
+            {$_('app.notes.delete')}
+          </button>
+        {/if}
+        <button
+          type="button"
+          class="note-modal__cancel"
+          on:click={(e) => { e.stopPropagation(); closeNoteModal(); }}
+        >
+          {$_('app.notes.cancel')}
+        </button>
+        <button
+          type="button"
+          class="note-modal__save"
+          disabled={!noteText.trim() || noteSaving}
+          on:click={(e) => { e.stopPropagation(); saveNoteForVerse(noteModalItem); }}
+        >
+          {noteSaving ? '...' : $_('app.notes.save')}
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
 
 {#if toastMessage}
   <div class="toast" role="status" aria-live="polite">{toastMessage}</div>
@@ -2012,11 +1995,11 @@
     }
 
     &--active {
-      border-color: #D4A853;
-      background: rgb(212 168 83 / 18%);
-      color: #D4A853;
+      border-color: #28a745;
+      background: #28a7451a;
+      color: #28a745;
 
-      svg { fill: #D4A853; }
+      svg { fill: #28a745; }
     }
 
     &:disabled {
@@ -2030,10 +2013,10 @@
     border-color: rgb(255 255 255 / 14%);
 
     &--active {
-      background: rgb(212 168 83 / 22%);
-      border-color: #D4A853;
-      color: #D4A853;
-      svg { fill: #D4A853; }
+      background: color-mix(in srgb, #5dde86 20%, #1e2d3d);
+      border-color: #5dde86;
+      color: #5dde86;
+      svg { fill: #5dde86; }
     }
   }
 
@@ -2757,28 +2740,18 @@
     }
   }
 
-  // === TTS KARAOKE — word highlighting (soft, non-intrusive) ===
-  .tts-word {
-    display: inline;
-    transition: background 0.2s ease, color 0.2s ease;
-    white-space: pre-wrap;
-    word-break: break-word;
-    border-radius: 0.25rem;
-    padding: 0.04em 0.12em;
-
-    &--active {
-      // Soft green with transparency — not strident, easy on the eyes
-      background: color-mix(in srgb, rgb(40 167 69) 18%, transparent);
-      color: rgb(20 100 45);
-      font-weight: 600;
-      box-decoration-break: clone;
-      -webkit-box-decoration-break: clone;
-      border-radius: 0.25rem;
-    }
+  // === TTS KARAOKE — whole verse highlight + auto-scroll ===
+  .verse--tts-active {
+    // Soft green background on whole verse being read
+    background: color-mix(in srgb, rgb(40 167 69) 12%, transparent);
+    border-left: 3px solid rgb(40 167 69);
+    padding-left: 0.6rem;
+    border-radius: 0.3rem;
+    transition: background 0.3s ease, border-color 0.3s ease;
+    scroll-margin-top: 6rem; // espacio para que no se pegue al header
   }
 
-  // Make sure TTS words respect verse line height
-  .verse .tts-word {
-    line-height: inherit;
+  .tts-verse-text {
+    display: inline;
   }
 </style>

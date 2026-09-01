@@ -225,8 +225,8 @@
     }
 
     &--signed {
-      border-color: rgb(40 167 69 / 40%);
-      background: rgb(40 167 69 / 10%);
+      border-color: #28a74566;
+      background: #28a7451a;
       color: rgb(20 110 45);
 
       &:hover,
@@ -243,8 +243,8 @@
     width: 0.5rem;
     height: 0.5rem;
     border-radius: 999px;
-    background: rgb(40 167 69);
-    box-shadow: 0 0 0 3px rgb(40 167 69 / 22%);
+    background: #28a745;
+    box-shadow: 0 0 0 3px #28a74538;
   }
 
   .theme-toggle {
@@ -429,8 +429,8 @@
     }
 
     &--signed {
-      background: rgb(40 167 69 / 18%);
-      border-color: rgb(40 167 69 / 40%);
+      background: #28a7452e;
+      border-color: #28a74566;
       color: #7ee79a;
 
       &:hover,
