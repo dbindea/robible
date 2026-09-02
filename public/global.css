@@ -166,6 +166,27 @@ select:disabled {
   cursor: not-allowed;
 }
 
+/* === ONLINE DOT — usado en Navbar, AppMenu, Footer, login buttons === */
+.online-dot {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: #28a745;
+  box-shadow: 0 0 0 3px #28a74538;
+  flex-shrink: 0;
+}
+
+.online-dot--absolute {
+  position: absolute;
+  top: 0.1rem;
+  right: 0.1rem;
+}
+
+.online-dot--inline {
+  margin-right: 0.4rem;
+}
+
 img,
 svg {
   display: block;

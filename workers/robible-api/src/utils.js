@@ -114,7 +114,8 @@ export const validators = {
   password: VALID_PASSWORD,
   numericAnswer: VALID_NUMERIC_ANSWER,
   topicName: (n) => typeof n === 'string' && n.trim().length >= 1 && n.trim().length <= 40,
-  icon: (i) => typeof i === 'string' && i.length >= 1 && i.length <= 4,
+  // Icon: acepta 1-4 chars (emoji como 📌) o 1-20 chars (slug como 'bookmark', 'cross')
+  icon: (i) => typeof i === 'string' && i.length >= 1 && i.length <= 20,
   color: (c) => typeof c === 'string' && /^#[0-9A-Fa-f]{6}$/.test(c),
   verseRef: (r) => (
     r && Number.isInteger(r.book) && r.book >= 0 && r.book <= 65 &&

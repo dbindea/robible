@@ -106,7 +106,7 @@
   // Estilos por tipo
   .action-btn--favorite {
     &.action-btn--active {
-      color: #D4A853;
+      color: #28a745;
     }
   }
 
