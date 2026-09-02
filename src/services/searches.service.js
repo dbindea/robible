@@ -34,6 +34,8 @@ const normalizeSearch = (s) => ({
   testament: s.testament || 'all',
   books: Array.isArray(s.books) ? s.books : null,
   chapters: Array.isArray(s.chapters) ? s.chapters : null,
+  locale: s.locale || 'ro',
+  version: s.version || 'vdc',
   lastUsedAt: s.lastUsedAt,
   createdAt: s.createdAt,
 });
@@ -58,7 +60,7 @@ export const syncFromServer = async () => {
 
 // Guardar/actualizar una búsqueda en el historial.
 // Se llama automáticamente cuando el usuario hace una búsqueda.
-export const saveSearch = async ({ searchText, searchType, testament, books, chapters }) => {
+export const saveSearch = async ({ searchText, searchType, testament, books, chapters, locale, version }) => {
   if (!currentUserId) return { ok: false, error: 'auth_required' };
   if (!searchText || typeof searchText !== 'string' || !searchText.trim()) {
     return { ok: false };
@@ -67,7 +69,9 @@ export const saveSearch = async ({ searchText, searchType, testament, books, cha
   // Guardar siempre en localStorage primero (offline-first)
   const searches = readLS();
   const existingIdx = searches.findIndex(
-    (s) => s.searchText.trim().toLowerCase() === searchText.trim().toLowerCase()
+    (s) =>
+      s.searchText.trim().toLowerCase() === searchText.trim().toLowerCase() &&
+      (s.searchType || 'match') === (searchType || 'match')
   );
   const now = new Date().toISOString();
   const normalized = normalizeSearch({
@@ -77,13 +81,15 @@ export const saveSearch = async ({ searchText, searchType, testament, books, cha
     testament: testament || 'all',
     books: books || null,
     chapters: chapters || null,
+    locale: locale || 'ro',
+    version: version || 'vdc',
     lastUsedAt: now,
     createdAt: existingIdx >= 0 ? searches[existingIdx].createdAt : now,
   });
 
   // Reordenar: mover al frente o mantener posición
   const filtered = searches.filter(
-    (s) => s.searchText.trim().toLowerCase() !== searchText.trim().toLowerCase()
+    (s) => s.id !== normalized.id
   );
   const updated = [normalized, ...filtered].slice(0, MAX_SEARCHES);
   writeLS(updated);
@@ -96,6 +102,8 @@ export const saveSearch = async ({ searchText, searchType, testament, books, cha
       testament: normalized.testament,
       books: normalized.books,
       chapters: normalized.chapters,
+      locale: normalized.locale,
+      version: normalized.version,
     });
     // Actualizar con el ID real del servidor
     const serverSearch = normalizeSearch(res.search);

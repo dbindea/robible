@@ -187,6 +187,21 @@ select:disabled {
   margin-right: 0.4rem;
 }
 
+/* === HIGHLIGHT (verde) — reusable para versiculos leidos o referencias directas === */
+.highlight-verse {
+  background: color-mix(in srgb, #28a745 12%, transparent);
+  border-left: 3px solid #28a745;
+  padding-left: 0.6rem;
+  border-radius: 0.3rem;
+  transition: background 0.3s ease, border-color 0.3s ease;
+  scroll-margin-top: 6rem;
+}
+
+html[data-theme='dark'] .highlight-verse {
+  background: color-mix(in srgb, #28a745 18%, transparent);
+  border-left-color: #5dde86;
+}
+
 img,
 svg {
   display: block;

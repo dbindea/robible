@@ -312,6 +312,25 @@
   }
   $: selectedChapterLabel =
     selectedChapter !== null && selectedChapter !== undefined ? Number(selectedChapter) + 1 : null;
+
+  // TTS book/chapter: derivar del URL si es una ruta /biblia/, si no usar searchForm
+  $: ttsBook = (() => {
+    if (typeof window === 'undefined') return null;
+    const bibleRoute = parseBiblePath(window.location.pathname);
+    if (bibleRoute && bibleRoute.bookSlug) {
+      const bookFromSlug = getBookIdFromSlug(map, bibleRoute.bookSlug);
+      if (bookFromSlug !== null && bookFromSlug !== undefined) return Number(bookFromSlug);
+    }
+    if (selectedBook !== null && selectedBook !== undefined) return Number(selectedBook);
+    return null;
+  })();
+  $: ttsChapter = (() => {
+    if (typeof window === 'undefined') return null;
+    const bibleRoute = parseBiblePath(window.location.pathname);
+    if (bibleRoute && bibleRoute.chapter) return bibleRoute.chapter;
+    if (selectedChapterLabel !== null && selectedChapterLabel !== undefined) return Number(selectedChapterLabel);
+    return null;
+  })();
   $: chapterForm.chapter = selectedChapter ?? 0;
   $: bibleVersionConfig = getBibleVersionConfigOrDefault($selectedBibleVersion);
   $: bibleLabel = bibleVersionConfig.bibleName || $_('app.bible.name');
@@ -359,6 +378,29 @@
     const el = document.getElementById(verseId);
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+
+  // Highlight directo: cuando la URL tiene un versiculo especifico (navegacion por referencia)
+  $: if (isMounted && Object.keys(map).length && bible) {
+    const bibleRoute = parseBiblePath(window.location.pathname);
+    if (bibleRoute && bibleRoute.chapter && bibleRoute.verse) {
+      const bookId = getBookIdFromSlug(map, bibleRoute.bookSlug);
+      if (bookId !== null && bookId !== undefined && bookId >= 0) {
+        const verseId = `verse-${bookId}-${bibleRoute.chapter}-${bibleRoute.verse}`;
+        if (highlightedVerseId !== verseId) {
+          highlightedVerseId = verseId;
+          window.clearTimeout(highlightTimer);
+          highlightTimer = window.setTimeout(() => {
+            highlightedVerseId = '';
+          }, 3500);
+          // Scroll al versiculo despues de render
+          setTimeout(() => {
+            const el = document.getElementById(verseId);
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, 300);
+        }
+      }
     }
   }
 
@@ -870,6 +912,7 @@
     <div
       class:verse--highlighted={highlightedVerseId === getVerseId(item)}
       class:verse--tts-active={isVerseTtsActive(item.key)}
+      class:highlight-verse={isVerseTtsActive(item.key) || highlightedVerseId === getVerseId(item)}
       class="verse"
       id={getVerseId(item)}
       tabindex="-1"
@@ -1297,8 +1340,8 @@
 <TtsPlayer
   {bible}
   {map}
-  book={selectedBook !== null ? Number(selectedBook) : null}
-  chapter={selectedChapterLabel !== null ? Number(selectedChapterLabel) : null}
+  book={ttsBook}
+  chapter={ttsChapter}
   lang={getBibleVersionConfigOrDefault()?.locale === 'es' ? 'es' : 'ro'}
 />
 
@@ -2741,14 +2784,9 @@
   }
 
   // === TTS KARAOKE — whole verse highlight + auto-scroll ===
+  // Usa la clase global .highlight-verse (definida en public/global.css)
   .verse--tts-active {
-    // Soft green background on whole verse being read
-    background: color-mix(in srgb, rgb(40 167 69) 12%, transparent);
-    border-left: 3px solid rgb(40 167 69);
-    padding-left: 0.6rem;
-    border-radius: 0.3rem;
-    transition: background 0.3s ease, border-color 0.3s ease;
-    scroll-margin-top: 6rem; // espacio para que no se pegue al header
+    // Hereda estilos de .highlight-verse
   }
 
   .tts-verse-text {

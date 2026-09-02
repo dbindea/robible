@@ -34,6 +34,18 @@ const createSearchesStore = () => {
     },
     // Devolver las últimas N búsquedas para el dropdown
     recent: (n = 10) => get({ subscribe }).slice(0, n),
+    // Devolver últimas N búsquedas filtradas por tipo + idioma + version
+    recentFiltered: (n = 10, opts = {}) => {
+      const all = get({ subscribe });
+      return all
+        .filter((s) => {
+          if (opts.searchType && (s.searchType || 'match') !== opts.searchType) return false;
+          if (opts.locale && s.locale && s.locale !== opts.locale) return false;
+          if (opts.version && s.version && s.version !== opts.version) return false;
+          return true;
+        })
+        .slice(0, n);
+    },
     reset: () => {
       searchesService.resetAll();
       refresh();
