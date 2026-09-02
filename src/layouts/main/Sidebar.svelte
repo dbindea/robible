@@ -1,8 +1,11 @@
 <script>
   import { onDestroy, onMount } from 'svelte';
   import { _ } from '../../services/i18n.service';
-  import { filter } from '../../store/stores';
+  import { filter, selectedBibleVersion } from '../../store/stores';
   import { searchesStore } from '../../store/searchesStore';
+  import { searchReferences, formatReference, parseReference } from '../../services/referenceSearch.service';
+  import { getBibleVersionConfigOrDefault } from '../../config/bible-versions';
+  import { buildBiblePath } from '../../services/bible-route.service';
   import BookDrawer from './BookDrawer.svelte';
 
   export let map;
@@ -17,12 +20,119 @@
     chapter: [],
   };
 
+  // ── Reference search state ────────────────────────────────────────────
+  let referenceMatches = [];
+  let referenceDropdownOpen = false;
+  let referenceSelectedIdx = -1;
+  let isReferenceMode = false;
+
+  function navigateTo(href) {
+    if (!href) return;
+    if (window.location.pathname !== href) {
+      window.history.pushState(null, '', href);
+    }
+    window.dispatchEvent(new PopStateEvent('popstate'));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function selectReferenceMatch(match) {
+    if (!match) return;
+    const version = $selectedBibleVersion;
+    const versionConfig = getBibleVersionConfigOrDefault(version);
+    const path = buildBiblePath({
+      version: versionConfig.value,
+      map,
+      book: match.book,
+      chapter: match.chapter,
+      verse: match.verse,
+    });
+    navigateTo(path);
+    referenceDropdownOpen = false;
+    referenceSelectedIdx = -1;
+
+    // Guardar en recientes
+    if (searchForm.searchText) {
+      searchesStore.save({
+        searchText: searchForm.searchText,
+        searchType: 'reference',
+        testament: 'all',
+        books: null,
+        chapters: null,
+        locale: currentLocale,
+        version: currentVersion,
+      });
+    }
+  }
+
+  function onSearchTypeChange() {
+    isReferenceMode = searchForm.searchType === 'reference';
+    referenceDropdownOpen = false;
+    referenceMatches = [];
+    referenceSelectedIdx = -1;
+  }
+
+  function handleReferenceInput() {
+    if (searchForm.searchType !== 'reference') return;
+    const text = searchForm.searchText || '';
+
+    // No mostrar hasta que el usuario haya escrito algo
+    if (text.trim().length < 2) {
+      referenceMatches = [];
+      referenceDropdownOpen = false;
+      return;
+    }
+
+    const matches = searchReferences(text, map, 5);
+    referenceMatches = matches;
+    referenceSelectedIdx = -1;
+    referenceDropdownOpen = matches.length > 0;
+
+    // Si hay un match UNICO con cap+vers (búsqueda inequívoca), navegar directamente
+    if (matches.length === 1 && matches[0].chapter && matches[0].verse) {
+      selectReferenceMatch(matches[0]);
+    }
+  }
+
+  function handleReferenceKeydown(e) {
+    if (!referenceDropdownOpen || !referenceMatches.length) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      referenceSelectedIdx = (referenceSelectedIdx + 1) % referenceMatches.length;
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      referenceSelectedIdx = (referenceSelectedIdx - 1 + referenceMatches.length) % referenceMatches.length;
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      const match = referenceSelectedIdx >= 0 ? referenceMatches[referenceSelectedIdx] : referenceMatches[0];
+      selectReferenceMatch(match);
+    } else if (e.key === 'Escape') {
+      referenceDropdownOpen = false;
+    }
+  }
+
+  function handleReferenceBlur() {
+    // Cerrar dropdown con delay para permitir clicks
+    setTimeout(() => { referenceDropdownOpen = false; }, 150);
+  }
+
   let searchTextInput;
   let isBookDrawerOpen = false;
   let recentSearchesOpen = false;
+  let recentReferencesOpen = false;
   let recentSearchesPanel;
 
-  $: searchForm = $filter;
+  // Reactive: version y locale actuales (para filtrar busquedas por version/idioma)
+  $: currentLocale = getBibleVersionConfigOrDefault($selectedBibleVersion)?.locale || 'ro';
+  $: currentVersion = $selectedBibleVersion || 'vdc';
+
+  // Inicializar searchForm desde el filtro solo una vez (no reactivo,
+  // para que el input del usuario no se sobreescriba al teclear)
+  let searchFormInit = false;
+  $: if (!searchFormInit) {
+    searchForm = { ...$filter };
+    searchFormInit = true;
+  }
   $: selectedBook = Array.isArray(searchForm.book) ? searchForm.book[0] : null;
   $: selectedBookName =
     selectedBook !== null && selectedBook !== undefined ? map[selectedBook] : $_('app.sidebar.scope.'+searchForm.testament);
@@ -67,6 +177,8 @@
           testament: searchForm.testament,
           books: searchForm.book,
           chapters: searchForm.chapter,
+          locale: currentLocale,
+          version: currentVersion,
         });
       }
     }, 1500); // 1.5s después de la última tecla
@@ -110,17 +222,58 @@
 
   // ── Recent searches ────────────────────────────────
   let recentSearches = [];
+  let recentReferences = [];
 
   const openRecentSearches = () => {
-    recentSearches = searchesStore.recent(8);
-    recentSearchesOpen = recentSearches.length > 0;
+    // Solo abrir el dropdown correspondiente al modo actual
+    if (searchForm.searchType === 'reference') {
+      recentReferences = searchesStore.recentFiltered(8, {
+        searchType: 'reference',
+        locale: currentLocale,
+        version: currentVersion,
+      });
+      recentReferencesOpen = recentReferences.length > 0;
+      recentSearchesOpen = false;
+    } else {
+      recentSearches = searchesStore.recentFiltered(8, {
+        searchType: searchForm.searchType,
+        locale: currentLocale,
+        version: currentVersion,
+      });
+      recentSearchesOpen = recentSearches.length > 0;
+      recentReferencesOpen = false;
+    }
   };
 
   const closeRecentSearches = () => {
     recentSearchesOpen = false;
+    recentReferencesOpen = false;
   };
 
   const applyRecentSearch = (s) => {
+    // Para busquedas por referencia, parsear y navegar
+    if (s.searchType === 'reference') {
+      const matches = searchReferences(s.searchText, map, 5);
+      if (matches.length === 1) {
+        selectReferenceMatch(matches[0]);
+      } else if (matches.length > 1) {
+        // Restaurar el texto y mostrar el dropdown
+        searchForm = {
+          ...searchForm,
+          searchText: s.searchText,
+          searchType: 'reference',
+        };
+        referenceMatches = matches;
+        referenceDropdownOpen = true;
+        closeRecentSearches();
+      } else {
+        // Sin match, restaurar el texto
+        searchForm = { ...searchForm, searchText: s.searchText, searchType: 'reference' };
+        closeRecentSearches();
+      }
+      return;
+    }
+    // Busqueda normal: restaurar el form
     searchForm = {
       ...searchForm,
       searchText: s.searchText,
@@ -136,8 +289,12 @@
   const deleteRecentSearch = async (e, id) => {
     e.stopPropagation();
     await searchesStore.remove(id);
-    recentSearches = searchesStore.recent(8);
-    if (recentSearches.length === 0) closeRecentSearches();
+    openRecentSearches();
+    if (searchForm.searchType === 'reference') {
+      if (recentReferences.length === 0) closeRecentSearches();
+    } else {
+      if (recentSearches.length === 0) closeRecentSearches();
+    }
   };
 
   const handleInputFocus = () => {
@@ -164,8 +321,8 @@
 
 <div class="sidebar sticky">
   <form
-    on:change|stopPropagation={() => updateFilter(searchForm)}
-    on:input|stopPropagation={() => updateFilter(searchForm)}
+    on:change|stopPropagation={() => { if (searchForm.searchType !== 'reference') updateFilter(searchForm); }}
+    on:input|stopPropagation={() => { if (searchForm.searchType !== 'reference') updateFilter(searchForm); }}
   >
     <div class="block-erase">
       <span class="filter-text">{$_('app.sidebar.filter')}</span>
@@ -175,25 +332,83 @@
     </div>
 
     <div class="divider"></div>
-    <div class="input-search" class:input-search--with-dropdown={recentSearchesOpen}>
+    <div class="input-search" class:input-search--with-dropdown={recentSearchesOpen || referenceDropdownOpen}>
       <input
         id="searchText"
         type="text"
         autocomplete="off"
         spellcheck="false"
         bind:value={searchForm.searchText}
-        placeholder={$_('app.sidebar.form.search_placeholder')}
+        placeholder={searchForm.searchType === 'reference' ? $_('app.sidebar.form.reference_placeholder') : $_('app.sidebar.form.search_placeholder')}
         bind:this={searchTextInput}
         on:focus={handleInputFocus}
-        on:blur={handleInputBlur}
-        on:input={saveCurrentSearchDebounced}
+        on:blur={searchForm.searchType === 'reference' ? handleReferenceBlur : handleInputBlur}
+        on:input={searchForm.searchType === 'reference' ? handleReferenceInput : saveCurrentSearchDebounced}
+        on:keydown={searchForm.searchType === 'reference' ? handleReferenceKeydown : undefined}
       />
       <button class="clear-search" type="button" aria-label={$_('app.sidebar.clear_search_text')} on:click={clearInput}>
         <span class="icon-error icon--input" aria-hidden="true"></span>
       </button>
     </div>
 
-    {#if recentSearchesOpen && recentSearches.length > 0}
+    <!-- Reference search dropdown -->
+    {#if searchForm.searchType === 'reference' && referenceDropdownOpen && referenceMatches.length > 0}
+      <div class="reference-dropdown" role="listbox" aria-label={$_('app.sidebar.search_type.reference')}>
+        {#each referenceMatches as match, idx (idx)}
+          <button
+            type="button"
+            class="reference-option"
+            class:reference-option--active={idx === referenceSelectedIdx}
+            role="option"
+            aria-selected={idx === referenceSelectedIdx}
+            on:click={() => selectReferenceMatch(match)}
+          >
+            <span class="reference-option__book">{match.name}</span>
+            {#if match.chapter}
+              <span class="reference-option__ref">
+                {match.chapter}{match.verse ? `:${match.verse}` : ''}
+              </span>
+            {/if}
+          </button>
+        {/each}
+      </div>
+    {/if}
+
+    <!-- Recent references dropdown (solo en modo referencia) -->
+    {#if searchForm.searchType === 'reference' && recentReferencesOpen && recentReferences.length > 0}
+      <div class="recent-searches" bind:this={recentSearchesPanel} role="listbox" aria-label={$_('app.sidebar.search_type.reference')}>
+        {#each recentReferences as s (s.id)}
+          <div
+            class="recent-search-item"
+            role="option"
+            aria-selected="false"
+            tabindex="0"
+            on:click={() => applyRecentSearch(s)}
+            on:keydown={(e) => e.key === 'Enter' && applyRecentSearch(s)}
+          >
+            <span class="recent-search-item__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
+                <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
+              </svg>
+            </span>
+            <span class="recent-search-item__text">{s.searchText}</span>
+            <button
+              type="button"
+              class="recent-search-item__delete"
+              aria-label={$_('app.sidebar.recent_searches_delete')}
+              on:click={(e) => deleteRecentSearch(e, s.id)}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="12" height="12">
+                <path d="M18 6 6 18M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+        {/each}
+      </div>
+    {/if}
+
+    <!-- Recent word searches dropdown (solo en modos que no son referencia) -->
+    {#if searchForm.searchType !== 'reference' && recentSearchesOpen && recentSearches.length > 0}
       <div class="recent-searches" bind:this={recentSearchesPanel} role="listbox" aria-label={$_('app.sidebar.recent_searches_label')}>
         {#each recentSearches as s (s.id)}
           <div
@@ -248,6 +463,11 @@
     <label class="radio__label" for="any">
       <input type="radio" id="any" name="searchType" value="some" bind:group={searchForm.searchType} />
       <span>{$_('app.sidebar.search_type.some')}</span>
+    </label>
+
+    <label class="radio__label" for="reference">
+      <input type="radio" id="reference" name="searchType" value="reference" bind:group={searchForm.searchType} on:change={onSearchTypeChange} />
+      <span>{$_('app.sidebar.search_type.reference')}</span>
     </label>
 
     <div class="margin-up">{$_('app.sidebar.search_scope_label')}</div>
@@ -554,6 +774,57 @@
     border-radius: 0.35rem;
     overflow: hidden;
     margin-top: -0.25rem;
+  }
+
+  // === Reference search dropdown ===
+  .reference-dropdown {
+    position: relative;
+    z-index: 11;
+    background: var(--color-sidebar);
+    border: 1px solid rgb(255 255 255 / 22%);
+    border-radius: 0.35rem;
+    overflow: hidden;
+    margin-top: -0.25rem;
+    max-height: 18rem;
+    overflow-y: auto;
+  }
+
+  .reference-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 0;
+    background: transparent;
+    color: rgb(255 255 255 / 92%);
+    font-size: 0.88rem;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.12s;
+    font-family: inherit;
+    border-bottom: 1px solid rgb(255 255 255 / 8%);
+
+    &:last-child { border-bottom: 0; }
+
+    &__book {
+      font-weight: 500;
+    }
+
+    &__ref {
+      font-size: 0.78rem;
+      color: rgb(45 150 205);
+      font-weight: 600;
+      background: rgb(45 150 205 / 14%);
+      padding: 0.1rem 0.4rem;
+      border-radius: 0.25rem;
+    }
+
+    &:hover,
+    &--active {
+      background: rgb(45 150 205 / 28%);
+    }
   }
 
   .recent-search-item {

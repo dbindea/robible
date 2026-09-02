@@ -86,6 +86,7 @@
     type="button"
     class="hamburger"
     class:hamburger--open={$appMenuOpen}
+    class:hamburger--signed={$isAuthenticated}
     aria-label={$appMenuOpen ? $_('app.nav.menu_close') : $_('app.nav.menu_open')}
     aria-expanded={$appMenuOpen}
     aria-controls="app-menu"
@@ -95,9 +96,6 @@
       <span class="hamburger__line"></span>
       <span class="hamburger__line"></span>
       <span class="hamburger__line"></span>
-      {#if $isAuthenticated}
-        <span class="online-dot online-dot--absolute" aria-hidden="true"></span>
-      {/if}
     </span>
     <span class="hamburger__text">{$_('app.nav.menu_label')}</span>
   </button>
@@ -406,7 +404,29 @@
   .hamburger__line:nth-child(2) { top: 0.45rem; }
   .hamburger__line:nth-child(3) { top: 0.9rem; }
 
-  // Online dot — usa la clase global .online-dot--absolute (definida en global.css)
+  // Cuando está logueado: tinte verde (mismo estilo que footer__auth--signed)
+  .hamburger--signed {
+    border-color: #28a74566;
+    background: #28a7451a;
+    color: rgb(20 110 45);
+  }
+
+  :global(html[data-theme='dark']) .hamburger--signed {
+    background: #28a7452e;
+    border-color: #28a74566;
+    color: #7ee79a;
+  }
+
+  // Hover: tinte azul (estilo normal del header)
+  .hamburger--signed:hover {
+    border-color: var(--color-blue);
+    background: color-mix(in srgb, var(--color-blue) 10%, var(--color-white));
+    color: var(--color-text-dark);
+  }
+
+  :global(html[data-theme='dark']) .hamburger--signed:hover {
+    color: #ffffff;
+  }
 
   // Cuando está abierto, las dos exteriores rotan y se cruzan
   // en el centro, la del medio se desvanece → forma una X.

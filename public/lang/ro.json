@@ -54,12 +54,14 @@
       "selected_book": "Cartea selectată",
       "choose_book": "Alege cartea",
       "form": {
-        "search_placeholder": "Caută după cuvintele..."
+        "search_placeholder": "Caută după cuvintele...",
+        "reference_placeholder": "Referință (ex: rom 3 5, 1 ioan 2 6)"
       },
       "search_type": {
         "match": "Conține expresia",
         "every": "Conține cuvintele",
-        "some": "Oricare cuvant"
+        "some": "Oricare cuvant",
+        "reference": "După referință"
       },
       "scope": {
         "all": "Toată Biblia",

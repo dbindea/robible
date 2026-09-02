@@ -1,33 +1,160 @@
 /**
- * Music service — procedural ambient drone + optional ambient tracks.
- * Uses Web Audio API for real-time mixing with independent volume control.
- * No external dependencies, works offline once audio context is created.
+ * Music service — ambient pad sintetico tipo piano/organo.
+ * Procedural: genera acordes suaves con multiples armonicos.
+ * Random start position por reproduccion.
+ *
+ * NO usa archivos externos — todo generado con Web Audio API.
  */
+
+// Acordes relajantes para capitulo de Biblia (mayor, menor, suspension 4)
+const CHORD_PROGRESSIONS = [
+  // I - V - vi - IV (pop clasico)
+  [
+    { root: 0, type: 'maj' },
+    { root: 7, type: 'maj' },
+    { root: 9, type: 'min' },
+    { root: 5, type: 'maj' },
+  ],
+  // vi - IV - I - V (relajante)
+  [
+    { root: 9, type: 'min' },
+    { root: 5, type: 'maj' },
+    { root: 0, type: 'maj' },
+    { root: 7, type: 'maj' },
+  ],
+  // I - vi - IV - V (50s progression)
+  [
+    { root: 0, type: 'maj' },
+    { root: 9, type: 'min' },
+    { root: 5, type: 'maj' },
+    { root: 7, type: 'maj' },
+  ],
+  // I - iii - IV - iv (bossa style)
+  [
+    { root: 0, type: 'maj' },
+    { root: 4, type: 'min' },
+    { root: 5, type: 'maj' },
+    { root: 5, type: 'min' },
+  ],
+  // I - V/V - V - I (clasicismo)
+  [
+    { root: 0, type: 'maj' },
+    { root: 2, type: 'maj' },
+    { root: 7, type: 'maj' },
+    { root: 0, type: 'maj' },
+  ],
+];
+
+// Tono base aleatorio por sesion (C, D, Eb, F, G, A — tonalidades calidas)
+const BASE_KEYS = [0, 2, 3, 5, 7, 9]; // C, D, Eb, F, G, A
+let currentBaseKey = BASE_KEYS[Math.floor(Math.random() * BASE_KEYS.length)];
+
+// Octava base (frecuencias bajas, mas calidas)
+const BASE_OCTAVE = 3;
+
+// Intervalos para construir acordes
+const CHORD_INTERVALS = {
+  maj: [0, 4, 7],
+  min: [0, 3, 7],
+  maj7: [0, 4, 7, 11],
+  min7: [0, 3, 7, 10],
+  sus4: [0, 5, 7],
+};
 
 let audioContext = null;
 let masterGain = null;
 let musicGain = null;
-let droneOscillators = [];
-let droneGainNodes = [];
 let reverbNode = null;
-let currentTrack = null; // 'none' | 'procedural' | 'hymn'
+let dryGain = null;
+let wetGain = null;
+let activeVoices = [];
+let currentTrack = 'none';
+let currentPosition = 0;
+let currentProgression = null;
+let progressionTimer = null;
 let _initialized = false;
 
-const PROCEDURAL_ROOT_FREQ = 130.81; // C3 — deep, calming
+// Frecuencia de MIDI a Hz
+function midiToFreq(midi) {
+  return 440 * Math.pow(2, (midi - 69) / 12);
+}
+
+// Construir un acorde a partir de root (en semitonos desde C0) y tipo
+function buildChord(rootMidi, type) {
+  const intervals = CHORD_INTERVALS[type] || CHORD_INTERVALS.maj;
+  return intervals.map((iv) => rootMidi + iv);
+}
+
+// Selecciona una progresion aleatoria y un root aleatorio
+function pickProgressionAndRoot() {
+  const progression = CHORD_PROGRESSIONS[Math.floor(Math.random() * CHORD_PROGRESSIONS.length)];
+  // Root aleatorio dentro de la tonalidad actual
+  const rootMidi = 12 * (BASE_OCTAVE + 1) + currentBaseKey;
+  return { progression, rootMidi };
+}
 
 /**
- * Common "drone" frequencies for biblical/spiritual ambience.
- * Major chord with octave and fifth for a peaceful, open feel.
+ * Crea un acorde con ADSR suave (tipo piano/organ)
  */
-const DRONE_FREQUENCIES = [
-  PROCEDURAL_ROOT_FREQ, // root C3
-  PROCEDURAL_ROOT_FREQ * 1.5, // perfect fifth G3
-  PROCEDURAL_ROOT_FREQ * 2, // octave C4
-  PROCEDURAL_ROOT_FREQ * 2.5, // major third E4
-  PROCEDURAL_ROOT_FREQ * 3, // perfect fifth G4
-];
+function playChord(rootMidi, type, when, duration) {
+  if (!audioContext) return;
+  if (!Number.isFinite(rootMidi) || !Number.isFinite(when) || !Number.isFinite(duration) || duration <= 0) return;
 
-const DRONE_VOLUMES = [0.12, 0.06, 0.04, 0.03, 0.02];
+  const notes = buildChord(rootMidi, type);
+  const now = when;
+
+  for (const note of notes) {
+    const freq = midiToFreq(note);
+
+    // Oscilador principal (triangle para calidez)
+    const osc = audioContext.createOscillator();
+    osc.type = 'triangle';
+    osc.frequency.value = freq;
+
+    // Sub-oscilador (octava abajo, mas suave)
+    const subOsc = audioContext.createOscillator();
+    subOsc.type = 'sine';
+    subOsc.frequency.value = freq / 2;
+
+    // Gain principal con ADSR
+    const noteGain = audioContext.createGain();
+    const peakGain = 0.06;
+    noteGain.gain.setValueAtTime(0, now);
+    noteGain.gain.linearRampToValueAtTime(peakGain, now + 0.3);
+    noteGain.gain.linearRampToValueAtTime(peakGain * 0.7, now + 0.8);
+    noteGain.gain.setValueAtTime(peakGain * 0.7, now + duration - 0.5);
+    noteGain.gain.linearRampToValueAtTime(0, now + duration);
+
+    // Sub-octava mas bajo
+    const subGain = audioContext.createGain();
+    subGain.gain.setValueAtTime(0, now);
+    subGain.gain.linearRampToValueAtTime(peakGain * 0.4, now + 0.5);
+    subGain.gain.linearRampToValueAtTime(0, now + duration);
+
+    // Conectar
+    osc.connect(noteGain);
+    subOsc.connect(subGain);
+    noteGain.connect(musicGain);
+    subGain.connect(musicGain);
+
+    osc.start(now);
+    subOsc.start(now);
+    osc.stop(now + duration + 0.1);
+    subOsc.stop(now + duration + 0.1);
+
+    activeVoices.push({ osc, subOsc, noteGain, subGain });
+  }
+}
+
+function clearActiveVoices() {
+  for (const v of activeVoices) {
+    try { v.osc.stop(); } catch (_) {}
+    try { v.subOsc.stop(); } catch (_) {}
+    try { v.noteGain.disconnect(); } catch (_) {}
+    try { v.subGain.disconnect(); } catch (_) {}
+  }
+  activeVoices = [];
+}
 
 async function initContext() {
   if (_initialized) return;
@@ -39,16 +166,16 @@ async function initContext() {
     masterGain.gain.value = 1.0;
 
     musicGain = audioContext.createGain();
-    musicGain.gain.value = 0; // starts silent
+    musicGain.gain.value = 0;
 
-    // Simple convolver reverb simulation via delay network
+    // Reverb simple via convolver
     reverbNode = audioContext.createConvolver();
-    reverbNode.buffer = await buildReverbImpulse(audioContext, 3.5, 0.7);
+    reverbNode.buffer = await buildReverbImpulse(audioContext, 4.0, 0.5);
 
-    const dryGain = audioContext.createGain();
-    dryGain.gain.value = 0.55;
-    const wetGain = audioContext.createGain();
-    wetGain.gain.value = 0.45;
+    dryGain = audioContext.createGain();
+    dryGain.gain.value = 0.65;
+    wetGain = audioContext.createGain();
+    wetGain.gain.value = 0.35;
 
     masterGain.connect(dryGain);
     masterGain.connect(reverbNode);
@@ -63,9 +190,6 @@ async function initContext() {
   }
 }
 
-/**
- * Build a synthetic reverb impulse response (exponential decay noise).
- */
 async function buildReverbImpulse(ctx, durationSec, decay) {
   const sampleRate = ctx.sampleRate;
   const length = sampleRate * durationSec;
@@ -77,78 +201,9 @@ async function buildReverbImpulse(ctx, durationSec, decay) {
       channelData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, decay);
     }
   }
-
   return impulse;
 }
 
-/**
- * Start the procedural drone: layered sine oscillators.
- */
-function startProceduralDrone() {
-  if (!_initialized || droneOscillators.length > 0) return;
-
-  const now = audioContext.currentTime;
-
-  DRONE_FREQUENCIES.forEach((freq, i) => {
-    const osc = audioContext.createOscillator();
-    const gain = audioContext.createGain();
-
-    osc.type = i === 0 ? 'sine' : 'sine';
-    osc.frequency.value = freq;
-
-    // Slow vibrato on root note for warmth
-    if (i === 0) {
-      const lfo = audioContext.createOscillator();
-      const lfoGain = audioContext.createGain();
-      lfo.frequency.value = 0.15; // very slow
-      lfoGain.gain.value = 0.3; // subtle depth
-      lfo.connect(lfoGain);
-      lfoGain.connect(osc.frequency);
-      lfo.start(now);
-      droneOscillators.push(lfo);
-    }
-
-    gain.gain.value = 0;
-    gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(DRONE_VOLUMES[i], now + 2.5); // 2.5s fade in
-
-    osc.connect(gain);
-    gain.connect(musicGain);
-    osc.start(now);
-
-    droneOscillators.push(osc);
-    droneGainNodes.push(gain);
-  });
-}
-
-/**
- * Stop the procedural drone.
- */
-function stopProceduralDrone() {
-  if (!_initialized || droneOscillators.length === 0) return;
-
-  const now = audioContext.currentTime;
-
-  droneGainNodes.forEach((gain) => {
-    gain.gain.cancelScheduledValues(now);
-    gain.gain.setValueAtTime(gain.gain.value, now);
-    gain.gain.linearRampToValueAtTime(0, now + 1.5);
-  });
-
-  const oscs = [...droneOscillators];
-  droneOscillators = [];
-  droneGainNodes = [];
-
-  setTimeout(() => {
-    oscs.forEach((osc) => {
-      try { osc.stop(); } catch (_) {}
-    });
-  }, 1600);
-}
-
-/**
- * Resume audio context if suspended (browser autoplay policy).
- */
 async function resumeContext() {
   if (audioContext && audioContext.state === 'suspended') {
     await audioContext.resume();
@@ -156,18 +211,39 @@ async function resumeContext() {
 }
 
 /**
- * Set music volume (0–1).
+ * Reproduce una progresion de acordes en bucle.
+ * Comienza desde un punto aleatorio dentro de la progresion.
  */
-function setVolume(vol) {
-  if (musicGain) {
-    musicGain.gain.value = Math.max(0, Math.min(1, vol));
+function startProgression() {
+  if (!audioContext) return;
+
+  clearActiveVoices();
+  if (progressionTimer) clearTimeout(progressionTimer);
+
+  // Seleccionar nueva progresion con root aleatorio
+  const { progression, rootMidi } = pickProgressionAndRoot();
+  currentProgression = progression;
+
+  // Posicion aleatoria inicial
+  currentPosition = Math.floor(Math.random() * progression.length);
+  const CHORD_DURATION = 8;
+
+  function playNext() {
+    if (currentTrack !== 'procedural' || !audioContext) return;
+
+    const chord = progression[currentPosition];
+    if (!chord || !Number.isFinite(rootMidi)) return;
+    const startTime = audioContext.currentTime + 0.05;
+    playChord(rootMidi, chord.root, chord.type, startTime, CHORD_DURATION);
+
+    currentPosition = (currentPosition + 1) % progression.length;
+
+    progressionTimer = setTimeout(playNext, (CHORD_DURATION - 0.5) * 1000);
   }
+
+  playNext();
 }
 
-/**
- * Start playing a specific music type.
- * @param {'none'|'procedural'|'hymn'} track
- */
 export async function play(track) {
   await initContext();
   await resumeContext();
@@ -178,44 +254,35 @@ export async function play(track) {
   currentTrack = track;
 
   if (track === 'procedural') {
-    startProceduralDrone();
+    startProgression();
   }
-  // hymn track: future — load audio file
 }
 
-/**
- * Stop all music.
- */
 export function stop() {
-  if (!_initialized) return;
-
-  if (currentTrack === 'procedural') {
-    stopProceduralDrone();
-  }
-
+  if (progressionTimer) clearTimeout(progressionTimer);
+  progressionTimer = null;
+  clearActiveVoices();
   currentTrack = 'none';
+  currentProgression = null;
+  currentPosition = 0;
 }
 
-/**
- * Set master volume (affects TTS too if routed through same context).
- * @param {number} vol 0–1
- */
+export function setVolume(vol) {
+  if (musicGain) {
+    musicGain.gain.value = Math.max(0, Math.min(1, vol));
+  }
+}
+
 export function setMasterVolume(vol) {
   if (masterGain) {
     masterGain.gain.value = Math.max(0, Math.min(1, vol));
   }
 }
 
-/**
- * Get current playing state.
- */
 export function getCurrentTrack() {
   return currentTrack || 'none';
 }
 
-/**
- * Check if Web Audio is available.
- */
 export function isAvailable() {
   return !!(window.AudioContext || window.webkitAudioContext);
 }

@@ -15,7 +15,7 @@
     resumeTts,
     endTts,
   } from '../store/ttsStore.js';
-  import { getBibleVersionConfigOrDefault } from '../store/stores.js';
+  import { getBibleVersionConfigOrDefault, immersiveMode, toggleImmersiveMode } from '../store/stores.js';
 
   export let bible = null;
   export let map = null;
@@ -100,6 +100,10 @@
     }
     musicService.play('procedural');
     musicService.setVolume($musicVolume);
+    // Auto-immersive: entrar en modo lectura
+    if (!$immersiveMode) {
+      toggleImmersiveMode();
+    }
     playMusicOnlySequentially(book, chapter, verses, 0);
   }
 
@@ -175,6 +179,10 @@
     musicOnlyTimers.forEach((t) => clearTimeout(t));
     musicOnlyTimers = [];
     stopTts();
+    // Salir del modo immersivo al detener
+    if ($immersiveMode) {
+      toggleImmersiveMode();
+    }
   }
   function pausePlayback() {
     if (musicOnlyTimers.length > 0) {
@@ -341,35 +349,21 @@
 </div>
 
 {:else if available && bible && map && !isActive}
-<!-- ── START BUTTONS — shown when idle on a chapter view ── -->
-<div class="tts-start-group">
-  <button
-    type="button"
-    class="tts-start-btn"
-    on:click={playChapter}
-    aria-label={labels.play_chapter}
-    title={labels.play_chapter}
-  >
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <polygon points="5 3 19 12 5 21 5 3"/>
-    </svg>
-    <span>{labels.play_chapter}</span>
-  </button>
-  <button
-    type="button"
-    class="tts-start-btn tts-start-btn--music"
-    on:click={playMusicOnly}
-    aria-label="Solo música"
-    title="Solo música + autoscroll por versículos"
-  >
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <path d="M9 18V5l12-2v13"/>
-      <circle cx="6" cy="18" r="3"/>
-      <circle cx="18" cy="16" r="3"/>
-    </svg>
-    <span>Solo música</span>
-  </button>
-</div>
+<!-- ── START BUTTON — solo música, centrado abajo ── -->
+<button
+  type="button"
+  class="tts-start-btn tts-start-btn--music tts-start-btn--centered"
+  on:click={playMusicOnly}
+  aria-label="Música + lectura"
+  title="Música + autoscroll por versículos"
+>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M9 18V5l12-2v13"/>
+    <circle cx="6" cy="18" r="3"/>
+    <circle cx="18" cy="16" r="3"/>
+  </svg>
+  <span>Música + lectura</span>
+</button>
 {/if}
 
 <style lang="scss">
@@ -613,15 +607,6 @@
   }
 
   // ── START BUTTONS (idle state) ─────────────────────────────────────────────
-  .tts-start-group {
-    position: fixed;
-    bottom: 1.25rem;
-    right: 1.25rem;
-    z-index: 60;
-    display: flex;
-    gap: 0.5rem;
-  }
-
   .tts-start-btn {
     display: flex;
     align-items: center;
@@ -644,15 +629,6 @@
       box-shadow: 0 6px 20px rgb(45 150 205 / 45%);
     }
     &:active { transform: scale(0.96); }
-
-    @media (max-width: 40rem) {
-      font-size: 0;
-      padding: 0.6rem;
-      border-radius: 50%;
-
-      span { display: none; }
-      svg { width: 1.1rem; height: 1.1rem; }
-    }
   }
 
   .tts-start-btn--music {
@@ -664,10 +640,32 @@
     }
   }
 
-  @media (max-width: 40rem) {
-    .tts-start-group {
-      bottom: 1rem;
-      right: 1rem;
+  // Boton centrado abajo (mitad de pantalla horizontalmente, parte inferior)
+  .tts-start-btn--centered {
+    position: fixed;
+    left: 50%;
+    bottom: 2rem;
+    transform: translateX(-50%);
+    z-index: 60;
+    padding: 0.75rem 1.5rem 0.75rem 1.2rem;
+    font-size: 0.9rem;
+    box-shadow: 0 6px 24px rgb(40 167 69 / 40%);
+    border-radius: 2rem;
+
+    svg { width: 1.2rem; height: 1.2rem; }
+
+    &:hover {
+      transform: translateX(-50%) scale(1.05);
+      box-shadow: 0 8px 32px rgb(40 167 69 / 50%);
+    }
+    &:active { transform: translateX(-50%) scale(0.96); }
+
+    @media (max-width: 40rem) {
+      bottom: 1.25rem;
+      padding: 0.6rem 1rem 0.6rem 0.8rem;
+      font-size: 0.8rem;
+
+      svg { width: 1rem; height: 1rem; }
     }
   }
 </style>
