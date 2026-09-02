@@ -87,6 +87,62 @@
     playVersesSequentially(book, chapter, verses, 0);
   }
 
+  // Modo música sin voz: autoscroll + highlight por versiculo sin TTS
+  let musicOnlyTimers = [];
+  function playMusicOnly() {
+    if (!bible || !map || book === null || chapter === null) return;
+    const verses = bible[book]?.[chapter - 1] || [];
+    ttsService.stop();
+    musicService.stop();
+    if ($ttsAmbient === 'none') {
+      // Forzar ambient procedural para que haya musica
+      ttsAmbient.set('procedural');
+    }
+    musicService.play('procedural');
+    musicService.setVolume($musicVolume);
+    playMusicOnlySequentially(book, chapter, verses, 0);
+  }
+
+  function playMusicOnlySequentially(bookIndex, chapterIndex, verses, verseIndex) {
+    // Limpiar timers anteriores
+    musicOnlyTimers.forEach((t) => clearTimeout(t));
+    musicOnlyTimers = [];
+
+    if (verseIndex >= verses.length) {
+      endTts();
+      musicService.stop();
+      return;
+    }
+    const text = verses[verseIndex];
+    const verseNum = verseIndex + 1;
+    const verseKey = `${bookIndex}-${chapterIndex}-${verseNum}`;
+    const wordCount = text.trim().split(/\s+/).length;
+    const wordIndices = [...Array(wordCount).keys()];
+
+    // Marcar como activo
+    ttsState.update((s) => ({
+      ...s, playing: true, paused: false, wordIndex: -1, wordCount,
+      currentBook: bookIndex, currentChapter: chapterIndex,
+      currentVerse: verseNum, verseText: text, verseKey,
+    }));
+
+    // Animar palabras a velocidad estimada (basada en speed)
+    const baseDelayPerWord = 380 / $ttsSpeed; // ms por palabra
+    wordIndices.forEach((wi) => {
+      const t = setTimeout(() => {
+        updateTtsWord(wi, wordCount);
+      }, wi * baseDelayPerWord);
+      musicOnlyTimers.push(t);
+    });
+
+    // Siguiente versiculo
+    const totalDuration = wordCount * baseDelayPerWord + 600; // +margen
+    const next = setTimeout(() => {
+      playMusicOnlySequentially(bookIndex, chapterIndex, verses, verseIndex + 1);
+    }, totalDuration);
+    musicOnlyTimers.push(next);
+  }
+
   function playVersesSequentially(bookIndex, chapterIndex, verses, verseIndex) {
     if (verseIndex >= verses.length) {
       endTts();
@@ -113,9 +169,39 @@
     });
   }
 
-  function stopPlayback() { ttsService.stop(); musicService.stop(); stopTts(); }
-  function pausePlayback() { ttsService.pause(); pauseTts(); }
-  function resumePlayback() { ttsService.resume(); resumeTts(); }
+  function stopPlayback() {
+    ttsService.stop();
+    musicService.stop();
+    musicOnlyTimers.forEach((t) => clearTimeout(t));
+    musicOnlyTimers = [];
+    stopTts();
+  }
+  function pausePlayback() {
+    if (musicOnlyTimers.length > 0) {
+      musicOnlyTimers.forEach((t) => clearTimeout(t));
+      musicOnlyTimers = [];
+      pauseTts();
+    } else {
+      ttsService.pause();
+      pauseTts();
+    }
+  }
+  function resumePlayback() {
+    // Para music-only: reanudar desde el versiculo actual
+    if (isPaused) {
+      const s = $ttsState;
+      if (s.currentBook !== null && s.verseText) {
+        const verses = bible[s.currentBook]?.[s.currentChapter - 1] || [];
+        const currentIdx = s.currentVerse - 1;
+        if (currentIdx >= 0 && currentIdx < verses.length) {
+          playMusicOnlySequentially(s.currentBook, s.currentChapter, verses, currentIdx);
+          return;
+        }
+      }
+    }
+    ttsService.resume();
+    resumeTts();
+  }
 
   function handleSpeedChange(e) {
     ttsSpeed.set(Number(e.target.value));
@@ -255,19 +341,35 @@
 </div>
 
 {:else if available && bible && map && !isActive}
-<!-- ── START BUTTON — shown when idle on a chapter view ── -->
-<button
-  type="button"
-  class="tts-start-btn"
-  on:click={playChapter}
-  aria-label={labels.play_chapter}
-  title={labels.play_chapter}
->
-  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-    <polygon points="5 3 19 12 5 21 5 3"/>
-  </svg>
-  <span>{labels.play_chapter}</span>
-</button>
+<!-- ── START BUTTONS — shown when idle on a chapter view ── -->
+<div class="tts-start-group">
+  <button
+    type="button"
+    class="tts-start-btn"
+    on:click={playChapter}
+    aria-label={labels.play_chapter}
+    title={labels.play_chapter}
+  >
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <polygon points="5 3 19 12 5 21 5 3"/>
+    </svg>
+    <span>{labels.play_chapter}</span>
+  </button>
+  <button
+    type="button"
+    class="tts-start-btn tts-start-btn--music"
+    on:click={playMusicOnly}
+    aria-label="Solo música"
+    title="Solo música + autoscroll por versículos"
+  >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M9 18V5l12-2v13"/>
+      <circle cx="6" cy="18" r="3"/>
+      <circle cx="18" cy="16" r="3"/>
+    </svg>
+    <span>Solo música</span>
+  </button>
+</div>
 {/if}
 
 <style lang="scss">
@@ -510,12 +612,17 @@
     height: 0.3rem;
   }
 
-  // ── START BUTTON (idle state) ─────────────────────────────────────────────
-  .tts-start-btn {
+  // ── START BUTTONS (idle state) ─────────────────────────────────────────────
+  .tts-start-group {
     position: fixed;
     bottom: 1.25rem;
     right: 1.25rem;
     z-index: 60;
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .tts-start-btn {
     display: flex;
     align-items: center;
     gap: 0.4rem;
@@ -539,14 +646,28 @@
     &:active { transform: scale(0.96); }
 
     @media (max-width: 40rem) {
-      bottom: 1rem;
-      right: 1rem;
       font-size: 0;
       padding: 0.6rem;
       border-radius: 50%;
 
       span { display: none; }
       svg { width: 1.1rem; height: 1.1rem; }
+    }
+  }
+
+  .tts-start-btn--music {
+    background: #28a745;
+    box-shadow: 0 4px 16px rgb(40 167 69 / 35%);
+
+    &:hover {
+      box-shadow: 0 6px 20px rgb(40 167 69 / 45%);
+    }
+  }
+
+  @media (max-width: 40rem) {
+    .tts-start-group {
+      bottom: 1rem;
+      right: 1rem;
     }
   }
 </style>

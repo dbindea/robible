@@ -72,7 +72,7 @@
       title={$isAuthenticated ? $_('auth.logout') : $_('app.app_menu.items.auth.label')}
     >
       {#if $isAuthenticated}
-        <span class="footer__auth-dot" aria-hidden="true"></span>
+        <span class="online-dot online-dot--inline" aria-hidden="true"></span>
         {$currentUser?.nickname}
         <span class="footer__auth-action">· {$_('auth.logout')}</span>
       {:else}
@@ -239,13 +239,7 @@
     }
   }
 
-  .footer__auth-dot {
-    width: 0.5rem;
-    height: 0.5rem;
-    border-radius: 999px;
-    background: #28a745;
-    box-shadow: 0 0 0 3px #28a74538;
-  }
+  // .online-dot (clase global) — sin estilos locales
 
   .theme-toggle {
     display: grid;

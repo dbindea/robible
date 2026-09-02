@@ -165,7 +165,7 @@
               {/if}
             </svg>
             {#if $isAuthenticated}
-              <span class="app-menu__online-dot"></span>
+              <span class="online-dot online-dot--absolute" aria-hidden="true"></span>
             {/if}
           </span>
           <span class="app-menu__text">
@@ -321,16 +321,7 @@
       }
     }
 
-    .app-menu__online-dot {
-      position: absolute;
-      top: 0.1rem;
-      right: 0.1rem;
-      width: 0.5rem;
-      height: 0.5rem;
-      border-radius: 999px;
-      background: #28a745;
-      box-shadow: 0 0 0 3px #28a74538;
-    }
+    // Online dot — usa la clase global .online-dot--absolute (definida en global.css)
 
     .app-menu__text {
       display: flex;
@@ -426,9 +417,7 @@
       color: #7ec8e3;
     }
 
-    .app-menu__online-dot {
-      box-shadow: 0 0 0 3px #28a74538;
-    }
+    // .online-dot (clase global) ya no necesita overrides en dark mode
 
     .app-menu__hint {
       color: rgb(255 255 255 / 50%);

@@ -1,5 +1,5 @@
 <script>
-  import { onMount } from 'svelte';
+  import { onDestroy, onMount } from 'svelte';
   import { _ } from '../../services/i18n.service';
   import { filter } from '../../store/stores';
   import { searchesStore } from '../../store/searchesStore';
@@ -51,17 +51,30 @@
     };
     searchForm = nextForm;
     filter.set(nextForm);
-    // Guardar búsqueda cuando cambia con texto (radio buttons, book selection)
-    if (nextForm.searchText && nextForm.searchText.trim()) {
-      searchesStore.save({
-        searchText: nextForm.searchText,
-        searchType: nextForm.searchType,
-        testament: nextForm.testament,
-        books: nextForm.book,
-        chapters: nextForm.chapter,
-      });
-    }
+    // NO guardar aquí — se guarda solo cuando el usuario termina de escribir
+    // (ver saveCurrentSearchDebounced o selectRecentSearch)
   };
+
+  // Debounce para guardar la búsqueda solo cuando el usuario deja de teclear
+  let saveSearchTimer = null;
+  const saveCurrentSearchDebounced = () => {
+    if (saveSearchTimer) clearTimeout(saveSearchTimer);
+    saveSearchTimer = setTimeout(() => {
+      if (searchForm.searchText && searchForm.searchText.trim()) {
+        searchesStore.save({
+          searchText: searchForm.searchText,
+          searchType: searchForm.searchType,
+          testament: searchForm.testament,
+          books: searchForm.book,
+          chapters: searchForm.chapter,
+        });
+      }
+    }, 1500); // 1.5s después de la última tecla
+  };
+
+  onDestroy(() => {
+    if (saveSearchTimer) clearTimeout(saveSearchTimer);
+  });
 
   const resetForm = () => {
     searchForm = {
@@ -139,19 +152,6 @@
       }
     }, 150);
   };
-
-  // Guardar búsqueda cuando cambia el texto de búsqueda (tras unfocus)
-  const saveCurrentSearch = () => {
-    if (searchForm.searchText && searchForm.searchText.trim()) {
-      searchesStore.save({
-        searchText: searchForm.searchText,
-        searchType: searchForm.searchType,
-        testament: searchForm.testament,
-        books: searchForm.book,
-        chapters: searchForm.chapter,
-      });
-    }
-  };
 </script>
 
 <BookDrawer
@@ -186,7 +186,7 @@
         bind:this={searchTextInput}
         on:focus={handleInputFocus}
         on:blur={handleInputBlur}
-        on:change={saveCurrentSearch}
+        on:input={saveCurrentSearchDebounced}
       />
       <button class="clear-search" type="button" aria-label={$_('app.sidebar.clear_search_text')} on:click={clearInput}>
         <span class="icon-error icon--input" aria-hidden="true"></span>
@@ -487,10 +487,10 @@
       }
 
       &--active {
-        border-color: rgb(40 167 69);
-        background: rgb(40 167 69);
+        border-color: #28a745;
+        background: #28a745;
         color: #ffffff;
-        box-shadow: 0 0 0 3px rgb(40 167 69 / 22%);
+        box-shadow: 0 0 0 3px #28a74538;
       }
     }
   }
