@@ -69,6 +69,23 @@
     referenceDropdownOpen = false;
     referenceMatches = [];
     referenceSelectedIdx = -1;
+    recentSearchesOpen = false;
+    recentReferencesOpen = false;
+    // Limpiar el input y resetear el search filter
+    searchForm = { ...searchForm, searchText: null, chapter: [], book: [] };
+    // Forzar limpieza del DOM input (Svelte bind:value puede tardar)
+    if (searchTextInput) {
+      searchTextInput.value = '';
+    }
+    if (typeof window !== 'undefined') {
+      // Limpiar el filtro del store y navegar a la raiz
+      filter.set(searchForm);
+      // Ir a la raiz sin query string
+      if (window.location.pathname !== '/') {
+        window.history.pushState(null, '', '/');
+        window.dispatchEvent(new PopStateEvent('popstate'));
+      }
+    }
   }
 
   function handleReferenceInput() {

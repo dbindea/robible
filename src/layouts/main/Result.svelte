@@ -33,6 +33,17 @@
   let toastTimer;
   let highlightTimer;
   let highlightedVerseId = '';
+  // State reactivo que cambia en cada navegacion (popstate o pushState manual)
+  let currentPath = '';
+  if (typeof window !== 'undefined') {
+    currentPath = window.location.pathname;
+    window.addEventListener('popstate', () => {
+      currentPath = window.location.pathname;
+    });
+    window.addEventListener('robibile:navigate', () => {
+      currentPath = window.location.pathname;
+    });
+  }
   let currentVerseSeoItem = null;
   let activeVerseTarget = null;
 
@@ -382,8 +393,8 @@
   }
 
   // Highlight directo: cuando la URL tiene un versiculo especifico (navegacion por referencia)
-  $: if (isMounted && Object.keys(map).length && bible) {
-    const bibleRoute = parseBiblePath(window.location.pathname);
+  $: if (isMounted && Object.keys(map).length && bible && currentPath) {
+    const bibleRoute = parseBiblePath(currentPath);
     if (bibleRoute && bibleRoute.chapter && bibleRoute.verse) {
       const bookId = getBookIdFromSlug(map, bibleRoute.bookSlug);
       if (bookId !== null && bookId !== undefined && bookId >= 0) {
