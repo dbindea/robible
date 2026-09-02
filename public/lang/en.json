@@ -54,12 +54,14 @@
       "selected_book": "Selected book",
       "choose_book": "Choose book",
       "form": {
-        "search_placeholder": "Search by words..."
+        "search_placeholder": "Search by words...",
+        "reference_placeholder": "rom 3 5"
       },
       "search_type": {
         "match": "Contains the expression",
         "every": "Contains all words",
-        "some": "Contains any word"
+        "some": "Contains any word",
+        "reference": "By reference"
       },
       "scope": {
         "all": "Whole Bible",

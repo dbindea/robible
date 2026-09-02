@@ -59,7 +59,8 @@
       "search_type": {
         "match": "包含完整语句",
         "every": "包含全部词语",
-        "some": "包含任意词语"
+        "some": "包含任意词语",
+        "reference": "按经文引用"
       },
       "scope": {
         "all": "全本圣经",
