@@ -400,7 +400,7 @@ export async function upsertSearch(request, db, userId, cors) {
   if (typeof searchText !== 'string' || searchText.trim().length < 1 || searchText.trim().length > 200) {
     return error('invalid_search_text', 400, cors);
   }
-  const validTypes = ['match', 'every', 'some'];
+  const validTypes = ['match', 'every', 'some', 'reference'];
   if (!validTypes.includes(searchType)) return error('invalid_search_type', 400, cors);
   const validTestaments = ['all', 'ot', 'nt'];
   if (!validTestaments.includes(testament)) return error('invalid_testament', 400, cors);
