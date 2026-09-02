@@ -774,6 +774,13 @@
     border-radius: 0.35rem;
     overflow: hidden;
     margin-top: -0.25rem;
+    max-height: 16rem;
+    overflow-y: auto;
+  }
+
+  // Limitar visualmente a 5 items (~2.75rem cada uno), el resto hace scroll
+  .recent-search-item {
+    min-height: 2.75rem;
   }
 
   // === Reference search dropdown ===
@@ -785,11 +792,12 @@
     border-radius: 0.35rem;
     overflow: hidden;
     margin-top: -0.25rem;
-    max-height: 18rem;
+    max-height: 15rem;
     overflow-y: auto;
   }
 
   .reference-option {
+    min-height: 2.75rem;
     display: flex;
     align-items: center;
     justify-content: space-between;

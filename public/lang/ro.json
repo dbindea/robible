@@ -55,7 +55,7 @@
       "choose_book": "Alege cartea",
       "form": {
         "search_placeholder": "Caută după cuvintele...",
-        "reference_placeholder": "Referință (ex: rom 3 5, 1 ioan 2 6)"
+        "reference_placeholder": "rom 3 5"
       },
       "search_type": {
         "match": "Conține expresia",
