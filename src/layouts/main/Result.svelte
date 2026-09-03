@@ -1,6 +1,7 @@
 <script>
   import { onDestroy, onMount, tick } from 'svelte';
-  import { ttsState } from '../../store/ttsStore.js';
+  import IconPicker from '../../components/IconPicker.svelte';
+  import TtsPlayer from '../../components/TtsPlayer.svelte';
   import {
     buildBiblePath,
     getBookIdFromSlug,
@@ -11,14 +12,13 @@
   import { replaceDiacritics } from '../../services/filter.service';
   import { _ } from '../../services/i18n.service';
   import { applySeoMetadata, buildCurrentBibleSeo, buildVerseSeo } from '../../services/seo.service';
-  import { filter, getBibleVersionConfigOrDefault, getAvailableBibleVersions, immersiveMode, selectedBibleVersion, compareWithVersion, toggleImmersiveMode } from '../../store/stores';
-  import { topicsStore, topicsContainingVerse } from '../../store/topicsStore';
+  import { openAuthMenu } from '../../store/authMenuStore';
+  import { isAuthenticated } from '../../store/authStore';
   import { favoritesStore } from '../../store/favoritesStore';
   import { notesStore } from '../../store/notesStore';
-  import { isAuthenticated } from '../../store/authStore';
-  import { openAuthMenu } from '../../store/authMenuStore';
-  import TtsPlayer from '../../components/TtsPlayer.svelte';
-  import IconPicker from '../../components/IconPicker.svelte';
+  import { compareWithVersion, filter, getAvailableBibleVersions, getBibleVersionConfigOrDefault, immersiveMode, selectedBibleVersion, toggleImmersiveMode } from '../../store/stores';
+  import { topicsContainingVerse, topicsStore } from '../../store/topicsStore';
+  import { ttsState } from '../../store/ttsStore.js';
 
   export let bible;
   export let map;
@@ -44,8 +44,65 @@
       currentPath = window.location.pathname;
     });
   }
+
   let currentVerseSeoItem = null;
   let activeVerseTarget = null;
+
+  // Reaccionar al cambio de URL: actualizar searchForm y chapterForm
+  $: if (isMounted && currentPath && Object.keys(map).length) {
+    const route = parseBiblePath(currentPath);
+    if (route && route.chapter) {
+      const bookFromSlug = getBookIdFromSlug(map, route.bookSlug);
+      if (bookFromSlug !== null && bookFromSlug !== undefined) {
+        const targetBook = Number(bookFromSlug);
+        const targetChapter1Indexed = route.chapter; // 1-indexed (URL)
+        const targetChapter0Indexed = targetChapter1Indexed - 1; // 0-indexed (form)
+        const currentBook = Array.isArray(searchForm.book) ? searchForm.book[0] : null;
+        const currentChapter = Array.isArray(searchForm.chapter) ? searchForm.chapter[0] : null;
+        if (currentBook !== targetBook || currentChapter !== targetChapter0Indexed) {
+          // Actualizar searchForm solo si NO hay busqueda activa
+          if (!searchForm.searchText) {
+            searchForm = {
+              ...searchForm,
+              book: [targetBook],
+              chapter: [targetChapter0Indexed],
+              searchText: null,
+            };
+            filter.set(searchForm);
+            chapterForm = { chapter: [targetChapter0Indexed] };
+          }
+        }
+        // Si la URL tiene un versiculo, actualizar activeVerseTarget
+        // (sin pasar por setActiveVerseTarget para evitar ciclo reactivo)
+        if (route.verse && !searchForm.searchText) {
+          if (
+            !activeVerseTarget ||
+            activeVerseTarget.book !== targetBook ||
+            activeVerseTarget.chapter !== targetChapter1Indexed ||
+            activeVerseTarget.index !== route.verse
+          ) {
+            activeVerseTarget = {
+              book: targetBook,
+              chapter: targetChapter1Indexed,
+              index: route.verse,
+            };
+            // currentVerseSeoItem se setea en otro reactive que lee activeVerseTarget
+          }
+        }
+      }
+    } else {
+      // URL sin capitulo (ej: "/" tras "Borrar busqueda"): limpiar versiculo activo
+      if (activeVerseTarget) {
+        activeVerseTarget = null;
+        currentVerseSeoItem = null;
+      }
+      // Tambien limpiar el highlight pendiente
+      if (highlightedVerseId) {
+        window.clearTimeout(highlightTimer);
+        highlightedVerseId = '';
+      }
+    }
+  }
 
   // Compare-by-verse menu state
   let compareMenuVerseKey = null;
@@ -392,6 +449,11 @@
     }
   }
 
+  // Trackea el ultimo versiculo de la URL para decidir si auto-entrar en
+  // modo lectura. Solo cambiamos de "verse" cuando la URL apunta a un
+  // versiculo DIFERENTE, asi NO re-entramos en immersive cuando el usuario
+  // sale manualmente.
+  let urlVerseKey = '';
   // Highlight directo: cuando la URL tiene un versiculo especifico (navegacion por referencia)
   $: if (isMounted && Object.keys(map).length && bible && currentPath) {
     const bibleRoute = parseBiblePath(currentPath);
@@ -399,19 +461,30 @@
       const bookId = getBookIdFromSlug(map, bibleRoute.bookSlug);
       if (bookId !== null && bookId !== undefined && bookId >= 0) {
         const verseId = `verse-${bookId}-${bibleRoute.chapter}-${bibleRoute.verse}`;
+        const newKey = `${bookId}-${bibleRoute.chapter}-${bibleRoute.verse}`;
         if (highlightedVerseId !== verseId) {
           highlightedVerseId = verseId;
           window.clearTimeout(highlightTimer);
           highlightTimer = window.setTimeout(() => {
             highlightedVerseId = '';
           }, 3500);
-          // Scroll al versiculo despues de render
-          setTimeout(() => {
-            const el = document.getElementById(verseId);
-            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          }, 300);
+          // Auto-immersive SOLO si es un versiculo NUEVO en la URL
+          // (no si el usuario sigue en el mismo versiculo y sale manualmente)
+          if (urlVerseKey !== newKey && !$immersiveMode) {
+            toggleImmersiveMode();
+          }
+          urlVerseKey = newKey;
         }
+        // Scroll al versiculo despues de render
+        setTimeout(() => {
+          const el = document.getElementById(verseId);
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 300);
       }
+    } else {
+      // URL sin versiculo: resetear el tracking para que el proximo
+      // versiculo active auto-immersive
+      urlVerseKey = '';
     }
   }
 
@@ -632,6 +705,7 @@
     if (searchForm.searchText) {
       if (window.location.pathname.startsWith('/biblia/') || window.location.pathname.startsWith('/verse/')) {
         window.history.replaceState(null, '', '/');
+        window.dispatchEvent(new CustomEvent('robibile:navigate'));
       }
       return;
     }
@@ -639,8 +713,21 @@
     if (selectedBook === null || selectedBook === undefined) {
       if (window.location.pathname.startsWith('/biblia/') || window.location.pathname.startsWith('/verse/')) {
         window.history.replaceState(null, '', '/');
+        window.dispatchEvent(new CustomEvent('robibile:navigate'));
       }
       return;
+    }
+
+    // Si la URL actual ya tiene un versiculo especifico y coincide con el
+    // capitulo actual, preservarlo. Asi no reescribimos /biblia/X/Y/Z/W a
+    // /biblia/X/Y al navegar por referencia.
+    const currentRoute = parseBiblePath(window.location.pathname);
+    if (currentRoute && currentRoute.chapter && currentRoute.verse) {
+      const sameChapter = currentRoute.chapter === selectedChapterLabel;
+      if (sameChapter) {
+        // El capitulo coincide: dejar la URL tal cual (ya tiene el versiculo)
+        return;
+      }
     }
 
     const nextPath = activeVerseTarget
@@ -654,6 +741,7 @@
 
     if (window.location.pathname !== nextPath) {
       window.history.replaceState(null, '', nextPath);
+      window.dispatchEvent(new CustomEvent('robibile:navigate'));
     }
   };
 
@@ -921,7 +1009,6 @@
     {@const primaryTopic = verseTopics[0]}
     {@const hasNote = !!$notesStore.find((n) => n.book === item.book && n.chapter === item.chapter && n.verse === item.index)}
     <div
-      class:verse--highlighted={highlightedVerseId === getVerseId(item)}
       class:verse--tts-active={isVerseTtsActive(item.key)}
       class:highlight-verse={isVerseTtsActive(item.key) || highlightedVerseId === getVerseId(item)}
       class="verse"
@@ -2036,7 +2123,7 @@
   }
 
   // === FAVORITE BUTTON ===
-  // Siempre visible (es la acción primaria). Estado activo = estrella rellena en color.
+  // Siempre visible (es la acción primaria). Estado activo = estrella rellena en amarillo.
   .favorite-btn {
     opacity: 1;
 
@@ -2049,11 +2136,11 @@
     }
 
     &--active {
-      border-color: #28a745;
-      background: #28a7451a;
-      color: #28a745;
+      color: rgb(202, 138, 4); // yellow-600 (legible sobre fondo claro)
+      border-color: rgb(202, 138, 4);
+      background: color-mix(in srgb, rgb(202, 138, 4) 14%, var(--color-white));
 
-      svg { fill: #28a745; }
+      svg { fill: rgb(202, 138, 4); }
     }
 
     &:disabled {
@@ -2067,10 +2154,10 @@
     border-color: rgb(255 255 255 / 14%);
 
     &--active {
-      background: color-mix(in srgb, #5dde86 20%, #1e2d3d);
-      border-color: #5dde86;
-      color: #5dde86;
-      svg { fill: #5dde86; }
+      background: color-mix(in srgb, #fbbf24 20%, #1e2d3d); // yellow-400
+      border-color: #fbbf24;
+      color: #fbbf24;
+      svg { fill: #fbbf24; }
     }
   }
 
@@ -2492,7 +2579,7 @@
     inset: 0;
     z-index: 110;
     display: flex;
-    align-items: stretch;
+    align-items: center;
     justify-content: center;
 
     // Inner panel (like auth-modal__panel) — full screen on mobile, centered on desktop
@@ -2501,28 +2588,20 @@
     flex-direction: column;
     gap: 0.85rem;
     width: 95%;
-    height: 95dvh;
-    margin: auto;
     max-width: 26rem;
-    max-height: 40rem;
+    max-height: 85dvh;
+    margin: auto;
     overflow: hidden;
     padding: 1.25rem;
     background: var(--color-white);
     border-radius: 0.6rem;
     box-shadow: var(--box-shadow-down);
     color: var(--color-bg-dark);
-    animation: menuFadeIn 0.18s ease;
 
     @media (max-width: 480px) {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
       width: 95%;
-      height: 75vh;
-      margin: 0;
       max-width: none;
-      max-height: 75vh;
+      max-height: 85dvh;
       padding: 1rem;
       gap: 0.65rem;
       border-radius: 0.5rem;

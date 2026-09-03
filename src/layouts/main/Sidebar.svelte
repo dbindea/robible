@@ -71,20 +71,18 @@
     referenceSelectedIdx = -1;
     recentSearchesOpen = false;
     recentReferencesOpen = false;
-    // Limpiar el input y resetear el search filter
-    searchForm = { ...searchForm, searchText: null, chapter: [], book: [] };
-    // Forzar limpieza del DOM input (Svelte bind:value puede tardar)
+    // Limpiar SOLO el texto de busqueda — no chapter/book (esos vienen de la URL)
+    searchForm = { ...searchForm, searchText: null };
     if (searchTextInput) {
       searchTextInput.value = '';
     }
+    // Resetear el filtro del store: solo el texto, mantener chapter/book
     if (typeof window !== 'undefined') {
-      // Limpiar el filtro del store y navegar a la raiz
-      filter.set(searchForm);
-      // Ir a la raiz sin query string
-      if (window.location.pathname !== '/') {
-        window.history.pushState(null, '', '/');
-        window.dispatchEvent(new PopStateEvent('popstate'));
-      }
+      filter.set({
+        ...searchForm,
+        searchText: null,
+        searchType: searchForm.searchType,
+      });
     }
   }
 
@@ -154,17 +152,14 @@
   $: selectedBookName =
     selectedBook !== null && selectedBook !== undefined ? map[selectedBook] : $_('app.sidebar.scope.'+searchForm.testament);
 
-  // Si el estado restaurado dice "toda la biblia" pero quedó un libro
-  // seleccionado de una búsqueda anterior, limpiamos para que el radio
-  // "All Bible" signifique realmente TODOS los libros.
-  // (Bug antiguo: el radio mostraba "all" pero searchForm.book seguía
-  // restringido a un libro específico, devolviendo 0 resultados.
-  // El usuario descubría que cambiando a NT y volviendo a All funcionaba.)
+  // Nota historica: antes habia un cleanup aqui que reseteaba book/chapter
+  // cuando testament='all' y book tenia elementos. Eso era para un bug de
+  // localStorage legacy, PERO tambien disparaba al remontar Sidebar (cuando
+  // el usuario sale de modo lectura con Escape), borrando el book que el
+  // Result.svelte acaba de setear desde la URL → URL se reseteaba a /.
+  // El radio on:change ya limpia book al cambiar de testament, asi que el
+  // cleanup manual ya no es necesario.
   onMount(() => {
-    if ($filter.testament === 'all' && Array.isArray($filter.book) && $filter.book.length > 0) {
-      const cleaned = { ...$filter, book: [], chapter: [] };
-      filter.set(cleaned);
-    }
     if (window.matchMedia('(min-width: 58rem)').matches) {
       searchTextInput?.focus();
     }
@@ -468,23 +463,23 @@
     <div class="margin-up">{$_('app.sidebar.search_type_label')}</div>
 
     <label class="radio__label" for="match">
-      <input type="radio" id="match" name="searchType" value="match" bind:group={searchForm.searchType} />
+      <input type="radio" id="match" name="searchType" value="match" bind:group={searchForm.searchType} on:change={onSearchTypeChange} />
       <span>{$_('app.sidebar.search_type.match')}</span>
     </label>
 
     <label class="radio__label" for="exact">
-      <input type="radio" id="exact" name="searchType" value="every" bind:group={searchForm.searchType} />
+      <input type="radio" id="exact" name="searchType" value="every" bind:group={searchForm.searchType} on:change={onSearchTypeChange} />
       <span>{$_('app.sidebar.search_type.every')}</span></label
     >
 
     <label class="radio__label" for="any">
-      <input type="radio" id="any" name="searchType" value="some" bind:group={searchForm.searchType} />
+      <input type="radio" id="any" name="searchType" value="some" bind:group={searchForm.searchType} on:change={onSearchTypeChange} />
       <span>{$_('app.sidebar.search_type.some')}</span>
     </label>
 
-    <label class="radio__label" for="reference">
+    <label class="radio__label radio__label--with-badge" for="reference">
       <input type="radio" id="reference" name="searchType" value="reference" bind:group={searchForm.searchType} on:change={onSearchTypeChange} />
-      <span>{$_('app.sidebar.search_type.reference')}</span>
+      <span>{$_('app.sidebar.search_type.reference')}<span class="badge-new">New</span></span>
     </label>
 
     <div class="margin-up">{$_('app.sidebar.search_scope_label')}</div>
@@ -574,6 +569,13 @@
     gap: 0.5rem;
     margin-left: 1rem;
     line-height: 1.45;
+
+    // Contenedor del texto + badge New
+    > span {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
 
     input[type='radio'] {
       position: absolute;
@@ -791,13 +793,31 @@
     border-radius: 0.35rem;
     overflow: hidden;
     margin-top: -0.25rem;
-    max-height: 16rem;
+    max-height: 11rem; // 4 items × 2.75rem = 11rem; el resto hace scroll
     overflow-y: auto;
   }
 
-  // Limitar visualmente a 5 items (~2.75rem cada uno), el resto hace scroll
+  // Cada item ocupa 2.75rem; con max-height 11rem se ven 4 sin scroll
   .recent-search-item {
     min-height: 2.75rem;
+  }
+
+  // === Badge "New" para Por referencia ===
+  .badge-new {
+    display: inline-block;
+    padding: 0.1rem 0.45rem;
+    font-size: 0.62rem;
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);
+    border-radius: 0.3rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    line-height: 1.2;
+    transform: rotate(-8deg);
+    transform-origin: center;
+    box-shadow: 0 1px 3px rgb(22 163 74 / 30%);
+    flex-shrink: 0;
   }
 
   // === Reference search dropdown ===

@@ -34,8 +34,8 @@
   const SPEED_OPTIONS = [
     { value: 0.75, label: '0.75×' },
     { value: 1.0, label: '1×' },
-    { value: 1.25, label: '1.25×' },
     { value: 1.5, label: '1.5×' },
+    { value: 2.0, label: '2×' },
   ];
 
   const AMBIENT_OPTIONS = [
