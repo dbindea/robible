@@ -449,31 +449,25 @@
     }
   }
 
-  // Trackea el ultimo versiculo de la URL para decidir si auto-entrar en
-  // modo lectura. Solo cambiamos de "verse" cuando la URL apunta a un
-  // versiculo DIFERENTE, asi NO re-entramos en immersive cuando el usuario
-  // sale manualmente.
-  let urlVerseKey = '';
+  // Trackea el versiculo de la URL para evitar re-disparar el timer
+  let lastUrlVerse = '';
   // Highlight directo: cuando la URL tiene un versiculo especifico (navegacion por referencia)
+  // NO entra en modo lectura automaticamente: el usuario quiere gestionar
+  // el modo lectura manualmente (poder volver a buscar sin tener que salir).
+  // Solo disparamos el timer cuando la URL cambia a un versiculo NUEVO.
   $: if (isMounted && Object.keys(map).length && bible && currentPath) {
     const bibleRoute = parseBiblePath(currentPath);
     if (bibleRoute && bibleRoute.chapter && bibleRoute.verse) {
       const bookId = getBookIdFromSlug(map, bibleRoute.bookSlug);
       if (bookId !== null && bookId !== undefined && bookId >= 0) {
         const verseId = `verse-${bookId}-${bibleRoute.chapter}-${bibleRoute.verse}`;
-        const newKey = `${bookId}-${bibleRoute.chapter}-${bibleRoute.verse}`;
-        if (highlightedVerseId !== verseId) {
+        if (lastUrlVerse !== verseId) {
+          lastUrlVerse = verseId;
           highlightedVerseId = verseId;
           window.clearTimeout(highlightTimer);
           highlightTimer = window.setTimeout(() => {
             highlightedVerseId = '';
-          }, 3500);
-          // Auto-immersive SOLO si es un versiculo NUEVO en la URL
-          // (no si el usuario sigue en el mismo versiculo y sale manualmente)
-          if (urlVerseKey !== newKey && !$immersiveMode) {
-            toggleImmersiveMode();
-          }
-          urlVerseKey = newKey;
+          }, 1500);
         }
         // Scroll al versiculo despues de render
         setTimeout(() => {
@@ -481,10 +475,6 @@
           if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }, 300);
       }
-    } else {
-      // URL sin versiculo: resetear el tracking para que el proximo
-      // versiculo active auto-immersive
-      urlVerseKey = '';
     }
   }
 
@@ -780,11 +770,12 @@
     window.clearTimeout(highlightTimer);
     highlightTimer = window.setTimeout(() => {
       highlightedVerseId = '';
-    }, 2400);
+    }, 1500);
   };
 
   const navigateToVerse = async (item) => {
     const verseId = getVerseId(item);
+    const path = getVerseSharePath(item);
     setActiveVerseTarget(item);
     filter.set({
       ...searchForm,
@@ -793,7 +784,11 @@
       book: [item.book],
       chapter: [item.chapter - 1],
     });
-    window.history.replaceState(null, '', getVerseSharePath(item));
+    window.history.replaceState(null, '', path);
+    // Dispatch para que el listener de currentPath se entere del cambio
+    // (replaceState no dispara popstate). Tambien pasamos el path para que
+    // el Sidebar pueda limpiar su searchForm al navegar a un versiculo.
+    window.dispatchEvent(new CustomEvent('robibile:navigate', { detail: { pathname: path } }));
     await scrollToVerse(verseId);
   };
 
