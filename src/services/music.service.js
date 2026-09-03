@@ -73,6 +73,7 @@ let currentPosition = 0;
 let currentProgression = null;
 let progressionTimer = null;
 let _initialized = false;
+let desiredVolume = 0.5; // volumen pendiente, se aplica al inicializar
 
 // Frecuencia de MIDI a Hz
 function midiToFreq(midi) {
@@ -95,12 +96,17 @@ function pickProgressionAndRoot() {
 
 /**
  * Crea un acorde con ADSR suave (tipo piano/organ)
+ * rootMidi: MIDI base de la tonalidad actual (ej: 48 = C3)
+ * rootOffset: desplazamiento en semitonos desde la base (ej: 0=I, 7=V)
+ * type: tipo de acorde ('maj', 'min', 'maj7', etc.)
+ * when: tiempo de inicio (audioContext.currentTime + delta)
+ * duration: duracion en segundos
  */
-function playChord(rootMidi, type, when, duration) {
+function playChord(rootMidi, rootOffset, type, when, duration) {
   if (!audioContext) return;
   if (!Number.isFinite(rootMidi) || !Number.isFinite(when) || !Number.isFinite(duration) || duration <= 0) return;
 
-  const notes = buildChord(rootMidi, type);
+  const notes = buildChord(rootMidi + rootOffset, type);
   const now = when;
 
   for (const note of notes) {
@@ -166,7 +172,7 @@ async function initContext() {
     masterGain.gain.value = 1.0;
 
     musicGain = audioContext.createGain();
-    musicGain.gain.value = 0;
+    musicGain.gain.value = desiredVolume;
 
     // Reverb simple via convolver
     reverbNode = audioContext.createConvolver();
@@ -268,8 +274,9 @@ export function stop() {
 }
 
 export function setVolume(vol) {
+  desiredVolume = Math.max(0, Math.min(1, vol));
   if (musicGain) {
-    musicGain.gain.value = Math.max(0, Math.min(1, vol));
+    musicGain.gain.value = desiredVolume;
   }
 }
 
