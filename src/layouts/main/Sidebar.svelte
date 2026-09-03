@@ -163,6 +163,27 @@
     if (window.matchMedia('(min-width: 58rem)').matches) {
       searchTextInput?.focus();
     }
+    // Cuando el usuario hace click en un resultado de busqueda por palabras,
+    // Result.svelte navega al versículo. En ese momento el form's on:change
+    // se dispara (focus sale del input) y re-aplica el searchText, revirtiendo
+    // la navegacion. Escuchamos el evento para limpiar el searchForm.
+    const handleNavigationAway = (e) => {
+      const detail = e?.detail;
+      const newPath = detail?.pathname || window.location.pathname;
+      // Si la nueva URL es un versiculo de biblia, limpiar el searchForm
+      if (newPath && newPath.startsWith('/biblia/') && /\/\d+\/\d+$/.test(newPath)) {
+        if (searchForm.searchText) {
+          searchForm = { ...searchForm, searchText: null };
+          if (searchTextInput) {
+            searchTextInput.value = '';
+          }
+        }
+      }
+    };
+    window.addEventListener('robibile:navigate', handleNavigationAway);
+    return () => {
+      window.removeEventListener('robibile:navigate', handleNavigationAway);
+    };
   });
 
   const updateFilter = (form) => {

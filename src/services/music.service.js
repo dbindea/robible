@@ -6,51 +6,52 @@
  * NO usa archivos externos — todo generado con Web Audio API.
  */
 
-// Acordes relajantes para capitulo de Biblia (mayor, menor, suspension 4)
+// Acordes alegres para capitulo de Biblia — progresiones uplifting
+// (mas mayores, ritmo animado, cambios rapidos)
 const CHORD_PROGRESSIONS = [
-  // I - V - vi - IV (pop clasico)
+  // I - IV - V - I (upbeat clasico)
+  [
+    { root: 0, type: 'maj' },
+    { root: 5, type: 'maj' },
+    { root: 7, type: 'maj' },
+    { root: 0, type: 'maj' },
+  ],
+  // I - V - vi - IV (pop, muy alegre)
   [
     { root: 0, type: 'maj' },
     { root: 7, type: 'maj' },
     { root: 9, type: 'min' },
     { root: 5, type: 'maj' },
   ],
-  // vi - IV - I - V (relajante)
+  // vi - IV - I - V (lifting, esperanzador)
   [
     { root: 9, type: 'min' },
     { root: 5, type: 'maj' },
     { root: 0, type: 'maj' },
     { root: 7, type: 'maj' },
   ],
-  // I - vi - IV - V (50s progression)
+  // I - ii - IV - V (doo-wop, retro alegre)
   [
     { root: 0, type: 'maj' },
+    { root: 2, type: 'min' },
+    { root: 5, type: 'maj' },
+    { root: 7, type: 'maj' },
+  ],
+  // I - IV - vi - V (rock/pop uplifting)
+  [
+    { root: 0, type: 'maj' },
+    { root: 5, type: 'maj' },
     { root: 9, type: 'min' },
-    { root: 5, type: 'maj' },
     { root: 7, type: 'maj' },
-  ],
-  // I - iii - IV - iv (bossa style)
-  [
-    { root: 0, type: 'maj' },
-    { root: 4, type: 'min' },
-    { root: 5, type: 'maj' },
-    { root: 5, type: 'min' },
-  ],
-  // I - V/V - V - I (clasicismo)
-  [
-    { root: 0, type: 'maj' },
-    { root: 2, type: 'maj' },
-    { root: 7, type: 'maj' },
-    { root: 0, type: 'maj' },
   ],
 ];
 
-// Tono base aleatorio por sesion (C, D, Eb, F, G, A — tonalidades calidas)
-const BASE_KEYS = [0, 2, 3, 5, 7, 9]; // C, D, Eb, F, G, A
+// Tono base aleatorio por sesion (C, D, E, F, G, A — tonalidades brillantes)
+const BASE_KEYS = [0, 2, 4, 5, 7, 9]; // C, D, E, F, G, A
 let currentBaseKey = BASE_KEYS[Math.floor(Math.random() * BASE_KEYS.length)];
 
-// Octava base (frecuencias bajas, mas calidas)
-const BASE_OCTAVE = 3;
+// Octava base (mas aguda = mas alegre)
+const BASE_OCTAVE = 4;
 
 // Intervalos para construir acordes
 const CHORD_INTERVALS = {
@@ -232,7 +233,7 @@ function startProgression() {
 
   // Posicion aleatoria inicial
   currentPosition = Math.floor(Math.random() * progression.length);
-  const CHORD_DURATION = 8;
+  const CHORD_DURATION = 3.5; // acordes cortos para que sea animado, no eterno
 
   function playNext() {
     if (currentTrack !== 'procedural' || !audioContext) return;
@@ -261,6 +262,46 @@ export async function play(track) {
 
   if (track === 'procedural') {
     startProgression();
+  }
+}
+
+/**
+ * Pausa la musica sin reiniciar la progresion.
+ * Usa audioContext.suspend() para congelar el tiempo de audio (todos los
+ * osciladores pausados exactamente).
+ */
+export function pause() {
+  if (audioContext && audioContext.state === 'running') {
+    audioContext.suspend();
+  }
+  if (progressionTimer) {
+    clearTimeout(progressionTimer);
+    progressionTimer = null;
+  }
+}
+
+/**
+ * Reanuda la musica desde donde se pauso.
+ * Usa audioContext.resume() para descongelar el tiempo.
+ */
+export async function resume() {
+  if (audioContext && audioContext.state === 'suspended') {
+    await audioContext.resume();
+  }
+  // Si la progresion estaba activa, continuar desde la posicion actual
+  if (currentTrack === 'procedural' && currentProgression && !progressionTimer) {
+    const CHORD_DURATION = 3.5;
+    function playNext() {
+      if (currentTrack !== 'procedural' || !audioContext) return;
+      const { progression, rootMidi } = { progression: currentProgression, rootMidi: 12 * (BASE_OCTAVE + 1) + currentBaseKey };
+      const chord = progression[currentPosition];
+      if (!chord || !Number.isFinite(rootMidi)) return;
+      const startTime = audioContext.currentTime + 0.05;
+      playChord(rootMidi, chord.root, chord.type, startTime, CHORD_DURATION);
+      currentPosition = (currentPosition + 1) % progression.length;
+      progressionTimer = setTimeout(playNext, (CHORD_DURATION - 0.5) * 1000);
+    }
+    playNext();
   }
 }
 
@@ -296,6 +337,8 @@ export function isAvailable() {
 
 export const musicService = {
   play,
+  pause,
+  resume,
   stop,
   setVolume,
   setMasterVolume,

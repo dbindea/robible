@@ -179,12 +179,13 @@
     musicOnlyTimers.forEach((t) => clearTimeout(t));
     musicOnlyTimers = [];
     stopTts();
-    // Salir del modo immersivo al detener
+    // Salir del modo immersivo al detener y volver a pantalla normal
     if ($immersiveMode) {
       toggleImmersiveMode();
     }
   }
   function pausePlayback() {
+    // Pausar tanto la lectura como la musica
     if (musicOnlyTimers.length > 0) {
       musicOnlyTimers.forEach((t) => clearTimeout(t));
       musicOnlyTimers = [];
@@ -193,8 +194,12 @@
       ttsService.pause();
       pauseTts();
     }
+    // Pausar la musica de fondo
+    musicService.pause();
   }
-  function resumePlayback() {
+  async function resumePlayback() {
+    // Reanudar la musica de fondo
+    await musicService.resume();
     // Para music-only: reanudar desde el versiculo actual
     if (isPaused) {
       const s = $ttsState;
