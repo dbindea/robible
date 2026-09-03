@@ -21,8 +21,19 @@
     { code: 'zh', label: '中文', short: 'ZH' },
   ];
 
+  // Idioma activo derivado de la URL (?lang=xx) — se actualiza al cambiar.
+  // Default 'ro' (igual que el i18n service) para SSR/primer render.
+  let activeLang = 'ro';
+  if (typeof window !== 'undefined') {
+    activeLang = new URLSearchParams(window.location.search).get('lang') || 'ro';
+    window.addEventListener('popstate', () => {
+      activeLang = new URLSearchParams(window.location.search).get('lang') || 'ro';
+    });
+  }
+
   function setLocale(code) {
     if (typeof window === 'undefined') return;
+    activeLang = code; // reflect click immediately even before reload
     const url = new URL(window.location.href);
     url.searchParams.set('lang', code);
     // Recargar para que el i18n service cargue el nuevo locale
@@ -281,7 +292,7 @@ ${JSON.stringify({
                 <button
                   type="button"
                   class="hero__lang-btn"
-                  class:hero__lang-btn--active={i === 0}
+                  class:hero__lang-btn--active={loc.code === activeLang}
                   on:click={() => setLocale(loc.code)}
                   aria-label={loc.label}
                 >{loc.short}</button>
