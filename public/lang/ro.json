@@ -336,5 +336,146 @@
       "backend_unavailable": "Serverul nu este disponibil. Se folosește cache local.",
       "unknown": "A apărut o eroare. Încearcă din nou."
     }
+  },
+  "landing": {
+    "skip_to_content": "Sari la conținut",
+    "meta": {
+      "title": "Biblia care nu te urmărește. 4 limbi. Fără reclame.",
+      "description": "RoBible este o aplicație web gratuită pentru citit, căutat și studiat Biblia. Fără trackere, fără reclame, fără cookie-uri de marketing. În română, spaniolă, engleză și chineză."
+    },
+    "hero": {
+      "eyebrow": "Biblia online — gratuită, fără reclame",
+      "title": "Scriptura pe care o poți avea încredere. Și în telefon.",
+      "lede": "66 de cărți. 31.102 versete. 4 limbi. Căutare inteligentă, comparare de versiuni, note sincronizate — totul fără reclame, fără trackere, fără abonament.",
+      "cta_primary": "Începe să citești",
+      "cta_secondary": "Încearcă demo",
+      "lang_label": "Alege limba",
+      "scroll": "Derulează în jos"
+    },
+    "demo": {
+      "eyebrow": "Demo live",
+      "hint": "Scrie o referință (ex: rom 3 5) și apasă Enter — te ducem direct la verset, cu evidențiere verde.",
+      "placeholder": "rom 3 5, 1 ioan 2 6, geneza 1:1…",
+      "button": "Caută",
+      "aria": "Căutare de referință în direct",
+      "no_results": "Niciun rezultat. Încearcă alt format (ex: rom 3 5, 1co 13 4, fapte 2 38).",
+      "error": "A apărut o eroare. Încearcă din nou.",
+      "open": "Deschide versetul →"
+    },
+    "stats": {
+      "label": "Cifrele proiectului",
+      "languages": "Limbi",
+      "books": "Cărți",
+      "verses": "Versete",
+      "free": "Preț",
+      "free_value": "Gratuit"
+    },
+    "features": {
+      "eyebrow": "Ce face RoBible",
+      "title": "Funcții gândite pentru studiu serios — și citit comod.",
+      "f1": {
+        "title": "Căutare prin referință, nu prin indice",
+        "text": "Scrii 'rom 3 5' sau '1 ioan 2 6' sau 'geneza 1:1' și ajungi direct. Funcționează și cu diacritice, și cu greșeli de tastare.",
+        "example": "rom 3 5 → Romani 3:5"
+      },
+      "f2": {
+        "title": "Caută în text, nu doar în citate",
+        "text": "Caută cuvinte, expresii sau combinații. Poți căuta în toată Biblia, într-un testament sau într-o singură carte.",
+        "example": "„frică de Dumnezeu\" → 74 rezultate"
+      },
+      "f3": {
+        "title": "Compară versiuni, verset cu verset",
+        "text": "Vezi același pasaj în două traduceri, în paralel. Util pentru studiu aprofundat sau pentru predare.",
+        "example": "VDC vs RVL — Ioan 3:16"
+      },
+      "f4": {
+        "title": "Note și favorite în cloud",
+        "text": "Scrie note pe versete, grupează-le pe teme, salvează favorite. Totul se sincronizează între dispozitive, gratuit, fără card.",
+        "example": "Notița ta pe Ioan 3:16 — pe telefon, tabletă, laptop."
+      }
+    },
+    "why": {
+      "eyebrow": "De ce RoBible",
+      "title": "Pentru că o Biblie nu ar trebui să fie un produs.",
+      "lede": "Nu vrem banii tăi, nu vrem atenția ta, nu vrem datele tale. Vrem doar să citești Scriptura fără obstacole.",
+      "w1": {
+        "title": "Fără trackere. Fără reclame. Fără cookie-uri de marketing.",
+        "text": "Nici Google Analytics, nici Facebook Pixel, nici reclame sponsorizate. Citești, atât."
+      },
+      "w2": {
+        "title": "Funcționează offline (PWA).",
+        "text": "Instalează aplicația pe telefon. Se descarcă o dată, apoi merge fără internet. Perfect pentru călătorii, predici, retreaturi."
+      },
+      "w3": {
+        "title": "4 limbi din prima ziua: ro, es, en, zh.",
+        "text": "Nu am adăugat limbi pentru marketing. Le adăugăm pentru că fiecare merită Scriptura în limba sa."
+      },
+      "w4": {
+        "title": "Cod deschis. Fără surprize.",
+        "text": "Codul e pe GitHub. Dacă nu-ți place o decizie, o poți schimba. Sau poți găsi pe cineva care o face."
+      }
+    },
+    "audience": {
+      "eyebrow": "Pentru cine",
+      "title": "Fiecare cititor, în felul lui.",
+      "p1": {
+        "title": "Studiu individual",
+        "text": "Citești, cauți, notezi. Fără distragere, fără cont obligatoriu, fără reclame între versete.",
+        "cta": "Deschide Biblia"
+      },
+      "p2": {
+        "title": "Predare și studiu în grup",
+        "text": "Compară traduceri, ia notițe pe teme, pregătește lecții fără să te lupți cu interfața.",
+        "cta": "Compară versiuni"
+      },
+      "p3": {
+        "title": "Doar curiozitate",
+        "text": "Vrei să cauți un citat pe care l-ai auzit la radio. N-ai nevoie de cont. Scrii și găsești.",
+        "cta": "Caută un verset"
+      }
+    },
+    "compare": {
+      "eyebrow": "Comparație onestă",
+      "title": "Ce avem. Ce nu avem. Fără promisiuni.",
+      "lede": "Nu pretindem că suntem perfecți. Iată ce oferim — și ce nu — față de aplicațiile biblice obișnuite.",
+      "feature": "Funcție",
+      "others": "Alte aplicații",
+      "yes": "Da",
+      "no": "Nu",
+      "mixed": "Uneori",
+      "row1": "Fără trackere și reclame",
+      "row2": "Note sincronizate gratuit",
+      "row3": "Funcționează offline",
+      "row4": "Cod deschis",
+      "row5": "Subscripție premium obligatorie"
+    },
+    "faq": {
+      "eyebrow": "Întrebări frecvente",
+      "title": "Ce n-ai găsit în altă parte",
+      "q1": "Chiar este gratuit?",
+      "a1": "Da, complet. Fără reclame, fără abonament, fără card. Proiectul e susținut prin muncă benevolă și donații opționale.",
+      "q2": "Datele mele sunt în siguranță?",
+      "a2": "Notițele și favoritele sunt stocate criptat la Cloudflare. Nu vindem și nu partajăm nimic. Poți șterge contul oricând.",
+      "q3": "Funcționează pe telefon?",
+      "a3": "Da. E o aplicație web progresivă (PWA) — o instalezi din browser și arată ca o aplicație nativă. Merge pe iOS, Android, orice tabletă sau laptop.",
+      "q4": "De unde vin traducerile?",
+      "a4": "Versiunea română: Biblia Cornilescu (VDC). Versiunea spaniolă: Reina Valera (RVL). Sunt traduceri în domeniul public sau cu permisiune.",
+      "q5": "Pot să contribui?",
+      "a5": "Da — corecturi, traduceri noi, funcții. Codul e pe GitHub. Și rugăciunile contează."
+    },
+    "final": {
+      "title": "Hai să citești.",
+      "text": "Fără cont. Fără aplicații de descărcat. Doar Scriptura, în limba ta, pe orice ecran.",
+      "cta": "Deschide Biblia"
+    },
+    "footer": {
+      "tagline": "O Biblie simplă, pentru toată lumea.",
+      "nav_aria": "Linkuri de subsol",
+      "bible": "Biblia",
+      "compare": "Comparare",
+      "index": "Indice tematic",
+      "sitemap": "Sitemap",
+      "github": "GitHub"
+    }
   }
 }

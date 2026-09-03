@@ -811,8 +811,19 @@ async function main() {
   }
 
   // Static SPA routes (not generated as HTML files but important for SEO)
+  // Landing page: 4 idiomas independientes via ?lang=xx — incluye alternates con hreflang.
+  // Los 4 hreflang están hardcodeados (ro/es/en/zh) porque la landing funciona
+  // en los 4 idiomas aunque solo ro y es tengan Biblia cargada en este momento.
+  const landingAlternates = [
+    { hreflang: 'ro', href: absoluteUrl('/landing') },
+    { hreflang: 'es', href: absoluteUrl('/landing?lang=es') },
+    { hreflang: 'en', href: absoluteUrl('/landing?lang=en') },
+    { hreflang: 'zh', href: absoluteUrl('/landing?lang=zh') },
+    { hreflang: 'x-default', href: absoluteUrl('/landing') },
+  ];
   const staticRoutes = [
     { loc: absoluteUrl('/'), lastmod: TODAY, changefreq: 'weekly', priority: '1.0' },
+    { loc: absoluteUrl('/landing'), lastmod: TODAY, changefreq: 'monthly', priority: '0.9', alternates: landingAlternates },
     { loc: absoluteUrl('/indice'), lastmod: TODAY, changefreq: 'monthly', priority: '0.8' },
     { loc: absoluteUrl('/temas'), lastmod: TODAY, changefreq: 'monthly', priority: '0.8' },
     { loc: absoluteUrl('/favorites'), lastmod: TODAY, changefreq: 'weekly', priority: '0.7' },

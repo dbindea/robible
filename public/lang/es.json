@@ -325,5 +325,146 @@
       "backend_unavailable": "Serverul nu este disponibil. Se folosește cache local.",
       "unknown": "A apărut o eroare. Încearcă din nou."
     }
+  },
+  "landing": {
+    "skip_to_content": "Saltar al contenido",
+    "meta": {
+      "title": "La Biblia que no te rastrea. 4 idiomas. Sin anuncios.",
+      "description": "RoBible es una app web gratuita para leer, buscar y estudiar la Biblia. Sin rastreadores, sin anuncios, sin cookies de marketing. En rumano, español, inglés y chino."
+    },
+    "hero": {
+      "eyebrow": "Biblia en línea — gratis, sin anuncios",
+      "title": "Las Escrituras en las que puedes confiar. Y en tu bolsillo.",
+      "lede": "66 libros. 31.102 versículos. 4 idiomas. Búsqueda inteligente, comparación de versiones, notas sincronizadas — todo sin anuncios, sin rastreadores, sin suscripción.",
+      "cta_primary": "Empezar a leer",
+      "cta_secondary": "Probar demo",
+      "lang_label": "Elige idioma",
+      "scroll": "Desplázate hacia abajo"
+    },
+    "demo": {
+      "eyebrow": "Demo en vivo",
+      "hint": "Escribe una referencia (ej: rom 3 5) y pulsa Enter — te llevamos al versículo, con resaltado verde.",
+      "placeholder": "rom 3 5, 1 juan 2 6, génesis 1:1…",
+      "button": "Buscar",
+      "aria": "Búsqueda de referencia en vivo",
+      "no_results": "Sin resultados. Prueba otro formato (ej: rom 3 5, 1co 13 4, hechos 2 38).",
+      "error": "Algo salió mal. Inténtalo de nuevo.",
+      "open": "Abrir versículo →"
+    },
+    "stats": {
+      "label": "Cifras del proyecto",
+      "languages": "Idiomas",
+      "books": "Libros",
+      "verses": "Versículos",
+      "free": "Precio",
+      "free_value": "Gratis"
+    },
+    "features": {
+      "eyebrow": "Qué hace RoBible",
+      "title": "Funciones pensadas para estudio serio — y lectura cómoda.",
+      "f1": {
+        "title": "Búsqueda por referencia, no por índice",
+        "text": "Escribes 'rom 3 5' o '1 juan 2 6' o 'génesis 1:1' y llegas directo. Funciona con diacríticos y con errores tipográficos.",
+        "example": "rom 3 5 → Romanos 3:5"
+      },
+      "f2": {
+        "title": "Busca en el texto, no solo en citas",
+        "text": "Busca palabras, frases o combinaciones. Puedes buscar en toda la Biblia, en un testamento o en un solo libro.",
+        "example": "„temor de Dios\" → 74 resultados"
+      },
+      "f3": {
+        "title": "Compara versiones, versículo a versículo",
+        "text": "Mira el mismo pasaje en dos traducciones, en paralelo. Útil para estudio profundo o para enseñar.",
+        "example": "RVR vs NVI — Juan 3:16"
+      },
+      "f4": {
+        "title": "Notas y favoritos en la nube",
+        "text": "Escribe notas sobre versículos, agrúpalas por temas, guarda favoritos. Todo se sincroniza entre dispositivos, gratis, sin tarjeta.",
+        "example": "Tu nota en Juan 3:16 — en móvil, tablet, portátil."
+      }
+    },
+    "why": {
+      "eyebrow": "Por qué RoBible",
+      "title": "Porque una Biblia no debería ser un producto.",
+      "lede": "No queremos tu dinero, ni tu atención, ni tus datos. Solo queremos que leas las Escrituras sin obstáculos.",
+      "w1": {
+        "title": "Sin rastreadores. Sin anuncios. Sin cookies de marketing.",
+        "text": "Ni Google Analytics, ni Facebook Pixel, ni anuncios patrocinados. Lees, ya está."
+      },
+      "w2": {
+        "title": "Funciona offline (PWA).",
+        "text": "Instala la app en el móvil. Se descarga una vez, luego funciona sin internet. Perfecto para viajes, sermones, retiros."
+      },
+      "w3": {
+        "title": "4 idiomas desde el día uno: ro, es, en, zh.",
+        "text": "No añadimos idiomas por marketing. Los añadimos porque cada uno merece las Escrituras en su lengua."
+      },
+      "w4": {
+        "title": "Código abierto. Sin sorpresas.",
+        "text": "El código está en GitHub. Si no te gusta una decisión, puedes cambiarla. O encontrar a alguien que lo haga."
+      }
+    },
+    "audience": {
+      "eyebrow": "Para quién",
+      "title": "Cada lector, a su manera.",
+      "p1": {
+        "title": "Estudio individual",
+        "text": "Lees, buscas, tomas notas. Sin distracciones, sin cuenta obligatoria, sin anuncios entre versículos.",
+        "cta": "Abrir la Biblia"
+      },
+      "p2": {
+        "title": "Enseñanza y estudio en grupo",
+        "text": "Compara traducciones, anota por temas, prepara lecciones sin pelearte con la interfaz.",
+        "cta": "Comparar versiones"
+      },
+      "p3": {
+        "title": "Solo curiosidad",
+        "text": "Quieres buscar una cita que escuchaste en la radio. No necesitas cuenta. Escribes y encuentras.",
+        "cta": "Buscar un versículo"
+      }
+    },
+    "compare": {
+      "eyebrow": "Comparación honesta",
+      "title": "Lo que tenemos. Lo que no. Sin promesas.",
+      "lede": "No pretendemos ser perfectos. Aquí va lo que ofrecemos — y lo que no — frente a las apps bíblicas habituales.",
+      "feature": "Característica",
+      "others": "Otras apps",
+      "yes": "Sí",
+      "no": "No",
+      "mixed": "A veces",
+      "row1": "Sin rastreadores ni anuncios",
+      "row2": "Notas sincronizadas gratis",
+      "row3": "Funciona offline",
+      "row4": "Código abierto",
+      "row5": "Suscripción premium obligatoria"
+    },
+    "faq": {
+      "eyebrow": "Preguntas frecuentes",
+      "title": "Lo que no encontraste en otros sitios",
+      "q1": "¿Es realmente gratis?",
+      "a1": "Sí, por completo. Sin anuncios, sin suscripción, sin tarjeta. El proyecto se sostiene con trabajo voluntario y donaciones opcionales.",
+      "q2": "¿Están seguros mis datos?",
+      "a2": "Las notas y favoritos se guardan cifrados en Cloudflare. No vendemos ni compartimos nada. Puedes borrar tu cuenta en cualquier momento.",
+      "q3": "¿Funciona en el móvil?",
+      "a3": "Sí. Es una aplicación web progresiva (PWA) — la instalas desde el navegador y se ve como una app nativa. Funciona en iOS, Android, cualquier tablet o portátil.",
+      "q4": "¿De dónde vienen las traducciones?",
+      "a4": "Versión en rumano: Biblia Cornilescu (VDC). Versión en español: Reina Valera (RVL). Son traducciones de dominio público o con permiso.",
+      "q5": "¿Puedo contribuir?",
+      "a5": "Sí — correcciones, nuevas traducciones, funciones. El código está en GitHub. Y las oraciones cuentan."
+    },
+    "final": {
+      "title": "Vamos a leer.",
+      "text": "Sin cuenta. Sin apps que descargar. Solo las Escrituras, en tu idioma, en cualquier pantalla.",
+      "cta": "Abrir la Biblia"
+    },
+    "footer": {
+      "tagline": "Una Biblia sencilla, para todos.",
+      "nav_aria": "Enlaces del pie",
+      "bible": "Biblia",
+      "compare": "Comparar",
+      "index": "Índice temático",
+      "sitemap": "Mapa del sitio",
+      "github": "GitHub"
+    }
   }
 }

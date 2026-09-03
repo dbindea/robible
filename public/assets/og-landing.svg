@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <pattern id="paper" patternUnits="userSpaceOnUse" width="200" height="200">
+      <rect width="200" height="200" fill="#F5F0E6"/>
+      <circle cx="20" cy="20" r="0.5" fill="rgba(63, 88, 103, 0.04)"/>
+      <circle cx="100" cy="80" r="0.5" fill="rgba(63, 88, 103, 0.04)"/>
+      <circle cx="160" cy="150" r="0.5" fill="rgba(63, 88, 103, 0.04)"/>
+    </pattern>
+    <linearGradient id="copperAccent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#B8763E"/>
+      <stop offset="100%" stop-color="#D49B6A"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#paper)"/>
+
+  <!-- Decorative copper line at top -->
+  <rect x="0" y="0" width="1200" height="6" fill="url(#copperAccent)"/>
+
+  <!-- Left text column -->
+  <g font-family="'Segoe UI', system-ui, sans-serif">
+    <text x="80" y="170" font-size="20" font-weight="600" letter-spacing="3" fill="#B8763E">BIBLIA ONLINE — GRATUITĂ, FĂRĂ RECLAME</text>
+    <text x="80" y="280" font-size="76" font-weight="700" fill="#3f5867" letter-spacing="-1.5">
+      <tspan x="80" dy="0">Scriptura pe</tspan>
+      <tspan x="80" dy="86">care o poți</tspan>
+      <tspan x="80" dy="86">avea încredere.</tspan>
+    </text>
+    <text x="80" y="595" font-size="22" font-weight="500" fill="#3D4654">66 cărți · 31.102 versete · 4 limbi · Fără trackere</text>
+  </g>
+
+  <!-- Right side: decorative element (open book) -->
+  <g transform="translate(820, 130)">
+    <!-- Book base -->
+    <path d="M 0 200 L 0 380 L 320 380 L 320 200 Q 240 140 160 200 Q 80 140 0 200 Z"
+          fill="#FFFFFF" stroke="#3f5867" stroke-width="2" opacity="0.9"/>
+    <!-- Page lines left -->
+    <line x1="30" y1="240" x2="140" y2="240" stroke="#3f5867" stroke-width="1.5" opacity="0.3"/>
+    <line x1="30" y1="265" x2="135" y2="265" stroke="#3f5867" stroke-width="1.5" opacity="0.3"/>
+    <line x1="30" y1="290" x2="130" y2="290" stroke="#3f5867" stroke-width="1.5" opacity="0.3"/>
+    <line x1="30" y1="315" x2="138" y2="315" stroke="#3f5867" stroke-width="1.5" opacity="0.3"/>
+    <line x1="30" y1="340" x2="125" y2="340" stroke="#3f5867" stroke-width="1.5" opacity="0.3"/>
+    <!-- Page lines right -->
+    <line x1="180" y1="240" x2="290" y2="240" stroke="#3f5867" stroke-width="1.5" opacity="0.3"/>
+    <line x1="180" y1="265" x2="285" y2="265" stroke="#3f5867" stroke-width="1.5" opacity="0.3"/>
+    <line x1="180" y1="290" x2="280" y2="290" stroke="#3f5867" stroke-width="1.5" opacity="0.3"/>
+    <line x1="180" y1="315" x2="288" y2="315" stroke="#3f5867" stroke-width="1.5" opacity="0.3"/>
+    <line x1="180" y1="340" x2="275" y2="340" stroke="#3f5867" stroke-width="1.5" opacity="0.3"/>
+    <!-- Highlight on a verse -->
+    <rect x="25" y="285" width="120" height="22" fill="#28a745" opacity="0.18"/>
+    <line x1="25" y1="285" x2="125" y2="285" stroke="#28a745" stroke-width="3" stroke-linecap="round"/>
+    <line x1="25" y1="307" x2="125" y2="307" stroke="#28a745" stroke-width="1"/>
+  </g>
+
+  <!-- Bottom copper line -->
+  <rect x="0" y="624" width="1200" height="6" fill="url(#copperAccent)"/>
+
+  <!-- Brand mark -->
+  <text x="80" y="605" font-family="'Segoe UI', system-ui, sans-serif" font-size="20" font-weight="700" fill="#3f5867">RoBible</text>
+  <text x="190" y="605" font-family="'Segoe UI', system-ui, sans-serif" font-size="16" font-weight="400" fill="#3D4654">· robible.com</text>
+</svg>
