@@ -20,3 +20,8 @@ Thumbs.db
 # Backend dev data
 workers/*/.dev-data/
 workers/*/.wrangler/
+
+# Dev server logs (regenerated on every `npm run dev`)
+dev.log
+*.log
+
