@@ -2,12 +2,13 @@
   import Navbar from './layouts/header/Navbar.svelte';
   import Footer from './layouts/footer/Footer.svelte';
   import Main from './layouts/main/Main.svelte';
+  import Landing from './layouts/landing/Landing.svelte';
   import PwaManager from './layouts/pwa/PwaManager.svelte';
   import AppMenu from './layouts/header/AppMenu.svelte';
   import AuthModal from './layouts/auth/AuthModal.svelte';
   import { authMenuOpen } from './store/authMenuStore';
   import { _, currentLocale, DEFAULT_LOCALE, setupI18n, loadLocaleSync, localeVersion, _pendingLocale } from './services/i18n.service';
-  import { applySeoMetadata } from './services/seo.service';
+  import { applySeoMetadata, applyLandingSeoMetadata } from './services/seo.service';
   import {
     getBibleVersionConfigOrDefault,
     isValidBibleVersion,
@@ -19,7 +20,9 @@
   // El .then() se ejecuta en el mismo tick del browser, antes de que el
   // usuario vea nada. Esto evita el "locale errado → luego corrige" que
   // ocurría con el approach async-only.
-  const _initialLocale = getBibleVersionConfigOrDefault($selectedBibleVersion)?.locale || DEFAULT_LOCALE;
+  // Para la landing, el ?lang=xx de la URL tiene prioridad (idioma independiente).
+  const _urlLang = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('lang') : null;
+  const _initialLocale = _urlLang || getBibleVersionConfigOrDefault($selectedBibleVersion)?.locale || DEFAULT_LOCALE;
   loadLocaleSync(_initialLocale);
 
   let bibleLoadRequestId = 0;
@@ -147,6 +150,19 @@
   $: currentBibleVersion = $selectedBibleVersion;
   $: currentBibleVersionConfig = getBibleVersionConfigOrDefault(currentBibleVersion);
   $: isImmersive = $immersiveMode;
+  $: isLandingRoute = typeof window !== 'undefined' && (window.location.pathname === '/landing' || window.location.pathname === '/landing/');
+
+  // SEO para la landing: aplica metadata + hreflang multi-idioma cuando estamos en /landing.
+  $: if (isLandingRoute && typeof window !== 'undefined') {
+    const _landingLang = new URLSearchParams(window.location.search).get('lang') || 'ro';
+    const _seoT = $_(`landing.meta.title`);
+    const _seoD = $_(`landing.meta.description`);
+    applyLandingSeoMetadata({
+      locale: _landingLang,
+      title: typeof _seoT === 'string' && _seoT !== 'landing.meta.title' ? _seoT : undefined,
+      description: typeof _seoD === 'string' && _seoD !== 'landing.meta.description' ? _seoD : undefined,
+    });
+  }
 
   // Contador de versiones en curso: evita que una versión anterior sobreescriba
   // una más reciente cuando llegan en orden invertido.
@@ -166,7 +182,7 @@
   // DEPENDENCIA: $selectedBibleVersion (directo, no currentBibleVersion que captura stale).
   // Esto evita que el reactive se dispare cuando loadBibleVersion cambia currentBibleVersion
   // (sin cambiar la versión de la Biblia), lo cual causaba cascadas de loadLocaleSync.
-  $: if ($selectedBibleVersion) {
+  $: if ($selectedBibleVersion && !isLandingRoute) {
     applySeoMetadata({ versionConfig: getBibleVersionConfigOrDefault($selectedBibleVersion) });
     const tag = ++_localeVersionTag;
     (async () => {
@@ -199,6 +215,9 @@
   que el locale cambia. El counter localeVersion se actualiza SINCRONAMENTE después
   de _.set() en _applyTranslator(), asegurando que el bloque {#key} re-ejecute.
 -->
+{#if isLandingRoute}
+  <Landing />
+{:else}
 <main class="main" class:main--immersive={isImmersive}>
   {#key $localeVersion}
     {#if !isImmersive}
@@ -231,6 +250,7 @@
     <AuthModal />
   {/if}
 </main>
+{/if}
 
 <style>
   .main {

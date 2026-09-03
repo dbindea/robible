@@ -307,3 +307,93 @@ export function buildVerseSeo({ item, map = {}, versionConfig = DEFAULT_VERSION 
     ],
   };
 }
+
+/**
+ * SEO metadata para la landing page (/landing).
+ * Landing multi-idioma: cada ?lang=xx es canónico independiente.
+ * Aplica WebSite + SoftwareApplication + Organization + alternates hreflang.
+ */
+export function applyLandingSeoMetadata({ locale = 'ro', title, description, image = `${SITE_URL}/assets/og-landing.svg` } = {}) {
+  const pageTitle = title || 'RoBible — Biblia online gratuită, fără reclame';
+  const pageDescription = description || '66 de cărți. 31.102 versete. 4 limbi. Căutare, comparare de versiuni, note sincronizate — fără trackere, fără reclame, fără abonament.';
+  const ogLocale = { ro: 'ro_RO', es: 'es_ES', en: 'en_US', zh: 'zh_CN' }[locale] || 'ro_RO';
+  const canonicalPath = locale === 'ro' ? '/landing' : `/landing?lang=${locale}`;
+  const canonicalUrl = absoluteUrl(canonicalPath);
+
+  document.documentElement.lang = locale;
+  document.title = pageTitle;
+
+  setMeta('meta[name="description"]', { name: 'description', content: pageDescription });
+  setMeta('meta[name="robots"]', { name: 'robots', content: 'index, follow, max-image-preview:large' });
+  setLink('link[rel="canonical"]', { rel: 'canonical', href: canonicalUrl });
+  // hreflang: 4 idiomas + x-default
+  const altSelector = 'link[rel="alternate"][hreflang]';
+  document.head.querySelectorAll(altSelector).forEach((el) => el.remove());
+  const alternates = [
+    { hreflang: 'ro', href: absoluteUrl('/landing') },
+    { hreflang: 'es', href: absoluteUrl('/landing?lang=es') },
+    { hreflang: 'en', href: absoluteUrl('/landing?lang=en') },
+    { hreflang: 'zh', href: absoluteUrl('/landing?lang=zh') },
+    { hreflang: 'x-default', href: absoluteUrl('/landing') },
+  ];
+  alternates.forEach((alt) => {
+    const link = document.createElement('link');
+    link.setAttribute('rel', 'alternate');
+    link.setAttribute('hreflang', alt.hreflang);
+    link.setAttribute('href', alt.href);
+    document.head.appendChild(link);
+  });
+
+  setMeta('meta[property="og:locale"]', { property: 'og:locale', content: ogLocale });
+  setMeta('meta[property="og:type"]', { property: 'og:type', content: 'website' });
+  setMeta('meta[property="og:site_name"]', { property: 'og:site_name', content: 'RoBible' });
+  setMeta('meta[property="og:title"]', { property: 'og:title', content: pageTitle });
+  setMeta('meta[property="og:description"]', { property: 'og:description', content: pageDescription });
+  setMeta('meta[property="og:url"]', { property: 'og:url', content: canonicalUrl });
+  setMeta('meta[property="og:image"]', { property: 'og:image', content: image });
+  setMeta('meta[property="og:image:width"]', { property: 'og:image:width', content: '1200' });
+  setMeta('meta[property="og:image:height"]', { property: 'og:image:height', content: '630' });
+  setMeta('meta[property="og:image:alt"]', { property: 'og:image:alt', content: 'RoBible — Biblia online gratuită' });
+  setMeta('meta[name="twitter:card"]', { name: 'twitter:card', content: 'summary_large_image' });
+  setMeta('meta[name="twitter:title"]', { name: 'twitter:title', content: pageTitle });
+  setMeta('meta[name="twitter:description"]', { name: 'twitter:description', content: pageDescription });
+  setMeta('meta[name="twitter:image"]', { name: 'twitter:image', content: image });
+
+  setStructuredData({
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'WebSite',
+        '@id': `${SITE_URL}/#website`,
+        name: 'RoBible',
+        url: `${SITE_URL}/`,
+        inLanguage: ['ro', 'es', 'en', 'zh'],
+        potentialAction: {
+          '@type': 'SearchAction',
+          target: `${SITE_URL}/?q={search_term_string}`,
+          'query-input': 'required name=search_term_string',
+        },
+      },
+      {
+        '@type': 'SoftwareApplication',
+        name: 'RoBible',
+        applicationCategory: 'LifestyleApplication',
+        operatingSystem: 'Web, PWA',
+        description: pageDescription,
+        url: absoluteUrl('/landing'),
+        inLanguage: ['ro', 'es', 'en', 'zh'],
+        offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
+        isAccessibleForFree: true,
+        publisher: { '@id': `${SITE_URL}/#organization` },
+      },
+      {
+        '@type': 'Organization',
+        '@id': `${SITE_URL}/#organization`,
+        name: 'RoBible',
+        url: `${SITE_URL}/`,
+        logo: { '@type': 'ImageObject', url: absoluteUrl('/assets/img/logo.png') },
+        sameAs: ['https://github.com/dbindea/robible'],
+      },
+    ],
+  });
+}

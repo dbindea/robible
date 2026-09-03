@@ -336,5 +336,146 @@
       "backend_unavailable": "Server not available. Using local cache.",
       "unknown": "An error occurred. Try again."
     }
+  },
+  "landing": {
+    "skip_to_content": "Skip to content",
+    "meta": {
+      "title": "The Bible that does not track you. 4 languages. No ads.",
+      "description": "RoBible is a free web app for reading, searching and studying the Bible. No trackers, no ads, no marketing cookies. In Romanian, Spanish, English and Chinese."
+    },
+    "hero": {
+      "eyebrow": "Online Bible — free, no ads",
+      "title": "Scripture you can trust. And in your pocket.",
+      "lede": "66 books. 31,102 verses. 4 languages. Smart search, version comparison, synced notes — all without ads, trackers, or subscriptions.",
+      "cta_primary": "Start reading",
+      "cta_secondary": "Try demo",
+      "lang_label": "Choose language",
+      "scroll": "Scroll down"
+    },
+    "demo": {
+      "eyebrow": "Live demo",
+      "hint": "Type a reference (e.g. rom 3 5) and press Enter — we take you to the verse, highlighted in green.",
+      "placeholder": "rom 3 5, 1 john 2 6, genesis 1:1…",
+      "button": "Search",
+      "aria": "Live reference search",
+      "no_results": "No results. Try another format (e.g. rom 3 5, 1co 13 4, acts 2 38).",
+      "error": "Something went wrong. Try again.",
+      "open": "Open verse →"
+    },
+    "stats": {
+      "label": "Project numbers",
+      "languages": "Languages",
+      "books": "Books",
+      "verses": "Verses",
+      "free": "Price",
+      "free_value": "Free"
+    },
+    "features": {
+      "eyebrow": "What RoBible does",
+      "title": "Features built for serious study — and comfortable reading.",
+      "f1": {
+        "title": "Reference search, not index lookup",
+        "text": "Type 'rom 3 5' or '1 john 2 6' or 'genesis 1:1' and you arrive directly. Diacritics and typos are handled.",
+        "example": "rom 3 5 → Romans 3:5"
+      },
+      "f2": {
+        "title": "Search the text, not just quotes",
+        "text": "Search words, phrases, or combinations. You can search the whole Bible, a single testament, or one book.",
+        "example": "“fear of God” → 74 results"
+      },
+      "f3": {
+        "title": "Compare versions, verse by verse",
+        "text": "See the same passage in two translations, side by side. Useful for deep study or teaching.",
+        "example": "ESV vs NIV — John 3:16"
+      },
+      "f4": {
+        "title": "Notes and favorites in the cloud",
+        "text": "Write notes on verses, group them by topic, save favorites. Everything syncs across devices, free, no card.",
+        "example": "Your note on John 3:16 — on phone, tablet, laptop."
+      }
+    },
+    "why": {
+      "eyebrow": "Why RoBible",
+      "title": "Because a Bible should not be a product.",
+      "lede": "We don't want your money, your attention, or your data. We just want you to read Scripture without obstacles.",
+      "w1": {
+        "title": "No trackers. No ads. No marketing cookies.",
+        "text": "No Google Analytics, no Facebook Pixel, no sponsored content. You read, that's it."
+      },
+      "w2": {
+        "title": "Works offline (PWA).",
+        "text": "Install the app on your phone. It downloads once, then works without internet. Perfect for travel, sermons, retreats."
+      },
+      "w3": {
+        "title": "4 languages from day one: ro, es, en, zh.",
+        "text": "We don't add languages for marketing. We add them because everyone deserves Scripture in their own tongue."
+      },
+      "w4": {
+        "title": "Open source. No surprises.",
+        "text": "The code is on GitHub. If you don't like a decision, you can change it. Or find someone who will."
+      }
+    },
+    "audience": {
+      "eyebrow": "For whom",
+      "title": "Every reader, their own way.",
+      "p1": {
+        "title": "Individual study",
+        "text": "You read, search, take notes. No distraction, no mandatory account, no ads between verses.",
+        "cta": "Open the Bible"
+      },
+      "p2": {
+        "title": "Teaching and group study",
+        "text": "Compare translations, take notes by topic, prepare lessons without fighting the interface.",
+        "cta": "Compare versions"
+      },
+      "p3": {
+        "title": "Just curiosity",
+        "text": "You want to find a quote you heard on the radio. You don't need an account. You type and find.",
+        "cta": "Find a verse"
+      }
+    },
+    "compare": {
+      "eyebrow": "Honest comparison",
+      "title": "What we have. What we don't. No promises.",
+      "lede": "We don't claim to be perfect. Here is what we offer — and what we don't — against typical Bible apps.",
+      "feature": "Feature",
+      "others": "Other apps",
+      "yes": "Yes",
+      "no": "No",
+      "mixed": "Sometimes",
+      "row1": "No trackers or ads",
+      "row2": "Notes synced free",
+      "row3": "Works offline",
+      "row4": "Open source",
+      "row5": "Premium subscription required"
+    },
+    "faq": {
+      "eyebrow": "FAQ",
+      "title": "What you did not find elsewhere",
+      "q1": "Is it really free?",
+      "a1": "Yes, completely. No ads, no subscription, no card. The project is sustained by volunteer work and optional donations.",
+      "q2": "Is my data safe?",
+      "a2": "Notes and favorites are stored encrypted at Cloudflare. We do not sell or share anything. You can delete your account anytime.",
+      "q3": "Does it work on mobile?",
+      "a3": "Yes. It is a progressive web app (PWA) — you install it from the browser and it behaves like a native app. Works on iOS, Android, any tablet or laptop.",
+      "q4": "Where do the translations come from?",
+      "a4": "Romanian version: Biblia Cornilescu (VDC). Spanish version: Reina Valera (RVL). These are public-domain translations or used with permission.",
+      "q5": "Can I contribute?",
+      "a5": "Yes — corrections, new translations, features. The code is on GitHub. And prayers count."
+    },
+    "final": {
+      "title": "Let's read.",
+      "text": "No account. No app to download. Just Scripture, in your language, on any screen.",
+      "cta": "Open the Bible"
+    },
+    "footer": {
+      "tagline": "A simple Bible, for everyone.",
+      "nav_aria": "Footer links",
+      "bible": "Bible",
+      "compare": "Compare",
+      "index": "Topic index",
+      "sitemap": "Sitemap",
+      "github": "GitHub"
+    }
   }
 }

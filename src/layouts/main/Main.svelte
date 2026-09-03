@@ -9,6 +9,7 @@
   import Index from './Index.svelte';
   import Favorites from './Favorites.svelte';
   import Notes from './Notes.svelte';
+  import Landing from '../landing/Landing.svelte';
   import { getBibleVersionConfigOrDefault } from '../../store/stores';
 
   export let bible;
@@ -44,6 +45,7 @@
   let isIndexMode = false;
   let isFavoritesMode = false;
   let isNotesMode = false;
+  let isLandingMode = false;
   const updateIndexMode = () => {
     if (typeof window === 'undefined') return;
     const indexPath = getIndexPath();
@@ -62,9 +64,15 @@
     const path = window.location.pathname;
     isNotesMode = path === `/${notesPath}` || path.startsWith(`/${notesPath}/`);
   };
+  const updateLandingMode = () => {
+    if (typeof window === 'undefined') return;
+    const path = window.location.pathname;
+    isLandingMode = path === '/landing' || path === '/landing/';
+  };
   updateIndexMode();
   updateFavoritesMode();
   updateNotesMode();
+  updateLandingMode();
 
   $: searchForm = $filter;
   $: fullResult = Object.keys(searchForm).length ? getFilterResult(bible, map, searchForm) : [];
@@ -83,6 +91,7 @@
     updateIndexMode();
     updateFavoritesMode();
     updateNotesMode();
+    updateLandingMode();
     window.addEventListener('popstate', updateCompareMode);
     window.addEventListener('robibile:navigate', updateCompareMode);
     window.addEventListener('popstate', updateIndexMode);
@@ -91,6 +100,8 @@
     window.addEventListener('robibile:navigate', updateFavoritesMode);
     window.addEventListener('popstate', updateNotesMode);
     window.addEventListener('robibile:navigate', updateNotesMode);
+    window.addEventListener('popstate', updateLandingMode);
+    window.addEventListener('robibile:navigate', updateLandingMode);
     return () => {
       window.removeEventListener('popstate', updateCompareMode);
       window.removeEventListener('robibile:navigate', updateCompareMode);
@@ -100,10 +111,15 @@
       window.removeEventListener('robibile:navigate', updateFavoritesMode);
       window.removeEventListener('popstate', updateNotesMode);
       window.removeEventListener('robibile:navigate', updateNotesMode);
+      window.removeEventListener('popstate', updateLandingMode);
+      window.removeEventListener('robibile:navigate', updateLandingMode);
     };
   });
 </script>
 
+{#if isLandingMode}
+  <Landing />
+{:else}
 <div class="main" class:main--immersive={isImmersive} class:main--compare={isCompareMode} class:main--index={isIndexMode} class:main--favorites={isFavoritesMode} class:main--notes={isNotesMode}>
   {#if !isImmersive && !isCompareMode && !isIndexMode && !isFavoritesMode && !isNotesMode}
     <div class="sidebar">
@@ -126,6 +142,7 @@
     {/if}
   </div>
 </div>
+{/if}
 
 <!-- Floating immersive mode button (hidden in compare mode to avoid competing with the version picker) -->
 {#if !isImmersive && !isCompareMode}

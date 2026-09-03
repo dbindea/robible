@@ -1,11 +1,24 @@
 import App from './App.svelte';
 import { mount } from 'svelte';
+import { tokenStore } from './services/apiClient';
 
 // Limpiar el contenido pre-rendered (SEO) antes de montar la SPA
 // para que no se vea duplicado (seo-prerender + vista SPA).
 const appTarget = document.getElementById('app');
 if (appTarget) {
   appTarget.innerHTML = '';
+}
+
+// ── Redirect anónimo a /landing ──────────────────────────────────────────
+// Si el usuario NO está logueado y entra a la raíz, lo llevamos a la landing.
+// (Si está logueado, va directo a la Biblia.)
+// Si escribe /landing explícitamente, siempre lo mostramos.
+// Si va a una ruta interna (/biblia/...), no redirigimos (deep links).
+if (typeof window !== 'undefined' && window.location.pathname === '/') {
+  const user = tokenStore.getUser();
+  if (!user) {
+    window.history.replaceState(null, '', '/landing');
+  }
 }
 
 const app = mount(App, {
