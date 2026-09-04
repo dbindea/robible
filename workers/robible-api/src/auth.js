@@ -13,7 +13,6 @@ import {
   checkRateLimit,
   json,
   error,
-  SESSION_TTL_MS,
   RESET_TOKEN_TTL_MS,
 } from './utils.js';
 
@@ -28,7 +27,7 @@ export async function register(request, db, env, cors) {
   let body;
   try { body = await request.json(); } catch { return error('invalid_json', 400, cors); }
 
-  const { nickname, password, securityQuestion, securityQuestionText, securityAnswer } = body || {};
+  const { nickname, password, securityQuestion, securityQuestionText, securityAnswer, locale } = body || {};
 
   if (!validators.nickname(nickname)) return error('invalid_nickname', 400, cors);
   if (!validators.password(password)) return error('invalid_password', 400, cors);
@@ -78,9 +77,12 @@ export async function register(request, db, env, cors) {
   const token = await makeToken(userId, env.JWT_SECRET);
   await saveSession(db, token, userId, request);
 
-  // Seed de topics default (Mântuire/Îndurare/Vindecare o equivalentes)
-  const locale = securityQuestion && securityQuestion.startsWith('b') ? 'es' : 'ro';
-  await seedDefaultTopics(db, userId, locale, now);
+  // Seed de topics default (Mântuire/Îndurare/Vindecare o equivalentes).
+  // El locale lo manda el cliente, que sí lo conoce (sale de la versión bíblica
+  // activa). Antes se deducía de la inicial de la clave de la pregunta de
+  // seguridad — de las cinco posibles solo 'bible_start_year' empieza por 'b',
+  // así que el idioma dependía de una elección que nada tenía que ver con él.
+  await seedDefaultTopics(db, userId, normalizeLocale(locale), now);
 
   return json({
     ok: true,
@@ -89,8 +91,14 @@ export async function register(request, db, env, cors) {
   }, 201, cors);
 }
 
+// Locales con categorías por defecto traducidas. Cualquier otro cae a 'ro'.
+const SEED_LOCALES = ['ro', 'es'];
+const normalizeLocale = (value) =>
+  typeof value === 'string' && SEED_LOCALES.includes(value.trim().toLowerCase())
+    ? value.trim().toLowerCase()
+    : 'ro';
+
 async function seedDefaultTopics(db, userId, locale, now) {
-  // Detectar idioma por el nombre de la pregunta
   const defaults = locale === 'es'
     ? [
         { name: 'Salvación', icon: '✝️', color: '#D4A853' },

@@ -54,7 +54,8 @@
       "selected_book": "已选书籍",
       "choose_book": "选择书籍",
       "form": {
-        "search_placeholder": "按关键词搜索..."
+        "search_placeholder": "按关键词搜索...",
+        "reference_placeholder": "例如 罗 3 5"
       },
       "search_type": {
         "match": "包含完整语句",
@@ -263,6 +264,23 @@
           "signed_in_hint": "已登录 — 点击管理账户"
         }
       }
+    },
+    "tts": {
+      "start": "音乐 + 阅读",
+      "start_hint": "播放音乐时逐节高亮经文",
+      "player": "阅读播放器",
+      "controls": "阅读控制",
+      "open_player": "打开播放器",
+      "minimize": "最小化",
+      "expand": "展开播放器",
+      "pause": "暂停",
+      "resume": "继续",
+      "stop": "停止",
+      "speed": "节奏",
+      "ambient": "背景",
+      "ambient_prayer": "祷告音乐",
+      "ambient_none": "无音乐",
+      "volume_music": "音乐"
     }
   },
   "auth": {

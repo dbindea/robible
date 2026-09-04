@@ -36,8 +36,6 @@
   let bibleCache = {};
   let compareMap = {};
   let compareBible = [];
-  let compareLoadError = '';
-  let isCompareLoading = false;
 
   const buildBibleDataUrl = (version, fileName) => {
     return `/data/${encodeURIComponent(version)}/${fileName}`;
@@ -115,19 +113,14 @@
     if (!version || version === $selectedBibleVersion) {
       compareMap = {};
       compareBible = [];
-      compareLoadError = '';
       return;
     }
-
-    isCompareLoading = true;
-    compareLoadError = '';
 
     try {
       // Reusar cache si ya existe
       if (bibleCache[version]) {
         compareMap = bibleCache[version].map;
         compareBible = bibleCache[version].bible;
-        isCompareLoading = false;
         return;
       }
 
@@ -140,15 +133,12 @@
       compareMap = nextMap;
       compareBible = nextBible;
     } catch (error) {
+      // La vista de comparación no tiene UI de error todavía: se registra en
+      // consola y las columnas quedan vacías.
       console.error('Failed to load compare version:', error);
-      compareLoadError = 'app.errors.bible_load_failed';
-    } finally {
-      isCompareLoading = false;
     }
   };
 
-  $: currentBibleVersion = $selectedBibleVersion;
-  $: currentBibleVersionConfig = getBibleVersionConfigOrDefault(currentBibleVersion);
   $: isImmersive = $immersiveMode;
   $: isLandingRoute = typeof window !== 'undefined' && (window.location.pathname === '/landing' || window.location.pathname === '/landing/');
 
@@ -178,10 +168,11 @@
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Cargar Biblia primaria cuando cambia
-  // DEPENDENCIA: $selectedBibleVersion (directo, no currentBibleVersion que captura stale).
-  // Esto evita que el reactive se dispare cuando loadBibleVersion cambia currentBibleVersion
-  // (sin cambiar la versión de la Biblia), lo cual causaba cascadas de loadLocaleSync.
+  // Cargar Biblia primaria cuando cambia.
+  // DEPENDENCIA: leer $selectedBibleVersion directamente, nunca a través de una
+  // variable derivada intermedia: esa se actualizaba dentro de loadBibleVersion
+  // y volvía a disparar el reactive sin que la versión hubiese cambiado, lo que
+  // causaba cascadas de loadLocaleSync.
   $: if ($selectedBibleVersion && !isLandingRoute) {
     applySeoMetadata({ versionConfig: getBibleVersionConfigOrDefault($selectedBibleVersion) });
     const tag = ++_localeVersionTag;
@@ -206,8 +197,6 @@
     compareBible = [];
   }
 
-  // localeKey se usa para applySeoMetadata
-  $: localeKey = $currentLocale;
 </script>
 
 <!--

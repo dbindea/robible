@@ -164,7 +164,7 @@
     &:hover,
     &:focus-visible {
       border-color: var(--color-blue);
-      box-shadow: 0 0 0 3px rgb(45 150 205 / 16%);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 16%, transparent);
     }
   }
 
@@ -210,7 +210,7 @@
 
   .book-button {
     min-height: 2.35rem;
-    border: 1px solid rgb(45 150 205 / 34%);
+    border: 1px solid color-mix(in srgb, var(--color-accent) 34%, transparent);
     border-radius: 0.25rem;
     background-color: var(--color-white);
     color: var(--color-bg-dark);
@@ -221,14 +221,14 @@
     &:focus-visible {
       border-color: var(--color-blue);
       background: color-mix(in srgb, var(--color-blue) 13%, var(--color-white));
-      box-shadow: 0 0 0 3px rgb(45 150 205 / 12%);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 12%, transparent);
     }
 
     &--active {
       border-color: var(--color-blue-hover);
       background: var(--color-blue);
       color: var(--color-on-primary);
-      box-shadow: 0 0 0 3px rgb(45 150 205 / 18%);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 18%, transparent);
     }
   }
 

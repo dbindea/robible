@@ -8,9 +8,23 @@
 
 import { api, tokenStore, ApiError, translateApiError } from './apiClient.js';
 import { USE_BACKEND } from '../config.js';
+import { getBibleVersionConfigOrDefault } from '../config/bible-versions.js';
+
+// Locale activo, derivado de la versión bíblica seleccionada. Se lee de
+// localStorage y no del store para no acoplar el servicio a Svelte: authStore
+// ya importa este módulo, así que importar stores.js aquí arrastraría sus
+// efectos de arranque. Misma clave que usa stores.js.
+const getCurrentLocale = () => {
+  try {
+    const version = localStorage.getItem('selectedBibleVersion');
+    return getBibleVersionConfigOrDefault(version)?.locale || 'ro';
+  } catch {
+    return 'ro';
+  }
+};
 
 // ── Validación de inputs (cliente-side, el server también valida) ──
-const VALID_NICKNAME = /^[a-zA-Z0-9_.\-]{3,24}$/;
+const VALID_NICKNAME = /^[a-zA-Z0-9_.-]{3,24}$/;
 const isValidNickname = (n) => typeof n === 'string' && VALID_NICKNAME.test(n.trim());
 const isValidPassword = (p) => typeof p === 'string' && p.length >= 6 && p.length <= 128;
 const isValidSecurityAnswer = (a) => typeof a === 'string' && /^\d{1,6}$/.test(a.trim());
@@ -93,6 +107,8 @@ export const register = async (data) => {
         securityQuestion: data.securityQuestion,
         securityQuestionText: data.securityQuestion === 'custom' ? data.securityQuestionText?.trim() : undefined,
         securityAnswer: data.securityAnswer.trim(),
+        // El backend seedea las categorías por defecto en este idioma.
+        locale: getCurrentLocale(),
       });
       tokenStore.set(res.token, res.user);
       saveLSSession({ token: res.token, userId: res.user.id, exp: Date.now() + SESSION_TTL_MS });

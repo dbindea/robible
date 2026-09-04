@@ -174,7 +174,7 @@
     align-items: center;
     gap: 0.45rem;
     min-height: 2.35rem;
-    border: 1px solid rgb(45 150 205 / 28%);
+    border: 1px solid color-mix(in srgb, var(--color-accent) 28%, transparent);
     border-radius: 0.25rem;
     background: color-mix(in srgb, var(--color-blue) 9%, var(--color-white));
     color: var(--color-bg-dark);
@@ -193,7 +193,7 @@
     &:focus-visible {
       border-color: var(--color-blue);
       background: color-mix(in srgb, var(--color-blue) 15%, var(--color-white));
-      box-shadow: 0 0 0 3px rgb(45 150 205 / 12%);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 12%, transparent);
     }
   }
 
@@ -221,7 +221,7 @@
     &:focus-visible {
       border-color: var(--color-blue);
       background: color-mix(in srgb, var(--color-blue) 10%, var(--color-white));
-      box-shadow: 0 0 0 3px rgb(45 150 205 / 12%);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 12%, transparent);
     }
 
     &--signed {
@@ -256,8 +256,8 @@
     &:hover,
     &:focus-visible {
       border-color: var(--color-blue);
-      background: rgb(45 150 205 / 10%);
-      box-shadow: 0 0 0 3px rgb(45 150 205 / 12%);
+      background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 12%, transparent);
     }
   }
 
@@ -418,8 +418,8 @@
 
     &:hover,
     &:focus-visible {
-      background: rgb(45 150 205 / 14%);
-      border-color: #7ec8e3;
+      background: color-mix(in srgb, var(--color-accent) 14%, transparent);
+      border-color: var(--color-accent-soft);
     }
 
     &--signed {

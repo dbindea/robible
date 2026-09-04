@@ -126,11 +126,6 @@
     }
   };
 
-  const submitCreateFromVerse = (data) => {
-    if (!data.name.trim()) return null;
-    return topicsStore.create(data);
-  };
-
   const handleDeleteTopic = (topic) => {
     if (!confirm($_('app.topics.delete_confirm'))) return;
     topicsStore.remove(topic.id);
@@ -399,7 +394,7 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.4rem 0.85rem;
-    border: 1px solid rgb(45 150 205 / 42%);
+    border: 1px solid color-mix(in srgb, var(--color-accent) 42%, transparent);
     border-radius: 999px;
     background: var(--color-white);
     color: var(--color-bg-dark);
@@ -412,7 +407,7 @@
     &:focus-visible {
       border-color: var(--color-blue);
       background: color-mix(in srgb, var(--color-blue) 12%, var(--color-white));
-      box-shadow: 0 0 0 3px rgb(45 150 205 / 14%);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 14%, transparent);
     }
   }
 
@@ -441,7 +436,7 @@
     &:focus-visible {
       background: var(--color-blue-hover);
       border-color: var(--color-blue-hover);
-      box-shadow: 0 0 0 3px rgb(45 150 205 / 35%), var(--box-shadow-down);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 35%, transparent), var(--box-shadow-down);
     }
 
     &:focus-visible {
@@ -689,13 +684,13 @@
     gap: 0.5rem 1rem;
     align-items: start;
     padding: 0.85rem 1rem;
-    border: 1px solid rgb(45 150 205 / 14%);
+    border: 1px solid color-mix(in srgb, var(--color-accent) 14%, transparent);
     border-radius: 0.45rem;
     background: var(--color-white);
     transition: var(--transition);
 
     &:hover {
-      border-color: rgb(45 150 205 / 38%);
+      border-color: color-mix(in srgb, var(--color-accent) 38%, transparent);
       background: color-mix(in srgb, var(--color-blue) 4%, var(--color-white));
 
       .verse-item__remove {
@@ -707,9 +702,9 @@
       flex: 0 0 auto;
       align-self: start;
       padding: 0.2rem 0.5rem;
-      border: 1px solid rgb(45 150 205 / 28%);
+      border: 1px solid color-mix(in srgb, var(--color-accent) 28%, transparent);
       border-radius: 0.25rem;
-      background: rgb(45 150 205 / 8%);
+      background: color-mix(in srgb, var(--color-accent) 8%, transparent);
       color: var(--color-link);
       font-size: 0.78rem;
       font-weight: 700;
@@ -832,7 +827,7 @@
     input[type='text'] {
       width: 100%;
       padding: 0.55rem 0.75rem;
-      border: 1px solid rgb(45 150 205 / 32%);
+      border: 1px solid color-mix(in srgb, var(--color-accent) 32%, transparent);
       border-radius: 0.3rem;
       background: var(--color-white);
       color: var(--color-bg-dark);
@@ -842,7 +837,7 @@
       &:focus {
         outline: none;
         border-color: var(--color-blue);
-        box-shadow: 0 0 0 3px rgb(45 150 205 / 16%);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 16%, transparent);
       }
     }
 
@@ -850,7 +845,7 @@
       width: 100%;
       height: 2.4rem;
       padding: 0.15rem;
-      border: 1px solid rgb(45 150 205 / 32%);
+      border: 1px solid color-mix(in srgb, var(--color-accent) 32%, transparent);
       border-radius: 0.3rem;
       background: var(--color-white);
       cursor: pointer;
@@ -858,7 +853,7 @@
       &:focus {
         outline: none;
         border-color: var(--color-blue);
-        box-shadow: 0 0 0 3px rgb(45 150 205 / 16%);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 16%, transparent);
       }
     }
 
@@ -879,11 +874,11 @@
 
       &--ghost {
         background: transparent;
-        border: 1px solid rgb(45 150 205 / 30%);
+        border: 1px solid color-mix(in srgb, var(--color-accent) 30%, transparent);
         color: var(--color-bg-dark);
 
         &:hover {
-          background: rgb(45 150 205 / 8%);
+          background: color-mix(in srgb, var(--color-accent) 8%, transparent);
         }
       }
 
@@ -918,7 +913,7 @@
   // === DARK MODE ===
   :global(html[data-theme='dark']) {
     .index-header {
-      background: #0f1720;
+      background: var(--color-page);
       border-bottom-color: var(--color-blue);
     }
 
@@ -935,7 +930,7 @@
     }
 
     .topic-card {
-      background: #1e2d3d;
+      background: var(--color-surface);
       border-color: rgb(255 255 255 / 12%);
 
       &__count {
@@ -960,7 +955,7 @@
     }
 
     .verse-item {
-      background: #1e2d3d;
+      background: var(--color-surface);
       border-color: rgb(255 255 255 / 12%);
 
       &:hover {
@@ -969,9 +964,9 @@
       }
 
       &__ref {
-        background: rgb(45 150 205 / 18%);
-        color: #7ec8e3;
-        border-color: rgb(45 150 205 / 35%);
+        background: color-mix(in srgb, var(--color-accent) 18%, transparent);
+        color: var(--color-accent-soft);
+        border-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
       }
 
       &__text {
@@ -984,7 +979,7 @@
     }
 
     .modal {
-      background: #1e2d3d;
+      background: var(--color-surface);
       color: #ffffff;
     }
 

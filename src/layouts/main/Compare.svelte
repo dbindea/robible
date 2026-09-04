@@ -8,7 +8,7 @@
     getAvailableBibleVersions,
     initCompareVersion,
   } from '../../store/stores';
-  import { getBookIdFromSlug, getBookSlug, slugifyBookName } from '../../services/bible-route.service';
+  import { getBookIdFromSlug, getBookSlug } from '../../services/bible-route.service';
   import BookDrawer from './BookDrawer.svelte';
 
   export let bible = [];
@@ -36,7 +36,6 @@
   $: otherConfig = getBibleVersionConfigOrDefault(otherVersion);
   $: primaryBibleName = primaryConfig?.bibleName || 'Biblia';
   $: otherBibleName = otherConfig?.bibleName || 'Biblia';
-  $: isOtherVersionAvailable = otherConfig?.available === true;
 
   $: chapterArray =
     selectedBook !== null && selectedBook !== undefined
@@ -129,8 +128,6 @@
     let path = '/';
     if (bookSlug && chapter) {
       // Volver a la ruta normal del libro/capítulo
-      const versionConfig = getBibleVersionConfigOrDefault($selectedBibleVersion);
-      const prefix = versionConfig?.pathPrefix || '';
       const pathParts = ['/biblia', $selectedBibleVersion, bookSlug, String(chapter)].filter(Boolean);
       path = pathParts.join('/');
     }
@@ -676,7 +673,7 @@
       &--version {
         justify-content: center;
         padding-top: 0.25rem;
-        border-top: 1px dashed rgb(45 150 205 / 18%);
+        border-top: 1px dashed color-mix(in srgb, var(--color-accent) 18%, transparent);
       }
     }
   }
@@ -703,7 +700,7 @@
     align-items: center;
     gap: 0.4rem;
     padding: 0.4rem 0.75rem;
-    border: 1px solid rgb(45 150 205 / 42%);
+    border: 1px solid color-mix(in srgb, var(--color-accent) 42%, transparent);
     border-radius: 999px;
     background: color-mix(in srgb, var(--color-blue) 11%, var(--color-white));
     color: var(--color-bg-dark);
@@ -742,7 +739,7 @@
     &:focus-visible {
       border-color: var(--color-blue);
       background: color-mix(in srgb, var(--color-blue) 18%, var(--color-white));
-      box-shadow: 0 0 0 3px rgb(45 150 205 / 14%);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 14%, transparent);
     }
 
     &:focus-visible {
@@ -786,7 +783,7 @@
 
     &:hover,
     &:focus-visible {
-      border-color: rgb(45 150 205 / 34%);
+      border-color: color-mix(in srgb, var(--color-accent) 34%, transparent);
       background: color-mix(in srgb, var(--color-blue) 12%, var(--color-white));
     }
 
@@ -833,7 +830,7 @@
     &:focus-visible {
       background: var(--color-blue-hover);
       border-color: var(--color-blue-hover);
-      box-shadow: 0 0 0 3px rgb(45 150 205 / 35%), var(--box-shadow-down);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 35%, transparent), var(--box-shadow-down);
     }
 
     &:focus-visible {
@@ -848,7 +845,7 @@
     align-items: flex-start;
     gap: 0.1rem;
     padding: 0.4rem 0.85rem;
-    border: 1px solid rgb(45 150 205 / 42%);
+    border: 1px solid color-mix(in srgb, var(--color-accent) 42%, transparent);
     border-radius: 0.3rem;
     background: var(--color-white);
     cursor: pointer;
@@ -858,7 +855,7 @@
     &:hover,
     &:focus-visible {
       border-color: var(--color-blue);
-      box-shadow: 0 0 0 3px rgb(45 150 205 / 14%);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 14%, transparent);
     }
 
     &:focus-visible {
@@ -894,7 +891,7 @@
     max-height: 4.5rem;
     overflow-y: auto;
     padding: 0.2rem;
-    scrollbar-color: rgb(45 150 205 / 45%) transparent;
+    scrollbar-color: color-mix(in srgb, var(--color-accent) 45%, transparent) transparent;
   }
 
   .compare-chapter-btn {
@@ -902,7 +899,7 @@
     min-width: 2rem;
     min-height: 2rem;
     padding: 0.2rem 0.35rem;
-    border: 1px solid rgb(45 150 205 / 32%);
+    border: 1px solid color-mix(in srgb, var(--color-accent) 32%, transparent);
     border-radius: 0.22rem;
     background: var(--color-white);
     color: var(--color-bg-dark);
@@ -922,7 +919,7 @@
       border-color: var(--color-blue-hover);
       background: var(--color-blue);
       color: var(--color-on-primary);
-      box-shadow: 0 0 0 3px rgb(45 150 205 / 18%);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 18%, transparent);
     }
 
     &:focus-visible {
@@ -950,7 +947,7 @@
     &:focus-visible {
       background: var(--color-blue);
       color: var(--color-white);
-      box-shadow: 0 0 0 3px rgb(45 150 205 / 25%);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 25%, transparent);
     }
 
     &:focus-visible {
@@ -995,14 +992,14 @@
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
     scrollbar-width: thin;
-    scrollbar-color: rgb(45 150 205 / 45%) transparent;
+    scrollbar-color: color-mix(in srgb, var(--color-accent) 45%, transparent) transparent;
 
     &::-webkit-scrollbar {
       width: 6px;
     }
 
     &::-webkit-scrollbar-thumb {
-      background: rgb(45 150 205 / 45%);
+      background: color-mix(in srgb, var(--color-accent) 45%, transparent);
       border-radius: 3px;
     }
 
@@ -1015,7 +1012,7 @@
       gap: 0.1rem;
       padding: 0.75rem 1rem 0.5rem;
       background: var(--color-bg-light);
-      border-bottom: 1px solid rgb(45 150 205 / 20%);
+      border-bottom: 1px solid color-mix(in srgb, var(--color-accent) 20%, transparent);
       box-shadow: 0 2px 6px rgb(0 0 0 / 8%);
     }
 
@@ -1125,7 +1122,7 @@
   }
 
   .compare-col-divider {
-    background: rgb(45 150 205 / 30%);
+    background: color-mix(in srgb, var(--color-accent) 30%, transparent);
     margin: 0 0.25rem;
   }
 
@@ -1154,7 +1151,7 @@
   }
 
   .compare-row-divider {
-    background: rgb(45 150 205 / 20%);
+    background: color-mix(in srgb, var(--color-accent) 20%, transparent);
     margin: 0 0.25rem;
   }
 
@@ -1191,9 +1188,9 @@
       width: 1.6rem;
       height: 1.6rem;
       margin-top: 0.05rem;
-      border: 1px solid rgb(45 150 205 / 22%);
+      border: 1px solid color-mix(in srgb, var(--color-accent) 22%, transparent);
       border-radius: 0.25rem;
-      background: rgb(45 150 205 / 7%);
+      background: color-mix(in srgb, var(--color-accent) 7%, transparent);
       color: var(--color-link);
       cursor: pointer;
       opacity: 0;
@@ -1207,7 +1204,7 @@
       &:hover,
       &:focus-visible {
         border-color: var(--color-blue);
-        background: rgb(45 150 205 / 18%);
+        background: color-mix(in srgb, var(--color-accent) 18%, transparent);
         opacity: 1;
       }
 
@@ -1265,7 +1262,7 @@
     display: flex;
     align-items: center;
     padding: 0.6rem 0.4rem;
-    background: rgb(45 150 205 / 18%);
+    background: color-mix(in srgb, var(--color-accent) 18%, transparent);
     border-radius: 0.3rem;
     pointer-events: none;
 
@@ -1293,7 +1290,7 @@
 
   .swipe-blocked {
     font-size: 1rem;
-    color: rgb(45 150 205 / 35%);
+    color: color-mix(in srgb, var(--color-accent) 35%, transparent);
   }
 
   // === FLOATING CHAPTER NAV (desktop) ===
@@ -1319,7 +1316,7 @@
     &:focus-visible {
       background: var(--color-blue);
       color: var(--color-white);
-      box-shadow: 0 0 0 3px rgb(45 150 205 / 25%);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 25%, transparent);
     }
 
     &:focus-visible {
@@ -1431,7 +1428,7 @@
   // === DARK MODE ===
   :global(html[data-theme='dark']) {
     .compare-header {
-      background: #0f1720;
+      background: var(--color-page);
       border-bottom-color: var(--color-blue);
     }
 
@@ -1442,7 +1439,7 @@
       &:hover,
       &:focus-visible {
         border-color: var(--color-blue);
-        background: rgb(45 150 205 / 18%);
+        background: color-mix(in srgb, var(--color-accent) 18%, transparent);
       }
 
       &__label { color: var(--color-blue); }
@@ -1458,7 +1455,7 @@
       &:hover,
       &:focus-visible {
         border-color: var(--color-blue);
-        background: rgb(45 150 205 / 18%);
+        background: color-mix(in srgb, var(--color-accent) 18%, transparent);
       }
     }
 
@@ -1480,13 +1477,13 @@
 
       &:hover,
       &:focus-visible {
-        background: rgb(45 150 205 / 18%);
+        background: color-mix(in srgb, var(--color-accent) 18%, transparent);
         border-color: var(--color-blue);
       }
     }
 
     .compare-version-menu {
-      background: #1e2d3d;
+      background: var(--color-surface);
       border-color: rgb(255 255 255 / 15%);
     }
 
@@ -1495,7 +1492,7 @@
 
       &:hover,
       &:focus-visible {
-        background: rgb(45 150 205 / 18%);
+        background: color-mix(in srgb, var(--color-accent) 18%, transparent);
         border-color: var(--color-blue);
       }
 
@@ -1517,7 +1514,7 @@
     }
 
     .compare-container {
-      background: #0f1720;
+      background: var(--color-page);
     }
 
     .compare-empty {
@@ -1538,35 +1535,35 @@
     }
 
     .compare-col-divider {
-      background: rgb(45 150 205 / 30%);
+      background: color-mix(in srgb, var(--color-accent) 30%, transparent);
     }
 
     .compare-row--alt {
-      background: rgb(45 150 205 / 8%);
+      background: color-mix(in srgb, var(--color-accent) 8%, transparent);
     }
 
     .compare-row:hover {
-      background: rgb(45 150 205 / 15%);
+      background: color-mix(in srgb, var(--color-accent) 15%, transparent);
     }
 
     .compare-row-divider {
-      background: rgb(45 150 205 / 25%);
+      background: color-mix(in srgb, var(--color-accent) 25%, transparent);
     }
 
     .compare-verse {
       &__text { color: #ffffff; }
-      &__num { color: #7ec8e3; }
+      &__num { color: var(--color-accent-soft); }
 
       &__copy {
-        background: rgb(45 150 205 / 15%);
-        color: #7ec8e3;
+        background: color-mix(in srgb, var(--color-accent) 15%, transparent);
+        color: var(--color-accent-soft);
       }
     }
 
     .compare-pane {
       &__header {
-        background: #0f1720;
-        border-bottom-color: rgb(45 150 205 / 25%);
+        background: var(--color-page);
+        border-bottom-color: color-mix(in srgb, var(--color-accent) 25%, transparent);
       }
 
       &__name { color: var(--color-blue); }
@@ -1582,7 +1579,7 @@
     }
 
     .toast {
-      background: #1e2d3d;
+      background: var(--color-surface);
       color: #ffffff;
       border-left-color: var(--color-blue);
     }
@@ -1600,15 +1597,15 @@
     }
 
     .swipe-indicator {
-      background: rgb(45 150 205 / 20%);
+      background: color-mix(in srgb, var(--color-accent) 20%, transparent);
 
       .swipe-arrow {
-        border-color: #7ec8e3;
+        border-color: var(--color-accent-soft);
       }
     }
 
     .swipe-blocked {
-      color: rgb(45 150 205 / 40%);
+      color: color-mix(in srgb, var(--color-accent) 40%, transparent);
     }
   }
 </style>

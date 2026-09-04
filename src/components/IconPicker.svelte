@@ -6,7 +6,7 @@
    *   onChange — callback(selectedIconKey)
    */
   export let value = 'bookmark';
-  export let onChange = (icon) => {};
+  export let onChange = () => {};
 
   const ICONS = [
     {
@@ -124,15 +124,15 @@
       &:hover,
       &:focus-visible {
         border-color: var(--color-blue);
-        background: rgb(45 150 205 / 12%);
+        background: color-mix(in srgb, var(--color-accent) 12%, transparent);
         color: var(--color-blue);
       }
 
       &--selected {
         border-color: var(--color-blue);
-        background: rgb(45 150 205 / 18%);
+        background: color-mix(in srgb, var(--color-accent) 18%, transparent);
         color: var(--color-blue);
-        box-shadow: 0 0 0 2px rgb(45 150 205 / 22%);
+        box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 22%, transparent);
       }
     }
   }
@@ -144,15 +144,15 @@
 
     &:hover,
     &:focus-visible {
-      border-color: #7ec8e3;
-      background: rgb(45 150 205 / 18%);
-      color: #7ec8e3;
+      border-color: var(--color-accent-soft);
+      background: color-mix(in srgb, var(--color-accent) 18%, transparent);
+      color: var(--color-accent-soft);
     }
 
     &--selected {
-      border-color: #7ec8e3;
-      background: rgb(45 150 205 / 22%);
-      color: #7ec8e3;
+      border-color: var(--color-accent-soft);
+      background: color-mix(in srgb, var(--color-accent) 22%, transparent);
+      color: var(--color-accent-soft);
     }
   }
 </style>

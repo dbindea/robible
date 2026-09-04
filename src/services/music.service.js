@@ -1,59 +1,34 @@
 /**
- * Music service — ambient pad sintetico tipo piano/organo.
- * Procedural: genera acordes suaves con multiples armonicos.
- * Random start position por reproduccion.
+ * Music service — música ambiental de fondo para la lectura.
  *
- * NO usa archivos externos — todo generado con Web Audio API.
+ * Pista principal: un MP3 en bucle infinito (`/assets/audio/prayer-ambient.mp3`),
+ * reproducido con Web Audio (`AudioBufferSourceNode.loop = true`), que empalma
+ * el final con el principio de forma exacta a nivel de muestra. Con un
+ * `<audio loop>` normal se oiría un pequeño hueco en cada vuelta.
+ *
+ * Fallback: si el MP3 no se puede cargar o decodificar (offline en la primera
+ * visita, formato no soportado), cae a un pad sintético generado con
+ * osciladores. Suena peor, pero evita quedarse sin música.
+ *
+ * Créditos y licencia de la pista: public/assets/audio/CREDITS.md
  */
 
-// Acordes alegres para capitulo de Biblia — progresiones uplifting
-// (mas mayores, ritmo animado, cambios rapidos)
-const CHORD_PROGRESSIONS = [
-  // I - IV - V - I (upbeat clasico)
-  [
-    { root: 0, type: 'maj' },
-    { root: 5, type: 'maj' },
-    { root: 7, type: 'maj' },
-    { root: 0, type: 'maj' },
-  ],
-  // I - V - vi - IV (pop, muy alegre)
-  [
-    { root: 0, type: 'maj' },
-    { root: 7, type: 'maj' },
-    { root: 9, type: 'min' },
-    { root: 5, type: 'maj' },
-  ],
-  // vi - IV - I - V (lifting, esperanzador)
-  [
-    { root: 9, type: 'min' },
-    { root: 5, type: 'maj' },
-    { root: 0, type: 'maj' },
-    { root: 7, type: 'maj' },
-  ],
-  // I - ii - IV - V (doo-wop, retro alegre)
-  [
-    { root: 0, type: 'maj' },
-    { root: 2, type: 'min' },
-    { root: 5, type: 'maj' },
-    { root: 7, type: 'maj' },
-  ],
-  // I - IV - vi - V (rock/pop uplifting)
-  [
-    { root: 0, type: 'maj' },
-    { root: 5, type: 'maj' },
-    { root: 9, type: 'min' },
-    { root: 7, type: 'maj' },
-  ],
+// ── Pista de audio ────────────────────────────────────────────────────────────
+export const PRAYER_TRACK_URL = '/assets/audio/prayer-ambient.mp3';
+
+// Silencio al entrar y al salir, para que no "arranque" de golpe.
+const FADE_IN_SEC = 1.5;
+const FADE_OUT_SEC = 1.0;
+
+// ── Fallback procedural ───────────────────────────────────────────────────────
+// Acordes suaves y sostenidos. Solo se usa si el MP3 falla.
+const FALLBACK_PROGRESSION = [
+  { root: 0, type: 'maj7' },
+  { root: 5, type: 'maj7' },
+  { root: 9, type: 'min7' },
+  { root: 7, type: 'sus4' },
 ];
 
-// Tono base aleatorio por sesion (C, D, E, F, G, A — tonalidades brillantes)
-const BASE_KEYS = [0, 2, 4, 5, 7, 9]; // C, D, E, F, G, A
-let currentBaseKey = BASE_KEYS[Math.floor(Math.random() * BASE_KEYS.length)];
-
-// Octava base (mas aguda = mas alegre)
-const BASE_OCTAVE = 4;
-
-// Intervalos para construir acordes
 const CHORD_INTERVALS = {
   maj: [0, 4, 7],
   min: [0, 3, 7],
@@ -62,107 +37,31 @@ const CHORD_INTERVALS = {
   sus4: [0, 5, 7],
 };
 
+const BASE_OCTAVE = 3;
+const BASE_KEY = 0; // C
+const CHORD_DURATION = 8; // acordes largos: ambiente, no canción
+
 let audioContext = null;
 let masterGain = null;
 let musicGain = null;
-let reverbNode = null;
-let dryGain = null;
-let wetGain = null;
-let activeVoices = [];
-let currentTrack = 'none';
-let currentPosition = 0;
-let currentProgression = null;
-let progressionTimer = null;
 let _initialized = false;
-let desiredVolume = 0.5; // volumen pendiente, se aplica al inicializar
+let desiredVolume = 0.5;
 
-// Frecuencia de MIDI a Hz
-function midiToFreq(midi) {
-  return 440 * Math.pow(2, (midi - 69) / 12);
-}
+// Estado de la pista MP3
+let trackBuffer = null; // AudioBuffer decodificado (se cachea entre plays)
+let trackLoadPromise = null; // evita descargas simultáneas
+let sourceNode = null; // AudioBufferSourceNode en curso
 
-// Construir un acorde a partir de root (en semitonos desde C0) y tipo
-function buildChord(rootMidi, type) {
-  const intervals = CHORD_INTERVALS[type] || CHORD_INTERVALS.maj;
-  return intervals.map((iv) => rootMidi + iv);
-}
+// Estado del fallback procedural
+let activeVoices = [];
+let progressionTimer = null;
+let progressionIndex = 0;
 
-// Selecciona una progresion aleatoria y un root aleatorio
-function pickProgressionAndRoot() {
-  const progression = CHORD_PROGRESSIONS[Math.floor(Math.random() * CHORD_PROGRESSIONS.length)];
-  // Root aleatorio dentro de la tonalidad actual
-  const rootMidi = 12 * (BASE_OCTAVE + 1) + currentBaseKey;
-  return { progression, rootMidi };
-}
+let currentTrack = 'none';
 
-/**
- * Crea un acorde con ADSR suave (tipo piano/organ)
- * rootMidi: MIDI base de la tonalidad actual (ej: 48 = C3)
- * rootOffset: desplazamiento en semitonos desde la base (ej: 0=I, 7=V)
- * type: tipo de acorde ('maj', 'min', 'maj7', etc.)
- * when: tiempo de inicio (audioContext.currentTime + delta)
- * duration: duracion en segundos
- */
-function playChord(rootMidi, rootOffset, type, when, duration) {
-  if (!audioContext) return;
-  if (!Number.isFinite(rootMidi) || !Number.isFinite(when) || !Number.isFinite(duration) || duration <= 0) return;
+const midiToFreq = (midi) => 440 * Math.pow(2, (midi - 69) / 12);
 
-  const notes = buildChord(rootMidi + rootOffset, type);
-  const now = when;
-
-  for (const note of notes) {
-    const freq = midiToFreq(note);
-
-    // Oscilador principal (triangle para calidez)
-    const osc = audioContext.createOscillator();
-    osc.type = 'triangle';
-    osc.frequency.value = freq;
-
-    // Sub-oscilador (octava abajo, mas suave)
-    const subOsc = audioContext.createOscillator();
-    subOsc.type = 'sine';
-    subOsc.frequency.value = freq / 2;
-
-    // Gain principal con ADSR
-    const noteGain = audioContext.createGain();
-    const peakGain = 0.06;
-    noteGain.gain.setValueAtTime(0, now);
-    noteGain.gain.linearRampToValueAtTime(peakGain, now + 0.3);
-    noteGain.gain.linearRampToValueAtTime(peakGain * 0.7, now + 0.8);
-    noteGain.gain.setValueAtTime(peakGain * 0.7, now + duration - 0.5);
-    noteGain.gain.linearRampToValueAtTime(0, now + duration);
-
-    // Sub-octava mas bajo
-    const subGain = audioContext.createGain();
-    subGain.gain.setValueAtTime(0, now);
-    subGain.gain.linearRampToValueAtTime(peakGain * 0.4, now + 0.5);
-    subGain.gain.linearRampToValueAtTime(0, now + duration);
-
-    // Conectar
-    osc.connect(noteGain);
-    subOsc.connect(subGain);
-    noteGain.connect(musicGain);
-    subGain.connect(musicGain);
-
-    osc.start(now);
-    subOsc.start(now);
-    osc.stop(now + duration + 0.1);
-    subOsc.stop(now + duration + 0.1);
-
-    activeVoices.push({ osc, subOsc, noteGain, subGain });
-  }
-}
-
-function clearActiveVoices() {
-  for (const v of activeVoices) {
-    try { v.osc.stop(); } catch (_) {}
-    try { v.subOsc.stop(); } catch (_) {}
-    try { v.noteGain.disconnect(); } catch (_) {}
-    try { v.subGain.disconnect(); } catch (_) {}
-  }
-  activeVoices = [];
-}
-
+// ── Contexto de audio ─────────────────────────────────────────────────────────
 async function initContext() {
   if (_initialized) return;
 
@@ -171,44 +70,16 @@ async function initContext() {
 
     masterGain = audioContext.createGain();
     masterGain.gain.value = 1.0;
+    masterGain.connect(audioContext.destination);
 
     musicGain = audioContext.createGain();
-    musicGain.gain.value = desiredVolume;
-
-    // Reverb simple via convolver
-    reverbNode = audioContext.createConvolver();
-    reverbNode.buffer = await buildReverbImpulse(audioContext, 4.0, 0.5);
-
-    dryGain = audioContext.createGain();
-    dryGain.gain.value = 0.65;
-    wetGain = audioContext.createGain();
-    wetGain.gain.value = 0.35;
-
-    masterGain.connect(dryGain);
-    masterGain.connect(reverbNode);
-    reverbNode.connect(wetGain);
-    dryGain.connect(audioContext.destination);
-    wetGain.connect(audioContext.destination);
-
+    musicGain.gain.value = 0; // se sube con el fade-in
     musicGain.connect(masterGain);
+
     _initialized = true;
   } catch (err) {
-    console.warn('[music] Web Audio API not available:', err.message);
+    console.warn('[music] Web Audio API no disponible:', err.message);
   }
-}
-
-async function buildReverbImpulse(ctx, durationSec, decay) {
-  const sampleRate = ctx.sampleRate;
-  const length = sampleRate * durationSec;
-  const impulse = ctx.createBuffer(2, length, sampleRate);
-
-  for (let channel = 0; channel < 2; channel++) {
-    const channelData = impulse.getChannelData(channel);
-    for (let i = 0; i < length; i++) {
-      channelData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, decay);
-    }
-  }
-  return impulse;
 }
 
 async function resumeContext() {
@@ -217,107 +88,197 @@ async function resumeContext() {
   }
 }
 
+// ── Carga del MP3 ─────────────────────────────────────────────────────────────
 /**
- * Reproduce una progresion de acordes en bucle.
- * Comienza desde un punto aleatorio dentro de la progresion.
+ * Descarga y decodifica la pista. Cachea el AudioBuffer, así que a partir de la
+ * segunda reproducción arranca al instante. Devuelve null si falla.
  */
-function startProgression() {
+async function loadTrack() {
+  if (trackBuffer) return trackBuffer;
+  if (trackLoadPromise) return trackLoadPromise;
+
+  trackLoadPromise = (async () => {
+    try {
+      const response = await fetch(PRAYER_TRACK_URL);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const arrayBuffer = await response.arrayBuffer();
+      trackBuffer = await audioContext.decodeAudioData(arrayBuffer);
+      return trackBuffer;
+    } catch (err) {
+      console.warn('[music] No se pudo cargar la pista, usando fallback:', err.message);
+      return null;
+    } finally {
+      trackLoadPromise = null;
+    }
+  })();
+
+  return trackLoadPromise;
+}
+
+/**
+ * Precarga la pista sin reproducirla. Útil para llamarla al abrir el panel,
+ * de modo que al pulsar play ya esté decodificada.
+ */
+export async function preload() {
+  await initContext();
+  if (!audioContext) return false;
+  return !!(await loadTrack());
+}
+
+// ── Fallback procedural ───────────────────────────────────────────────────────
+function playChord(rootMidi, rootOffset, type, when, duration) {
   if (!audioContext) return;
 
-  clearActiveVoices();
-  if (progressionTimer) clearTimeout(progressionTimer);
+  const intervals = CHORD_INTERVALS[type] || CHORD_INTERVALS.maj;
+  for (const interval of intervals) {
+    const freq = midiToFreq(rootMidi + rootOffset + interval);
 
-  // Seleccionar nueva progresion con root aleatorio
-  const { progression, rootMidi } = pickProgressionAndRoot();
-  currentProgression = progression;
+    const osc = audioContext.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.value = freq;
 
-  // Posicion aleatoria inicial
-  currentPosition = Math.floor(Math.random() * progression.length);
-  const CHORD_DURATION = 3.5; // acordes cortos para que sea animado, no eterno
+    const gain = audioContext.createGain();
+    const peak = 0.05;
+    gain.gain.setValueAtTime(0, when);
+    gain.gain.linearRampToValueAtTime(peak, when + 1.5);
+    gain.gain.setValueAtTime(peak, when + duration - 2);
+    gain.gain.linearRampToValueAtTime(0, when + duration);
 
-  function playNext() {
-    if (currentTrack !== 'procedural' || !audioContext) return;
+    osc.connect(gain);
+    gain.connect(musicGain);
+    osc.start(when);
+    osc.stop(when + duration + 0.1);
 
-    const chord = progression[currentPosition];
-    if (!chord || !Number.isFinite(rootMidi)) return;
-    const startTime = audioContext.currentTime + 0.05;
-    playChord(rootMidi, chord.root, chord.type, startTime, CHORD_DURATION);
-
-    currentPosition = (currentPosition + 1) % progression.length;
-
-    progressionTimer = setTimeout(playNext, (CHORD_DURATION - 0.5) * 1000);
+    activeVoices.push({ osc, gain });
   }
+}
+
+function startFallbackProgression() {
+  if (!audioContext) return;
+  const rootMidi = 12 * (BASE_OCTAVE + 1) + BASE_KEY;
+
+  const playNext = () => {
+    if (currentTrack === 'none' || !audioContext) return;
+    const chord = FALLBACK_PROGRESSION[progressionIndex];
+    playChord(rootMidi, chord.root, chord.type, audioContext.currentTime + 0.05, CHORD_DURATION);
+    progressionIndex = (progressionIndex + 1) % FALLBACK_PROGRESSION.length;
+    progressionTimer = setTimeout(playNext, (CHORD_DURATION - 1.5) * 1000);
+  };
 
   playNext();
 }
 
-export async function play(track) {
-  await initContext();
-  await resumeContext();
-
-  if (currentTrack === track) return;
-
-  stop();
-  currentTrack = track;
-
-  if (track === 'procedural') {
-    startProgression();
+function clearFallbackVoices() {
+  for (const voice of activeVoices) {
+    try { voice.osc.stop(); } catch { /* ya parado */ }
+    try { voice.gain.disconnect(); } catch { /* ya desconectado */ }
   }
-}
-
-/**
- * Pausa la musica sin reiniciar la progresion.
- * Usa audioContext.suspend() para congelar el tiempo de audio (todos los
- * osciladores pausados exactamente).
- */
-export function pause() {
-  if (audioContext && audioContext.state === 'running') {
-    audioContext.suspend();
-  }
+  activeVoices = [];
   if (progressionTimer) {
     clearTimeout(progressionTimer);
     progressionTimer = null;
   }
 }
 
+// ── API pública ───────────────────────────────────────────────────────────────
 /**
- * Reanuda la musica desde donde se pauso.
- * Usa audioContext.resume() para descongelar el tiempo.
+ * Arranca la música. `track` acepta:
+ *   'prayer'     → MP3 en bucle (con fallback procedural si falla)
+ *   'procedural' → fuerza el pad sintético
+ *   'none'       → no hace nada
+ *
+ * Debe llamarse desde un gesto del usuario (click): los navegadores bloquean
+ * el audio automático.
  */
+export async function play(track = 'prayer') {
+  if (track === 'none') return;
+
+  await initContext();
+  if (!audioContext) return;
+  await resumeContext();
+
+  if (currentTrack === track && (sourceNode || progressionTimer)) return;
+
+  stop();
+  currentTrack = track;
+
+  const buffer = track === 'procedural' ? null : await loadTrack();
+
+  // stop() pudo haberse llamado mientras se descargaba
+  if (currentTrack !== track) return;
+
+  if (buffer) {
+    sourceNode = audioContext.createBufferSource();
+    sourceNode.buffer = buffer;
+    sourceNode.loop = true; // bucle infinito, sin hueco entre vueltas
+    sourceNode.connect(musicGain);
+    sourceNode.start(0);
+  } else {
+    startFallbackProgression();
+  }
+
+  // Fade-in
+  const now = audioContext.currentTime;
+  musicGain.gain.cancelScheduledValues(now);
+  musicGain.gain.setValueAtTime(0, now);
+  musicGain.gain.linearRampToValueAtTime(desiredVolume, now + FADE_IN_SEC);
+}
+
+/**
+ * Congela el audio. `suspend()` para el reloj del contexto, así que al reanudar
+ * la pista sigue exactamente donde estaba.
+ */
+export function pause() {
+  if (progressionTimer) {
+    clearTimeout(progressionTimer);
+    progressionTimer = null;
+  }
+  if (audioContext && audioContext.state === 'running') {
+    audioContext.suspend();
+  }
+}
+
 export async function resume() {
   if (audioContext && audioContext.state === 'suspended') {
     await audioContext.resume();
   }
-  // Si la progresion estaba activa, continuar desde la posicion actual
-  if (currentTrack === 'procedural' && currentProgression && !progressionTimer) {
-    const CHORD_DURATION = 3.5;
-    function playNext() {
-      if (currentTrack !== 'procedural' || !audioContext) return;
-      const { progression, rootMidi } = { progression: currentProgression, rootMidi: 12 * (BASE_OCTAVE + 1) + currentBaseKey };
-      const chord = progression[currentPosition];
-      if (!chord || !Number.isFinite(rootMidi)) return;
-      const startTime = audioContext.currentTime + 0.05;
-      playChord(rootMidi, chord.root, chord.type, startTime, CHORD_DURATION);
-      currentPosition = (currentPosition + 1) % progression.length;
-      progressionTimer = setTimeout(playNext, (CHORD_DURATION - 0.5) * 1000);
-    }
-    playNext();
+  // El fallback necesita que se reprograme el temporizador; el MP3 no, porque
+  // el AudioBufferSourceNode sigue vivo dentro del contexto suspendido.
+  if (currentTrack !== 'none' && !sourceNode && !progressionTimer) {
+    startFallbackProgression();
   }
 }
 
 export function stop() {
-  if (progressionTimer) clearTimeout(progressionTimer);
-  progressionTimer = null;
-  clearActiveVoices();
+  clearFallbackVoices();
+
+  if (sourceNode) {
+    const node = sourceNode;
+    sourceNode = null;
+    // Fade-out corto y luego parar, para no cortar en seco.
+    if (audioContext && musicGain) {
+      const now = audioContext.currentTime;
+      musicGain.gain.cancelScheduledValues(now);
+      musicGain.gain.setValueAtTime(musicGain.gain.value, now);
+      musicGain.gain.linearRampToValueAtTime(0, now + FADE_OUT_SEC);
+      try { node.stop(now + FADE_OUT_SEC + 0.05); } catch { /* ya parado */ }
+    } else {
+      try { node.stop(); } catch { /* ya parado */ }
+    }
+  }
+
   currentTrack = 'none';
-  currentProgression = null;
-  currentPosition = 0;
+  progressionIndex = 0;
 }
 
 export function setVolume(vol) {
   desiredVolume = Math.max(0, Math.min(1, vol));
-  if (musicGain) {
-    musicGain.gain.value = desiredVolume;
+  if (musicGain && audioContext) {
+    // Rampa corta para que el slider no produzca clicks.
+    const now = audioContext.currentTime;
+    musicGain.gain.cancelScheduledValues(now);
+    musicGain.gain.setValueAtTime(musicGain.gain.value, now);
+    musicGain.gain.linearRampToValueAtTime(desiredVolume, now + 0.1);
   }
 }
 
@@ -340,6 +301,7 @@ export const musicService = {
   pause,
   resume,
   stop,
+  preload,
   setVolume,
   setMasterVolume,
   getCurrentTrack,

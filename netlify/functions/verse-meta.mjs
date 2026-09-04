@@ -1,5 +1,3 @@
-/* global process */
-
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { getBibleVersionConfig } from '../../src/config/bible-versions.js';

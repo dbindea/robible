@@ -25,7 +25,6 @@
   let securityQuestion = SECURITY_QUESTIONS[0].key;
   let customQuestion = '';
   let securityAnswer = '';
-  let resetToken = '';
   let newPassword = '';
 
   // Si ya está logueado, mostramos el perfil + logout
@@ -530,7 +529,7 @@
       &:focus-visible {
         outline: none;
         border-color: var(--color-blue);
-        box-shadow: 0 0 0 3px rgb(45 150 205 / 18%);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 18%, transparent);
       }
     }
 
@@ -626,7 +625,7 @@
     dd { color: #ffffff; }
   }
   :global(html[data-theme='dark']) .auth-modal__question-text {
-    background: rgb(45 150 205 / 16%);
+    background: color-mix(in srgb, var(--color-accent) 16%, transparent);
     color: #ffffff;
   }
   :global(html[data-theme='dark']) .auth-modal__lead {

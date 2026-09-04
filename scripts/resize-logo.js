@@ -1,7 +1,6 @@
 // Logo resize script — run with: node scripts/resize-logo.js
 // Generates all icon sizes from the source logo image
 import Jimp from 'jimp';
-import fs from 'fs';
 
 async function process() {
   const image = await Jimp.read('robible/logo-512.png');

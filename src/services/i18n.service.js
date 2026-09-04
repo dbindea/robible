@@ -1,4 +1,4 @@
-import { writable, get } from 'svelte/store';
+import { writable } from 'svelte/store';
 
 export const DEFAULT_LOCALE = 'ro';
 const MESSAGE_FILE_URL_TEMPLATE = '/lang/{locale}.json';

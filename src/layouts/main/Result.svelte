@@ -121,7 +121,6 @@
   let noteModalVerseKey = null;
   let noteModalItem = null;
   let noteModalElement;
-  let noteModalPosition = { top: 0, right: 0 };
   let noteText = '';
   let noteColor = '#3B82F6';
   let noteSaving = false;
@@ -252,11 +251,8 @@
     const existing = getNoteForVerse(item);
     noteText = existing?.text || '';
     noteColor = existing?.color || '#3B82F6';
-    // Position relative to the verse element for better UX
-    const verseEl = document.getElementById(getVerseId(item));
-    if (verseEl) {
-      noteModalPosition = { top: verseEl.getBoundingClientRect().bottom + 8, right: 8 };
-    }
+    // El modal de nota es un overlay centrado (estilo auth-modal), no se
+    // posiciona respecto al versículo.
     noteModalVerseKey = item.key;
     noteModalItem = item;
     // Block scroll when modal is open
@@ -381,24 +377,6 @@
   $: selectedChapterLabel =
     selectedChapter !== null && selectedChapter !== undefined ? Number(selectedChapter) + 1 : null;
 
-  // TTS book/chapter: derivar del URL si es una ruta /biblia/, si no usar searchForm
-  $: ttsBook = (() => {
-    if (typeof window === 'undefined') return null;
-    const bibleRoute = parseBiblePath(window.location.pathname);
-    if (bibleRoute && bibleRoute.bookSlug) {
-      const bookFromSlug = getBookIdFromSlug(map, bibleRoute.bookSlug);
-      if (bookFromSlug !== null && bookFromSlug !== undefined) return Number(bookFromSlug);
-    }
-    if (selectedBook !== null && selectedBook !== undefined) return Number(selectedBook);
-    return null;
-  })();
-  $: ttsChapter = (() => {
-    if (typeof window === 'undefined') return null;
-    const bibleRoute = parseBiblePath(window.location.pathname);
-    if (bibleRoute && bibleRoute.chapter) return bibleRoute.chapter;
-    if (selectedChapterLabel !== null && selectedChapterLabel !== undefined) return Number(selectedChapterLabel);
-    return null;
-  })();
   $: chapterForm.chapter = selectedChapter ?? 0;
   $: bibleVersionConfig = getBibleVersionConfigOrDefault($selectedBibleVersion);
   $: bibleLabel = bibleVersionConfig.bibleName || $_('app.bible.name');
@@ -427,17 +405,20 @@
   $: isImmersive = $immersiveMode;
   $: isTtsActive = $ttsState.playing || $ttsState.paused;
 
-  // Auto immersive mode: when TTS starts → enter immersive; when TTS stops → exit immersive
-  let prevTtsPlaying = false;
+  // Modo lectura automático: al arrancar entra a pantalla completa, al parar
+  // vuelve a la normal. La condición es `playing || paused` (isTtsActive), no
+  // solo `playing`: al pausar queremos que la pantalla se quede congelada en el
+  // versículo, no que salga del modo lectura.
+  let prevTtsActive = false;
   $: {
-    const currentlyPlaying = $ttsState.playing;
-    if (currentlyPlaying && !prevTtsPlaying && !$immersiveMode) {
+    const active = isTtsActive;
+    if (active && !prevTtsActive && !$immersiveMode) {
       toggleImmersiveMode();
     }
-    if (!currentlyPlaying && prevTtsPlaying && $immersiveMode) {
+    if (!active && prevTtsActive && $immersiveMode) {
       toggleImmersiveMode();
     }
-    prevTtsPlaying = currentlyPlaying;
+    prevTtsActive = active;
   }
 
   // Auto-scroll: cuando cambia el versiculo activo, hacer scroll a el
@@ -1429,14 +1410,10 @@
 <!-- Keyboard shortcut: Escape exits immersive mode -->
 <svelte:window on:keydown={(e) => { if (e.key === 'Escape' && $immersiveMode) toggleImmersiveMode(); }} />
 
-<!-- TTS Karaoke Player (floating) -->
-<TtsPlayer
-  {bible}
-  {map}
-  book={ttsBook}
-  chapter={ttsChapter}
-  lang={getBibleVersionConfigOrDefault()?.locale === 'es' ? 'es' : 'ro'}
-/>
+<!-- Reproductor de lectura con música (flotante).
+     Recibe la misma lista que se está pintando, así que lee exactamente lo que
+     hay en pantalla: el capítulo actual o los resultados de la búsqueda. -->
+<TtsPlayer playlist={result} {map} />
 
 <style lang="scss">
   // Push scroll-to-top button up when TTS mini-player is visible
@@ -1526,7 +1503,7 @@
     }
 
     &--highlighted {
-      background-color: rgb(45 150 205 / 11%);
+      background-color: color-mix(in srgb, var(--color-accent) 11%, transparent);
       box-shadow: inset 0.25rem 0 0 var(--color-blue);
     }
 
@@ -1576,9 +1553,9 @@
     width: 1.65rem;
     height: 1.65rem;
     margin-left: 0.2rem;
-    border: 1px solid rgb(45 150 205 / 24%);
+    border: 1px solid color-mix(in srgb, var(--color-accent) 24%, transparent);
     border-radius: 0.28rem;
-    background: rgb(45 150 205 / 7%);
+    background: color-mix(in srgb, var(--color-accent) 7%, transparent);
     color: var(--color-link);
     cursor: pointer;
     transition: var(--transition);
@@ -1592,8 +1569,8 @@
     &:hover,
     &:focus-visible {
       border-color: var(--color-blue);
-      background: rgb(45 150 205 / 18%);
-      box-shadow: 0 0 0 3px rgb(45 150 205 / 14%);
+      background: color-mix(in srgb, var(--color-accent) 18%, transparent);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 14%, transparent);
     }
 
     &:focus-visible {
@@ -1673,13 +1650,13 @@
 
     &:hover,
     &:focus-visible {
-      border-color: rgb(45 150 205 / 34%);
+      border-color: color-mix(in srgb, var(--color-accent) 34%, transparent);
       background: color-mix(in srgb, var(--color-blue) 12%, var(--color-white));
     }
   }
 
   :global(html[data-theme='dark']) .verse-compare-menu {
-    background: #1e2d3d;
+    background: var(--color-surface);
     border-color: rgb(255 255 255 / 15%);
   }
 
@@ -1692,15 +1669,15 @@
 
     &:hover,
     &:focus-visible {
-      background: rgb(45 150 205 / 18%);
+      background: color-mix(in srgb, var(--color-accent) 18%, transparent);
       border-color: var(--color-blue);
     }
   }
 
   :global(html[data-theme='dark']) .compare-link-btn {
-    background: rgb(45 150 205 / 15%);
-    color: #7ec8e3;
-    border-color: rgb(45 150 205 / 25%);
+    background: color-mix(in srgb, var(--color-accent) 15%, transparent);
+    color: var(--color-accent-soft);
+    border-color: color-mix(in srgb, var(--color-accent) 25%, transparent);
   }
 
   // === SAVE TO TOPIC ===
@@ -1724,14 +1701,14 @@
     }
 
     &--has-topic {
-      border-color: var(--topic-color, rgb(45 150 205));
-      background: color-mix(in srgb, var(--topic-color, rgb(45 150 205)) 15%, transparent);
+      border-color: var(--topic-color, var(--color-accent));
+      background: color-mix(in srgb, var(--topic-color, var(--color-accent)) 15%, transparent);
       color: var(--topic-color, var(--color-link));
-      box-shadow: 0 1px 3px color-mix(in srgb, var(--topic-color, rgb(45 150 205)) 30%, transparent);
+      box-shadow: 0 1px 3px color-mix(in srgb, var(--topic-color, var(--color-accent)) 30%, transparent);
 
       &:hover,
       &:focus-visible {
-        box-shadow: 0 0 0 3px color-mix(in srgb, var(--topic-color, rgb(45 150 205)) 25%, transparent);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--topic-color, var(--color-accent)) 25%, transparent);
       }
     }
   }
@@ -1846,7 +1823,7 @@
 
       &:hover,
       &:focus-visible {
-        background: rgb(45 150 205 / 10%);
+        background: color-mix(in srgb, var(--color-accent) 10%, transparent);
         border-color: var(--color-blue);
         outline: none;
       }
@@ -1875,7 +1852,7 @@
     &__divider {
       height: 1px;
       margin: 0.3rem 0;
-      background: rgb(45 150 205 / 18%);
+      background: color-mix(in srgb, var(--color-accent) 18%, transparent);
 
       @media (max-width: 480px) {
         margin: 0.5rem 0;
@@ -1888,7 +1865,7 @@
       gap: 0.4rem;
       width: 100%;
       padding: 0.5rem 0.65rem;
-      border: 1px dashed rgb(45 150 205 / 38%);
+      border: 1px dashed color-mix(in srgb, var(--color-accent) 38%, transparent);
       border-radius: 0.3rem;
       background: transparent;
       color: var(--color-blue);
@@ -1914,9 +1891,9 @@
       flex-direction: column;
       gap: 0.5rem;
       padding: 0.5rem;
-      border: 1px solid rgb(45 150 205 / 22%);
+      border: 1px solid color-mix(in srgb, var(--color-accent) 22%, transparent);
       border-radius: 0.35rem;
-      background: rgb(45 150 205 / 4%);
+      background: color-mix(in srgb, var(--color-accent) 4%, transparent);
 
       @media (max-width: 480px) {
         width: 100%;
@@ -1946,7 +1923,7 @@
       input[type='color'] {
         width: 100%;
         padding: 0.4rem 0.55rem;
-        border: 1px solid rgb(45 150 205 / 28%);
+        border: 1px solid color-mix(in srgb, var(--color-accent) 28%, transparent);
         border-radius: 0.25rem;
         background: var(--color-white);
         color: var(--color-bg-dark);
@@ -1956,7 +1933,7 @@
         &:focus {
           outline: none;
           border-color: var(--color-blue);
-          box-shadow: 0 0 0 2px rgb(45 150 205 / 16%);
+          box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 16%, transparent);
         }
       }
 
@@ -1993,11 +1970,11 @@
 
       &-cancel {
         background: transparent;
-        border: 1px solid rgb(45 150 205 / 30%);
+        border: 1px solid color-mix(in srgb, var(--color-accent) 30%, transparent);
         color: var(--color-bg-dark);
 
         &:hover {
-          background: rgb(45 150 205 / 8%);
+          background: color-mix(in srgb, var(--color-accent) 8%, transparent);
         }
       }
 
@@ -2091,7 +2068,7 @@
 
     &--active {
       background: color-mix(in srgb, var(--color-blue) 12%, var(--color-white));
-      border-color: rgb(45 150 205 / 30%);
+      border-color: color-mix(in srgb, var(--color-accent) 30%, transparent);
 
       .save-topic-option__check {
         color: var(--color-blue);
@@ -2101,20 +2078,20 @@
     &:hover,
     &:focus-visible {
       background: color-mix(in srgb, var(--color-blue) 8%, var(--color-white));
-      border-color: rgb(45 150 205 / 28%);
+      border-color: color-mix(in srgb, var(--color-accent) 28%, transparent);
     }
   }
 
   :global(html[data-theme='dark']) .save-topic-btn {
-    background: rgb(45 150 205 / 15%);
-    color: #7ec8e3;
-    border-color: rgb(45 150 205 / 25%);
+    background: color-mix(in srgb, var(--color-accent) 15%, transparent);
+    color: var(--color-accent-soft);
+    border-color: color-mix(in srgb, var(--color-accent) 25%, transparent);
   }
 
   :global(html[data-theme='dark']) .save-topic-btn--has-topic {
-    background: color-mix(in srgb, var(--topic-color, rgb(45 150 205)) 25%, transparent);
-    color: var(--topic-color, #7ec8e3);
-    border-color: var(--topic-color, rgb(45 150 205));
+    background: color-mix(in srgb, var(--topic-color, var(--color-accent)) 25%, transparent);
+    color: var(--topic-color, var(--color-accent-soft));
+    border-color: var(--topic-color, var(--color-accent));
   }
 
   // === FAVORITE BUTTON ===
@@ -2149,7 +2126,7 @@
     border-color: rgb(255 255 255 / 14%);
 
     &--active {
-      background: color-mix(in srgb, #fbbf24 20%, #1e2d3d); // yellow-400
+      background: color-mix(in srgb, #fbbf24 20%, var(--color-surface)); // yellow-400
       border-color: #fbbf24;
       color: #fbbf24;
       svg { fill: #fbbf24; }
@@ -2157,7 +2134,7 @@
   }
 
   :global(html[data-theme='dark']) .save-topic-menu {
-    background: #1e2d3d;
+    background: var(--color-surface);
     border-color: rgb(255 255 255 / 15%);
   }
 
@@ -2166,7 +2143,7 @@
   }
 
   :global(html[data-theme='dark']) .save-topic-menu__label {
-    color: #7ec8e3;
+    color: var(--color-accent-soft);
   }
 
   :global(html[data-theme='dark']) .save-topic-menu__close {
@@ -2184,13 +2161,13 @@
     color: #ffffff;
 
     &--active {
-      background: rgb(45 150 205 / 18%);
+      background: color-mix(in srgb, var(--color-accent) 18%, transparent);
       border-color: var(--color-blue);
     }
 
     &:hover,
     &:focus-visible {
-      background: rgb(45 150 205 / 15%);
+      background: color-mix(in srgb, var(--color-accent) 15%, transparent);
       border-color: var(--color-blue);
     }
   }
@@ -2219,7 +2196,7 @@
     border-radius: 0.25rem;
     overflow-x: auto;
     overscroll-behavior-x: contain;
-    scrollbar-color: rgb(45 150 205 / 45%) transparent;
+    scrollbar-color: color-mix(in srgb, var(--color-accent) 45%, transparent) transparent;
 
     &__form {
       display: flex;
@@ -2236,7 +2213,7 @@
       min-height: 2rem;
       padding: 0.25rem 0.45rem;
       font-size: 14px;
-      border: 1px solid rgb(45 150 205 / 34%);
+      border: 1px solid color-mix(in srgb, var(--color-accent) 34%, transparent);
       border-radius: 0.25rem;
       color: var(--color-bg-dark);
       cursor: pointer;
@@ -2255,14 +2232,14 @@
     input[type='radio']:focus-visible + label {
       border-color: var(--color-blue);
       background: color-mix(in srgb, var(--color-blue) 13%, var(--color-white));
-      box-shadow: 0 0 0 3px rgb(45 150 205 / 12%);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 12%, transparent);
     }
 
     input[type='radio']:checked + label {
       border-color: var(--color-blue-hover);
       background: var(--color-blue);
       color: var(--color-on-primary);
-      box-shadow: 0 0 0 3px rgb(45 150 205 / 18%);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 18%, transparent);
     }
   }
 
@@ -2308,7 +2285,7 @@
     &:hover,
     &:focus-visible {
       background: var(--color-blue-hover);
-      box-shadow: 0 0 0 3px rgb(45 150 205 / 18%);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 18%, transparent);
     }
   }
 
@@ -2382,7 +2359,7 @@
     align-items: center;
     gap: 0.35rem;
     padding: 0.75rem 0.5rem;
-    background-color: rgb(45 150 205 / 14%);
+    background-color: color-mix(in srgb, var(--color-accent) 14%, transparent);
     border-radius: 0.35rem;
     transition: opacity 0.2s ease;
     pointer-events: none;
@@ -2426,7 +2403,7 @@
 
   .swipe-blocked {
     font-size: 1.2rem;
-    color: rgb(45 150 205 / 30%);
+    color: color-mix(in srgb, var(--color-accent) 30%, transparent);
     font-weight: 300;
   }
 
@@ -2472,7 +2449,7 @@
     &:focus-visible {
       background: var(--color-blue);
       color: var(--color-white);
-      box-shadow: 0 0 0 3px rgb(45 150 205 / 25%), var(--box-shadow-down);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 25%, transparent), var(--box-shadow-down);
     }
 
     &:focus-visible {
@@ -2635,7 +2612,7 @@
 
       &:hover,
       &:focus-visible {
-        background: rgb(45 150 205 / 10%);
+        background: color-mix(in srgb, var(--color-accent) 10%, transparent);
         border-color: var(--color-blue);
         outline: none;
       }
@@ -2659,7 +2636,7 @@
 
       &:focus {
         border-color: var(--color-blue);
-        box-shadow: 0 0 0 2px rgb(45 150 205 / 16%);
+        box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 16%, transparent);
       }
 
       &::placeholder {
@@ -2731,14 +2708,14 @@
       font-size: 0.75rem;
       color: var(--color-bg-dark);
       background: transparent;
-      border: 1px solid rgb(45 150 205 / 30%);
+      border: 1px solid color-mix(in srgb, var(--color-accent) 30%, transparent);
       border-radius: 999px;
       cursor: pointer;
       padding: 0.3rem 0.7rem;
       transition: background 0.15s;
 
       &:hover {
-        background: rgb(45 150 205 / 8%);
+        background: color-mix(in srgb, var(--color-accent) 8%, transparent);
       }
     }
 
@@ -2765,15 +2742,15 @@
   }
 
   :global(html[data-theme='dark']) .icon-btn {
-    background: rgb(45 150 205 / 15%);
-    color: #7ec8e3;
-    border-color: rgb(45 150 205 / 25%);
+    background: color-mix(in srgb, var(--color-accent) 15%, transparent);
+    color: var(--color-accent-soft);
+    border-color: color-mix(in srgb, var(--color-accent) 25%, transparent);
   }
 
   :global(html[data-theme='dark']) .note-btn--active {
     color: #5dde86;
     border-color: #5dde86;
-    background: color-mix(in srgb, #5dde86 20%, #1e2d3d);
+    background: color-mix(in srgb, #5dde86 20%, var(--color-surface));
 
     .note-icon--active {
       stroke: #5dde86;
@@ -2786,12 +2763,12 @@
   }
 
   :global(html[data-theme='dark']) .note-modal {
-    background: #1e2d3d;
+    background: var(--color-surface);
     border-color: rgb(255 255 255 / 15%);
     color: #ffffff;
 
     &__eyebrow {
-      color: #7ec8e3;
+      color: var(--color-accent-soft);
     }
 
     &__title {
@@ -2804,8 +2781,8 @@
 
       &:hover,
       &:focus-visible {
-        background: rgb(45 150 205 / 18%);
-        border-color: #7ec8e3;
+        background: color-mix(in srgb, var(--color-accent) 18%, transparent);
+        border-color: var(--color-accent-soft);
       }
     }
 

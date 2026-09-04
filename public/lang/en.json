@@ -264,6 +264,23 @@
           "signed_in_hint": "Signed in — tap to manage account"
         }
       }
+    },
+    "tts": {
+      "start": "Music + reading",
+      "start_hint": "Listen to music while verses are highlighted one by one",
+      "player": "Reading player",
+      "controls": "Reading controls",
+      "open_player": "Open the player",
+      "minimize": "Minimise",
+      "expand": "Expand the player",
+      "pause": "Pause",
+      "resume": "Resume",
+      "stop": "Stop",
+      "speed": "Pace",
+      "ambient": "Background",
+      "ambient_prayer": "prayer music",
+      "ambient_none": "no music",
+      "volume_music": "Music"
     }
   },
   "auth": {

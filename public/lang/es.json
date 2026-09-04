@@ -211,8 +211,19 @@
       "save": "Guardar",
       "cancel": "Cancelar",
       "delete": "Eliminar",
+      "color": "Color",
+      "saved": "Nota guardada",
+      "deleted": "Nota eliminada",
+      "eyebrow": "Notas",
+      "title": "Tus notas",
+      "lead": "{count} nota guardada — sincronizada entre dispositivos",
+      "empty": "Todavía no tienes ninguna nota",
+      "empty_hint": "Pulsa 📝 junto a cualquier versículo para añadir una nota",
       "login_required": "Inicia sesión para añadir una nota",
       "login_required_hint": "Las notas se guardan por usuario y se sincronizan entre dispositivos.",
+      "open_verse": "Abrir el versículo en su contexto",
+      "remove": "Eliminar la nota",
+      "remove_reference": "Eliminar la nota de {reference}",
       "login_prompt_action": "Iniciar sesión"
     },
     "app_menu": {
@@ -253,6 +264,23 @@
           "signed_in_hint": "Conectado — toca para gestionar cuenta"
         }
       }
+    },
+    "tts": {
+      "start": "Música + lectura",
+      "start_hint": "Escucha música mientras los versículos se resaltan uno a uno",
+      "player": "Reproductor de lectura",
+      "controls": "Controles de lectura",
+      "open_player": "Abrir el reproductor",
+      "minimize": "Minimizar",
+      "expand": "Expandir el reproductor",
+      "pause": "Pausa",
+      "resume": "Continuar",
+      "stop": "Parar",
+      "speed": "Ritmo",
+      "ambient": "Fondo",
+      "ambient_prayer": "música para orar",
+      "ambient_none": "sin música",
+      "volume_music": "Música"
     }
   },
   "auth": {

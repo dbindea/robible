@@ -5,7 +5,7 @@ export const PBKDF2_ITERATIONS = 100_000;
 export const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;     // 30 días
 export const RESET_TOKEN_TTL_MS = 5 * 60 * 1000;             // 5 min
 
-const VALID_NICKNAME = /^[a-zA-Z0-9_.\-]{3,24}$/;
+const VALID_NICKNAME = /^[a-zA-Z0-9_.-]{3,24}$/;
 const VALID_PASSWORD = (p) => typeof p === 'string' && p.length >= 6 && p.length <= 128;
 const VALID_NUMERIC_ANSWER = (a) => typeof a === 'string' && /^\d{1,6}$/.test(a.trim());
 
@@ -21,12 +21,6 @@ const fromHex = (hex) => {
     out[i] = parseInt(hex.substr(i * 2, 2), 16);
   }
   return out.buffer;
-};
-
-const randomSaltHex = () => {
-  const salt = new Uint8Array(16);
-  crypto.getRandomValues(salt);
-  return toHex(salt);
 };
 
 // ── PBKDF2 hashing (compatible con frontend mock) ──────

@@ -61,9 +61,9 @@
     width: 1.65rem;
     height: 1.65rem;
     flex-shrink: 0;
-    border: 1px solid rgb(45 150 205 / 24%);
+    border: 1px solid color-mix(in srgb, var(--color-accent) 24%, transparent);
     border-radius: 0.28rem;
-    background: rgb(45 150 205 / 7%);
+    background: color-mix(in srgb, var(--color-accent) 7%, transparent);
     color: var(--color-link);
     cursor: pointer;
     transition: opacity 0.15s ease, border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
@@ -77,8 +77,8 @@
     &:hover:not(:disabled),
     &:focus-visible:not(:disabled) {
       border-color: var(--color-blue);
-      background: rgb(45 150 205 / 18%);
-      box-shadow: 0 0 0 3px rgb(45 150 205 / 14%);
+      background: color-mix(in srgb, var(--color-accent) 18%, transparent);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 14%, transparent);
     }
 
     &:focus-visible {
@@ -96,8 +96,8 @@
       cursor: not-allowed;
 
       &:hover {
-        border-color: rgb(45 150 205 / 24%);
-        background: rgb(45 150 205 / 7%);
+        border-color: color-mix(in srgb, var(--color-accent) 24%, transparent);
+        background: color-mix(in srgb, var(--color-accent) 7%, transparent);
         box-shadow: none;
       }
     }

@@ -1,5 +1,3 @@
-/* global process */
-
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -824,14 +822,15 @@ async function main() {
   const staticRoutes = [
     { loc: absoluteUrl('/'), lastmod: TODAY, changefreq: 'weekly', priority: '1.0' },
     { loc: absoluteUrl('/landing'), lastmod: TODAY, changefreq: 'monthly', priority: '0.9', alternates: landingAlternates },
+    // Solo rutas que la app resuelve de verdad. Los paths salen de
+    // `bible-versions.js` (indexPath / favoritesPath / notesPath) y hoy son los
+    // mismos en ro y es. Antes se publicaban además /temas, /favoritos,
+    // /favoriti, /notas y /notite: devolvían 200 pintando la vista de lectura,
+    // es decir soft-404. Si algún día se traducen los paths por idioma, añadir
+    // aquí las variantes que existan.
     { loc: absoluteUrl('/indice'), lastmod: TODAY, changefreq: 'monthly', priority: '0.8' },
-    { loc: absoluteUrl('/temas'), lastmod: TODAY, changefreq: 'monthly', priority: '0.8' },
     { loc: absoluteUrl('/favorites'), lastmod: TODAY, changefreq: 'weekly', priority: '0.7' },
-    { loc: absoluteUrl('/favoritos'), lastmod: TODAY, changefreq: 'weekly', priority: '0.7' },
-    { loc: absoluteUrl('/favoriti'), lastmod: TODAY, changefreq: 'weekly', priority: '0.7' },
     { loc: absoluteUrl('/notes'), lastmod: TODAY, changefreq: 'weekly', priority: '0.7' },
-    { loc: absoluteUrl('/notas'), lastmod: TODAY, changefreq: 'weekly', priority: '0.7' },
-    { loc: absoluteUrl('/notite'), lastmod: TODAY, changefreq: 'weekly', priority: '0.7' },
   ];
   await writeSitemap('sitemaps/static.xml', staticRoutes);
   await writeSitemap('sitemaps/books.xml', bookUrls);
