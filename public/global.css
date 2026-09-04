@@ -54,6 +54,13 @@
   --color-accent-soft: var(--blue-300); /* acento sobre fondo oscuro */
   --color-success: var(--green-500); /* lectura en curso, confirmaciones */
 
+  /* Colores de "marcado" de los iconos de versículo. Cada acción tiene el
+     suyo, pero todos comparten el mismo tratamiento visual (ver .icon-btn
+     en Result.svelte): así se distinguen por color sin parecer botones
+     distintos. El de índice temático lo pone el propio tema, inline. */
+  --color-marked-favorite: #ca8a04; /* ámbar */
+  --color-marked-note: var(--green-500);
+
   /* ── 3. Alias heredados (compatibilidad, no usar en código nuevo) ───────── */
   --color-bg-light: var(--color-page);
   --color-bg-dark: var(--color-ink);
@@ -129,6 +136,9 @@ html[data-theme='dark'] {
   --color-accent-hover: var(--blue-300);
   --color-accent-soft: var(--blue-300);
   --color-success: var(--green-400);
+
+  --color-marked-favorite: #fbbf24; /* ámbar más claro para fondo oscuro */
+  --color-marked-note: var(--green-400);
 
   --color-text-dark: #edf3f7;
   --color-link: #79c8ff;

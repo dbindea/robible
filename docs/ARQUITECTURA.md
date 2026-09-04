@@ -99,6 +99,22 @@ El modo oscuro **solo reapunta los alias semánticos** a otros peldaños de las 
 
 Además hay escalas de tipografía fluida (`--font-size-*` con `clamp()`), espaciado (`--space-*`), radios (`--radius-*`) y sombras.
 
+### Componentes compartidos
+
+**[Modal.svelte](../src/components/Modal.svelte)** — único diálogo de la app. Centrado en escritorio, hoja inferior al 92 % en móvil, cierra con Escape y con clic fuera, bloquea el scroll del fondo y lleva el foco dentro al abrir. Props: `open`, `title`, `eyebrow`, `size` (`sm`/`md`/`lg`), `onClose`, más un slot `footer`.
+
+Lo usan comparar versión, nota y índice temático. Antes eran tres popups distintos anclados al botón con `getBoundingClientRect()`, que en móvil se recortaban contra el borde de la pantalla. Cualquier diálogo nuevo va aquí.
+
+**Iconos de acción del versículo** — los cuatro (copiar, comparar, favorito, tema, nota) comparten la clase `.icon-btn` de `Result.svelte`. El estado marcado es **uno solo**, `.icon-btn--marked`, que se pinta a partir de `--marked-color`; cada icono aporta su color con un modificador:
+
+| Icono | Modificador | Color |
+|---|---|---|
+| Favorito | `.icon-btn--marked-favorite` | `--color-marked-favorite` (ámbar) |
+| Nota | `.icon-btn--marked-note` | `--color-marked-note` (verde) |
+| Índice temático | `.icon-btn--marked-topic` | `--topic-color`, inline según el tema |
+
+Así el usuario reconoce "esto está marcado" por la forma, y de qué marca se trata por el color. Para añadir un icono, define su modificador con `--marked-color` — no dupliques el bloque de estilos.
+
 ### Reglas de color
 
 - El **verde** tiene un único significado: el versículo que se está leyendo (`.highlight-verse`) y el botón que lo activa. No usarlo para nada más — ya pasó con un botón de "libro seleccionado" y con un badge "NEW", y diluía la señal.

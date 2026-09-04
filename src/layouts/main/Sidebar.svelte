@@ -63,24 +63,33 @@
     }
   }
 
+  // Último tipo de búsqueda aplicado, para saber si el cambio cruza la
+  // frontera entre "por palabras" y "por referencia".
+  let prevSearchType = 'match';
+
   function onSearchTypeChange() {
     referenceDropdownOpen = false;
     referenceMatches = [];
     referenceSelectedIdx = -1;
     recentSearchesOpen = false;
     recentReferencesOpen = false;
-    // Limpiar SOLO el texto de busqueda — no chapter/book (esos vienen de la URL)
-    searchForm = { ...searchForm, searchText: null };
-    if (searchTextInput) {
-      searchTextInput.value = '';
+
+    // El texto solo se limpia al pasar de palabras a referencia o al revés:
+    // son sintaxis distintas ("amor" no es una referencia, "jn 3 16" no es una
+    // palabra). Entre las tres variantes de búsqueda por palabras el texto se
+    // conserva, que es lo que el usuario espera al afinar la misma consulta.
+    const eraReferencia = prevSearchType === 'reference';
+    const esReferencia = searchForm.searchType === 'reference';
+    const cruzaModo = eraReferencia !== esReferencia;
+    prevSearchType = searchForm.searchType;
+
+    if (cruzaModo) {
+      searchForm = { ...searchForm, searchText: null };
+      if (searchTextInput) searchTextInput.value = '';
     }
-    // Resetear el filtro del store: solo el texto, mantener chapter/book
+
     if (typeof window !== 'undefined') {
-      filter.set({
-        ...searchForm,
-        searchText: null,
-        searchType: searchForm.searchType,
-      });
+      filter.set({ ...searchForm, searchType: searchForm.searchType });
     }
   }
 
@@ -144,6 +153,7 @@
   let searchFormInit = false;
   $: if (!searchFormInit) {
     searchForm = { ...$filter };
+    prevSearchType = searchForm.searchType || 'match';
     searchFormInit = true;
   }
   $: selectedBook = Array.isArray(searchForm.book) ? searchForm.book[0] : null;

@@ -1,6 +1,7 @@
 <script>
   import { onDestroy, onMount, tick } from 'svelte';
   import IconPicker from '../../components/IconPicker.svelte';
+  import Modal from '../../components/Modal.svelte';
   import TtsPlayer from '../../components/TtsPlayer.svelte';
   import {
     buildBiblePath,
@@ -106,21 +107,18 @@
 
   // Compare-by-verse menu state
   let compareMenuVerseKey = null;
-  let compareMenuElement;
-  let compareMenuPosition = { top: 0, right: 0 };
+  let compareMenuItem = null;
   $: availableOtherVersions = getAvailableBibleVersions().filter((v) => v.value !== $selectedBibleVersion);
 
   // Save-to-topic menu state
   let saveToTopicVerseKey = null;
-  let saveToTopicMenuElement;
-  let saveToTopicMenuPosition = { top: 0, right: 0 };
+  let saveToTopicItem = null;
   let newTopicInline = { name: '', icon: 'bookmark', color: '#2E7D9B' };
   let showInlineCreate = false;
 
   // Note modal state
   let noteModalVerseKey = null;
   let noteModalItem = null;
-  let noteModalElement;
   let noteText = '';
   let noteColor = '#3B82F6';
   let noteSaving = false;
@@ -132,46 +130,31 @@
   // Esto evita que el menu se recorte cuando hay un ancestor con overflow:hidden
   // (caso del .result que tiene overflow:hidden para el swipe gesture).
   // anchor: el botón que abre el menu; menuWidth: ancho estimado del menu.
-  const computeMenuPosition = (anchor) => {
-    if (!anchor) return { top: 0, right: 0 };
-    const r = anchor.getBoundingClientRect();
-    const top = r.bottom + 6; // 0.4rem debajo del botón
-    const right = Math.max(0, window.innerWidth - r.right);
-    return { top, right };
-  };
-
-  const toggleCompareMenu = (verseKey, event) => {
+  const toggleCompareMenu = (item, event) => {
     if (event) event.stopPropagation();
-    if (event?.currentTarget) {
-      compareMenuPosition = computeMenuPosition(event.currentTarget);
-    }
-    compareMenuVerseKey = compareMenuVerseKey === verseKey ? null : verseKey;
+    const abierto = compareMenuVerseKey === item.key;
+    compareMenuVerseKey = abierto ? null : item.key;
+    compareMenuItem = abierto ? null : item;
   };
 
   const closeCompareMenu = () => {
     compareMenuVerseKey = null;
-  };
-
-  const handleCompareMenuOutside = (event) => {
-    if (compareMenuVerseKey === null) return;
-    if (compareMenuElement && !compareMenuElement.contains(event.target)) {
-      closeCompareMenu();
-    }
+    compareMenuItem = null;
   };
 
   // === Save to topic ===
-  const toggleSaveToTopicMenu = (verseKey, event) => {
+  const toggleSaveToTopicMenu = (item, event) => {
     if (event) event.stopPropagation();
-    if (event?.currentTarget) {
-      saveToTopicMenuPosition = computeMenuPosition(event.currentTarget);
-    }
-    saveToTopicVerseKey = saveToTopicVerseKey === verseKey ? null : verseKey;
+    const abierto = saveToTopicVerseKey === item.key;
+    saveToTopicVerseKey = abierto ? null : item.key;
+    saveToTopicItem = abierto ? null : item;
     showInlineCreate = false;
     newTopicInline = { name: '', icon: 'bookmark', color: '#2E7D9B' };
   };
 
   const closeSaveToTopicMenu = () => {
     saveToTopicVerseKey = null;
+    saveToTopicItem = null;
     showInlineCreate = false;
   };
 
@@ -199,13 +182,6 @@
   const getFilledTopicIconSvg = (iconKey) => {
     const svg = TOPIC_ICONS[iconKey] || TOPIC_ICONS.bookmark;
     return svg.replace(/fill="none"\s*/g, '').replace(/stroke-width="2"\s*/g, 'stroke-width="1.5"');
-  };
-
-  const handleSaveToTopicMenuOutside = (event) => {
-    if (saveToTopicVerseKey === null) return;
-    if (saveToTopicMenuElement && !saveToTopicMenuElement.contains(event.target)) {
-      closeSaveToTopicMenu();
-    }
   };
 
   const addToTopic = async (item, topicId) => {
@@ -266,13 +242,6 @@
     noteColor = '#3B82F6';
     // Restore scroll when modal is closed
     document.body.style.overflow = '';
-  };
-
-  const handleNoteModalOutside = (event) => {
-    if (noteModalVerseKey === null) return;
-    if (noteModalElement && !noteModalElement.contains(event.target)) {
-      closeNoteModal();
-    }
   };
 
   const saveNoteForVerse = async (item) => {
@@ -824,9 +793,6 @@
     }
 
     isMounted = true;
-    document.addEventListener('click', handleCompareMenuOutside);
-    document.addEventListener('click', handleSaveToTopicMenuOutside);
-    document.addEventListener('click', handleNoteModalOutside);
   });
 
   onDestroy(() => {
@@ -840,9 +806,6 @@
     }
     if (typeof window !== 'undefined') {
       window.removeEventListener('scroll', () => {});
-      document.removeEventListener('click', handleCompareMenuOutside);
-      document.removeEventListener('click', handleSaveToTopicMenuOutside);
-      document.removeEventListener('click', handleNoteModalOutside);
     }
   });
 
@@ -1031,8 +994,8 @@
         </button>
         <button
           type="button"
-          class="icon-btn favorite-btn"
-          class:favorite-btn--active={$favoritesStore.some((f) => f.book === item.book && f.chapter === item.chapter && f.verse === item.index)}
+          class="icon-btn favorite-btn icon-btn--marked-favorite"
+          class:icon-btn--marked={$favoritesStore.some((f) => f.book === item.book && f.chapter === item.chapter && f.verse === item.index)}
           class:icon-btn--disabled={!$isAuthenticated}
           title={$isAuthenticated
             ? ($favoritesStore.some((f) => f.book === item.book && f.chapter === item.chapter && f.verse === item.index)
@@ -1052,7 +1015,7 @@
           </svg>
         </button>
         {#if availableOtherVersions.length > 0}
-          <span class="verse-compare" bind:this={compareMenuElement}>
+          <span class="verse-compare">
             <button
               type="button"
               class="icon-btn compare-link-btn"
@@ -1060,7 +1023,7 @@
               aria-label={$_('app.result.actions.compare_with', {
                 reference: `${map[item.book]} ${item.chapter}:${item.index}`,
               })}
-              on:click={(e) => toggleCompareMenu(item.key, e)}
+              on:click={(e) => toggleCompareMenu(item, e)}
               aria-haspopup="listbox"
               aria-expanded={compareMenuVerseKey === item.key}
             >
@@ -1068,37 +1031,15 @@
                 <path d="M17 3l4 4-4 4M21 7H8M7 21l-4-4 4-4M3 17h13"/>
               </svg>
             </button>
-            {#if compareMenuVerseKey === item.key}
-              <div
-                class="verse-compare-menu"
-                role="listbox"
-                tabindex="-1"
-                on:keydown={(e) => e.key === 'Escape' && closeCompareMenu()}
-                style="top: {compareMenuPosition.top}px; right: {compareMenuPosition.right}px;"
-              >
-                {#each availableOtherVersions as opt (opt.value)}
-                  <button
-                    type="button"
-                    class="verse-compare-option"
-                    role="option"
-                    aria-selected="false"
-                    on:click={(e) => { e.stopPropagation(); compareVerseWith(item, opt.value); }}
-                  >
-                    <span class="verse-compare-option__name">{opt.bibleName}</span>
-                    <span class="verse-compare-option__locale">{opt.label}</span>
-                  </button>
-                {/each}
-              </div>
-            {/if}
           </span>
         {/if}
 
         <!-- Save to topic -->
-        <span class="verse-save-topic" bind:this={saveToTopicMenuElement}>
+        <span class="verse-save-topic">
           <button
             type="button"
-            class="icon-btn save-topic-btn"
-            class:save-topic-btn--has-topic={primaryTopic}
+            class="icon-btn save-topic-btn icon-btn--marked-topic"
+            class:icon-btn--marked={primaryTopic}
             style={primaryTopic ? `--topic-color: ${primaryTopic.color};` : ''}
             class:icon-btn--disabled={!$isAuthenticated}
             title={$isAuthenticated ? $_('app.topics.add_verse_to_topic') : $_('app.result.actions.topics_login_required')}
@@ -1109,7 +1050,7 @@
                 openAuthMenu();
                 return;
               }
-              toggleSaveToTopicMenu(item.key, e);
+              toggleSaveToTopicMenu(item, e);
             }}
             aria-haspopup="listbox"
             aria-expanded={saveToTopicVerseKey === item.key}
@@ -1124,125 +1065,14 @@
               </svg>
             {/if}
           </button>
-          {#if saveToTopicVerseKey === item.key}
-            <!-- Backdrop for mobile modal view -->
-            <div
-              class="save-topic-backdrop"
-              role="presentation"
-              on:click={closeSaveToTopicMenu}
-              on:keydown={(e) => e.key === 'Escape' && closeSaveToTopicMenu()}
-              aria-hidden="true"
-            ></div>
-            <div
-              class="save-topic-menu"
-              role="listbox"
-              tabindex="-1"
-              on:keydown={(e) => e.key === 'Escape' && closeSaveToTopicMenu()}
-              style="top: {saveToTopicMenuPosition.top}px; right: {saveToTopicMenuPosition.right}px;"
-            >
-              <div class="save-topic-menu__header">
-                <div class="save-topic-menu__label">{$_('app.topics.add_to_existing')}</div>
-                <button
-                  type="button"
-                  class="save-topic-menu__close"
-                  aria-label={$_('app.notes.cancel')}
-                  on:click={closeSaveToTopicMenu}
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="18" height="18">
-                    <path d="M18 6 6 18M6 6l12 12"/>
-                  </svg>
-                </button>
-              </div>
-              {#if topics.length === 0}
-                <p class="save-topic-menu__empty">{$_('app.topics.create_first_topic')}</p>
-              {:else}
-                <ul class="save-topic-menu__list">
-                  {#each topics as topic (topic.id)}
-                    {@const inTopic = isVerseInTopic(topic.id, item)}
-                    <li>
-                      <button
-                        type="button"
-                        class="save-topic-option"
-                        class:save-topic-option--active={inTopic}
-                        on:click={() => inTopic ? removeFromTopic(item, topic.id) : addToTopic(item, topic.id)}
-                      >
-                        <span class="save-topic-option__icon" aria-hidden="true">{@html getTopicIconSvg(topic.icon)}</span>
-                        <span class="save-topic-option__name">{topic.name}</span>
-                        <span class="save-topic-option__check" aria-hidden="true">{inTopic ? '✓' : '+'}</span>
-                      </button>
-                    </li>
-                  {/each}
-                </ul>
-              {/if}
-              <div class="save-topic-menu__divider" aria-hidden="true"></div>
-              {#if !showInlineCreate}
-                <button
-                  type="button"
-                  class="save-topic-menu__add-new"
-                  on:click={(e) => { e.stopPropagation(); showInlineCreate = true; }}
-                >
-                  <span aria-hidden="true">+</span>
-                  <span>{$_('app.topics.create_new_inline')}</span>
-                </button>
-              {:else}
-                <div class="save-topic-menu__inline">
-                  <input
-                    type="text"
-                    bind:value={newTopicInline.name}
-                    placeholder={$_('app.topics.new_topic_placeholder')}
-                    maxlength="40"
-                    autofocus
-                    on:click={(e) => e.stopPropagation()}
-                    on:mousedown|stopPropagation
-                  />
-                  <div class="save-topic-menu__inline-row">
-                    <div role="presentation" on:click|stopPropagation on:mousedown|stopPropagation>
-                      <IconPicker
-                        value={newTopicInline.icon}
-                        onChange={(icon) => { newTopicInline = { ...newTopicInline, icon }; }}
-                      />
-                    </div>
-                    <input
-                      type="color"
-                      bind:value={newTopicInline.color}
-                      class="save-topic-menu__inline-color"
-                      on:click={(e) => e.stopPropagation()}
-                      on:mousedown|stopPropagation
-                    />
-                  </div>
-                  <div class="save-topic-menu__inline-actions">
-                    <button
-                      type="button"
-                      class="save-topic-menu__inline-cancel"
-                      on:click={(e) => {
-                        e.stopPropagation();
-                        showInlineCreate = false;
-                        newTopicInline = { name: '', icon: 'bookmark', color: '#2E7D9B' };
-                      }}
-                    >
-                      {$_('app.topics.cancel')}
-                    </button>
-                    <button
-                      type="button"
-                      class="save-topic-menu__inline-save"
-                      on:click={(e) => { e.stopPropagation(); createTopicInline(item); }}
-                      disabled={!newTopicInline.name.trim()}
-                    >
-                      {$_('app.topics.save')}
-                    </button>
-                  </div>
-                </div>
-              {/if}
-            </div>
-          {/if}
         </span>
 
         <!-- Note -->
-        <span class="verse-note" bind:this={noteModalElement}>
+        <span class="verse-note">
           <button
             type="button"
-            class="icon-btn note-btn"
-            class:note-btn--active={hasNote}
+            class="icon-btn note-btn icon-btn--marked-note"
+            class:icon-btn--marked={hasNote}
             class:icon-btn--disabled={!$isAuthenticated}
             title={$isAuthenticated
               ? (hasNote ? $_('app.notes.edit_note') : $_('app.notes.add_note'))
@@ -1262,7 +1092,7 @@
               else openNoteModal(item);
             }}
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class:note-icon--active={hasNote}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
               <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
             </svg>
@@ -1275,34 +1105,131 @@
   </div>
 </div>
 
+
+<!-- ── Diálogos del versículo ──────────────────────────────────────────────
+     Los tres usan la misma Modal: antes eran popups anclados al botón, que
+     en móvil quedaban recortados contra el borde de la pantalla. -->
+
+<Modal
+  open={!!compareMenuItem}
+  title={$_('app.result.actions.compare_with')}
+  size="sm"
+  onClose={closeCompareMenu}
+>
+  <div class="dialog-list" role="listbox">
+      {#each availableOtherVersions as opt (opt.value)}
+        <button
+          type="button"
+          class="verse-compare-option"
+          role="option"
+          aria-selected="false"
+          on:click={(e) => { e.stopPropagation(); compareVerseWith(compareMenuItem, opt.value); }}
+        >
+          <span class="verse-compare-option__name">{opt.bibleName}</span>
+          <span class="verse-compare-option__locale">{opt.label}</span>
+        </button>
+      {/each}
+  </div>
+</Modal>
+
+<Modal
+  open={!!saveToTopicItem}
+  eyebrow={$_('app.topics.add_to_existing')}
+  title={saveToTopicItem ? `${map[saveToTopicItem.book]} ${saveToTopicItem.chapter}:${saveToTopicItem.index}` : ''}
+  size="md"
+  onClose={closeSaveToTopicMenu}
+>
+    {#if topics.length === 0}
+      <p class="save-topic-menu__empty">{$_('app.topics.create_first_topic')}</p>
+    {:else}
+      <ul class="save-topic-menu__list">
+        {#each topics as topic (topic.id)}
+          {@const inTopic = isVerseInTopic(topic.id, saveToTopicItem)}
+          <li>
+            <button
+              type="button"
+              class="save-topic-option"
+              class:save-topic-option--active={inTopic}
+              on:click={() => inTopic ? removeFromTopic(saveToTopicItem, topic.id) : addToTopic(saveToTopicItem, topic.id)}
+            >
+              <span class="save-topic-option__icon" aria-hidden="true">{@html getTopicIconSvg(topic.icon)}</span>
+              <span class="save-topic-option__name">{topic.name}</span>
+              <span class="save-topic-option__check" aria-hidden="true">{inTopic ? '✓' : '+'}</span>
+            </button>
+          </li>
+        {/each}
+      </ul>
+    {/if}
+    <div class="save-topic-menu__divider" aria-hidden="true"></div>
+    {#if !showInlineCreate}
+      <button
+        type="button"
+        class="save-topic-menu__add-new"
+        on:click={(e) => { e.stopPropagation(); showInlineCreate = true; }}
+      >
+        <span aria-hidden="true">+</span>
+        <span>{$_('app.topics.create_new_inline')}</span>
+      </button>
+    {:else}
+      <div class="save-topic-menu__inline">
+        <input
+          type="text"
+          bind:value={newTopicInline.name}
+          placeholder={$_('app.topics.new_topic_placeholder')}
+          maxlength="40"
+          autofocus
+          on:click={(e) => e.stopPropagation()}
+          on:mousedown|stopPropagation
+        />
+        <div class="save-topic-menu__inline-row">
+          <div role="presentation" on:click|stopPropagation on:mousedown|stopPropagation>
+            <IconPicker
+              value={newTopicInline.icon}
+              onChange={(icon) => { newTopicInline = { ...newTopicInline, icon }; }}
+            />
+          </div>
+          <input
+            type="color"
+            bind:value={newTopicInline.color}
+            class="save-topic-menu__inline-color"
+            on:click={(e) => e.stopPropagation()}
+            on:mousedown|stopPropagation
+          />
+        </div>
+        <div class="save-topic-menu__inline-actions">
+          <button
+            type="button"
+            class="save-topic-menu__inline-cancel"
+            on:click={(e) => {
+              e.stopPropagation();
+              showInlineCreate = false;
+              newTopicInline = { name: '', icon: 'bookmark', color: '#2E7D9B' };
+            }}
+          >
+            {$_('app.topics.cancel')}
+          </button>
+          <button
+            type="button"
+            class="save-topic-menu__inline-save"
+            on:click={(e) => { e.stopPropagation(); createTopicInline(saveToTopicItem); }}
+            disabled={!newTopicInline.name.trim()}
+          >
+            {$_('app.topics.save')}
+          </button>
+        </div>
+      </div>
+    {/if}
+</Modal>
+
 <!-- Note modal: rendered at top level (not inside .verse) to escape stacking context -->
 {#if noteModalVerseKey && noteModalItem}
-  <div
-    class="note-overlay"
-    role="presentation"
-    on:click={closeNoteModal}
-    on:keydown={(e) => e.key === 'Escape' && closeNoteModal()}
-  ></div>
-  <div
-    class="note-modal auth-modal__panel"
-    role="dialog"
-    tabindex="-1"
-    aria-label={$_('app.notes.modal_title')}
-    on:click|stopPropagation
-    on:keydown={(e) => e.key === 'Escape' && closeNoteModal()}
+  <Modal
+    open={true}
+    eyebrow={$_('app.notes.modal_title')}
+    title={`${map[noteModalItem.book]} ${noteModalItem.chapter}:${noteModalItem.index}`}
+    size="md"
+    onClose={closeNoteModal}
   >
-    <button
-      type="button"
-      class="note-modal__close auth-modal__close"
-      aria-label={$_('app.notes.cancel')}
-      on:click={closeNoteModal}
-    >
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M18 6 6 18M6 6l12 12"/>
-      </svg>
-    </button>
-    <p class="note-modal__eyebrow">{$_('app.notes.modal_title')}</p>
-    <h2 class="note-modal__title">{map[noteModalItem.book]} {noteModalItem.chapter}:{noteModalItem.index}</h2>
     <textarea
       class="note-modal__textarea"
       bind:value={noteText}
@@ -1361,7 +1288,7 @@
         </button>
       </div>
     </div>
-  </div>
+  </Modal>
 {/if}
 
 {#if toastMessage}
@@ -1577,6 +1504,36 @@
       outline: 2px solid var(--color-blue);
       outline-offset: 2px;
     }
+
+    // ── Estado "marcado" ──────────────────────────────────────────────────
+    // Un único tratamiento para los cuatro iconos del versículo. Lo que
+    // cambia entre ellos es solo `--marked-color`, que cada modificador
+    // inyecta: así el usuario reconoce "esto está marcado" por la forma, y
+    // qué tipo de marca es por el color.
+    &--marked {
+      color: var(--marked-color);
+      border-color: var(--marked-color);
+      background: color-mix(in srgb, var(--marked-color) 14%, var(--color-surface));
+      box-shadow: 0 1px 3px color-mix(in srgb, var(--marked-color) 30%, transparent);
+
+      &:hover,
+      &:focus-visible {
+        border-color: var(--marked-color);
+        background: color-mix(in srgb, var(--marked-color) 24%, var(--color-surface));
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--marked-color) 25%, transparent);
+      }
+
+      &:focus-visible {
+        outline-color: var(--marked-color);
+      }
+    }
+
+    // Color por tipo de marca
+    &--marked-favorite { --marked-color: var(--color-marked-favorite); }
+    &--marked-note { --marked-color: var(--color-marked-note); }
+    // El índice temático usa el color del tema, que llega inline como
+    // --topic-color desde la plantilla.
+    &--marked-topic { --marked-color: var(--topic-color, var(--color-accent)); }
   }
 
   // === COMPARE PER VERSE ===
@@ -1700,17 +1657,6 @@
       opacity: 1;
     }
 
-    &--has-topic {
-      border-color: var(--topic-color, var(--color-accent));
-      background: color-mix(in srgb, var(--topic-color, var(--color-accent)) 15%, transparent);
-      color: var(--topic-color, var(--color-link));
-      box-shadow: 0 1px 3px color-mix(in srgb, var(--topic-color, var(--color-accent)) 30%, transparent);
-
-      &:hover,
-      &:focus-visible {
-        box-shadow: 0 0 0 3px color-mix(in srgb, var(--topic-color, var(--color-accent)) 25%, transparent);
-      }
-    }
   }
 
   .save-topic-btn[aria-expanded="true"] {
@@ -2088,12 +2034,6 @@
     border-color: color-mix(in srgb, var(--color-accent) 25%, transparent);
   }
 
-  :global(html[data-theme='dark']) .save-topic-btn--has-topic {
-    background: color-mix(in srgb, var(--topic-color, var(--color-accent)) 25%, transparent);
-    color: var(--topic-color, var(--color-accent-soft));
-    border-color: var(--topic-color, var(--color-accent));
-  }
-
   // === FAVORITE BUTTON ===
   // Siempre visible (es la acción primaria). Estado activo = estrella rellena en amarillo.
   .favorite-btn {
@@ -2107,14 +2047,6 @@
       transform: scale(1.15);
     }
 
-    &--active {
-      color: rgb(202, 138, 4); // yellow-600 (legible sobre fondo claro)
-      border-color: rgb(202, 138, 4);
-      background: color-mix(in srgb, rgb(202, 138, 4) 14%, var(--color-white));
-
-      svg { fill: rgb(202, 138, 4); }
-    }
-
     &:disabled {
       opacity: 0.4;
       cursor: not-allowed;
@@ -2125,12 +2057,6 @@
     color: #ffffff;
     border-color: rgb(255 255 255 / 14%);
 
-    &--active {
-      background: color-mix(in srgb, #fbbf24 20%, var(--color-surface)); // yellow-400
-      border-color: #fbbf24;
-      color: #fbbf24;
-      svg { fill: #fbbf24; }
-    }
   }
 
   :global(html[data-theme='dark']) .save-topic-menu {
@@ -2521,15 +2447,6 @@
     opacity: 1;
     box-shadow: 0 1px 3px rgb(0 0 0 / 10%);
 
-    &--active {
-      color: rgb(40, 167, 69);
-      border-color: rgb(40, 167, 69);
-      background: color-mix(in srgb, rgb(40, 167, 69) 12%, var(--color-white));
-    }
-
-    .note-icon--active {
-      stroke: rgb(40, 167, 69);
-    }
   }
 
   .note-btn[aria-expanded="true"] {
@@ -2745,16 +2662,6 @@
     background: color-mix(in srgb, var(--color-accent) 15%, transparent);
     color: var(--color-accent-soft);
     border-color: color-mix(in srgb, var(--color-accent) 25%, transparent);
-  }
-
-  :global(html[data-theme='dark']) .note-btn--active {
-    color: #5dde86;
-    border-color: #5dde86;
-    background: color-mix(in srgb, #5dde86 20%, var(--color-surface));
-
-    .note-icon--active {
-      stroke: #5dde86;
-    }
   }
 
   // Dark mode note modal — centered overlay (auth-modal style)

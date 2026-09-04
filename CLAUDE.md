@@ -50,7 +50,7 @@ Node ≥ 24.15.0 (ver `.nvmrc`). No hay suite de tests automatizados.
 Cosas que rompen si no se saben:
 
 1. **El evento de navegación se llama `robibile:navigate`** — con la errata, `bibile` en vez de `bible`. Está así en 10 sitios. Al escuchar o emitir, hay que escribirlo mal a propósito. Renombrarlo es un cambio atómico o no es.
-2. **Tocar `public/sw.js` obliga a bumpear `CACHE_NAME`** (hoy `robible-v21`). Sin bump, los usuarios con la PWA instalada no reciben el cambio. `public/sw.js` es la única fuente de verdad de la versión de cache: no dupliques la constante en otro sitio.
+2. **Tocar `public/sw.js` obliga a bumpear `CACHE_NAME`** (hoy `robible-v22`). Sin bump, los usuarios con la PWA instalada no reciben el cambio. `public/sw.js` es la única fuente de verdad de la versión de cache: no dupliques la constante en otro sitio.
 3. **`bible.json` pesa 4,2 MB por versión.** No cargarlo en scripts ni en el arranque salvo que haga falta. La Biblia de comparación es lazy: solo se descarga al entrar en modo comparar.
 4. **`App.svelte` tiene guardas anti-race deliberadas**: `bibleLoadRequestId`, `_localeVersionTag`, `_pendingLocale`. Parecen redundantes y no lo son — evitan que una carga vieja pise a una nueva al cambiar de versión/idioma. No simplificar.
 5. **`getBibleVersionConfigOrDefault()` sin argumento devuelve siempre `vdc`**, no la versión activa. Pásale siempre `$selectedBibleVersion`. La única llamada sin argumento legítima es la de `src/config/seo.js:5`, que define a propósito la versión por defecto. Ya provocó un bug real (voz rumana leyendo español), ver auditoría hallazgo 1.
@@ -59,7 +59,11 @@ Cosas que rompen si no se saben:
 8. **La lectura no tiene voz, por decisión de producto**: es música + resaltado visual. `TtsPlayer` recibe `playlist` (lo que hay en pantalla), no un capítulo. `tts.service.js` existe pero no lo importa nadie.
 9. **El sistema de diseño vive en `public/global.css`** y es la única fuente de verdad; la landing consume esos mismos tokens. Tres capas: escalas crudas (`--grey-*`, `--blue-*`, `--green-*`) → alias semánticos (`--color-accent`, `--color-surface`, `--color-ink`…) → alias heredados (`--color-blue`, `--color-white`…). **Usa los semánticos**; los heredados solo existen por los ~500 usos ya escritos. El modo oscuro solo reapunta los semánticos, así que los componentes no llevan reglas de tema.
 
-10. **El verde está reservado** al versículo que se está leyendo (`--color-success`) y al botón que lo activa. No lo uses para nada más.
+10. **Colores con significado fijo**: verde = versículo en lectura (`--color-success`) y el botón que lo activa; ámbar = favorito; el color del tema = índice temático. Los cuatro iconos del versículo comparten `.icon-btn` y el estado `.icon-btn--marked`, que solo lee `--marked-color`. Para un icono nuevo, añade un modificador que fije esa variable — no dupliques el bloque de estilos.
+
+12. **Diálogos**: usa `src/components/Modal.svelte` (centrado, hoja inferior en móvil, Escape y clic fuera). No vuelvas a anclar popups al botón con `getBoundingClientRect()`: se recortaban contra el borde en móvil.
+
+13. **En la landing, las clases que añade JS necesitan `:global()`**. Svelte poda como CSS muerto lo que no ve en la plantilla: por eso la animación de aparición (`.is-visible`) nunca funcionó hasta que se envolvió en `:global()`.
 
 11. **Los comentarios XML de los SVG no pueden contener `--`**: `sharp` revienta al leerlos. Por eso los nombres de token en `logo.svg` se escriben `(grey 800)`. Tras tocar un SVG del logo, `node scripts/build-logo.js` y bumpea el SW.
 
