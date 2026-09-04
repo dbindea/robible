@@ -15,7 +15,7 @@
     resumeTts,
     endTts,
   } from '../store/ttsStore.js';
-  import { getBibleVersionConfigOrDefault, immersiveMode, toggleImmersiveMode } from '../store/stores.js';
+  import { getBibleVersionConfigOrDefault, immersiveMode, selectedBibleVersion, toggleImmersiveMode } from '../store/stores.js';
 
   export let bible = null;
   export let map = null;
@@ -73,6 +73,12 @@
     ttsPanelOpen.update((v) => !v);
   }
 
+  // ⚠️ DESCONECTADA (detectado 2026-09-04): esta es la ruta de TTS real — la
+  // única que llama a `ttsService.speak()`. Ningún control de la UI la invoca:
+  // el botón de play usa `playMusicOnly()`, que solo pone el drone y simula el
+  // karaoke con timers. Se conserva a la espera de rediseñar la reproducción.
+  // Ver docs/AUDITORIA-2026-09-04.md, hallazgo 13.
+  // eslint-disable-next-line no-unused-vars
   function playChapter() {
     if (!bible || !map || book === null || chapter === null) return;
     const verses = bible[book]?.[chapter - 1] || [];
@@ -156,7 +162,10 @@
     const text = verses[verseIndex];
     const verseNum = verseIndex + 1;
     const verseKey = `${bookIndex}-${chapterIndex}-${verseNum}`;
-    const cfg = getBibleVersionConfigOrDefault();
+    // Pasar la versión activa: sin argumento, getBibleVersionConfigOrDefault()
+    // devuelve siempre la versión por defecto (vdc → 'ro') y el español se leía
+    // con voz rumana.
+    const cfg = getBibleVersionConfigOrDefault($selectedBibleVersion);
     const verseLang = cfg?.locale || lang;
 
     ttsService.speak(text, verseLang, {

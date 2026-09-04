@@ -6,7 +6,7 @@
    *   onChange — callback(selectedIconKey)
    */
   export let value = 'bookmark';
-  export let onChange = (icon) => {};
+  export let onChange = () => {};
 
   const ICONS = [
     {

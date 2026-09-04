@@ -126,11 +126,6 @@
     }
   };
 
-  const submitCreateFromVerse = (data) => {
-    if (!data.name.trim()) return null;
-    return topicsStore.create(data);
-  };
-
   const handleDeleteTopic = (topic) => {
     if (!confirm($_('app.topics.delete_confirm'))) return;
     topicsStore.remove(topic.id);

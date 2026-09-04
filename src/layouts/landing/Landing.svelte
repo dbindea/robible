@@ -4,8 +4,6 @@
   import { searchReferences } from '../../services/referenceSearch.service';
   import { getBibleVersionConfigOrDefault, selectedBibleVersion } from '../../store/stores';
   import { buildBiblePath } from '../../services/bible-route.service';
-  import { currentUser } from '../../store/authStore';
-  import { get } from 'svelte/store';
 
   // ── Estado del micro-demo ────────────────────────────────────────────────
   let demoQuery = '';
@@ -53,6 +51,79 @@
   function toggleFaq(i) {
     openFaqIdx = openFaqIdx === i ? -1 : i;
   }
+
+  // ── JSON-LD ──────────────────────────────────────────────────────────────
+  // Los esquemas se serializan aquí y no en el markup: un <script> dentro de
+  // un template literal en la plantilla rompe el parser de ESLint y dejaba el
+  // archivo entero sin analizar. La salida renderizada es idéntica.
+  // El `<\/script>` va escapado a propósito: sin la barra, la cadena cerraría
+  // este mismo bloque <script> del componente.
+  // eslint-disable-next-line no-useless-escape
+  const jsonLdTag = (data) => `<script type="application/ld+json">${JSON.stringify(data)}<\/script>`;
+
+  $: webSiteSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'RoBible',
+    alternateName: 'Ro Bible',
+    url: 'https://robible.com',
+    description: $_('landing.meta.description'),
+    inLanguage: ['ro', 'es', 'en', 'zh-Hans'],
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: {
+        '@type': 'EntryPoint',
+        urlTemplate: 'https://robible.com/biblia/{version}/{book}/{chapter}/{verse}',
+      },
+      'query-input': 'required name=verse',
+    },
+  };
+
+  $: softwareSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: 'RoBible',
+    applicationCategory: 'EducationalApplication',
+    operatingSystem: 'Any (web browser)',
+    description: $_('landing.meta.description'),
+    url: 'https://robible.com',
+    offers: {
+      '@type': 'Offer',
+      price: '0',
+      priceCurrency: 'EUR',
+    },
+    featureList: [
+      'No tracking',
+      'No ads',
+      'Offline reading (PWA)',
+      'Multi-language: ro, es, en, zh',
+      'Reference search',
+      'Word search',
+      'Multi-device sync',
+      'TTS with ambient music',
+      'Translation comparison',
+    ],
+  };
+
+  const organizationSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: 'RoBible',
+    url: 'https://robible.com',
+    logo: 'https://robible.com/assets/logo.png',
+    sameAs: ['https://github.com/dbindea/robible'],
+  };
+
+  // Este map ignoraba el `item` y emitía cinco veces la pregunta q1/a1.
+  $: faqSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqItems.map((item) => ({
+      '@type': 'Question',
+      name: $_(item.qKey),
+      acceptedAnswer: { '@type': 'Answer', text: $_(item.aKey) },
+    })),
+  };
 
   // ── Counters (datos reales del backend) ──────────────────────────────────
   let stats = {
@@ -184,80 +255,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
-  <!-- JSON-LD: WebSite with SearchAction -->
-  {@html `<script type="application/ld+json">
-${JSON.stringify({
-  '@context': 'https://schema.org',
-  '@type': 'WebSite',
-  name: 'RoBible',
-  alternateName: 'Ro Bible',
-  url: 'https://robible.com',
-  description: $_('landing.meta.description'),
-  inLanguage: ['ro', 'es', 'en', 'zh-Hans'],
-  potentialAction: {
-    '@type': 'SearchAction',
-    target: {
-      '@type': 'EntryPoint',
-      urlTemplate: 'https://robible.com/biblia/{version}/{book}/{chapter}/{verse}',
-    },
-    'query-input': 'required name=verse',
-  },
-})}
-</script>`}
-
-  <!-- JSON-LD: SoftwareApplication -->
-  {@html `<script type="application/ld+json">
-${JSON.stringify({
-  '@context': 'https://schema.org',
-  '@type': 'SoftwareApplication',
-  name: 'RoBible',
-  applicationCategory: 'EducationalApplication',
-  operatingSystem: 'Any (web browser)',
-  description: $_('landing.meta.description'),
-  url: 'https://robible.com',
-  offers: {
-    '@type': 'Offer',
-    price: '0',
-    priceCurrency: 'EUR',
-  },
-  featureList: [
-    'No tracking',
-    'No ads',
-    'Offline reading (PWA)',
-    'Multi-language: ro, es, en, zh',
-    'Reference search',
-    'Word search',
-    'Multi-device sync',
-    'TTS with ambient music',
-    'Translation comparison',
-  ],
-})}
-</script>`}
-
-  <!-- JSON-LD: Organization -->
-  {@html `<script type="application/ld+json">
-${JSON.stringify({
-  '@context': 'https://schema.org',
-  '@type': 'Organization',
-  name: 'RoBible',
-  url: 'https://robible.com',
-  logo: 'https://robible.com/assets/logo.png',
-  sameAs: ['https://github.com/dbindea/robible'],
-})}
-</script>`}
-
-  <!-- JSON-LD: FAQPage -->
-  {@html `<script type="application/ld+json">
-${JSON.stringify({
-  '@context': 'https://schema.org',
-  '@type': 'FAQPage',
-  mainEntity: faqItems.map((item) => ({
-    '@type': 'Question',
-    name: $_('landing.faq.q1'),
-    acceptedAnswer: { '@type': 'Answer', text: $_('landing.faq.a1') },
-  })),
-})}
-</script>`}
+  <!-- JSON-LD (los esquemas se construyen en el bloque <script>) -->
+  {@html jsonLdTag(webSiteSchema)}
+  {@html jsonLdTag(softwareSchema)}
+  {@html jsonLdTag(organizationSchema)}
+  {@html jsonLdTag(faqSchema)}
 </svelte:head>
 
 <main class="landing">
@@ -287,7 +289,7 @@ ${JSON.stringify({
         <div class="hero__lang" aria-label={$_('landing.hero.lang_label')}>
           <span class="hero__lang-label">{$_('landing.hero.lang_label')}</span>
           <ul class="hero__lang-list">
-            {#each SUPPORTED_LOCALES as loc, i}
+            {#each SUPPORTED_LOCALES as loc (loc.code)}
               <li>
                 <button
                   type="button"

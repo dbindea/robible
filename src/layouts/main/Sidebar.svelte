@@ -3,7 +3,7 @@
   import { _ } from '../../services/i18n.service';
   import { filter, selectedBibleVersion } from '../../store/stores';
   import { searchesStore } from '../../store/searchesStore';
-  import { searchReferences, formatReference, parseReference } from '../../services/referenceSearch.service';
+  import { searchReferences } from '../../services/referenceSearch.service';
   import { getBibleVersionConfigOrDefault } from '../../config/bible-versions';
   import { buildBiblePath } from '../../services/bible-route.service';
   import BookDrawer from './BookDrawer.svelte';
@@ -24,7 +24,6 @@
   let referenceMatches = [];
   let referenceDropdownOpen = false;
   let referenceSelectedIdx = -1;
-  let isReferenceMode = false;
 
   function navigateTo(href) {
     if (!href) return;
@@ -65,7 +64,6 @@
   }
 
   function onSearchTypeChange() {
-    isReferenceMode = searchForm.searchType === 'reference';
     referenceDropdownOpen = false;
     referenceMatches = [];
     referenceSelectedIdx = -1;
@@ -334,7 +332,7 @@
     openRecentSearches();
   };
 
-  const handleInputBlur = (e) => {
+  const handleInputBlur = () => {
     // Delay para permitir click en los items del dropdown
     setTimeout(() => {
       if (recentSearchesPanel && !recentSearchesPanel.contains(document.activeElement)) {

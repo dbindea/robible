@@ -1,7 +1,7 @@
 <script>
-  import { _, setupI18n } from '../../services/i18n.service';
+  import { _ } from '../../services/i18n.service';
   import { favoritesStore } from '../../store/favoritesStore';
-  import { isAuthenticated, currentUser } from '../../store/authStore';
+  import { isAuthenticated } from '../../store/authStore';
   import { openAuthMenu } from '../../store/authMenuStore';
   import { buildBiblePath, getBookSlug } from '../../services/bible-route.service';
   import { selectedBibleVersion } from '../../store/stores';

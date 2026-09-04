@@ -1,7 +1,7 @@
 <script>
   import { onDestroy, onMount } from 'svelte';
   import { _ } from '../../services/i18n.service';
-  import { bibleVersions, resetFilter, selectedBibleVersion } from '../../store/stores';
+  import { bibleVersions, selectedBibleVersion } from '../../store/stores';
   import { appMenuOpen, closeAppMenu, openAppMenu } from '../../store/appMenuStore';
   import { isAuthenticated } from '../../store/authStore';
 

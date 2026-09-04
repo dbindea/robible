@@ -2,16 +2,21 @@
 
 [![Netlify Status](https://api.netlify.com/api/v1/badges/6b686e6f-af60-40b2-ad0d-9226c5ba76e9/deploy-status)](https://app.netlify.com/sites/robible/deploys)
 
-**RoBible** es una aplicacion web bilingue (rumano + espanol) para leer la Biblia con audio TTS, comparacion de versiones, indice tematico, favoritos, notas y soporte offline completo.
+**RoBible** es una aplicacion web para leer la Biblia con audio TTS, comparacion de versiones, indice tematico, favoritos, notas y soporte offline completo. Dos Biblias disponibles (rumano y espanol) e interfaz traducida a cuatro idiomas.
 
 🌐 **Produccion**: [robible.com](https://robible.com)
+
+📖 Documentacion tecnica: [CLAUDE.md](CLAUDE.md) · [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) · [docs/OPERACIONES.md](docs/OPERACIONES.md) · [ROADMAP.md](ROADMAP.md)
 
 ---
 
 ## Caracteristicas
 
 ### Lectura y navegacion
-- **Dos versiones biblicas**: Biblia Romana (VDC) y Biblia en Espanol (RVLC)
+- **Dos versiones biblicas con datos**: Biblia Română (VDC) y Biblia Español (RVL). `en_kjv` y `zh_cuv` estan declaradas en el catalogo pero aun sin datos (`available: false`)
+- **Landing publica** en cuatro idiomas (`/landing?lang=ro|es|en|zh`) con micro-demo de busqueda
+- **Busqueda por texto y por referencia**: acepta tanto palabras como referencias tipo `Ioan 3:16` o `jn 3 16`, con tolerancia a erratas
+- **Busquedas recientes** sincronizadas entre dispositivos (ultimas 25)
 - **Comparar versiones**: selecciona cualquier versiculo y muestralo en ambas traducciones lado a lado
 - **Indice tematico**: categorias como Salvacion, Misericordia, Sanacion (RO) / Amor, Esperanza, Fe (ES) con versiculos guardados
 - **Favoritos**: marca versiculos para acceso rapido
@@ -22,16 +27,17 @@
 ### Audio TTS — Lectura en voz alta con karaoke
 - **Highlighting palabra por palabra**: la palabra actual se resalta automaticamente mientras se lee
 - **Voces nativas**: usa la voz del sistema en el idioma correspondiente (ro-RO / es-ES)
-- **Velocidad configurable**: 0.75x, 1x, 1.25x, 1.5x
+- **Velocidad configurable**: 0.75x, 1x, 1.5x, 2x
 - **Musica de fondo opcional**: drone armónico procedural generado con Web Audio API (gratis, sin dependencias)
 - **Volumenes independientes**: voz y musica por separado
 - **Barra mini-player**: tipo Spotify en la parte inferior de la pantalla, se expande al tocar o deslizar
 
 ### Multiidioma y PWA
-- **Bilingual automatico**: el idioma se infiere de la version biblica activa
+- **Interfaz en 4 idiomas**: rumano, espanol, ingles y chino (`public/lang/`)
+- **Idioma automatico**: en la app se infiere de la version biblica activa; en la landing manda `?lang=`
 - **100% offline**: datos biblicos en JSON cacheados por el service worker
 - **Instalable**: funciona como app en Android, iOS, desktop
-- **SEO completo**: Schema.org, Open Graph, Twitter Cards, OG images dinamicos por versiculo, sitemap con hreflang
+- **SEO completo**: Schema.org, Open Graph, Twitter Cards, OG images dinamicos por versiculo, sitemap troceado con hreflang
 
 ### Multi-device
 - **Auth con Cloudflare Workers + D1**: registro, login, recuperacion por pregunta de seguridad
@@ -44,11 +50,12 @@
 
 | Capa | Tecnologia |
 |------|-----------|
-| Frontend | Svelte 5, Vite 8, SCSS |
-| Datos | JSON estaticos en `/public/data/{vdc,rvl}/` |
-| i18n | JSON en `/public/lang/{ro,es}.json` |
+| Frontend | Svelte 5 (sintaxis legacy, no runes), Vite 8, SCSS |
+| Routing | Propio, sobre `window.location.pathname` (sin router) |
+| Datos | JSON estaticos en `/public/data/{vdc,rvl}/` (4,2 MB por Biblia) |
+| i18n | Propio, sin libreria. JSON en `/public/lang/{ro,es,en,zh}.json` |
 | PWA | Service Worker con cache-first + precache |
-| Backend | Cloudflare Workers + D1 (SQLite en el edge) |
+| Backend | Cloudflare Workers + D1 (SQLite en el edge), router Hono |
 | Auth | PBKDF2-SHA256 (100k iter) + tokens HMAC revocables |
 | Produccion | Frontend en Netlify, Backend en Cloudflare Workers |
 
@@ -82,39 +89,59 @@ El servidor de desarrollo usa `--host 0.0.0.0` para poder probar desde otros dis
 robible/
 ├── public/
 │   ├── data/
-│   │   ├── vdc/          # Biblia Română (bible.json + bible.map.json)
-│   │   └── rvl/           # Biblia en Español (bible.json + bible.map.json)
-│   ├── lang/
-│   │   ├── ro.json        # Traducciones rumano
-│   │   └── es.json        # Traducciones espanol
+│   │   ├── vdc/           # Biblia Română (bible.json + bible.map.json)
+│   │   └── rvl/           # Biblia Español (bible.json + bible.map.json)
+│   ├── lang/              # ro.json, es.json, en.json, zh.json
 │   ├── sw.js              # Service Worker (cache versioning)
-│   └── sitemap.xml
+│   └── sitemap.xml        # instantanea; el build regenera la real en dist/
 ├── src/
-│   ├── layouts/main/
-│   │   ├── Result.svelte     # Vista principal de lectura
-│   │   ├── Compare.svelte    # Comparar versiones
-│   │   ├── Index.svelte      # Indice tematico
-│   │   ├── Favorites.svelte  # Favoritos
-│   │   ├── Notes.svelte      # Notas personales
-│   │   └── Sidebar.svelte    # Filtros y busqueda
+│   ├── App.svelte              # Carga de Biblia + locale, layout raiz
+│   ├── main.js                 # Arranque, redirect a /landing, registro del SW
+│   ├── config.js               # API_BASE_URL, USE_BACKEND
+│   ├── config/
+│   │   ├── bible-versions.js   # Catalogo de versiones: paths, locales, SEO
+│   │   └── seo.js              # Constantes de SEO
+│   ├── layouts/
+│   │   ├── landing/Landing.svelte  # Landing publica multiidioma
+│   │   ├── main/
+│   │   │   ├── Result.svelte       # Vista principal de lectura
+│   │   │   ├── Compare.svelte      # Comparar versiones
+│   │   │   ├── Index.svelte        # Indice tematico
+│   │   │   ├── Favorites.svelte    # Favoritos
+│   │   │   ├── Notes.svelte        # Notas personales
+│   │   │   ├── BookDrawer.svelte   # Selector de libro
+│   │   │   └── Sidebar.svelte      # Filtros y busqueda
+│   │   ├── header/             # Navbar.svelte, AppMenu.svelte
+│   │   ├── auth/AuthModal.svelte
+│   │   ├── footer/Footer.svelte
+│   │   └── pwa/PwaManager.svelte
 │   ├── components/
-│   │   └── TtsPlayer.svelte  # Mini-player TTS karaoke
+│   │   ├── TtsPlayer.svelte    # Mini-player TTS karaoke
+│   │   ├── IconPicker.svelte   # Selector de icono de categoria
+│   │   └── ActionButton.svelte
 │   ├── services/
-│   │   ├── tts.service.js       # SpeechSynthesis wrapper
-│   │   ├── music.service.js      # Web Audio API drone
-│   │   ├── topics.service.js     # Indice tematico
-│   │   ├── favorites.service.js  # Favoritos
-│   │   └── apiClient.js         # Cliente API + localStorage fallback
-│   └── store/
-│       └── ttsStore.js          # Estado TTS (velocidad, volumen, etc.)
-├── workers/robible-api/         # Cloudflare Workers
-│   └── src/index.js            # Router Hono + endpoints
-└── scripts/
-    └── generate-seo.mjs        # Genera paginas SEO estaticas post-build
+│   │   ├── apiClient.js               # Cliente API + politica de fallback
+│   │   ├── auth.service.js            # Auth (API + mock localStorage)
+│   │   ├── favorites|notes|topics|searches.service.js   # Datos, API-first
+│   │   ├── referenceSearch.service.js # Busqueda por referencia (fuzzy)
+│   │   ├── filter.service.js          # Busqueda por texto
+│   │   ├── bible-route.service.js     # Construir/parsear rutas
+│   │   ├── i18n.service.js            # Traductor propio
+│   │   ├── seo.service.js             # Metadatos en runtime
+│   │   ├── tts.service.js             # SpeechSynthesis wrapper
+│   │   └── music.service.js           # Web Audio API drone
+│   └── store/                  # stores.js, authStore, ttsStore, y los de datos
+├── workers/robible-api/        # Cloudflare Workers + D1
+│   ├── src/index.js            # Router Hono + endpoints
+│   ├── schema.sql              # Schema D1
+│   └── dev-server.js           # Emulador local sobre node:sqlite
+├── netlify/functions/          # og-image.mjs, verse-meta.mjs
+├── scripts/generate-seo.mjs    # Paginas SEO estaticas + sitemaps (post-build)
+└── docs/                       # ARQUITECTURA, OPERACIONES, AUDITORIA
 ```
 
 ### Service Worker
-El SW cachea la Biblia completa (~8MB) en la primera visita. Las actualizaciones de codigo bumpean la version del cache automaticamente. La segunda Biblia (para comparacion) se descarga solo cuando el usuario entra en modo comparacion (lazy loading).
+El SW cachea las dos Biblias (~8,5 MB en total, 4,2 MB cada una) en la instalacion. Cada release exige **bumpear `CACHE_NAME`** a mano en `public/sw.js` (hoy `robible-v19`); sin bump, las PWA instaladas no reciben la actualizacion. La segunda Biblia solo se descarga en runtime cuando el usuario entra en modo comparacion (lazy loading), lo que ahorra 4,2 MB en la visita inicial.
 
 ---
 
@@ -146,24 +173,28 @@ Desplegado en: `https://robible-api.robible.workers.dev`
 | GET | `/api/searches` | Busquedas recientes |
 | POST | `/api/searches` | Guardar busqueda |
 | DELETE | `/api/searches` | Borrar busqueda |
+| POST | `/api/auth/change-password` | Cambiar password (autenticado) |
 | GET | `/api/data/export` | Exportar todos los datos |
 | GET | `/api/health` | Estado del API |
+
+Detalle completo (auth, schema, rate limits, deploy): [workers/robible-api/README.md](workers/robible-api/README.md).
 
 ### Desarrollo local
 ```bash
 node workers/robible-api/dev-server.js
-# CORS: localhost:5173, 5174, 127.0.0.1:5173
-# Base de datos: workers/robible-api/.dev-data/robible.db
+# CORS: localhost:5173, 5174, 4173, y sus equivalentes 127.0.0.1
+# Base de datos: workers/robible-api/.dev-data/robible.db (se crea sola)
 ```
 
 ---
 
 ## Workflow git
 
+- Rama de trabajo: **`develop`**. Produccion: **`master`**, que solo recibe merges hechos por el usuario.
 - **Frontend** (commits, PRs, merges): lo gestiona el usuario
 - **Backend** (deploys a Cloudflare, queries D1, scripts): lo gestiona el agente
 
-El agente **no debe** hacer `git commit` / `push` / `PR` / `merge` de archivos frontend.
+El agente **no debe** hacer `git commit` / `push` / `PR` / `merge` de archivos frontend. Deja los cambios en el working tree para que el usuario los revise. Ver [CLAUDE.md](CLAUDE.md).
 
 ---
 
@@ -178,8 +209,9 @@ El agente **no debe** hacer `git commit` / `push` / `PR` / `merge` de archivos f
 
 ## Historial de releases
 
+- **sin taggear** (sep 2026): landing publica en 4 idiomas con micro-demo, busqueda por referencia con fuzzy matching, i18n ampliado a `en` y `zh`, sitemaps troceados, SW `robible-v19`. Sigue versionado como `1.1.0` en `package.json`
 - **v1.1.0** (ago 2026): TTS karaoke con highlighting palabra por palabra, drone musical procedural, barra mini-player, lazy loading de la segunda Biblia, SEO con sitemap automatico y hreflang
-- **v1.0** (may 2026): launch con Biblia Romina + Espanol, comparacion de versiones, indice tematico, auth multi-device
+- **v1.0** (may 2026): launch con Biblia Romana + Espanol, comparacion de versiones, indice tematico, auth multi-device
 
 ---
 

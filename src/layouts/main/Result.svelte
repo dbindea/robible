@@ -121,7 +121,6 @@
   let noteModalVerseKey = null;
   let noteModalItem = null;
   let noteModalElement;
-  let noteModalPosition = { top: 0, right: 0 };
   let noteText = '';
   let noteColor = '#3B82F6';
   let noteSaving = false;
@@ -252,11 +251,8 @@
     const existing = getNoteForVerse(item);
     noteText = existing?.text || '';
     noteColor = existing?.color || '#3B82F6';
-    // Position relative to the verse element for better UX
-    const verseEl = document.getElementById(getVerseId(item));
-    if (verseEl) {
-      noteModalPosition = { top: verseEl.getBoundingClientRect().bottom + 8, right: 8 };
-    }
+    // El modal de nota es un overlay centrado (estilo auth-modal), no se
+    // posiciona respecto al versículo.
     noteModalVerseKey = item.key;
     noteModalItem = item;
     // Block scroll when modal is open
@@ -1435,7 +1431,7 @@
   {map}
   book={ttsBook}
   chapter={ttsChapter}
-  lang={getBibleVersionConfigOrDefault()?.locale === 'es' ? 'es' : 'ro'}
+  lang={getBibleVersionConfigOrDefault($selectedBibleVersion)?.locale === 'es' ? 'es' : 'ro'}
 />
 
 <style lang="scss">

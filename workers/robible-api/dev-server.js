@@ -3,7 +3,6 @@
 // Misma API que el worker, así el frontend no nota la diferencia.
 
 import { Hono } from 'hono';
-import { corsHeaders, requireAuth as _reqAuth } from './src/utils.js';
 import { readFileSync, existsSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -24,7 +23,7 @@ try {
   sqlite.exec('PRAGMA journal_mode = WAL');
   sqlite.exec('PRAGMA foreign_keys = ON');
   console.log('  DB: node:sqlite (built-in) en ' + DB_PATH);
-} catch (e) {
+} catch {
   console.error('  Error: node:sqlite no disponible. Se necesita Node 22+ con --experimental-sqlite flag.');
   console.error('  Alternativa: usar wrangler dev (recomendado para producción).');
   process.exit(1);
@@ -33,47 +32,50 @@ try {
 const schema = readFileSync(join(__dirname, 'schema.sql'), 'utf8');
 sqlite.exec(schema);
 
-// Adaptador D1-like sobre node:sqlite (mismas firmas que el adapter de better-sqlite3).
+// Adaptador D1-like sobre node:sqlite.
 function makeD1Adapter() {
   return {
     prepare(sql) {
       // node:sqlite usa `?` como placeholder posicional (estilo SQLite estándar).
       // No necesitamos renombrar nada.
       const stmt = sqlite.prepare(sql);
-      return {
-        bind(...args) {
-          const bound = args.map(normalizeArg);
-          return {
-            async first() {
-              try {
-                const row = stmt.get(...bound);
-                return row || null;
-              } catch (e) {
-                return null;
-              }
-            },
-            async all() {
-              try {
-                const rows = stmt.all(...bound);
-                return { results: rows };
-              } catch (e) {
-                return { results: [] };
-              }
-            },
-            async run() {
-              try {
-                const info = stmt.run(...bound);
-                return { meta: { changes: info.changes ?? 0, last_row_id: info.lastInsertRowid } };
-              } catch (e) {
-                return { meta: { changes: 0 } };
-              }
-            },
-            async raw() {
-              return stmt.all(...bound);
-            },
-          };
-        },
+
+      const withArgs = (...args) => {
+        const bound = args.map(normalizeArg);
+        return {
+          async first() {
+            try {
+              return stmt.get(...bound) || null;
+            } catch {
+              return null;
+            }
+          },
+          async all() {
+            try {
+              return { results: stmt.all(...bound) };
+            } catch {
+              return { results: [] };
+            }
+          },
+          async run() {
+            try {
+              const info = stmt.run(...bound);
+              return { meta: { changes: info.changes ?? 0, last_row_id: info.lastInsertRowid } };
+            } catch {
+              return { meta: { changes: 0 } };
+            }
+          },
+          async raw() {
+            return stmt.all(...bound);
+          },
+        };
       };
+
+      // En D1 real, `first`/`all`/`run` se pueden llamar directamente sobre
+      // prepare() cuando la query no lleva parámetros — así lo hace el health
+      // check (`prepare('SELECT 1 AS ok').first()`). Sin esto, el emulador
+      // reportaba `db: down` aunque la base de datos funcionase.
+      return { bind: withArgs, ...withArgs() };
     },
   };
 }
@@ -110,6 +112,8 @@ serve({ fetch: app.fetch, port: PORT }, (info) => {
   console.log(`    GET  /api/topics  POST /api/topics  PATCH/DELETE /api/topics/:id  (Bearer)`);
   console.log(`    POST /api/topics/:id/verses  DELETE /api/topics/:id/verses  (Bearer)`);
   console.log(`    GET  /api/favorites  POST /api/favorites  DELETE /api/favorites  (Bearer)`);
+  console.log(`    GET  /api/notes  POST /api/notes  DELETE /api/notes  (Bearer)`);
+  console.log(`    GET  /api/searches  POST /api/searches  DELETE /api/searches  (Bearer)`);
   console.log(`    GET  /api/data/export  (Bearer)`);
   console.log(`\n  Listo para peticiones.\n`);
 });

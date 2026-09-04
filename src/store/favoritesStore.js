@@ -7,7 +7,7 @@ import { currentUser } from './authStore';
 import { tokenStore } from '../services/apiClient';
 
 const initial = favsService.loadFavorites();
-const { subscribe, set, update } = writable(initial);
+const { subscribe, set } = writable(initial);
 
 currentUser.subscribe(async (user) => {
   favsService.setCurrentUser(user?.id || null);

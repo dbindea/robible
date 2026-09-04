@@ -54,7 +54,8 @@
       "selected_book": "已选书籍",
       "choose_book": "选择书籍",
       "form": {
-        "search_placeholder": "按关键词搜索..."
+        "search_placeholder": "按关键词搜索...",
+        "reference_placeholder": "例如 罗 3 5"
       },
       "search_type": {
         "match": "包含完整语句",

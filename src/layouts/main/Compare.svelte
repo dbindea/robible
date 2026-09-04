@@ -8,7 +8,7 @@
     getAvailableBibleVersions,
     initCompareVersion,
   } from '../../store/stores';
-  import { getBookIdFromSlug, getBookSlug, slugifyBookName } from '../../services/bible-route.service';
+  import { getBookIdFromSlug, getBookSlug } from '../../services/bible-route.service';
   import BookDrawer from './BookDrawer.svelte';
 
   export let bible = [];
@@ -36,7 +36,6 @@
   $: otherConfig = getBibleVersionConfigOrDefault(otherVersion);
   $: primaryBibleName = primaryConfig?.bibleName || 'Biblia';
   $: otherBibleName = otherConfig?.bibleName || 'Biblia';
-  $: isOtherVersionAvailable = otherConfig?.available === true;
 
   $: chapterArray =
     selectedBook !== null && selectedBook !== undefined
@@ -129,8 +128,6 @@
     let path = '/';
     if (bookSlug && chapter) {
       // Volver a la ruta normal del libro/capítulo
-      const versionConfig = getBibleVersionConfigOrDefault($selectedBibleVersion);
-      const prefix = versionConfig?.pathPrefix || '';
       const pathParts = ['/biblia', $selectedBibleVersion, bookSlug, String(chapter)].filter(Boolean);
       path = pathParts.join('/');
     }

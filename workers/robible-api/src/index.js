@@ -1,6 +1,6 @@
 // Cloudflare Worker entry: routing + CORS + error handling
 import { Hono } from 'hono';
-import { corsHeaders, requireAuth, json, error } from './utils.js';
+import { corsHeaders, requireAuth } from './utils.js';
 import * as auth from './auth.js';
 import * as data from './data.js';
 

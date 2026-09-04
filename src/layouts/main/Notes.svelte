@@ -1,5 +1,5 @@
 <script>
-  import { _, setupI18n } from '../../services/i18n.service';
+  import { _ } from '../../services/i18n.service';
   import { notesStore } from '../../store/notesStore';
   import { isAuthenticated } from '../../store/authStore';
   import { openAuthMenu } from '../../store/authMenuStore';

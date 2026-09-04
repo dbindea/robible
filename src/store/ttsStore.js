@@ -81,7 +81,10 @@ export const ttsDisplayState = derived(ttsState, ($s) => {
 });
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-export function startTtsVerse(book, chapter, verse, text, lang) {
+// Sin llamadas hoy: TtsPlayer hace este mismo `ttsState.update()` en línea.
+// Se conserva junto con el resto de la ruta de TTS pendiente de reconectar
+// (ver docs/AUDITORIA-2026-09-04.md, hallazgo 13).
+export function startTtsVerse(book, chapter, verse, text) {
   ttsState.update((s) => ({
     ...s,
     playing: true,

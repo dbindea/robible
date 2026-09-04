@@ -1,8 +1,7 @@
-// Data endpoints: topics + verse_refs + favorites
+// Data endpoints: topics + verse_refs + favorites + notes + searches + export
 import {
   validators,
   nowIso,
-  requireAuth,
   genId,
   genShortId,
   json,

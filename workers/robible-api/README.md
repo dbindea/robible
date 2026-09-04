@@ -1,6 +1,8 @@
 # RoBible API — Backend (Cloudflare Workers + D1)
 
-API para auth, índices temáticos, favoritos. Diseñado para correr en **Cloudflare Workers** con **D1 (SQLite)**. La capa de frontend está en `../../src/` y habla con esta API vía `fetch`.
+API para auth, índices temáticos, favoritos, notas y búsquedas persistentes. Diseñado para correr en **Cloudflare Workers** con **D1 (SQLite)**. La capa de frontend está en `../../src/` y habla con esta API vía `fetch`.
+
+Sesiones con TTL de **30 días** (`SESSION_TTL_MS` en `src/utils.js`); los tokens de reset de contraseña caducan a los 5 minutos.
 
 ## Características
 
@@ -22,9 +24,9 @@ workers/robible-api/
 ├── src/
 │   ├── index.js           # entry: Hono router + CORS + error handling
 │   ├── auth.js            # register, login, recover (3 pasos), me, logout, change-password
-│   ├── data.js            # topics CRUD, verse_refs, favorites, export
+│   ├── data.js            # topics CRUD, verse_refs, favorites, notes, searches, export
 │   └── utils.js           # hashing, tokens (HMAC), validators, rate limit, helpers DB
-├── dev-server.js          # emula Workers+D1 con Hono+better-sqlite3 (sin wrangler)
+├── dev-server.js          # emula Workers+D1 con Hono + node:sqlite (sin wrangler)
 └── .env.example
 ```
 
@@ -50,9 +52,17 @@ workers/robible-api/
 | GET    | `/api/favorites`                     | sí   | lista favoritos del user                  |
 | POST   | `/api/favorites`                     | sí   | añade favorito                            |
 | DELETE | `/api/favorites`                     | sí   | quita favorito                            |
-| GET    | `/api/data/export`                   | sí   | exporta todo (topics + verse_refs + favorites) |
+| GET    | `/api/notes`                         | sí   | lista notas del user                      |
+| POST   | `/api/notes`                         | sí   | upsert nota `{book, chapter, verse, text, color?}` (una por versículo) |
+| DELETE | `/api/notes`                         | sí   | borra la nota de un versículo             |
+| GET    | `/api/searches`                      | sí   | últimas 25 búsquedas, por `last_used_at`  |
+| POST   | `/api/searches`                      | sí   | upsert búsqueda (idempotente por texto, la mueve al top) |
+| DELETE | `/api/searches`                      | sí   | borra una búsqueda por id                 |
+| GET    | `/api/data/export`                   | sí   | exporta todo (topics + verse_refs + favorites + notes + searches) |
 
 Todos los endpoints con `Bearer` requieren header `Authorization: Bearer <token>`.
+
+La tabla refleja las rutas registradas en [`src/index.js`](src/index.js); si se añade un endpoint, actualizarla aquí también.
 
 ## Setup local (sin Cloudflare, con SQLite)
 
@@ -178,12 +188,20 @@ Para endurecer contra bots, en el dashboard de Cloudflare puedes añadir **Rate 
 
 ## Modelo de datos (D1)
 
+Schema en [`schema.sql`](schema.sql). Versión actual: **4** (fila `schema_version` en `_meta`).
+
 - `users` — id, nickname (UNIQUE), password_hash, sec_question, sec_answer_hash, timestamps
 - `auth_sessions` — token, user_id, expires_at, user_agent
-- `topics` — id, user_id (FK), name, icon, color, is_default
-- `verse_refs` — id, user_id (FK), topic_id (FK), book, chapter, verse
-- `favorites` — id, user_id (FK), book, chapter, verse, added_at
+- `topics` — id, user_id (FK), name, icon, color, is_default · UNIQUE (user_id, name)
+- `verse_refs` — id, user_id (FK), topic_id (FK), book, chapter, verse · UNIQUE (topic_id, book, chapter, verse)
+- `favorites` — id, user_id (FK), book, chapter, verse, added_at · UNIQUE (user_id, book, chapter, verse)
+- `notes` — id, user_id (FK), book, chapter, verse, text (1-500), color, timestamps · UNIQUE (user_id, book, chapter, verse), lo que permite el upsert natural
+- `user_searches` — id, user_id (FK), search_text, search_type, testament, book_json, chapter_json, last_used_at · UNIQUE (user_id, search_text); el cap de 25 se aplica en código
+- `user_profiles` — user_id (PK), name, email, confession, avatar_url, settings (JSON), colors (JSON) · **definida pero sin endpoints que la usen**, ver [docs/AUDITORIA-2026-09-04.md](../../docs/AUDITORIA-2026-09-04.md) hallazgo 9
 - `rate_limits` — ip, endpoint, window_start, count (cleanup on-request)
+- `_meta` — key/value; guarda `schema_version`
+
+`schema.sql` usa `CREATE TABLE IF NOT EXISTS`, así que re-ejecutarlo es idempotente. No aplica migraciones destructivas: cualquier `ALTER TABLE` va a mano, seguido de subir `schema_version`.
 
 ## Migración desde el mock (localStorage)
 

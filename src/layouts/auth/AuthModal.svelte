@@ -25,7 +25,6 @@
   let securityQuestion = SECURITY_QUESTIONS[0].key;
   let customQuestion = '';
   let securityAnswer = '';
-  let resetToken = '';
   let newPassword = '';
 
   // Si ya está logueado, mostramos el perfil + logout

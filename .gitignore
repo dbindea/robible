@@ -25,3 +25,9 @@ workers/*/.wrangler/
 dev.log
 *.log
 
+# Salida del pipeline de logo (scripts/build-logo.js). Los iconos que usa la app
+# viven en public/. Estos son intermedios y pesan ~16 MB.
+# Ya estaban versionados: para sacarlos del repo hace falta además
+#   git rm -r --cached robible/
+robible/
+
