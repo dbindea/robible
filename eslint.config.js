@@ -33,8 +33,8 @@ export default [
     },
   },
   {
-    // Scripts de build, funciones Netlify y backend: entorno Node, no browser.
-    files: ['scripts/**', 'netlify/**', 'workers/**', '*.config.js'],
+    // Scripts de build, funciones Netlify, backend y tests: entorno Node.
+    files: ['scripts/**', 'netlify/**', 'workers/**', 'tests/**', '*.config.js'],
     languageOptions: {
       globals: {
         ...globals.node,

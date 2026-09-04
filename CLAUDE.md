@@ -32,9 +32,10 @@ PWA de lectura bíblica multiidioma con lectura acompañada de música, comparac
 | `npm run format` | Prettier sobre todo el repo |
 | `node workers/robible-api/dev-server.js` | Backend local en `127.0.0.1:8787` (emula Workers+D1 con `node:sqlite`) |
 | `node scripts/build-logo.js` | Regenera todos los favicons desde el SVG fuente |
-| `node scripts/test-reference-search.mjs` | Único script de verificación del repo (búsqueda por referencia) |
+| `node scripts/build-bible-data.mjs [ver]` | Descarga y valida los datos de una versión bíblica (ver `public/data/CREDITS.md`) |
+| `npm test` | Suite con `node --test` (56 tests, sin dependencias). **En Windows el glob es obligatorio**: `node --test tests` a secas intenta cargar el directorio como módulo y falla |
 
-Node ≥ 24.15.0 (ver `.nvmrc`). No hay suite de tests automatizados.
+Node ≥ 24.15.0 (ver `.nvmrc`).
 
 ## Convenciones a respetar
 
@@ -43,6 +44,7 @@ Node ≥ 24.15.0 (ver `.nvmrc`). No hay suite de tests automatizados.
 - **Nada de texto hardcodeado en UI**: todo pasa por `$_('clave.anidada')` y la clave debe existir en los **cuatro** archivos `public/lang/{ro,es,en,zh}.json`.
 - **Servicios de datos**: cualquier entidad nueva sigue el patrón API-first con fallback a `localStorage` vía `withFallback()` de [src/services/apiClient.js](src/services/apiClient.js). Ver `favorites.service.js` como referencia canónica (es el más corto).
 - **SCSS**: siempre tokens (`var(--color-accent)`, `var(--color-surface)`…) definidos en `public/global.css`, y dark mode con `html[data-theme='dark']`. Nunca colores literales sueltos.
+- **Tests**: en `tests/*.test.js`, con el runner de Node (`node:test` + `node:assert/strict`). Nada de frameworks. Solo se prueba lógica pura importable sin navegador; lo que toca `localStorage` se dobla con un stub mínimo (ver `filter.test.js`). Si arreglas un fallo, deja antes el test que lo reproduce.
 - **Rutas**: se construyen con `buildBiblePath()` / se leen con `parseBiblePath()` de [src/services/bible-route.service.js](src/services/bible-route.service.js). No parsear `pathname` a mano.
 
 ## Trampas del repo
@@ -50,8 +52,12 @@ Node ≥ 24.15.0 (ver `.nvmrc`). No hay suite de tests automatizados.
 Cosas que rompen si no se saben:
 
 1. **El evento de navegación se llama `robibile:navigate`** — con la errata, `bibile` en vez de `bible`. Está así en 10 sitios. Al escuchar o emitir, hay que escribirlo mal a propósito. Renombrarlo es un cambio atómico o no es.
-2. **Tocar `public/sw.js` obliga a bumpear `CACHE_NAME`** (hoy `robible-v21`). Sin bump, los usuarios con la PWA instalada no reciben el cambio. `public/sw.js` es la única fuente de verdad de la versión de cache: no dupliques la constante en otro sitio.
-3. **`bible.json` pesa 4,2 MB por versión.** No cargarlo en scripts ni en el arranque salvo que haga falta. La Biblia de comparación es lazy: solo se descarga al entrar en modo comparar.
+2. **Tocar `public/sw.js` obliga a bumpear `CACHE_NAME`** (hoy `robible-v23`). Sin bump, los usuarios con la PWA instalada no reciben el cambio. `public/sw.js` es la única fuente de verdad de la versión de cache: no dupliques la constante en otro sitio.
+3. **Hay cuatro Biblias y `bible.json` pesa entre 1 y 4 MB cada una.** No cargarlas en scripts ni en el arranque salvo que haga falta. La de comparación es lazy, y el SW solo precachea `vdc` y `rvl` (ver `public/data/CREDITS.md`).
+
+14. **Activar `seoVersePages` en una versión añade ~31.000 archivos HTML al build.** Con las cuatro activadas, `dist` llegaba a 938 MB y el build a 7 minutos. Solo `vdc` y `rvl` las generan.
+
+15. **Los slugs de libro admiten cualquier alfabeto.** `slugifyBookName` filtra con `\p{L}\p{N}`, no con `[a-z0-9]`: con lo segundo los nombres chinos se vaciaban enteros y los 66 libros compartían un slug vacío.
 4. **`App.svelte` tiene guardas anti-race deliberadas**: `bibleLoadRequestId`, `_localeVersionTag`, `_pendingLocale`. Parecen redundantes y no lo son — evitan que una carga vieja pise a una nueva al cambiar de versión/idioma. No simplificar.
 5. **`getBibleVersionConfigOrDefault()` sin argumento devuelve siempre `vdc`**, no la versión activa. Pásale siempre `$selectedBibleVersion`. La única llamada sin argumento legítima es la de `src/config/seo.js:5`, que define a propósito la versión por defecto. Ya provocó un bug real (voz rumana leyendo español), ver auditoría hallazgo 1.
 6. **`Result.svelte` tiene 2880 líneas.** Es la vista de lectura y concentra swipe, favoritos, notas, topics, TTS y SEO. Buscar por los marcadores `// === SECCIÓN ===` antes de leerlo entero.
@@ -59,7 +65,11 @@ Cosas que rompen si no se saben:
 8. **La lectura no tiene voz, por decisión de producto**: es música + resaltado visual. `TtsPlayer` recibe `playlist` (lo que hay en pantalla), no un capítulo. `tts.service.js` existe pero no lo importa nadie.
 9. **El sistema de diseño vive en `public/global.css`** y es la única fuente de verdad; la landing consume esos mismos tokens. Tres capas: escalas crudas (`--grey-*`, `--blue-*`, `--green-*`) → alias semánticos (`--color-accent`, `--color-surface`, `--color-ink`…) → alias heredados (`--color-blue`, `--color-white`…). **Usa los semánticos**; los heredados solo existen por los ~500 usos ya escritos. El modo oscuro solo reapunta los semánticos, así que los componentes no llevan reglas de tema.
 
-10. **El verde está reservado** al versículo que se está leyendo (`--color-success`) y al botón que lo activa. No lo uses para nada más.
+10. **Colores con significado fijo**: verde = versículo en lectura (`--color-success`) y el botón que lo activa; ámbar = favorito; el color del tema = índice temático. Los cuatro iconos del versículo comparten `.icon-btn` y el estado `.icon-btn--marked`, que solo lee `--marked-color`. Para un icono nuevo, añade un modificador que fije esa variable — no dupliques el bloque de estilos.
+
+12. **Diálogos**: usa `src/components/Modal.svelte` (centrado, hoja inferior en móvil, Escape y clic fuera). No vuelvas a anclar popups al botón con `getBoundingClientRect()`: se recortaban contra el borde en móvil.
+
+13. **En la landing, las clases que añade JS necesitan `:global()`**. Svelte poda como CSS muerto lo que no ve en la plantilla: por eso la animación de aparición (`.is-visible`) nunca funcionó hasta que se envolvió en `:global()`.
 
 11. **Los comentarios XML de los SVG no pueden contener `--`**: `sharp` revienta al leerlos. Por eso los nombres de token en `logo.svg` se escriben `(grey 800)`. Tras tocar un SVG del logo, `node scripts/build-logo.js` y bumpea el SW.
 

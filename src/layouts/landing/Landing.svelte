@@ -125,9 +125,10 @@
     })),
   };
 
-  // ── Counters (datos reales del backend) ──────────────────────────────────
-  let stats = {
-    users: null,
+  // ── Contadores ───────────────────────────────────────────────────────────
+  // Datos fijos del producto, no del backend: no hacen falta peticiones.
+  // (Había además un `users: null` que no se mostraba en ninguna parte.)
+  const stats = {
     verses: 31102,
     books: 66,
     languages: 4,
@@ -272,6 +273,12 @@
 
     <div class="hero__inner">
       <div class="hero__text" data-reveal>
+        <!-- Marca: hasta ahora el logotipo no aparecía en ninguna pantalla,
+             solo como favicon e icono de la PWA. -->
+        <a class="hero__brand" href="/" aria-label="RoBible">
+          <img src="/assets/img/logo.svg" alt="" width="44" height="44" />
+          <span class="hero__brand-name">RoBible</span>
+        </a>
         <p class="hero__eyebrow">{$_('landing.hero.eyebrow')}</p>
         <h1 id="hero-title" class="hero__title">{$_('landing.hero.title')}</h1>
         <p class="hero__lede">{$_('landing.hero.lede')}</p>
@@ -304,7 +311,23 @@
         </div>
       </div>
 
-      <aside class="hero__demo" data-reveal id="demo" aria-label={$_('landing.demo.aria')}>
+      <aside class="hero__aside" data-reveal id="demo" aria-label={$_('landing.demo.aria')}>
+        <!-- Foto de apoyo: Biblia abierta a la luz de una vela. Decorativa,
+             por eso alt vacío y aria-hidden. -->
+        <figure class="hero__photo" aria-hidden="true">
+          <picture>
+            <source srcset="/assets/img/landing/persona-leyendo.webp" type="image/webp" />
+            <img
+              src="/assets/img/landing/persona-leyendo.jpg"
+              alt=""
+              width="1000"
+              height="667"
+              loading="eager"
+              fetchpriority="high"
+            />
+          </picture>
+        </figure>
+
         <div class="demo">
           <p class="demo__eyebrow">{$_('landing.demo.eyebrow')}</p>
           <p class="demo__hint">{$_('landing.demo.hint')}</p>
@@ -431,6 +454,14 @@
         <h2 id="why-title" class="section-title">{$_('landing.why.title')}</h2>
         <p class="section-lede">{$_('landing.why.lede')}</p>
       </header>
+
+      <!-- Biblia abierta a la luz de una vela. Decorativa. -->
+      <figure class="why__photo" data-reveal aria-hidden="true">
+        <picture>
+          <source srcset="/assets/img/landing/libro-abierto-vela.webp" type="image/webp" />
+          <img src="/assets/img/landing/libro-abierto-vela.jpg" alt="" loading="lazy" width="1000" height="667" />
+        </picture>
+      </figure>
 
       <ul class="why__list">
         <li class="why__item" data-reveal>
@@ -561,6 +592,12 @@
 
   <!-- ─── FINAL CTA ──────────────────────────────────────────── -->
   <section class="final-cta" aria-labelledby="final-cta-title">
+    <!-- Fondo fotográfico (cruz de madera contra el cielo). Decorativo: el
+         degradado por encima garantiza el contraste del texto. -->
+    <picture class="final-cta__bg" aria-hidden="true">
+      <source srcset="/assets/img/landing/cruz.webp" type="image/webp" />
+      <img src="/assets/img/landing/cruz.jpg" alt="" loading="lazy" width="1000" height="1334" />
+    </picture>
     <div class="final-cta__inner" data-reveal>
       <h2 id="final-cta-title" class="final-cta__title">{$_('landing.final.title')}</h2>
       <p class="final-cta__text">{$_('landing.final.text')}</p>
@@ -760,6 +797,65 @@
       grid-template-columns: 1fr;
     }
   }
+  /* ── Marca ────────────────────────────────────────────────────────────── */
+  .hero__brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    margin-bottom: 1.75rem;
+    text-decoration: none;
+    color: var(--color-ink);
+
+    img {
+      width: 2.75rem;
+      height: 2.75rem;
+      border-radius: var(--radius-md);
+      box-shadow: var(--box-shadow-up);
+    }
+  }
+  .hero__brand-name {
+    font-size: 1.35rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .hero__brand:hover .hero__brand-name {
+    color: var(--color-accent);
+  }
+
+  /* ── Columna derecha: foto + demo ─────────────────────────────────────── */
+  .hero__aside {
+    display: grid;
+    gap: 1.25rem;
+  }
+  .hero__photo {
+    margin: 0;
+    overflow: hidden;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--box-shadow-lg);
+    line-height: 0;
+
+    img {
+      width: 100%;
+      height: clamp(11rem, 22vw, 17rem);
+      object-fit: cover;
+      /* Un punto de brillo y saturación: la foto original es cálida y algo
+         apagada, y la landing tiene que verse luminosa. */
+      filter: brightness(1.06) saturate(1.05);
+      transform: scale(1.01);
+      transition: transform 0.6s ease;
+    }
+
+    &:hover img {
+      transform: scale(1.04);
+    }
+  }
+  /* En pantallas estrechas la foto no aporta y sí ocupa: se oculta. */
+  @media (max-width: 56rem) {
+    .hero__photo {
+      display: none;
+    }
+  }
+
   .hero__eyebrow {
     font-family: var(--font-family-base);
     font-size: 0.72rem;
@@ -1110,8 +1206,12 @@
 
   /* ── WHY ─────────────────────────────────────────────────── */
   .why {
-    background: var(--color-ink);
-    color: var(--color-page);
+    /* Antes era una banda oscura a todo el ancho: junto con .final-cta
+       oscurecía media landing. Ahora es superficie clara con un borde
+       superior de acento, que separa igual sin apagar la página. */
+    background: var(--color-surface);
+    border-top: 3px solid var(--color-accent);
+    color: var(--color-ink);
     padding: clamp(4rem, 8vw, 6rem) clamp(1.25rem, 5vw, 4rem);
   }
   .why__inner {
@@ -1119,13 +1219,35 @@
     margin: 0 auto;
   }
   .why :global(.section-eyebrow) {
-    color: var(--color-accent-soft);
+    color: var(--color-accent);
   }
   .why :global(.section-title) {
-    color: var(--color-page);
+    color: var(--color-ink);
   }
   .why :global(.section-lede) {
-    color: color-mix(in srgb, var(--color-page) 80%, transparent);
+    color: var(--color-ink-soft);
+  }
+  .why__photo {
+    margin: 0 0 clamp(2rem, 4vw, 3rem);
+    overflow: hidden;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--box-shadow-lg);
+    line-height: 0;
+
+    img {
+      width: 100%;
+      height: clamp(9rem, 20vw, 15rem);
+      object-fit: cover;
+      /* La foto original está muy oscura: se levanta para que acompañe a una
+         sección clara en vez de abrir un agujero negro en la página. */
+      filter: brightness(1.7) saturate(0.9) contrast(0.95);
+      transform: scale(1.01);
+      transition: transform 0.8s ease;
+    }
+
+    &:hover img {
+      transform: scale(1.05);
+    }
   }
   .why__list {
     list-style: none;
@@ -1150,10 +1272,10 @@
     font-size: 1.2rem;
     font-weight: 600;
     margin: 0 0 0.5rem;
-    color: var(--color-page);
+    color: var(--color-ink);
   }
   .why__item-text {
-    color: color-mix(in srgb, var(--color-page) 80%, transparent);
+    color: var(--color-ink-soft);
     line-height: 1.55;
     margin: 0;
   }
@@ -1320,11 +1442,42 @@
   }
 
   /* ── FINAL CTA ──────────────────────────────────────────── */
+  /* Era la segunda banda oscura de la página. Ahora lleva la foto de la cruz
+     de fondo con un velo claro encima: aporta luz e imagen religiosa, y el
+     texto se mantiene en tinta con contraste de sobra. */
   .final-cta {
-    background: var(--color-ink);
-    color: var(--color-page);
+    position: relative;
+    isolation: isolate;
+    background: var(--color-surface);
+    color: var(--color-ink);
     padding: clamp(4rem, 10vw, 7rem) clamp(1.25rem, 5vw, 4rem);
     text-align: center;
+    overflow: hidden;
+  }
+  .final-cta__bg {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: 62% 40%;
+    }
+  }
+  /* Velo: sube el fondo a casi blanco en el centro para que el texto respire. */
+  .final-cta::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: radial-gradient(
+      ellipse at center,
+      color-mix(in srgb, var(--color-surface) 92%, transparent) 0%,
+      color-mix(in srgb, var(--color-surface) 78%, transparent) 55%,
+      color-mix(in srgb, var(--color-surface) 88%, transparent) 100%
+    );
   }
   .final-cta__inner {
     max-width: 42rem;
@@ -1336,21 +1489,23 @@
     font-weight: 600;
     line-height: 1.15;
     margin: 0 0 1rem;
-    color: var(--color-page);
+    color: var(--color-ink);
+    text-shadow: 0 1px 2px color-mix(in srgb, var(--color-surface) 70%, transparent);
   }
   .final-cta__text {
-    color: color-mix(in srgb, var(--color-page) 85%, transparent);
+    color: var(--color-ink-soft);
     font-size: 1.1rem;
     line-height: 1.55;
     margin: 0 0 2rem;
   }
   .final-cta .btn--primary {
     background: var(--color-accent);
-    color: var(--color-surface);
+    color: #ffffff;
+    box-shadow: var(--box-shadow-lg);
   }
   .final-cta .btn--primary:hover {
-    background: var(--color-page);
-    color: var(--color-ink);
+    background: var(--color-accent-hover);
+    color: #ffffff;
   }
 
   /* ── FOOTER ──────────────────────────────────────────────── */
@@ -1440,20 +1595,47 @@
   }
 
   /* ── Reveal on scroll (subtle, no opacity blocking) ────── */
+  /* Aparición al hacer scroll: sube y funde. Antes solo desplazaba 0,5 rem,
+     que casi no se percibía. */
   [data-reveal] {
-    transform: translateY(0.5rem);
-    transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+    opacity: 0;
+    transform: translateY(1.5rem);
+    transition:
+      opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+      transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
   }
-  [data-reveal].is-visible {
+  /* `is-visible` la añade el IntersectionObserver, no la plantilla, así que
+     Svelte la daba por CSS muerto y podaba la regla entera: la animación de
+     aparición nunca llegó a funcionar. `:global()` evita la poda. */
+  [data-reveal]:global(.is-visible) {
+    opacity: 1;
     transform: translateY(0);
   }
+
+  /* Escalonado dentro de una lista: los elementos entran uno detrás de otro
+     en vez de todos a la vez. */
+  .why__item[data-reveal],
+  .features__item[data-reveal],
+  .audience__card[data-reveal] {
+    &:nth-child(2) { transition-delay: 0.08s; }
+    &:nth-child(3) { transition-delay: 0.16s; }
+    &:nth-child(4) { transition-delay: 0.24s; }
+    &:nth-child(5) { transition-delay: 0.32s; }
+    &:nth-child(6) { transition-delay: 0.4s; }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     [data-reveal] {
+      opacity: 1;
       transform: none;
       transition: none;
     }
     .hero__scroll-hint::before {
       animation: none;
+    }
+    .hero__photo img,
+    .why__photo img {
+      transition: none;
     }
   }
 

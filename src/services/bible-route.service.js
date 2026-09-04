@@ -1,11 +1,23 @@
 export const BIBLE_ROUTE_PREFIX = '/biblia';
 
+/**
+ * Convierte el nombre de un libro en un segmento de URL.
+ *
+ * `NFD` + quitar diacr\u00edticos deja "G\u00e9nesis" en "genesis" y "C\u00e2ntarea" en
+ * "cantarea". Lo que sobrevive se filtra con `\p{L}\p{N}`, que conserva letras
+ * y n\u00fameros de **cualquier alfabeto**, no solo a-z: con `[^a-z0-9]` los nombres
+ * chinos se vaciaban enteros y los 66 libros de la CUV produc\u00edan el mismo slug
+ * vac\u00edo, as\u00ed que todas las rutas colisionaban y ca\u00edan en G\u00e9nesis.
+ *
+ * Para alfabetos latinos el resultado es id\u00e9ntico al de antes: los diacr\u00edticos
+ * ya se han eliminado y solo quedan caracteres ASCII.
+ */
 export function slugifyBookName(value = '') {
   return String(value)
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/[^\p{L}\p{N}]+/gu, '-')
     .replace(/^-+|-+$/g, '');
 }
 
