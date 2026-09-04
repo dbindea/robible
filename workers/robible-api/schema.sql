@@ -112,23 +112,20 @@ CREATE TABLE IF NOT EXISTS notes (
 CREATE INDEX IF NOT EXISTS idx_notes_user ON notes(user_id);
 CREATE INDEX IF NOT EXISTS idx_notes_user_verse ON notes(user_id, book, chapter, verse);
 
--- ============== USER PROFILES (Phase 3.5 extendido) ==============
--- Datos de perfil NO sensibles (el nickname + password siguen en `users`).
--- settings y colors son JSON blobs para que el cliente pueda extender
--- el schema sin migraciones constantes.
--- email es único cuando se setea, pero opcional (SQLite permite múltiples NULLs).
-CREATE TABLE IF NOT EXISTS user_profiles (
-  user_id TEXT PRIMARY KEY,
-  name TEXT,                                        -- display name (libre, 1-80 chars)
-  email TEXT,                                       -- validado formato en backend, UNIQUE si se setea
-  confession TEXT,                                  -- libre: "católico", "protestante", "ortodoxo", etc.
-  avatar_url TEXT,                                  -- URL externa (puede ser Gravatar, GitHub, etc.)
-  settings TEXT,                                    -- JSON: theme override, font size, etc.
-  colors TEXT,                                      -- JSON: paleta personalizada del usuario
-  updated_at TEXT NOT NULL,
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_user_profiles_email ON user_profiles(email) WHERE email IS NOT NULL;
+-- ============== USER PROFILES — RETIRADA (schema_version 5) ==============
+-- Existió una tabla `user_profiles` (name, email, confession, avatar_url,
+-- settings, colors) que nunca llegó a usarse: ni un solo endpoint la
+-- referenciaba y estaba a cero filas. Además guardaba PII (email, nombre real,
+-- avatar) que este proyecto dice expresamente no querer — ver el README del
+-- worker, sección Seguridad.
+--
+-- Se retira del schema el 4 sep 2026. En una base de datos ya desplegada la
+-- tabla sigue existiendo, porque este archivo solo crea; para eliminarla:
+--
+--   wrangler d1 execute robible-db --remote --command "DROP TABLE IF EXISTS user_profiles"
+--
+-- Si algún día se quiere perfil de usuario, conviene rediseñarlo partiendo de
+-- qué datos hacen falta de verdad, no rescatar esta tabla.
 
 -- ============== USER SEARCHES (Phase 3.4) ==============
 -- Historial de búsquedas persistente multi-device. Cap de 25 enforced en código.
@@ -157,4 +154,6 @@ CREATE TABLE IF NOT EXISTS _meta (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL
 );
-INSERT OR IGNORE INTO _meta (key, value) VALUES ('schema_version', '4');
+-- 5: se retira user_profiles (nunca usada, guardaba PII no deseada)
+INSERT OR IGNORE INTO _meta (key, value) VALUES ('schema_version', '5');
+UPDATE _meta SET value = '5' WHERE key = 'schema_version' AND value < '5';

@@ -125,9 +125,10 @@
     })),
   };
 
-  // ── Counters (datos reales del backend) ──────────────────────────────────
-  let stats = {
-    users: null,
+  // ── Contadores ───────────────────────────────────────────────────────────
+  // Datos fijos del producto, no del backend: no hacen falta peticiones.
+  // (Había además un `users: null` que no se mostraba en ninguna parte.)
+  const stats = {
     verses: 31102,
     books: 66,
     languages: 4,

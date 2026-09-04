@@ -69,6 +69,24 @@ Las URLs se construyen y parsean **siempre** con [bible-route.service.js](../src
 
 > El sitemap solo debe publicar rutas de esta tabla. Publicaba además `/temas`, `/favoritos`, `/favoriti`, `/notas` y `/notite`, que la app no resuelve y devolvían soft-404; se retiraron el 2026-09-04. Si algún día se traducen los `*Path` por idioma, hay que añadirlas de vuelta en `generate-seo.mjs`.
 
+## Tests
+
+`npm test` — 56 tests con el runner de Node (`node:test`), sin dependencias añadidas. Corren en menos de medio segundo.
+
+| Archivo | Qué cubre | Por qué |
+|---|---|---|
+| `tests/i18n-keys.test.js` | Paridad de claves entre los 4 idiomas, valores vacíos, marcadores `{x}` coherentes | El traductor devuelve la clave cuando falta, así que una traducción ausente no rompe nada: sale `app.notes.title` en pantalla. Pasó de verdad, con 11 claves |
+| `tests/bible-route.test.js` | Construir/parsear rutas, slugs de libro, ida y vuelta | Todas las URLs pasan por aquí y los slugs dependen del idioma. Un desajuste no lanza error: lleva al capítulo equivocado |
+| `tests/reference-search.test.js` | Separadores, abreviaturas, erratas, ambigüedad | Sustituye al antiguo `scripts/test-reference-search.mjs`, que imprimía y llamaba a `process.exit` |
+| `tests/filter.test.js` | Búsqueda por texto, acentos, testamento, libro, los tres `searchType` | Incluye que las `key` del resultado sean únicas: es lo que usa `Result.svelte` para el resaltado |
+| `tests/worker-validators.test.js` | Validadores de entrada, PBKDF2, tokens HMAC | Frontera con la base de datos. Si `hashValue` cambia de forma, nadie puede entrar |
+
+**Convenciones**: solo lógica pura importable sin navegador. Lo que toca `localStorage` se dobla con un stub mínimo (ver la cabecera de `filter.test.js`). Los componentes Svelte no se prueban aquí — para eso está la verificación en navegador.
+
+> En Windows, `node --test tests` intenta cargar el directorio como módulo y falla. Por eso el script usa el glob `"tests/*.test.js"`.
+
+Varios tests fijan valores a propósito (`PBKDF2_ITERATIONS`, `SESSION_TTL_MS`): no son tautologías, son avisos de que ese número no debería cambiar sin decidirlo.
+
 ## Sistema de diseño
 
 Definido en [public/global.css](../public/global.css). Es la **única fuente de verdad**: la landing y la app consumen los mismos tokens.

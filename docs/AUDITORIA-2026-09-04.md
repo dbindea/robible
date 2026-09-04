@@ -18,9 +18,9 @@ Resumen: **15 hallazgos** — 3 altos, 5 medios, 7 informativos. Ninguno es un f
 | 14 | Faltan 11 claves `app.notes.*` en español y 1 en chino | Media | ✅ Arreglado |
 | 7 | Rama muerta de `Landing` en `Main.svelte` | Info | ✅ Arreglado |
 | 8 | 16 MB de imágenes del pipeline de logo versionadas | Info | ⚠️ Requiere acción del usuario |
-| 9 | Tabla `user_profiles` sin endpoints | Info | ⏸️ Decisión de producto |
-| 10 | 2 versiones bíblicas anunciadas sin datos | Info | ⏸️ Decisión de producto |
-| 11 | Sin tests automatizados | Info | ⏸️ Pendiente |
+| 9 | Tabla `user_profiles` sin endpoints | Info | ✅ Retirada del schema |
+| 10 | 2 versiones bíblicas anunciadas sin datos | Info | ✅ KJV y CUV añadidas |
+| 11 | Sin tests automatizados | Info | ✅ Suite mínima añadida |
 | 12 | El health del dev-server local siempre reportaba `db: down` | Info | ✅ Arreglado |
 | 15 | El JSON-LD de FAQ emitía cinco veces la misma pregunta | Info | ✅ Arreglado |
 
@@ -262,7 +262,7 @@ Salió a la luz al arreglar un problema de tooling: los cuatro bloques JSON-LD e
 
 ---
 
-### 9. Tabla `user_profiles` en el schema sin ningún endpoint ⏸️ DECISIÓN DE PRODUCTO
+### 9. Tabla `user_profiles` en el schema sin ningún endpoint ✅ RESUELTO
 
 [workers/robible-api/schema.sql:120-131](../workers/robible-api/schema.sql#L120-L131) define `user_profiles` (name, email, confession, avatar_url, settings, colors) con un índice único parcial sobre `email`. Ni `data.js` ni `auth.js` la tocan. El comentario la atribuye a una "Phase 3.5 extendido" que el ROADMAP no describe.
 
@@ -270,7 +270,7 @@ Merece una decisión consciente: el proyecto declara explícitamente que **no qu
 
 ---
 
-### 10. Dos versiones bíblicas anunciadas sin datos ⏸️ DECISIÓN DE PRODUCTO
+### 10. Dos versiones bíblicas anunciadas sin datos ✅ RESUELTO
 
 `en_kjv` y `zh_cuv` están en `BIBLE_VERSIONS` con `available: false` y no tienen datos en `public/data/`. Sin embargo, `public/lang/en.json` y `zh.json` están **completos** (357 y 356 claves) y la landing ofrece los cuatro idiomas en su selector.
 
@@ -278,11 +278,13 @@ Un usuario que llega en inglés o chino ve la interfaz traducida y luego no encu
 
 ---
 
-### 11. Sin tests automatizados ⏸️ PENDIENTE
+### 11. Sin tests automatizados ✅ RESUELTO (suite mínima)
 
 El único script de verificación del repo es `scripts/test-reference-search.mjs`, que cubre `referenceSearch.service.js`. No hay runner ni CI de tests; la verificación histórica se ha hecho manualmente y con Playwright ad hoc (según el ROADMAP).
 
-Los candidatos con mejor relación coste/beneficio, todos con lógica pura y fácil de aislar: `bible-route.service.js` (build/parse de rutas y slugs), `filter.service.js` (búsqueda y diacríticos), `referenceSearch.service.js` (ya tiene script), y los validadores de `workers/robible-api/src/utils.js`.
+**Resuelto (4 sep 2026)**: `npm test` con 56 tests sobre el runner de Node, sin dependencias nuevas. Cubre exactamente los candidatos que se habían identificado —rutas, búsqueda, referencias y validadores del backend— más la paridad de claves i18n, que no estaba en la lista y es la que habría cazado el hallazgo 14. Detalle en [docs/ARQUITECTURA.md](ARQUITECTURA.md#tests).
+
+Sigue sin cubrirse la capa de componentes Svelte: eso requeriría un runner de navegador y de momento se verifica a mano.
 
 ---
 

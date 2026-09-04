@@ -1,4 +1,4 @@
-const CACHE_NAME = 'robible-v22';
+const CACHE_NAME = 'robible-v23';
 
 const CORE_ASSETS = [
   '/',
@@ -32,6 +32,12 @@ const CORE_ASSETS = [
   '/assets/icon/fonts/icomoon.woff?bx6h1k',
   '/lang/ro.json',
   '/lang/es.json',
+  // Solo se precachean las dos Biblias originales (~8,5 MB). Las de en_kjv y
+  // zh_cuv NO van aquí a propósito: sumarlas dejaría la instalación en ~17 MB
+  // para descargar cuatro Biblias de las que el usuario leerá una. Se cachean
+  // igualmente la primera vez que se abren, por la regla cache-first de
+  // /data/ más abajo — la diferencia es que no están disponibles sin conexión
+  // hasta esa primera lectura.
   '/data/vdc/bible.map.json',
   '/data/vdc/bible.json',
   '/data/rvl/bible.map.json',

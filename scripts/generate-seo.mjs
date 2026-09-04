@@ -696,6 +696,13 @@ async function main() {
         );
         chapterUrls.push({ loc: absoluteUrl(chapterPath), lastmod: TODAY, priority: '0.7', alternates: getAlternates(versionDataList, { book, chapter }) });
 
+        // Página estática por versículo: ~31.000 archivos HTML por versión.
+        // Solo para las versiones que lo pidan explícitamente (ver
+        // `seoVersePages` en src/config/bible-versions.js). Con las cuatro
+        // versiones activadas el build pasaba de 13 s a 7 min y `dist` a
+        // 938 MB en 102.000 archivos, que hace el deploy inviable.
+        if (!versionData.config.seoVersePages) continue;
+
         for (const [verseIndex, text] of verses.entries()) {
           const verse = verseIndex + 1;
           const versePath = buildBiblePath({

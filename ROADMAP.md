@@ -248,7 +248,7 @@ Cuándo revisar: cada release mayor (Phase 4.1, 4.6, etc.) + cada 3 meses como m
 - [x] `src/services/referenceSearch.service.js` (356 líneas): parsea `Ioan 3:16`, `jn 3 16`, `1 Cor 13`, etc.
 - [x] Fuzzy matching de nombres de libro por distancia de Levenshtein (tolera erratas)
 - [x] Integrado en `Sidebar.svelte` (búsqueda principal y búsquedas recientes) y en el micro-demo de la landing
-- [x] Único script de verificación del repo: `scripts/test-reference-search.mjs`
+- [x] Verificado con tests: `tests/reference-search.test.js` (antes `scripts/test-reference-search.mjs`)
 
 ### Phase 5.4 — Sitemaps troceados ✅ COMPLETADA (2026-09-01/02)
 
@@ -270,9 +270,6 @@ Levantada en la revisión de traspaso del **4 sep 2026**. Detalle, evidencia y v
 |---|---|---|---|
 | 13 | La "lectura con música" no lee: el play llama a `playMusicOnly()` y la ruta de TTS real está desconectada | Alta | ⏸️ Rediseño de la reproducción |
 | 8 | 16 MB de PNG/SVG del pipeline de logo versionados en `robible/` | Info | ⚠️ Falta `git rm -r --cached robible/` |
-| 9 | Tabla `user_profiles` sin endpoints, y guarda PII que el proyecto dice no querer | Info | ⏸️ Decisión de producto |
-| 10 | 2 versiones bíblicas anunciadas (`en_kjv`, `zh_cuv`) sin datos | Info | ⏸️ Decisión de producto |
-| 11 | Sin tests automatizados | Info | ⏸️ Pendiente |
 
 Arreglados: idioma del TTS, `USE_BACKEND` en producción, idioma de las categorías por defecto, `SW_CACHE_VERSION` muerto, rutas fantasma del sitemap, configuración de ESLint (99 errores → 0), claves de traducción que faltaban en `es` y `zh`, rama muerta de `Landing`, adaptador D1 del dev-server, y el JSON-LD de FAQ que repetía la misma pregunta cinco veces.
 
@@ -379,7 +376,7 @@ Reordenado el 2026-09-04. Lo completado se ha movido al historial de más abajo.
 - `npm run lint` — ESLint (**debe salir en 0 errores**; quedan 14 avisos deliberados)
 - `node scripts/generate-seo.mjs` — genera SEO pages y sitemaps tras build
 - `node scripts/build-logo.js` — regenera todos los favicons
-- `node scripts/test-reference-search.mjs` — verifica la búsqueda por referencia
+- `npm test` — suite con el runner de Node (56 tests, sin dependencias)
 - `node workers/robible-api/dev-server.js` — emulador backend
 
 ### Service Worker

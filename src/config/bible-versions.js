@@ -19,6 +19,7 @@ export const BIBLE_VERSIONS = [
     chapterLabel: 'Capitolul',
     searchResultsLabel: 'Rezultate pentru',
     available: true,
+    seoVersePages: true,
     seo: {
       homeTitle: 'Biblia Română Online | RoBible',
       homeDescription:
@@ -58,6 +59,7 @@ export const BIBLE_VERSIONS = [
     chapterLabel: 'Capítulo',
     searchResultsLabel: 'Resultados para',
     available: true,
+    seoVersePages: true,
     seo: {
       homeTitle: 'Biblia Español Online | RoBible',
       homeDescription:
@@ -79,7 +81,7 @@ export const BIBLE_VERSIONS = [
         `Medita en el versículo ${reference} de ${bibleName}, con acceso rápido al texto, al contexto y a la lectura online.`,
     },
   },
-  // Placeholder para mostrar el concepto de multi-versión. Marcar `available: false` hasta que se carguen los datos.
+  // Datos generados con `node scripts/build-bible-data.mjs en_kjv`.
   {
     value: 'en_kjv',
     label: 'English (KJV)',
@@ -97,19 +99,27 @@ export const BIBLE_VERSIONS = [
     shortName: 'KJV',
     chapterLabel: 'Chapter',
     searchResultsLabel: 'Results for',
-    available: false,
+    available: true,
+    seoVersePages: false,
     seo: {
       homeTitle: 'King James Bible Online | RoBible',
-      homeDescription: 'Read the KJV Bible online (coming soon).',
-      searchTitle: (q) => `Search “${q}” | RoBible`,
-      searchDescription: (q) => `Search results for “${q}”.`,
-      bookTitle: (n) => `${n} | KJV`,
-      bookDescription: (n) => `Read ${n} from the KJV.`,
-      chapterTitle: (r) => `${r} | KJV`,
-      chapterDescription: (n, c) => `Read ${n} chapter ${c} in the KJV.`,
-      readingDescription: 'Read the KJV online.',
-      onlineReadingDescription: 'Read the KJV online free.',
-      verseDescription: (r) => `Meditate on ${r} in the KJV.`,
+      homeDescription:
+        'Read the King James Bible online in a fast, clean and distraction-free reader. Find books, chapters and verses instantly.',
+      searchTitle: (query, bibleName) => `Search “${query}” in the ${bibleName} | RoBible`,
+      searchDescription: (query, bibleName) =>
+        `Search “${query}” in the ${bibleName} and find the relevant verses straight away, with clear results and instant access to the surrounding passage.`,
+      bookTitle: (bookName, bibleName) => `${bookName} | ${bibleName} Online`,
+      bookDescription: (bookName, bibleName) =>
+        `Read the book of ${bookName} in the ${bibleName} online, in a clean and fast format made for study, prayer and reflection.`,
+      chapterTitle: (reference, bibleName) => `${reference} | ${bibleName}`,
+      chapterDescription: (bookName, chapter, bibleName) =>
+        `Read ${bookName} chapter ${chapter} in the ${bibleName}. Go through the verses online in a clear reading experience, on any device.`,
+      readingDescription:
+        'RoBible offers clear Bible reading, with fast access to Scripture, intuitive search and an interface built for daily study.',
+      onlineReadingDescription:
+        'Read the Bible online for free, with quick navigation through books, chapters and verses, on an accessible page made for careful reading.',
+      verseDescription: (reference, bibleName) =>
+        `Meditate on ${reference} in the ${bibleName}, with fast access to the text, its context and online reading.`,
     },
   },
   {
@@ -129,19 +139,23 @@ export const BIBLE_VERSIONS = [
     shortName: 'CUV',
     chapterLabel: '第',
     searchResultsLabel: '搜索结果',
-    available: false,
+    available: true,
+    seoVersePages: false,
     seo: {
       homeTitle: '中文圣经和合本 在线阅读 | RoBible',
-      homeDescription: '阅读中文圣经和合本（即将推出）。',
-      searchTitle: (q) => `搜索“${q}”| RoBible`,
-      searchDescription: (q) => `搜索“${q}”的结果。`,
-      bookTitle: (n) => `${n} | CUV`,
-      bookDescription: (n) => `阅读${n}（CUV）。`,
-      chapterTitle: (r) => `${r} | CUV`,
-      chapterDescription: (n, c) => `阅读${n}第${c}章（CUV）。`,
-      readingDescription: '在线阅读CUV。',
-      onlineReadingDescription: '免费在线阅读CUV。',
-      verseDescription: (r) => `默想${r}（CUV）。`,
+      homeDescription: '在线阅读中文圣经和合本，界面简洁快速，可即时查找书卷、章节和经文。',
+      searchTitle: (query, bibleName) => `在${bibleName}中搜索“${query}”| RoBible`,
+      searchDescription: (query, bibleName) =>
+        `在${bibleName}中搜索“${query}”，快速找到相关经文，结果清晰，并可直接查看上下文。`,
+      bookTitle: (bookName, bibleName) => `${bookName} | ${bibleName} 在线阅读`,
+      bookDescription: (bookName, bibleName) =>
+        `在线阅读${bibleName}的${bookName}，版面简洁快速，适合研读、祷告与默想。`,
+      chapterTitle: (reference, bibleName) => `${reference} | ${bibleName}`,
+      chapterDescription: (bookName, chapter, bibleName) =>
+        `阅读${bibleName}${bookName}第${chapter}章。在任何设备上都能清晰流畅地逐节阅读。`,
+      readingDescription: 'RoBible 提供清晰的圣经阅读体验，快速查阅经文，搜索直观，界面专为每日研读而设计。',
+      onlineReadingDescription: '免费在线阅读圣经，快速浏览书卷、章节与经文，页面简洁，便于专注阅读。',
+      verseDescription: (reference, bibleName) => `默想${bibleName}中的${reference}，快速查看经文、上下文并在线阅读。`,
     },
   },
 ];
