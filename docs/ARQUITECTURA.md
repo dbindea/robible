@@ -69,6 +69,58 @@ Las URLs se construyen y parsean **siempre** con [bible-route.service.js](../src
 
 > El sitemap solo debe publicar rutas de esta tabla. Publicaba además `/temas`, `/favoritos`, `/favoriti`, `/notas` y `/notite`, que la app no resuelve y devolvían soft-404; se retiraron el 2026-09-04. Si algún día se traducen los `*Path` por idioma, hay que añadirlas de vuelta en `generate-seo.mjs`.
 
+## Sistema de diseño
+
+Definido en [public/global.css](../public/global.css). Es la **única fuente de verdad**: la landing y la app consumen los mismos tokens.
+
+Paleta fría: grises azulados de base, azul de acento, verde reservado al estado de lectura. Está organizada en tres capas, y esa separación es lo que permite recolorear el producto entero tocando un archivo:
+
+**1. Escalas crudas** — no usarlas directamente en componentes:
+
+- `--grey-50` … `--grey-900`: de fondo de página (`#f2f5f8`) a casi negro (`#0f1720`)
+- `--blue-200` … `--blue-700`: acento e interacción, con `--blue-500` (`#2d96cd`) como principal
+- `--green-300` … `--green-600`: estado de lectura, con `--green-500` (`#28a745`) como principal
+
+**2. Alias semánticos** — estos son los que se usan:
+
+| Rol | Token | Claro | Oscuro |
+|---|---|---|---|
+| Fondo de página | `--color-page` | `--grey-50` | `--grey-900` |
+| Tarjetas y paneles | `--color-surface` | `#ffffff` | `#17212b` |
+| Superficie hundida | `--color-surface-sunken` | `--grey-100` | `#121b23` |
+| Títulos y panel oscuro | `--color-ink` | `--grey-600` | `#d8e6ee` |
+| Texto secundario | `--color-ink-soft` | `--grey-500` | `--grey-300` |
+| Acento | `--color-accent` | `--blue-500` | `--blue-400` |
+| Lectura en curso | `--color-success` | `--green-500` | `--green-400` |
+
+El modo oscuro **solo reapunta los alias semánticos** a otros peldaños de las mismas escalas. Ningún componente necesita reglas propias de tema.
+
+**3. Alias heredados** — `--color-blue`, `--color-white`, `--color-bg-light`, `--color-sidebar`… Existen porque hay ~500 usos repartidos por los componentes. Apuntan a los semánticos. **En código nuevo usa los de la capa 2.**
+
+Además hay escalas de tipografía fluida (`--font-size-*` con `clamp()`), espaciado (`--space-*`), radios (`--radius-*`) y sombras.
+
+### Reglas de color
+
+- El **verde** tiene un único significado: el versículo que se está leyendo (`.highlight-verse`) y el botón que lo activa. No usarlo para nada más — ya pasó con un botón de "libro seleccionado" y con un badge "NEW", y diluía la señal.
+- La **única superficie oscura** en modo claro es el panel de filtros (`--color-sidebar`), que lleva texto en `--color-on-primary`.
+- Nada de colores literales en los componentes. Si hace falta un tono intermedio, `color-mix(in srgb, var(--color-accent) N%, transparent)`.
+
+### Logotipo
+
+Tres SVG en el repo, todos con la misma marca (anillo + llama de tres lenguas sobre un atril):
+
+| Archivo | Uso | Fondo |
+|---|---|---|
+| `public/assets/img/logo.svg` | Iconos PWA, og:image, navbar | Cuadrado `#1d3040` |
+| `public/assets/img/logo-mark.svg` | Sobre superficies propias | Transparente |
+| `public/favicon.svg` | Pestaña del navegador | Transparente, **dibujo simplificado** |
+
+El favicon es a propósito un dibujo distinto: a 16 px el anillo interior, las lenguas laterales y el atril se empastan, así que solo lleva anillo y llama, con trazos mucho más gruesos.
+
+`node scripts/build-logo.js` regenera los 12 PNG y el `.ico` desde esos SVG. Al cambiar el logo hay que actualizar también el color de tema en `index.html`, `public/site.webmanifest` y `public/browserconfig.xml`, y bumpear el service worker.
+
+> Ojo con los comentarios XML de los SVG: no pueden contener `--`, así que los nombres de token se escriben ahí como `(grey 800)` y no `--grey-800`. Con `--` dentro, `sharp` falla al leer el archivo.
+
 ## Datos bíblicos
 
 Dos archivos por versión en `public/data/{version}/`:
@@ -168,14 +220,16 @@ Implementación propia en [i18n.service.js](../src/services/i18n.service.js), si
 5. Añadir las dos rutas de datos a `CORE_ASSETS` en `public/sw.js` y **bumpear `CACHE_NAME`**.
 6. `npm run build` regenera sitemaps y páginas SEO de la versión nueva.
 
-## Audio TTS karaoke
+## Lectura con música
 
-- [tts.service.js](../src/services/tts.service.js) envuelve `SpeechSynthesisUtterance`. Selecciona voz por idioma priorizando voces locales y de marca (Google > Microsoft). El resaltado palabra a palabra combina el evento `onboundary` con timings estimados y un factor de calibración, porque `onboundary` no es fiable en todos los navegadores.
-- [music.service.js](../src/services/music.service.js) genera un **drone armónico procedural** con Web Audio API: sin archivos de audio, sin dependencias, sin licencias.
-- [TtsPlayer.svelte](../src/components/TtsPlayer.svelte) es el mini-player. Velocidades reales: **0,75× / 1× / 1,5× / 2×**. Ambientes reales: **`none` y `procedural`** (el `'hymn'` que menciona el comentario de `ttsStore.js` no está implementado).
-- ⚠️ **Hoy el play no habla**: el botón llama a `playMusicOnly()`, que solo arranca el drone y simula el resaltado con `setTimeout`. `playChapter()` → `playVersesSequentially()` → `ttsService.speak()` es la ruta real y está desconectada. Ver [auditoría, hallazgo 13](AUDITORIA-2026-09-04.md).
-- Al arrancar la lectura se entra en modo inmersivo automáticamente, y al parar se sale.
-- Los textos del player están **hardcodeados en `LABELS`** dentro del componente en vez de usar `$_()`; es la única excepción a la regla de i18n y conviene corregirla si se toca el archivo.
+**No hay voz**: es música de fondo más el versículo resaltado avanzando por la pantalla. Decisión de producto del 4 sep 2026.
+
+- [TtsPlayer.svelte](../src/components/TtsPlayer.svelte) recibe `playlist`, el **mismo array que Result.svelte está pintando**. Recorre esa lista y marca cada versículo por su `key`, la misma que usa la plantilla para el resaltado. De ahí que funcione igual leyendo un capítulo que leyendo los resultados de una búsqueda, aunque cada modo construya la `key` de forma distinta.
+- El ritmo se estima en `MS_POR_PALABRA` (380 ms) dividido por la velocidad elegida. Es una aproximación: no hay audio de voz con el que sincronizar.
+- Estados: **play** entra en modo lectura a pantalla completa · **pausa** congela manteniendo el resaltado y sin salir · **parar** resetea posición, música y modo lectura. El modo lectura lo gobierna un solo sitio, `Result.svelte`, a partir de `playing || paused`.
+- [music.service.js](../src/services/music.service.js) reproduce un MP3 en bucle infinito con `AudioBufferSourceNode.loop = true` (empalme exacto, sin el hueco que deja `<audio loop>`), con fades de entrada y salida. Si el archivo no carga, cae a un pad sintético de osciladores. La pista y su licencia CC0 están en [public/assets/audio/CREDITS.md](../public/assets/audio/CREDITS.md).
+- Velocidades: **0,75× / 1× / 1,5× / 2×**. Ambientes: **`prayer`** (el MP3) y **`none`**.
+- [tts.service.js](../src/services/tts.service.js) envuelve `SpeechSynthesisUtterance` y **hoy no lo importa nadie**. Se conserva por si se añade voz más adelante; al no importarse no entra en el bundle.
 
 ## Backend, en una vista
 

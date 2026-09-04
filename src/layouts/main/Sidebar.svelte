@@ -546,6 +546,7 @@
     font-weight: 300;
   }
 
+  // El panel de filtros es la única superficie oscura de la app: texto claro.
   div {
     color: var(--color-on-primary);
   }
@@ -565,7 +566,7 @@
     padding: 0 2.5rem 0 0.5rem;
     border: solid 1px #7c8990;
     background-color: var(--color-sidebar);
-    color: #ffffff;
+    color: var(--color-on-primary);
     outline: none;
     transition: var(--transition);
     width: 100%;
@@ -697,7 +698,7 @@
     }
 
     &:focus-visible {
-      outline: 2px solid rgb(255 255 255 / 75%);
+      outline: 2px solid rgb(255 255 255 / 70%);
       outline-offset: 2px;
     }
   }
@@ -716,7 +717,7 @@
 
     strong {
       display: block;
-      color: #ffffff;
+      color: var(--color-on-primary);
       font-size: 1rem;
       font-weight: 700;
       line-height: 1.3;
@@ -729,9 +730,9 @@
       gap: 0.5rem;
       width: 100%;
       min-height: 2.35rem;
-      border: 1px solid rgb(45 150 205 / 54%);
+      border: 1px solid color-mix(in srgb, var(--color-accent) 54%, transparent);
       background: rgb(255 255 255 / 8%);
-      color: #ffffff;
+      color: var(--color-on-primary);
       font-size: 14px;
       font-weight: 600;
       border-radius: 0.25rem;
@@ -739,16 +740,18 @@
 
       &:hover,
       &:focus-visible {
-        background: rgb(45 150 205 / 28%);
+        background: color-mix(in srgb, var(--color-accent) 28%, transparent);
         border-color: var(--color-blue);
-        box-shadow: 0 0 0 3px rgb(45 150 205 / 18%);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 18%, transparent);
       }
 
+      // Libro seleccionado: acento de la marca, no verde. El verde queda
+      // reservado para el resaltado de lectura.
       &--active {
-        border-color: #28a745;
-        background: #28a745;
-        color: #ffffff;
-        box-shadow: 0 0 0 3px #28a74538;
+        border-color: var(--color-accent);
+        background: var(--color-accent);
+        color: var(--color-on-primary);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 22%, transparent);
       }
     }
   }
@@ -763,7 +766,7 @@
       cursor: pointer;
       color: rgb(255 255 255 / 80%);
       &:hover {
-        color: #ffffff;
+        color: var(--color-on-primary);
       }
     }
   }
@@ -786,7 +789,7 @@
     background: transparent;
 
     &:focus-visible {
-      outline: 2px solid rgb(255 255 255 / 75%);
+      outline: 2px solid rgb(255 255 255 / 70%);
       outline-offset: 2px;
     }
   }
@@ -799,7 +802,7 @@
     text-align: right;
 
     span {
-      color: #ffffff;
+      color: var(--color-on-primary);
       font-weight: 600;
     }
   }
@@ -827,15 +830,15 @@
     padding: 0.1rem 0.45rem;
     font-size: 0.62rem;
     font-weight: 700;
-    color: #fff;
-    background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);
+    color: var(--color-on-primary);
+    background: var(--color-accent);
     border-radius: 0.3rem;
     text-transform: uppercase;
     letter-spacing: 0.04em;
     line-height: 1.2;
     transform: rotate(-8deg);
     transform-origin: center;
-    box-shadow: 0 1px 3px rgb(22 163 74 / 30%);
+    box-shadow: 0 1px 3px color-mix(in srgb, var(--color-accent) 30%, transparent);
     flex-shrink: 0;
   }
 
@@ -878,16 +881,16 @@
 
     &__ref {
       font-size: 0.78rem;
-      color: rgb(45 150 205);
+      color: var(--color-accent);
       font-weight: 600;
-      background: rgb(45 150 205 / 14%);
+      background: color-mix(in srgb, var(--color-accent) 14%, transparent);
       padding: 0.1rem 0.4rem;
       border-radius: 0.25rem;
     }
 
     &:hover,
     &--active {
-      background: rgb(45 150 205 / 28%);
+      background: color-mix(in srgb, var(--color-accent) 28%, transparent);
     }
   }
 
@@ -909,7 +912,7 @@
 
     &:hover,
     &:focus-visible {
-      background: rgb(45 150 205 / 28%);
+      background: color-mix(in srgb, var(--color-accent) 28%, transparent);
       outline: none;
     }
 
@@ -943,7 +946,7 @@
 
       &:hover,
       &:focus-visible {
-        color: #ffffff;
+        color: var(--color-on-primary);
         background: rgb(255 100 100 / 30%);
         outline: none;
       }

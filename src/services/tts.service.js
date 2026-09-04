@@ -118,6 +118,19 @@ function selectVoice(lang) {
 }
 
 /**
+ * ⚠️ MÓDULO SIN USO ACTUALMENTE (4 sep 2026).
+ *
+ * La lectura del capítulo se decidió como "música + resaltado visual", sin voz,
+ * así que ningún componente importa este servicio. Al no importarse, tampoco
+ * entra en el bundle.
+ *
+ * Se conserva porque es un envoltorio completo y funcional de SpeechSynthesis
+ * (selección de voz por idioma, timings palabra a palabra, calibración) y sería
+ * la base si algún día se añade la lectura en voz alta. Si se decide que no,
+ * puede borrarse el archivo entero sin tocar nada más.
+ */
+
+/**
  * Start speaking a verse text.
  * @param {string} text — full verse text to speak
  * @param {string} lang — language code 'ro' or 'es'

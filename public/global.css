@@ -1,46 +1,147 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   SISTEMA DE DISEÑO
+   ───────────────────────────────────────────────────────────────────────────
+   Paleta fría: grises azulados como base, azul como acento, verde reservado
+   para el estado de lectura. Única fuente de verdad para toda la app,
+   incluida la landing.
+
+   Estructura, de abajo arriba:
+     1. Escalas crudas  (--grey-*, --blue-*, --green-*) — no usarlas directamente
+     2. Alias semánticos (--color-accent, --color-surface, --color-ink…) — usar estos
+     3. Alias heredados  (--color-blue, --color-white…) — solo por compatibilidad
+
+   `--color-blue` y `--color-white` sobreviven porque hay ~500 usos repartidos
+   por los componentes. En código nuevo usa los semánticos.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 :root {
-  /* COLOR */
-  --color-bg-light: #f2f5f8;
-  --color-bg-dark: #3f5867;
+  /* ── 1. Escalas ─────────────────────────────────────────────────────────── */
+
+  /* Grises azulados: de fondo de página a tinta */
+  --grey-50: #f2f5f8;
+  --grey-100: #e6ecf2;
+  --grey-200: #cfdae4;
+  --grey-300: #a8bccb;
+  --grey-400: #7c93a5;
+  --grey-500: #5b7383;
+  --grey-600: #3f5867;
+  --grey-700: #324856;
+  --grey-800: #1d3040;
+  --grey-900: #0f1720;
+
+  /* Azul: acento e interacción */
+  --blue-200: #b9e2f4;
+  --blue-300: #7ec8e3;
+  --blue-400: #4db2e6;
+  --blue-500: #2d96cd;
+  --blue-600: #236f97;
+  --blue-700: #1a5573;
+
+  /* Verde: reservado al estado de lectura y a confirmaciones */
+  --green-300: #8fe8ab;
+  --green-400: #5dde86;
+  --green-500: #28a745;
+  --green-600: #1e8035;
+
+  /* ── 2. Alias semánticos (usa estos) ────────────────────────────────────── */
+  --color-page: var(--grey-50); /* fondo de página */
+  --color-surface: #ffffff; /* tarjetas y paneles */
+  --color-surface-sunken: var(--grey-100); /* fondo hundido */
+  --color-ink: var(--grey-600); /* títulos y superficies oscuras */
+  --color-ink-soft: var(--grey-500); /* texto secundario */
+  --color-accent: var(--blue-500);
+  --color-accent-hover: var(--blue-600);
+  --color-accent-soft: var(--blue-300); /* acento sobre fondo oscuro */
+  --color-success: var(--green-500); /* lectura en curso, confirmaciones */
+
+  /* ── 3. Alias heredados (compatibilidad, no usar en código nuevo) ───────── */
+  --color-bg-light: var(--color-page);
+  --color-bg-dark: var(--color-ink);
   --color-text-dark: #131313;
   --color-link: #0064c8;
   --color-link-visited: #0050a0;
-  --color-white: #ffffff;
+  --color-white: var(--color-surface);
   --color-on-primary: #ffffff;
-  --color-sidebar: #3f5867;
-  --color-blue: #2d96cd;
-  --color-blue-hover: #236f97;
+  --color-sidebar: var(--grey-600);
+  --color-blue: var(--color-accent);
+  --color-blue-hover: var(--color-accent-hover);
 
-  /* FONT */
+  /* ── Tipografía ── */
   --font-default-size: 16px;
   --font-family-base: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, 'Open Sans', sans-serif;
+  /* Escala fluida: crece con el viewport sin saltos por breakpoint. */
+  --font-size-body: clamp(1rem, 0.3vw + 0.94rem, 1.0625rem);
+  --font-size-lead: clamp(1.05rem, 0.5vw + 0.95rem, 1.2rem);
+  --font-size-h1: clamp(1.6rem, 2.4vw + 1rem, 2.5rem);
+  --font-size-h2: clamp(1.3rem, 1.4vw + 0.95rem, 1.75rem);
+  --font-size-h3: clamp(1.1rem, 0.7vw + 0.9rem, 1.3rem);
+  --font-size-small: 0.875rem;
+  --font-size-tiny: 0.78rem;
+  --line-height-body: 1.65;
+  --line-height-tight: 1.2;
+  --letter-spacing-eyebrow: 0.12em;
 
-  /* EFFECT */
-  --border-blue: solid var(--color-blue);
-  --border-gray: solid #7c8990;
-  --box-shadow-up: 0 0.2rem 0.8rem rgb(71 84 92 / 16%);
-  --box-shadow-down: 0 0.35rem 1rem rgb(71 84 92 / 18%);
+  /* ── Espaciado ── */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+  --space-section: clamp(2.5rem, 6vw, 5rem);
+
+  /* ── Formas ── */
+  --radius-sm: 0.3rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-pill: 999px;
+
+  /* ── Bordes y sombras ── */
+  --color-line: rgb(63 88 103 / 14%);
+  --color-line-soft: rgb(63 88 103 / 7%);
+  --border-blue: solid var(--color-accent);
+  --border-gray: solid rgb(63 88 103 / 24%);
+  --box-shadow-up: 0 0.2rem 0.8rem rgb(71 84 92 / 12%);
+  --box-shadow-down: 0 0.35rem 1rem rgb(71 84 92 / 14%);
+  --box-shadow-lg: 0 0.2rem 0.8rem rgb(71 84 92 / 12%), 0 1.5rem 3.75rem rgb(71 84 92 / 10%);
   --transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 
-  /* SIZE */
-  --button-height: 2.35rem;
+  /* ── Tamaños ── */
+  --button-height: 2.5rem;
   --input-height: 3rem;
 }
 
 html[data-theme='dark'] {
   color-scheme: dark;
-  --color-bg-light: #0f1720;
-  --color-bg-dark: #d8e6ee;
+
+  /* En oscuro las escalas se invierten: la "tinta" pasa a ser clara y el fondo
+     al extremo oscuro. Los alias semánticos no cambian de nombre, solo apuntan
+     a otro sitio, así que ningún componente necesita reglas propias. */
+  --color-page: var(--grey-900);
+  --color-surface: #17212b;
+  --color-surface-sunken: #121b23;
+  --color-ink: #d8e6ee;
+  --color-ink-soft: var(--grey-300);
+  --color-accent: var(--blue-400);
+  --color-accent-hover: var(--blue-300);
+  --color-accent-soft: var(--blue-300);
+  --color-success: var(--green-400);
+
   --color-text-dark: #edf3f7;
   --color-link: #79c8ff;
   --color-link-visited: #b7c5ff;
-  --color-white: #17212b;
-  --color-blue: #4db2e6;
-  --color-blue-hover: #75c7ee;
-  --color-sidebar: #1d3040;
-  --border-gray: solid #516575;
-  --box-shadow-up: 0 0.2rem 0.8rem rgb(0 0 0 / 28%);
-  --box-shadow-down: 0 0.35rem 1rem rgb(0 0 0 / 34%);
+  --color-on-primary: #ffffff;
+  --color-sidebar: var(--grey-800);
+
+  --color-line: rgb(216 230 238 / 14%);
+  --color-line-soft: rgb(216 230 238 / 7%);
+  --border-gray: solid rgb(216 230 238 / 20%);
+  --box-shadow-up: 0 0.2rem 0.8rem rgb(0 0 0 / 32%);
+  --box-shadow-down: 0 0.35rem 1rem rgb(0 0 0 / 38%);
+  --box-shadow-lg: 0 0.2rem 0.8rem rgb(0 0 0 / 32%), 0 1.5rem 3.75rem rgb(0 0 0 / 26%);
 }
 
 @font-face {
@@ -109,11 +210,33 @@ body {
   background-color: var(--color-bg-light);
   color: var(--color-text-dark);
   font-family: var(--font-family-base);
-  font-size: var(--font-default-size);
-  line-height: 1.5;
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
   font-synthesis-weight: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'kern' 1, 'liga' 1;
+}
+
+h1,
+h2,
+h3 {
+  line-height: var(--line-height-tight);
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+h1 {
+  font-size: var(--font-size-h1);
+}
+
+h2 {
+  font-size: var(--font-size-h2);
+}
+
+h3 {
+  font-size: var(--font-size-h3);
 }
 
 body,
@@ -172,8 +295,8 @@ select:disabled {
   width: 0.5rem;
   height: 0.5rem;
   border-radius: 999px;
-  background: #28a745;
-  box-shadow: 0 0 0 3px #28a74538;
+  background: var(--color-success);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-success) 22%, transparent);
   flex-shrink: 0;
 }
 
@@ -187,19 +310,20 @@ select:disabled {
   margin-right: 0.4rem;
 }
 
-/* === HIGHLIGHT (verde) — reusable para versiculos leidos o referencias directas === */
+/* === HIGHLIGHT — versículo que se está leyendo, o al que se ha navegado por
+   referencia. El verde es el único uso de ese color en la app: identifica "la
+   lectura en curso" y no debe emplearse para otra cosa. === */
 .highlight-verse {
-  background: color-mix(in srgb, #28a745 12%, transparent);
-  border-left: 3px solid #28a745;
+  background: color-mix(in srgb, var(--color-success) 12%, transparent);
+  border-left: 3px solid var(--color-success);
   padding-left: 0.6rem;
-  border-radius: 0.3rem;
+  border-radius: var(--radius-sm);
   transition: background 0.3s ease, border-color 0.3s ease;
   scroll-margin-top: 6rem;
 }
 
 html[data-theme='dark'] .highlight-verse {
-  background: color-mix(in srgb, #28a745 18%, transparent);
-  border-left-color: #5dde86;
+  background: color-mix(in srgb, var(--color-success) 18%, transparent);
 }
 
 img,

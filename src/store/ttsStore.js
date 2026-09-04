@@ -81,21 +81,27 @@ export const ttsDisplayState = derived(ttsState, ($s) => {
 });
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-// Sin llamadas hoy: TtsPlayer hace este mismo `ttsState.update()` en línea.
-// Se conserva junto con el resto de la ruta de TTS pendiente de reconectar
-// (ver docs/AUDITORIA-2026-09-04.md, hallazgo 13).
-export function startTtsVerse(book, chapter, verse, text) {
+/**
+ * Marca el versículo que se está leyendo.
+ *
+ * `item` es un elemento de la lista que se está pintando en pantalla
+ * (`{ book, chapter, index, text, key }`). Se guarda su `key` tal cual porque
+ * es la que usa la plantilla de Result.svelte para decidir el resaltado: así
+ * funciona igual leyendo un capítulo que leyendo resultados de búsqueda, que
+ * construyen la key de forma distinta.
+ */
+export function setTtsVerse(item) {
   ttsState.update((s) => ({
     ...s,
     playing: true,
     paused: false,
     wordIndex: -1,
-    wordCount: text.trim().split(/\s+/).length,
-    currentBook: book,
-    currentChapter: chapter,
-    currentVerse: verse,
-    verseText: text,
-    verseKey: `${book}-${chapter}-${verse}`,
+    wordCount: item.text.trim().split(/\s+/).length,
+    currentBook: item.book,
+    currentChapter: item.chapter,
+    currentVerse: item.index,
+    verseText: item.text,
+    verseKey: item.key,
   }));
 }
 
@@ -115,23 +121,30 @@ export function resumeTts() {
   ttsState.update((s) => ({ ...s, paused: false, playing: true }));
 }
 
-export function stopTts() {
-  ttsState.update((s) => ({
+/**
+ * Reset completo: se usa al parar y al terminar la lista. Limpia también el
+ * versículo actual — al parar, el usuario suele irse a otro capítulo, y dejar
+ * la posición vieja hacía que reapareciera un resaltado fantasma.
+ */
+function resetState(s) {
+  return {
     ...s,
     playing: false,
     paused: false,
     wordIndex: -1,
     wordCount: 0,
+    currentBook: null,
+    currentChapter: null,
+    currentVerse: null,
     verseText: '',
     verseKey: '',
-  }));
+  };
+}
+
+export function stopTts() {
+  ttsState.update(resetState);
 }
 
 export function endTts() {
-  ttsState.update((s) => ({
-    ...s,
-    playing: false,
-    paused: false,
-    wordIndex: -1,
-  }));
+  ttsState.update(resetState);
 }

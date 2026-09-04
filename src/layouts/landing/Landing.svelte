@@ -591,31 +591,22 @@
 </main>
 
 <style>
-  /* ── Tokens (homogeneizado con public/global.css) ────────── */
-  :global(:root) {
-    --landing-cream: #F5F0E6;
-    --landing-cream-dark: #E8E0D0;
-    --landing-ink: var(--color-bg-dark, #3f5867);
-    --landing-ink-soft: #3D4654;
-    --landing-copper: #B8763E;
-    --landing-copper-soft: #D49B6A;
-    --landing-paper: #FAF6EE;
-    --landing-white: #FFFFFF;
-    --landing-line: rgba(63, 88, 103, 0.12);
-    --landing-line-soft: rgba(63, 88, 103, 0.06);
-    /* Mismo font stack que el resto de la app (public/global.css) */
-    --landing-serif: var(--font-family-base, 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, 'Open Sans', sans-serif);
-    --landing-sans: var(--font-family-base, 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, 'Open Sans', sans-serif);
+  /* ── Tokens ───────────────────────────────────────────────
+     La landing ya no define paleta propia: los `--landing-*` son alias de los
+     tokens globales de public/global.css, que salieron precisamente de este
+     diseño. Así la landing y la app comparten una única fuente de verdad y el
+     modo oscuro funciona también aquí. */
+  .landing {
+    /* Único token propio: la landing usa monoespaciada en el demo de búsqueda.
+       Todo lo demás sale de los tokens del sistema (public/global.css). */
     --landing-mono: ui-monospace, 'SF Mono', Menlo, monospace;
-    --landing-shadow: 0 0.2rem 0.8rem rgb(71 84 92 / 16%);
-    --landing-shadow-lg: 0 0.2rem 0.8rem rgb(71 84 92 / 16%), 0 24px 60px rgb(71 84 92 / 10%);
   }
 
   /* ── Base ─────────────────────────────────────────────────── */
   .landing {
-    background: var(--landing-cream);
-    color: var(--landing-ink);
-    font-family: var(--landing-serif);
+    background: var(--color-page);
+    color: var(--color-ink);
+    font-family: var(--font-family-base);
     font-size: clamp(1rem, 1.05vw + 0.85rem, 1.125rem);
     line-height: 1.65;
     -webkit-font-smoothing: antialiased;
@@ -625,18 +616,8 @@
     position: relative;
   }
 
-  /* Textura sutil de papel (SVG noise inline) */
-  .landing::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 0;
-    opacity: 0.4;
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.1 0 0 0 0 0.13 0 0 0 0 0.2 0 0 0 0.04 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
-    mix-blend-mode: multiply;
-  }
-
+  /* La textura de papel la pone ahora `body::before` en global.css, para toda
+     la app. Aquí solo se mantiene el apilado del contenido por encima. */
   .landing > * {
     position: relative;
     z-index: 1;
@@ -659,12 +640,12 @@
     top: -3rem;
     left: 0.5rem;
     z-index: 100;
-    background: var(--landing-ink);
-    color: var(--landing-cream);
+    background: var(--color-ink);
+    color: var(--color-page);
     padding: 0.5rem 1rem;
     text-decoration: none;
     border-radius: 0.2rem;
-    font-family: var(--landing-sans);
+    font-family: var(--font-family-base);
     font-size: 0.875rem;
     transition: top 0.15s ease;
   }
@@ -678,7 +659,7 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.75rem 1.4rem;
-    font-family: var(--landing-sans);
+    font-family: var(--font-family-base);
     font-size: 0.95rem;
     font-weight: 600;
     letter-spacing: 0.005em;
@@ -689,26 +670,26 @@
     border: 1px solid transparent;
   }
   .btn--primary {
-    background: var(--landing-ink);
-    color: var(--landing-cream);
+    background: var(--color-ink);
+    color: var(--color-page);
   }
   .btn--primary:hover,
   .btn--primary:focus-visible {
-    background: var(--landing-copper);
-    color: var(--landing-white);
+    background: var(--color-accent);
+    color: var(--color-surface);
   }
   .btn--primary:focus-visible {
-    outline: 2px solid var(--landing-copper);
+    outline: 2px solid var(--color-accent);
     outline-offset: 3px;
   }
   .btn--ghost {
     background: transparent;
-    color: var(--landing-ink);
-    border-color: var(--landing-line);
+    color: var(--color-ink);
+    border-color: var(--color-line);
   }
   .btn--ghost:hover,
   .btn--ghost:focus-visible {
-    border-color: var(--landing-ink);
+    border-color: var(--color-ink);
     background: rgba(26, 35, 50, 0.04);
   }
   .btn--large {
@@ -723,26 +704,26 @@
     text-align: center;
   }
   .section-eyebrow {
-    font-family: var(--landing-sans);
+    font-family: var(--font-family-base);
     font-size: 0.72rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.16em;
-    color: var(--landing-copper);
+    color: var(--color-accent);
     margin: 0 0 0.75rem;
   }
   .section-title {
-    font-family: var(--landing-serif);
+    font-family: var(--font-family-base);
     font-size: clamp(1.75rem, 3.4vw, 2.6rem);
     font-weight: 600;
     line-height: 1.15;
     letter-spacing: -0.015em;
     margin: 0 0 0.75rem;
-    color: var(--landing-ink);
+    color: var(--color-ink);
   }
   .section-lede {
     font-size: 1.05rem;
-    color: var(--landing-ink-soft);
+    color: var(--color-ink-soft);
     line-height: 1.55;
     margin: 0;
   }
@@ -754,13 +735,13 @@
     display: flex;
     align-items: center;
     padding: clamp(4rem, 12vh, 7rem) clamp(1.25rem, 5vw, 4rem) clamp(3rem, 8vh, 5rem);
-    border-bottom: 1px solid var(--landing-line);
+    border-bottom: 1px solid var(--color-line);
   }
   .hero__bg {
     position: absolute;
     inset: 0;
     z-index: 0;
-    background: linear-gradient(180deg, var(--landing-cream) 0%, var(--landing-paper) 100%);
+    background: linear-gradient(180deg, var(--color-page) 0%, var(--color-surface) 100%);
     opacity: 0.6;
   }
   .hero__inner {
@@ -780,22 +761,22 @@
     }
   }
   .hero__eyebrow {
-    font-family: var(--landing-sans);
+    font-family: var(--font-family-base);
     font-size: 0.72rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.16em;
-    color: var(--landing-copper);
+    color: var(--color-accent);
     margin: 0 0 1.25rem;
   }
   .hero__title {
-    font-family: var(--landing-serif);
+    font-family: var(--font-family-base);
     font-size: clamp(2.2rem, 5.5vw, 4.5rem);
     font-weight: 600;
     line-height: 1.05;
     letter-spacing: -0.02em;
     margin: 0 0 1.5rem;
-    color: var(--landing-ink);
+    color: var(--color-ink);
   }
   .hero__title::first-letter {
     /* Drop cap sólo en el primer carácter visual */
@@ -803,7 +784,7 @@
   .hero__lede {
     font-size: clamp(1.05rem, 1.4vw, 1.25rem);
     line-height: 1.55;
-    color: var(--landing-ink-soft);
+    color: var(--color-ink-soft);
     margin: 0 0 2rem;
     max-width: 32rem;
   }
@@ -817,11 +798,11 @@
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    font-family: var(--landing-sans);
+    font-family: var(--font-family-base);
     font-size: 0.8rem;
   }
   .hero__lang-label {
-    color: var(--landing-ink-soft);
+    color: var(--color-ink-soft);
     text-transform: uppercase;
     letter-spacing: 0.08em;
     font-size: 0.7rem;
@@ -835,11 +816,11 @@
   }
   .hero__lang-btn {
     background: transparent;
-    border: 1px solid var(--landing-line);
-    color: var(--landing-ink-soft);
+    border: 1px solid var(--color-line);
+    color: var(--color-ink-soft);
     padding: 0.25rem 0.55rem;
     border-radius: 0.2rem;
-    font-family: var(--landing-sans);
+    font-family: var(--font-family-base);
     font-size: 0.75rem;
     font-weight: 600;
     letter-spacing: 0.04em;
@@ -847,13 +828,13 @@
     transition: border-color 0.15s, color 0.15s, background 0.15s;
   }
   .hero__lang-btn:hover {
-    border-color: var(--landing-ink);
-    color: var(--landing-ink);
+    border-color: var(--color-ink);
+    color: var(--color-ink);
   }
   .hero__lang-btn--active {
-    background: var(--landing-ink);
-    color: var(--landing-cream);
-    border-color: var(--landing-ink);
+    background: var(--color-ink);
+    color: var(--color-page);
+    border-color: var(--color-ink);
   }
 
   .hero__scroll-hint {
@@ -863,7 +844,7 @@
     transform: translateX(-50%);
     width: 1px;
     height: 3rem;
-    background: var(--landing-line);
+    background: var(--color-line);
     display: block;
     transition: opacity 0.3s;
   }
@@ -874,7 +855,7 @@
     left: 0;
     width: 1px;
     height: 1rem;
-    background: var(--landing-copper);
+    background: var(--color-accent);
     animation: scroll-pulse 2s ease-in-out infinite;
   }
   @keyframes scroll-pulse {
@@ -884,11 +865,11 @@
 
   /* ── DEMO ────────────────────────────────────────────────── */
   .demo {
-    background: var(--landing-white);
-    border: 1px solid var(--landing-line);
+    background: var(--color-surface);
+    border: 1px solid var(--color-line);
     border-radius: 0.4rem;
     padding: clamp(1.25rem, 2.5vw, 1.75rem);
-    box-shadow: var(--landing-shadow-lg);
+    box-shadow: var(--box-shadow-lg);
     position: relative;
   }
   .demo::before {
@@ -896,22 +877,22 @@
     position: absolute;
     inset: -1px;
     border-radius: 0.4rem;
-    background: linear-gradient(135deg, var(--landing-copper) 0%, transparent 50%);
+    background: linear-gradient(135deg, var(--color-accent) 0%, transparent 50%);
     opacity: 0.15;
     z-index: -1;
   }
   .demo__eyebrow {
-    font-family: var(--landing-sans);
+    font-family: var(--font-family-base);
     font-size: 0.68rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.16em;
-    color: var(--landing-copper);
+    color: var(--color-accent);
     margin: 0 0 0.5rem;
   }
   .demo__hint {
     font-size: 0.95rem;
-    color: var(--landing-ink-soft);
+    color: var(--color-ink-soft);
     margin: 0 0 1rem;
     line-height: 1.45;
   }
@@ -927,38 +908,38 @@
     padding: 0.65rem 0.85rem;
     font-family: var(--landing-mono);
     font-size: 0.95rem;
-    color: var(--landing-ink);
-    background: var(--landing-paper);
-    border: 1px solid var(--landing-line);
+    color: var(--color-ink);
+    background: var(--color-surface);
+    border: 1px solid var(--color-line);
     border-radius: 0.2rem;
     transition: border-color 0.15s, background 0.15s;
   }
   .demo__input:focus {
     outline: none;
-    border-color: var(--landing-ink);
-    background: var(--landing-white);
+    border-color: var(--color-ink);
+    background: var(--color-surface);
   }
   .demo__btn {
     padding: 0.65rem 1.1rem;
-    background: var(--landing-ink);
-    color: var(--landing-cream);
+    background: var(--color-ink);
+    color: var(--color-page);
     border: none;
     border-radius: 0.2rem;
-    font-family: var(--landing-sans);
+    font-family: var(--font-family-base);
     font-size: 0.85rem;
     font-weight: 600;
     cursor: pointer;
     transition: background 0.15s;
   }
   .demo__btn:hover:not(:disabled) {
-    background: var(--landing-copper);
+    background: var(--color-accent);
   }
   .demo__btn:disabled {
     opacity: 0.4;
     cursor: not-allowed;
   }
   .demo__error {
-    font-family: var(--landing-sans);
+    font-family: var(--font-family-base);
     font-size: 0.85rem;
     color: #b3261e;
     margin: 0.75rem 0 0;
@@ -975,30 +956,30 @@
     justify-content: space-between;
     gap: 0.75rem;
     padding: 0.75rem 0.9rem;
-    background: color-mix(in srgb, #28a745 8%, var(--landing-white));
+    background: color-mix(in srgb, #28a745 8%, var(--color-surface));
     border: 1px solid color-mix(in srgb, #28a745 25%, transparent);
     border-radius: 0.2rem;
     border-left: 3px solid #28a745;
   }
   .demo__result-ref {
-    font-family: var(--landing-serif);
+    font-family: var(--font-family-base);
     font-size: 0.95rem;
-    color: var(--landing-ink);
+    color: var(--color-ink);
   }
   .demo__result-link {
     background: transparent;
-    border: 1px solid var(--landing-line);
-    color: var(--landing-ink);
+    border: 1px solid var(--color-line);
+    color: var(--color-ink);
     padding: 0.3rem 0.7rem;
     border-radius: 0.2rem;
-    font-family: var(--landing-sans);
+    font-family: var(--font-family-base);
     font-size: 0.75rem;
     font-weight: 600;
     cursor: pointer;
     transition: border-color 0.15s, background 0.15s;
   }
   .demo__result-link:hover {
-    border-color: var(--landing-ink);
+    border-color: var(--color-ink);
     background: rgba(26, 35, 50, 0.04);
   }
   .demo__list {
@@ -1013,31 +994,31 @@
     width: 100%;
     padding: 0.5rem 0.75rem;
     background: transparent;
-    border: 1px solid var(--landing-line);
+    border: 1px solid var(--color-line);
     border-radius: 0.2rem;
-    font-family: var(--landing-serif);
+    font-family: var(--font-family-base);
     cursor: pointer;
     transition: background 0.15s, border-color 0.15s;
     text-align: left;
   }
   .demo__list-item:hover {
-    background: var(--landing-paper);
-    border-color: var(--landing-ink-soft);
+    background: var(--color-surface);
+    border-color: var(--color-ink-soft);
   }
   .demo__list-name {
-    color: var(--landing-ink);
+    color: var(--color-ink);
   }
   .demo__list-ref {
     font-family: var(--landing-mono);
     font-size: 0.85rem;
-    color: var(--landing-copper);
+    color: var(--color-accent);
   }
 
   /* ── STATS ───────────────────────────────────────────────── */
   .stats {
     padding: clamp(2.5rem, 5vw, 4rem) clamp(1.25rem, 5vw, 4rem);
-    background: var(--landing-paper);
-    border-bottom: 1px solid var(--landing-line);
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-line);
   }
   .stats__list {
     max-width: 64rem;
@@ -1056,21 +1037,21 @@
     padding: 0.5rem;
   }
   .stats__value {
-    font-family: var(--landing-serif);
+    font-family: var(--font-family-base);
     font-size: clamp(1.8rem, 4vw, 2.6rem);
     font-weight: 600;
     line-height: 1;
-    color: var(--landing-ink);
+    color: var(--color-ink);
     margin: 0;
     font-variant-numeric: oldstyle-nums;
   }
   .stats__label {
-    font-family: var(--landing-sans);
+    font-family: var(--font-family-base);
     font-size: 0.72rem;
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.12em;
-    color: var(--landing-ink-soft);
+    color: var(--color-ink-soft);
     margin: 0.5rem 0 0;
   }
 
@@ -1094,43 +1075,43 @@
     }
   }
   .feature {
-    border-top: 1px solid var(--landing-line);
+    border-top: 1px solid var(--color-line);
     padding: 1.5rem 0 0;
   }
   .feature__number {
     font-family: var(--landing-mono);
     font-size: 0.85rem;
-    color: var(--landing-copper);
+    color: var(--color-accent);
     margin: 0 0 0.5rem;
   }
   .feature__title {
-    font-family: var(--landing-serif);
+    font-family: var(--font-family-base);
     font-size: 1.35rem;
     font-weight: 600;
     line-height: 1.25;
     margin: 0 0 0.5rem;
-    color: var(--landing-ink);
+    color: var(--color-ink);
   }
   .feature__text {
-    color: var(--landing-ink-soft);
+    color: var(--color-ink-soft);
     line-height: 1.55;
     margin: 0 0 0.75rem;
   }
   .feature__example {
     font-family: var(--landing-mono);
     font-size: 0.85rem;
-    color: var(--landing-copper);
-    background: var(--landing-paper);
+    color: var(--color-accent);
+    background: var(--color-surface);
     padding: 0.5rem 0.75rem;
     border-radius: 0.2rem;
-    border-left: 2px solid var(--landing-copper);
+    border-left: 2px solid var(--color-accent);
     margin: 0;
   }
 
   /* ── WHY ─────────────────────────────────────────────────── */
   .why {
-    background: var(--landing-ink);
-    color: var(--landing-cream);
+    background: var(--color-ink);
+    color: var(--color-page);
     padding: clamp(4rem, 8vw, 6rem) clamp(1.25rem, 5vw, 4rem);
   }
   .why__inner {
@@ -1138,13 +1119,13 @@
     margin: 0 auto;
   }
   .why :global(.section-eyebrow) {
-    color: var(--landing-copper-soft);
+    color: var(--color-accent-soft);
   }
   .why :global(.section-title) {
-    color: var(--landing-cream);
+    color: var(--color-page);
   }
   .why :global(.section-lede) {
-    color: color-mix(in srgb, var(--landing-cream) 80%, transparent);
+    color: color-mix(in srgb, var(--color-page) 80%, transparent);
   }
   .why__list {
     list-style: none;
@@ -1161,18 +1142,18 @@
     }
   }
   .why__item {
-    border-top: 1px solid color-mix(in srgb, var(--landing-copper-soft) 35%, transparent);
+    border-top: 1px solid color-mix(in srgb, var(--color-accent-soft) 35%, transparent);
     padding-top: 1.25rem;
   }
   .why__item-title {
-    font-family: var(--landing-serif);
+    font-family: var(--font-family-base);
     font-size: 1.2rem;
     font-weight: 600;
     margin: 0 0 0.5rem;
-    color: var(--landing-cream);
+    color: var(--color-page);
   }
   .why__item-text {
-    color: color-mix(in srgb, var(--landing-cream) 80%, transparent);
+    color: color-mix(in srgb, var(--color-page) 80%, transparent);
     line-height: 1.55;
     margin: 0;
   }
@@ -1194,32 +1175,32 @@
     }
   }
   .audience__card {
-    border: 1px solid var(--landing-line);
+    border: 1px solid var(--color-line);
     padding: 1.5rem;
     border-radius: 0.2rem;
-    background: var(--landing-white);
+    background: var(--color-surface);
     transition: border-color 0.2s, transform 0.2s;
   }
   .audience__card:hover {
-    border-color: var(--landing-copper);
+    border-color: var(--color-accent);
     transform: translateY(-2px);
   }
   .audience__card-title {
-    font-family: var(--landing-serif);
+    font-family: var(--font-family-base);
     font-size: 1.2rem;
     font-weight: 600;
     margin: 0 0 0.5rem;
   }
   .audience__card-text {
-    color: var(--landing-ink-soft);
+    color: var(--color-ink-soft);
     line-height: 1.55;
     margin: 0 0 1rem;
   }
   .audience__card-link {
-    font-family: var(--landing-sans);
+    font-family: var(--font-family-base);
     font-size: 0.85rem;
     font-weight: 600;
-    color: var(--landing-copper);
+    color: var(--color-accent);
     text-decoration: none;
     position: relative;
     display: inline-block;
@@ -1240,7 +1221,7 @@
 
   /* ── COMPARISON ─────────────────────────────────────────── */
   .compare {
-    background: var(--landing-paper);
+    background: var(--color-surface);
     padding: clamp(4rem, 8vw, 6rem) clamp(1.25rem, 5vw, 4rem);
   }
   .compare__table-wrap {
@@ -1251,30 +1232,30 @@
   .compare__table {
     width: 100%;
     border-collapse: collapse;
-    font-family: var(--landing-sans);
+    font-family: var(--font-family-base);
     font-size: 0.92rem;
   }
   .compare__table th,
   .compare__table td {
     padding: 0.85rem 1rem;
     text-align: left;
-    border-bottom: 1px solid var(--landing-line);
+    border-bottom: 1px solid var(--color-line);
   }
   .compare__table thead th {
     font-weight: 600;
     font-size: 0.78rem;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: var(--landing-ink-soft);
-    border-bottom: 2px solid var(--landing-ink);
+    color: var(--color-ink-soft);
+    border-bottom: 2px solid var(--color-ink);
   }
   .compare__table tbody th {
     font-weight: 500;
-    color: var(--landing-ink);
+    color: var(--color-ink);
     width: 50%;
   }
   .compare__th--us {
-    color: var(--landing-copper) !important;
+    color: var(--color-accent) !important;
   }
   .compare__yes {
     color: #28a745;
@@ -1300,7 +1281,7 @@
     margin: 0;
   }
   .faq__item {
-    border-bottom: 1px solid var(--landing-line);
+    border-bottom: 1px solid var(--color-line);
   }
   .faq__q {
     display: flex;
@@ -1311,27 +1292,27 @@
     border: none;
     padding: 1.25rem 0;
     text-align: left;
-    font-family: var(--landing-serif);
+    font-family: var(--font-family-base);
     font-size: 1.1rem;
     font-weight: 500;
-    color: var(--landing-ink);
+    color: var(--color-ink);
     cursor: pointer;
     line-height: 1.4;
   }
   .faq__q:focus-visible {
-    outline: 2px solid var(--landing-copper);
+    outline: 2px solid var(--color-accent);
     outline-offset: 4px;
   }
   .faq__plus {
     font-size: 1.5rem;
-    color: var(--landing-copper);
+    color: var(--color-accent);
     font-weight: 300;
     flex-shrink: 0;
     margin-left: 1rem;
   }
   .faq__a {
     padding: 0 0 1.25rem;
-    color: var(--landing-ink-soft);
+    color: var(--color-ink-soft);
     line-height: 1.6;
   }
   .faq__a p {
@@ -1340,8 +1321,8 @@
 
   /* ── FINAL CTA ──────────────────────────────────────────── */
   .final-cta {
-    background: var(--landing-ink);
-    color: var(--landing-cream);
+    background: var(--color-ink);
+    color: var(--color-page);
     padding: clamp(4rem, 10vw, 7rem) clamp(1.25rem, 5vw, 4rem);
     text-align: center;
   }
@@ -1350,32 +1331,32 @@
     margin: 0 auto;
   }
   .final-cta__title {
-    font-family: var(--landing-serif);
+    font-family: var(--font-family-base);
     font-size: clamp(1.8rem, 4vw, 2.6rem);
     font-weight: 600;
     line-height: 1.15;
     margin: 0 0 1rem;
-    color: var(--landing-cream);
+    color: var(--color-page);
   }
   .final-cta__text {
-    color: color-mix(in srgb, var(--landing-cream) 85%, transparent);
+    color: color-mix(in srgb, var(--color-page) 85%, transparent);
     font-size: 1.1rem;
     line-height: 1.55;
     margin: 0 0 2rem;
   }
   .final-cta .btn--primary {
-    background: var(--landing-copper);
-    color: var(--landing-white);
+    background: var(--color-accent);
+    color: var(--color-surface);
   }
   .final-cta .btn--primary:hover {
-    background: var(--landing-cream);
-    color: var(--landing-ink);
+    background: var(--color-page);
+    color: var(--color-ink);
   }
 
   /* ── FOOTER ──────────────────────────────────────────────── */
   .footer {
-    background: var(--landing-paper);
-    border-top: 1px solid var(--landing-line);
+    background: var(--color-surface);
+    border-top: 1px solid var(--color-line);
     padding: 2.5rem clamp(1.25rem, 5vw, 4rem);
   }
   .footer__inner {
@@ -1393,10 +1374,10 @@
     }
   }
   .footer__brand {
-    font-family: var(--landing-serif);
+    font-family: var(--font-family-base);
     font-size: 1.5rem;
     font-weight: 600;
-    color: var(--landing-ink);
+    color: var(--color-ink);
     margin: 0;
     grid-row: 1 / 3;
   }
@@ -1406,7 +1387,7 @@
     }
   }
   .footer__tagline {
-    color: var(--landing-ink-soft);
+    color: var(--color-ink-soft);
     font-size: 0.92rem;
     margin: 0;
   }
@@ -1421,9 +1402,9 @@
     }
   }
   .footer__nav a {
-    font-family: var(--landing-sans);
+    font-family: var(--font-family-base);
     font-size: 0.85rem;
-    color: var(--landing-ink-soft);
+    color: var(--color-ink-soft);
     text-decoration: none;
     position: relative;
     transition: color 0.15s;
@@ -1435,11 +1416,11 @@
     left: 0;
     width: 0;
     height: 1px;
-    background: var(--landing-copper);
+    background: var(--color-accent);
     transition: width 0.25s cubic-bezier(0.6, 0, 0.2, 1);
   }
   .footer__nav a:hover {
-    color: var(--landing-copper);
+    color: var(--color-accent);
   }
   .footer__nav a:hover::after {
     width: 100%;
@@ -1448,9 +1429,9 @@
     grid-column: 1 / -1;
     margin: 1rem 0 0;
     text-align: center;
-    font-family: var(--landing-sans);
+    font-family: var(--font-family-base);
     font-size: 0.78rem;
-    color: var(--landing-ink-soft);
+    color: var(--color-ink-soft);
   }
   @media (max-width: 44rem) {
     .footer__attribution {
@@ -1476,24 +1457,13 @@
     }
   }
 
-  /* ── Dark mode (opt-in via html[data-theme="dark"]) ─────── */
-  :global(html[data-theme='dark']) .landing {
-    --landing-cream: #1A2332;
-    --landing-cream-dark: #131A26;
-    --landing-ink: #F5F0E6;
-    --landing-ink-soft: #C2BFB5;
-    --landing-paper: #131A26;
-    --landing-white: #2A3340;
-    --landing-line: rgba(245, 240, 230, 0.14);
-    --landing-line-soft: rgba(245, 240, 230, 0.07);
-  }
-  :global(html[data-theme='dark']) .demo,
-  :global(html[data-theme='dark']) .audience__card {
-    background: var(--landing-white);
-  }
+  /* ── Modo oscuro ──────────────────────────────────────────
+     Ya no hay paleta oscura propia: los `--landing-*` son alias de los tokens
+     globales, que cambian solos con html[data-theme='dark']. Antes esto forzaba
+     un azul marino (#1A2332) que no pegaba con el marrón cálido del resto. */
   :global(html[data-theme='dark']) .demo__input {
-    background: var(--landing-ink);
-    color: var(--landing-cream);
-    border-color: var(--landing-line);
+    background: var(--color-surface-sunken);
+    color: var(--color-ink);
+    border-color: var(--color-line);
   }
 </style>

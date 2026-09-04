@@ -264,6 +264,23 @@
           "signed_in_hint": "Conectat — atinge pentru gestionare cont"
         }
       }
+    },
+    "tts": {
+      "start": "Muzică + citire",
+      "start_hint": "Ascultă muzică în timp ce versetele se evidențiază pe rând",
+      "player": "Player de citire",
+      "controls": "Controale de citire",
+      "open_player": "Deschide playerul",
+      "minimize": "Minimizează",
+      "expand": "Extinde playerul",
+      "pause": "Pauză",
+      "resume": "Continuă",
+      "stop": "Oprește",
+      "speed": "Ritm",
+      "ambient": "Fundal",
+      "ambient_prayer": "muzică de rugăciune",
+      "ambient_none": "fără muzică",
+      "volume_music": "Muzică"
     }
   },
   "auth": {

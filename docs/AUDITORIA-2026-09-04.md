@@ -4,13 +4,13 @@ Revisión del estado del repo al asumir su gestión. Estado del código de parti
 
 Resumen: **15 hallazgos** — 3 altos, 5 medios, 7 informativos. Ninguno es un fallo de seguridad.
 
-**Estado**: 12 arreglados en la sesión del 4 sep 2026 (sin commitear, en el working tree). Los 3 restantes son decisiones de producto o quedan pendientes de una tarea aparte.
+**Estado**: 13 arreglados en la sesión del 4 sep 2026 (sin commitear, en el working tree). Los 2 restantes son decisiones de producto, más una acción de git pendiente.
 
 | # | Hallazgo | Prioridad | Estado |
 |---|---|---|---|
 | 1 | El TTS lee siempre con voz rumana | Alta | ✅ Arreglado |
 | 2 | `USE_BACKEND` apunta a localhost en producción | Alta | ✅ Arreglado |
-| 13 | La lectura con música no lee: la ruta de TTS está desconectada | Alta | ⏸️ Pendiente de rediseño |
+| 13 | La lectura con música no lee: la ruta de TTS está desconectada | Alta | ✅ Rediseñado |
 | 3 | Idioma de las categorías deducido de la pregunta de seguridad | Media | ✅ Arreglado |
 | 4 | `SW_CACHE_VERSION` muerto y desincronizado | Media | ✅ Arreglado |
 | 5 | El sitemap publica 5 rutas que la app no resuelve | Media | ✅ Arreglado |
@@ -74,7 +74,11 @@ La segunda condición se escribió cuando el dominio era `robible.app`. Hoy la p
 
 ---
 
-### 13. La "lectura con música" no lee: la ruta de TTS está desconectada ⏸️ PENDIENTE
+### 13. La "lectura con música" no lee: la ruta de TTS está desconectada ✅ RESUELTO (rediseñado)
+
+> **Resolución (4 sep 2026)**: el usuario decidió que la lectura sea **música + resaltado visual, sin voz**. La reproducción se rediseñó sobre ese modelo: el reproductor recibe la lista de versículos que hay en pantalla y la recorre. `tts.service.js` queda sin uso, marcado en el propio archivo. Detalle abajo.
+
+
 
 **Evidencia** — El único control que arranca la reproducción es el botón del final de [TtsPlayer.svelte](../src/components/TtsPlayer.svelte):
 
@@ -97,7 +101,28 @@ Es decir: **no hay voz en absoluto**. El resaltado va a ciegas por un temporizad
 
 **Sobre la música**: `music.service.js` genera un drone armónico procedural con osciladores de Web Audio API. No hay muestras ni instrumentos reales, así que el resultado es un zumbido sostenido — barato y sin licencias, pero pobre como acompañamiento de lectura. Merece replanteo aparte del bug de la voz.
 
-**No se ha tocado**: reconectar el play implica decidir el diseño de la reproducción (¿voz sola, voz + música, solo música?, ¿qué hacer con `playMusicOnly`?), y eso es una tarea con criterio de producto. El código de la ruta real se ha conservado y marcado en sitio; el bug de idioma que tenía (hallazgo 1) sí está arreglado, para que funcione cuando se reconecte.
+**Qué se hizo**
+
+`TtsPlayer` ya no recibe `book`/`chapter`, sino `playlist`: el mismo array que `Result.svelte` está pintando. Recorre esa lista marcando cada versículo con su `key`, la misma que usa la plantilla para el resaltado. De ahí salen dos arreglos de golpe:
+
+- En **resultados de búsqueda** el play lee los resultados en orden, en vez de arrancar un capítulo que no está en pantalla.
+- El resaltado funciona en ambos modos, que antes construían la `key` de forma distinta (1-based en capítulo, 0-based en búsqueda) y por eso no casaba nunca en búsqueda.
+
+Comportamiento de los controles, según lo pedido:
+
+| Acción | Efecto |
+|---|---|
+| Play | Arranca la música, entra en modo lectura a pantalla completa y empieza por el primer versículo de la lista |
+| Pausa | Congela: se mantiene el resaltado verde sobre el versículo y **no** se sale del modo lectura |
+| Continuar | Sigue desde el versículo congelado |
+| Parar | Para la música, borra la posición, limpia el resaltado y vuelve a pantalla normal |
+| Fin de la lista | Igual que parar |
+
+El modo lectura lo controla un único sitio (`Result.svelte`), a partir de `playing || paused`. Antes dependía solo de `playing`, y por eso al pausar se salía de pantalla completa.
+
+**La música** pasó de un generador de acordes aleatorios a un MP3 en bucle: `AudioBufferSourceNode.loop = true`, que empalma sin hueco (un `<audio loop>` deja un salto audible en cada vuelta). Con fade de entrada y salida, y fallback al pad sintético si el archivo no carga. Pista: *Contemplation* de Joth, **CC0**, documentada en `public/assets/audio/CREDITS.md`.
+
+`tts.service.js` queda sin importar y marcado como tal en su cabecera: si algún día se quiere voz, es la base; si no, se puede borrar.
 
 ---
 

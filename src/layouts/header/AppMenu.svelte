@@ -264,7 +264,7 @@
     &:hover,
     &:focus-visible {
       border-color: var(--color-blue);
-      box-shadow: 0 0 0 3px rgb(45 150 205 / 16%);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 16%, transparent);
     }
   }
 
@@ -413,8 +413,8 @@
     color: #ffffff;
 
     .app-menu__icon {
-      background: rgb(45 150 205 / 18%);
-      color: #7ec8e3;
+      background: color-mix(in srgb, var(--color-accent) 18%, transparent);
+      color: var(--color-accent-soft);
     }
 
     // .online-dot (clase global) ya no necesita overrides en dark mode
@@ -424,14 +424,14 @@
     }
 
     .app-menu__soon {
-      background: rgb(45 150 205 / 18%);
-      color: #7ec8e3;
+      background: color-mix(in srgb, var(--color-accent) 18%, transparent);
+      color: var(--color-accent-soft);
     }
 
     &:hover:not(:disabled),
     &:focus-visible:not(:disabled) {
-      background: rgb(45 150 205 / 14%);
-      border-color: #7ec8e3;
+      background: color-mix(in srgb, var(--color-accent) 14%, transparent);
+      border-color: var(--color-accent-soft);
     }
   }
 

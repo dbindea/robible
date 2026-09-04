@@ -1,39 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="RoBible">
   <!--
-    RoBible favicon (con fondo transparente).
-    Solo el emblema en cobre sobre cualquier color de tab del navegador.
+    RoBible — favicon.
+    Versión SIMPLIFICADA a propósito: a 16 px el anillo interior, las lenguas
+    laterales y el atril se empastan en una mancha. Aquí queda solo lo que
+    identifica la marca y sobrevive a ese tamaño: el anillo y la llama.
+
+    Los trazos son mucho más gruesos que en logo.svg (38 frente a 18) porque a
+    16 px un trazo de 18/512 no llega a medio píxel y desaparece.
+
+    Fondo transparente: se ve sobre pestañas claras y oscuras.
   -->
-  <g fill="none" stroke="#d28456" stroke-linecap="round" stroke-linejoin="round">
-    <!-- Anillo exterior -->
-    <circle cx="256" cy="240" r="168" stroke-width="14"/>
-    <!-- Anillo interior -->
-    <circle cx="256" cy="240" r="126" stroke-width="11"/>
+  <circle cx="256" cy="256" r="176" fill="none" stroke="#2d96cd" stroke-width="38"/>
 
-    <!-- Hoja central (llama con detalle) -->
-    <path d="M 256 348
-             C 232 320, 220 280, 232 240
-             C 240 220, 252 200, 256 184
-             C 260 200, 272 220, 280 240
-             C 292 280, 280 320, 256 348 Z" stroke-width="13"/>
-    <path d="M 256 320
-             C 248 296, 248 260, 256 232
-             C 264 260, 264 296, 256 320" stroke-width="13"/>
-
-    <!-- Hoja izquierda -->
-    <path d="M 256 348
-             C 224 332, 200 304, 188 268
-             C 200 296, 220 320, 256 348 Z" stroke-width="13"/>
-    <!-- Hoja derecha -->
-    <path d="M 256 348
-             C 288 332, 312 304, 324 268
-             C 312 296, 292 320, 256 348 Z" stroke-width="13"/>
-
-    <!-- Estante horizontal -->
-    <line x1="64" y1="348" x2="448" y2="348" stroke-width="14"/>
-    <!-- Pedestal vertical -->
-    <line x1="256" y1="348" x2="256" y2="424" stroke-width="14"/>
-    <!-- Base horizontal -->
-    <line x1="200" y1="424" x2="312" y2="424" stroke-width="14"/>
-  </g>
+  <path d="M 256 130
+           C 292 186, 320 228, 320 272
+           C 320 320, 292 352, 256 352
+           C 220 352, 192 320, 192 272
+           C 192 228, 220 186, 256 130 Z"
+        fill="#28a745"/>
 </svg>

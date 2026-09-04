@@ -1,34 +1,37 @@
 <script>
   import { onDestroy } from 'svelte';
-  import { ttsService } from '../services/tts.service.js';
   import { musicService } from '../services/music.service.js';
+  import { _ } from '../services/i18n.service';
   import {
     ttsState,
     ttsPanelOpen,
     ttsSpeed,
     ttsAmbient,
-    ttsVolume,
     musicVolume,
+    setTtsVerse,
     updateTtsWord,
     stopTts,
     pauseTts,
     resumeTts,
     endTts,
   } from '../store/ttsStore.js';
-  import { getBibleVersionConfigOrDefault, immersiveMode, selectedBibleVersion, toggleImmersiveMode } from '../store/stores.js';
 
-  export let bible = null;
+  /**
+   * Versículos a leer, en el orden en que están en pantalla.
+   * Cada elemento: { book, chapter, index, text, key }.
+   * Es el mismo array que pinta Result.svelte, así que el resaltado siempre
+   * cae sobre un versículo visible.
+   */
+  export let playlist = [];
+  /** Nombres de libro de la versión activa, para la etiqueta "Génesis 1:4". */
   export let map = null;
-  export let book = null;
-  export let chapter = null;
-  export let lang = 'ro';
 
   // Panel/expand state
   $: isOpen = $ttsPanelOpen;
   $: state = $ttsState;
   $: isPlaying = state.playing;
   $: isPaused = state.paused;
-  $: available = ttsService.isAvailable() && musicService.isAvailable();
+  $: available = musicService.isAvailable();
   $: isActive = isPlaying || isPaused;
 
   const SPEED_OPTIONS = [
@@ -39,203 +42,134 @@
   ];
 
   const AMBIENT_OPTIONS = [
-    { value: 'none', label: 'fara_muzica' },
-    { value: 'procedural', label: 'drone_ambiental' },
+    { value: 'prayer', labelKey: 'app.tts.ambient_prayer' },
+    { value: 'none', labelKey: 'app.tts.ambient_none' },
   ];
 
-  const LABELS = {
-    ro: {
-      play_chapter: 'Citește',
-      none: 'fără muzică',
-      procedural: 'drone ambiantal',
-      volume_tts: 'Voce',
-      volume_music: 'Muzică',
-      speed: 'Viteză',
-      ambient: 'Fondal',
-    },
-    es: {
-      play_chapter: 'Lee',
-      none: 'sin música',
-      procedural: 'drone ambiental',
-      volume_tts: 'Voz',
-      volume_music: 'Música',
-      speed: 'Velocidad',
-      ambient: 'Ambiente',
-    },
-  };
-  $: labels = LABELS[lang] || LABELS.ro;
-
   onDestroy(() => {
-    try { ttsService.stop(); musicService.stop(); } catch (_) {}
+    clearTimers();
+    musicService.stop();
   });
 
   function togglePanel() {
     ttsPanelOpen.update((v) => !v);
   }
 
-  // ⚠️ DESCONECTADA (detectado 2026-09-04): esta es la ruta de TTS real — la
-  // única que llama a `ttsService.speak()`. Ningún control de la UI la invoca:
-  // el botón de play usa `playMusicOnly()`, que solo pone el drone y simula el
-  // karaoke con timers. Se conserva a la espera de rediseñar la reproducción.
-  // Ver docs/AUDITORIA-2026-09-04.md, hallazgo 13.
-  // eslint-disable-next-line no-unused-vars
-  function playChapter() {
-    if (!bible || !map || book === null || chapter === null) return;
-    const verses = bible[book]?.[chapter - 1] || [];
-    ttsService.stop();
+  // ── Reproducción ────────────────────────────────────────────────────────────
+  // Se lee la lista que está en pantalla (`playlist`), no un capítulo fijo.
+  // Así funciona igual en la vista de capítulo que en los resultados de una
+  // búsqueda por palabra, que mezclan versículos de libros distintos.
+  //
+  // No hay voz: es música de fondo + resaltado del versículo avanzando. El
+  // ritmo se estima por número de palabras y se ajusta con la velocidad.
+
+  let timers = [];
+  let cursor = 0; // índice dentro de playlist del versículo en curso
+
+  const clearTimers = () => {
+    timers.forEach((t) => clearTimeout(t));
+    timers = [];
+  };
+
+  // Milisegundos que se mantiene un versículo, según su longitud.
+  const MS_POR_PALABRA = 380;
+  const MARGEN_MS = 600;
+  const duracionDe = (item) => {
+    const palabras = item.text.trim().split(/\s+/).length;
+    return (palabras * MS_POR_PALABRA) / $ttsSpeed + MARGEN_MS;
+  };
+
+  function reproducirDesde(index) {
+    clearTimers();
+
+    if (index >= playlist.length) {
+      // Fin de la lista: parar del todo y volver a pantalla normal.
+      finalizar();
+      return;
+    }
+
+    cursor = index;
+    const item = playlist[index];
+    setTtsVerse(item);
+
+    // Animación del resaltado palabra a palabra dentro del versículo.
+    const palabras = item.text.trim().split(/\s+/).length;
+    const pasoMs = MS_POR_PALABRA / $ttsSpeed;
+    for (let w = 0; w < palabras; w++) {
+      timers.push(setTimeout(() => updateTtsWord(w, palabras), w * pasoMs));
+    }
+
+    timers.push(setTimeout(() => reproducirDesde(index + 1), duracionDe(item)));
+  }
+
+  function finalizar() {
+    clearTimers();
     musicService.stop();
+    endTts();
+    cursor = 0;
+  }
+
+  /** Arranca la lectura desde el principio de la lista visible. */
+  async function startPlayback() {
+    if (!playlist.length) return;
+
+    clearTimers();
+
+    // La música se arranca desde el click, que es el gesto de usuario que los
+    // navegadores exigen para permitir audio.
     if ($ttsAmbient !== 'none') {
-      musicService.play($ttsAmbient);
+      await musicService.play('prayer');
       musicService.setVolume($musicVolume);
     }
-    ttsService.setRate($ttsSpeed);
-    ttsService.setVolume($ttsVolume);
-    playVersesSequentially(book, chapter, verses, 0);
+
+    reproducirDesde(0);
   }
 
-  // Modo música sin voz: autoscroll + highlight por versiculo sin TTS
-  let musicOnlyTimers = [];
-  function playMusicOnly() {
-    if (!bible || !map || book === null || chapter === null) return;
-    const verses = bible[book]?.[chapter - 1] || [];
-    ttsService.stop();
-    musicService.stop();
-    if ($ttsAmbient === 'none') {
-      // Forzar ambient procedural para que haya musica
-      ttsAmbient.set('procedural');
-    }
-    musicService.play('procedural');
-    musicService.setVolume($musicVolume);
-    // Auto-immersive: entrar en modo lectura
-    if (!$immersiveMode) {
-      toggleImmersiveMode();
-    }
-    playMusicOnlySequentially(book, chapter, verses, 0);
-  }
-
-  function playMusicOnlySequentially(bookIndex, chapterIndex, verses, verseIndex) {
-    // Limpiar timers anteriores
-    musicOnlyTimers.forEach((t) => clearTimeout(t));
-    musicOnlyTimers = [];
-
-    if (verseIndex >= verses.length) {
-      endTts();
-      musicService.stop();
-      return;
-    }
-    const text = verses[verseIndex];
-    const verseNum = verseIndex + 1;
-    const verseKey = `${bookIndex}-${chapterIndex}-${verseNum}`;
-    const wordCount = text.trim().split(/\s+/).length;
-    const wordIndices = [...Array(wordCount).keys()];
-
-    // Marcar como activo
-    ttsState.update((s) => ({
-      ...s, playing: true, paused: false, wordIndex: -1, wordCount,
-      currentBook: bookIndex, currentChapter: chapterIndex,
-      currentVerse: verseNum, verseText: text, verseKey,
-    }));
-
-    // Animar palabras a velocidad estimada (basada en speed)
-    const baseDelayPerWord = 380 / $ttsSpeed; // ms por palabra
-    wordIndices.forEach((wi) => {
-      const t = setTimeout(() => {
-        updateTtsWord(wi, wordCount);
-      }, wi * baseDelayPerWord);
-      musicOnlyTimers.push(t);
-    });
-
-    // Siguiente versiculo
-    const totalDuration = wordCount * baseDelayPerWord + 600; // +margen
-    const next = setTimeout(() => {
-      playMusicOnlySequentially(bookIndex, chapterIndex, verses, verseIndex + 1);
-    }, totalDuration);
-    musicOnlyTimers.push(next);
-  }
-
-  function playVersesSequentially(bookIndex, chapterIndex, verses, verseIndex) {
-    if (verseIndex >= verses.length) {
-      endTts();
-      musicService.stop();
-      return;
-    }
-    const text = verses[verseIndex];
-    const verseNum = verseIndex + 1;
-    const verseKey = `${bookIndex}-${chapterIndex}-${verseNum}`;
-    // Pasar la versión activa: sin argumento, getBibleVersionConfigOrDefault()
-    // devuelve siempre la versión por defecto (vdc → 'ro') y el español se leía
-    // con voz rumana.
-    const cfg = getBibleVersionConfigOrDefault($selectedBibleVersion);
-    const verseLang = cfg?.locale || lang;
-
-    ttsService.speak(text, verseLang, {
-      onStart: () => {
-        ttsState.update((s) => ({
-          ...s, playing: true, paused: false, wordIndex: -1,
-          wordCount: text.trim().split(/\s+/).length,
-          currentBook: bookIndex, currentChapter: chapterIndex,
-          currentVerse: verseNum, verseText: text, verseKey,
-        }));
-      },
-      onWord: (index, count) => { updateTtsWord(index, count); },
-      onEnd: () => { playVersesSequentially(bookIndex, chapterIndex, verses, verseIndex + 1); },
-    });
-  }
-
+  /** Para y resetea: posición, música y modo lectura. */
   function stopPlayback() {
-    ttsService.stop();
+    clearTimers();
     musicService.stop();
-    musicOnlyTimers.forEach((t) => clearTimeout(t));
-    musicOnlyTimers = [];
     stopTts();
-    // Salir del modo immersivo al detener y volver a pantalla normal
-    if ($immersiveMode) {
-      toggleImmersiveMode();
-    }
-  }
-  function pausePlayback() {
-    // Pausar tanto la lectura como la musica
-    if (musicOnlyTimers.length > 0) {
-      musicOnlyTimers.forEach((t) => clearTimeout(t));
-      musicOnlyTimers = [];
-      pauseTts();
-    } else {
-      ttsService.pause();
-      pauseTts();
-    }
-    // Pausar la musica de fondo
-    musicService.pause();
-  }
-  async function resumePlayback() {
-    // Reanudar la musica de fondo
-    await musicService.resume();
-    // Para music-only: reanudar desde el versiculo actual
-    if (isPaused) {
-      const s = $ttsState;
-      if (s.currentBook !== null && s.verseText) {
-        const verses = bible[s.currentBook]?.[s.currentChapter - 1] || [];
-        const currentIdx = s.currentVerse - 1;
-        if (currentIdx >= 0 && currentIdx < verses.length) {
-          playMusicOnlySequentially(s.currentBook, s.currentChapter, verses, currentIdx);
-          return;
-        }
-      }
-    }
-    ttsService.resume();
-    resumeTts();
+    cursor = 0;
   }
 
+  /** Congela: se mantiene el versículo resaltado y el modo lectura. */
+  function pausePlayback() {
+    clearTimers();
+    musicService.pause();
+    pauseTts();
+  }
+
+  /** Continúa desde el versículo donde se congeló. */
+  async function resumePlayback() {
+    await musicService.resume();
+    resumeTts();
+    reproducirDesde(cursor);
+  }
+
+
+  // Cambiar la velocidad en marcha: se reprograman los timers del versículo
+  // actual con el ritmo nuevo, sin cortar la música.
   function handleSpeedChange(e) {
     ttsSpeed.set(Number(e.target.value));
-    ttsService.setRate(Number(e.target.value));
+    if (isPlaying) reproducirDesde(cursor);
   }
-  function handleAmbientChange(e) {
-    ttsAmbient.set(e.target.value);
-    if (e.target.value === 'none') musicService.stop();
-    else { musicService.stop(); musicService.play(e.target.value); musicService.setVolume($musicVolume); }
+
+  async function handleAmbientChange(e) {
+    const value = e.target.value;
+    ttsAmbient.set(value);
+    if (value === 'none') {
+      musicService.stop();
+    } else {
+      await musicService.play('prayer');
+      musicService.setVolume($musicVolume);
+    }
   }
-  function handleTtsVolumeChange(e) { ttsVolume.set(Number(e.target.value)); ttsService.setVolume(Number(e.target.value)); }
-  function handleMusicVolumeChange(e) { musicVolume.set(Number(e.target.value)); musicService.setVolume(Number(e.target.value)); }
+
+  function handleMusicVolumeChange(e) {
+    musicVolume.set(Number(e.target.value));
+    musicService.setVolume(Number(e.target.value));
+  }
 
   // Touch swipe: detect drag up/down on the mini bar
   let barRef;
@@ -261,13 +195,13 @@
   class:tts-bar--open={isOpen}
   bind:this={barRef}
   role="region"
-  aria-label="TTS player"
+  aria-label={$_('app.tts.player')}
 >
   <!-- Swipe handle (visible tab at top) -->
   <button
     type="button"
     class="tts-bar__handle"
-    aria-label="Expand TTS player"
+    aria-label={$_('app.tts.expand')}
     on:click={togglePanel}
     on:touchstart={onTouchStart}
     on:touchmove={onTouchMove}
@@ -281,21 +215,21 @@
     <!-- Left: controls -->
     <div class="tts-bar__controls">
       {#if isPlaying}
-        <button type="button" class="tts-bar__btn tts-bar__btn--pause" on:click={pausePlayback} title="Pauză" aria-label="Pauză">
+        <button type="button" class="tts-bar__btn tts-bar__btn--pause" on:click={pausePlayback} title={$_('app.tts.pause')} aria-label={$_('app.tts.pause')}>
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
         </button>
       {:else}
-        <button type="button" class="tts-bar__btn tts-bar__btn--play" on:click={resumePlayback} title="Continuă" aria-label="Continuă">
+        <button type="button" class="tts-bar__btn tts-bar__btn--play" on:click={resumePlayback} title={$_('app.tts.resume')} aria-label={$_('app.tts.resume')}>
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
         </button>
       {/if}
-      <button type="button" class="tts-bar__btn tts-bar__btn--stop" on:click={stopPlayback} title="Oprește" aria-label="Oprește">
+      <button type="button" class="tts-bar__btn tts-bar__btn--stop" on:click={stopPlayback} title={$_('app.tts.stop')} aria-label={$_('app.tts.stop')}>
         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
       </button>
     </div>
 
     <!-- Center: verse reference + progress -->
-    <button type="button" class="tts-bar__info" on:click={togglePanel} aria-label="Deschide player">
+    <button type="button" class="tts-bar__info" on:click={togglePanel} aria-label={$_('app.tts.open_player')}>
       <span class="tts-bar__ref">
         {map?.[state.currentBook]} {state.currentChapter}:{state.currentVerse}
       </span>
@@ -308,7 +242,7 @@
     </button>
 
     <!-- Right: expand indicator -->
-    <button type="button" class="tts-bar__expand" on:click={togglePanel} aria-label={isOpen ? 'Minimizează' : 'Deschide'} aria-expanded={isOpen}>
+    <button type="button" class="tts-bar__expand" on:click={togglePanel} aria-label={isOpen ? $_('app.tts.minimize') : $_('app.tts.open_player')} aria-expanded={isOpen}>
       <svg class:tts-bar__chevron--up={!isOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
         <polyline points="18 15 12 9 6 15"/>
       </svg>
@@ -317,12 +251,12 @@
 
   <!-- ── EXPANDED CONTROLS PANEL ── slides up from the bar ── -->
   {#if isOpen}
-    <div class="tts-panel" role="region" aria-label="TTS controls">
+    <div class="tts-panel" role="region" aria-label={$_('app.tts.controls')}>
       <!-- Speed -->
       <div class="tts-panel__row">
-        <span class="tts-panel__label">{labels.speed}</span>
+        <span class="tts-panel__label">{$_('app.tts.speed')}</span>
         <div class="tts-speed-btns" role="group">
-          {#each SPEED_OPTIONS as opt}
+          {#each SPEED_OPTIONS as opt (opt.value)}
             <button
               type="button"
               class="tts-speed-btn"
@@ -337,24 +271,18 @@
 
       <!-- Ambient -->
       <div class="tts-panel__row">
-        <span class="tts-panel__label">{labels.ambient}</span>
+        <span class="tts-panel__label">{$_('app.tts.ambient')}</span>
         <select class="tts-select" value={$ttsAmbient} on:change={handleAmbientChange}>
-          {#each AMBIENT_OPTIONS as opt}
-            <option value={opt.value}>{labels[opt.label] || opt.value}</option>
+          {#each AMBIENT_OPTIONS as opt (opt.value)}
+            <option value={opt.value}>{$_(opt.labelKey)}</option>
           {/each}
         </select>
       </div>
 
-      <!-- TTS Volume -->
-      <div class="tts-panel__row">
-        <span class="tts-panel__label">{labels.volume_tts}</span>
-        <input type="range" class="tts-range" min="0" max="1" step="0.05" value={$ttsVolume} on:input={handleTtsVolumeChange} />
-      </div>
-
-      <!-- Music Volume -->
+      <!-- Volumen de la música. No hay control de voz: la lectura es visual. -->
       {#if $ttsAmbient !== 'none'}
         <div class="tts-panel__row">
-          <span class="tts-panel__label">{labels.volume_music}</span>
+          <span class="tts-panel__label">{$_('app.tts.volume_music')}</span>
           <input type="range" class="tts-range" min="0" max="1" step="0.05" value={$musicVolume} on:input={handleMusicVolumeChange} />
         </div>
       {/if}
@@ -362,21 +290,23 @@
   {/if}
 </div>
 
-{:else if available && bible && map && !isActive}
-<!-- ── START BUTTON — solo música, centrado abajo ── -->
+{:else if available && playlist.length && !isActive}
+<!-- ── BOTÓN DE INICIO — centrado abajo ──
+     Se muestra siempre que haya algo que leer en pantalla: un capítulo, o los
+     resultados de una búsqueda. -->
 <button
   type="button"
   class="tts-start-btn tts-start-btn--music tts-start-btn--centered"
-  on:click={playMusicOnly}
-  aria-label="Música + lectura"
-  title="Música + autoscroll por versículos"
+  on:click={startPlayback}
+  aria-label={$_('app.tts.start')}
+  title={$_('app.tts.start_hint')}
 >
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
     <path d="M9 18V5l12-2v13"/>
     <circle cx="6" cy="18" r="3"/>
     <circle cx="18" cy="16" r="3"/>
   </svg>
-  <span>Música + lectura</span>
+  <span>{$_('app.tts.start')}</span>
 </button>
 {/if}
 
@@ -388,14 +318,14 @@
     left: 0;
     right: 0;
     z-index: 60;
-    background: var(--bg-primary, #fff);
-    border-top: 1px solid var(--border-color, #e2e8f0);
+    background: var(--color-surface);
+    border-top: 1px solid var(--color-line);
     box-shadow: 0 -4px 24px rgb(0 0 0 / 10%);
     transition: box-shadow 0.2s;
 
     @media (prefers-color-scheme: dark) {
-      background: var(--bg-primary-dark, #1e293b);
-      border-color: var(--border-color-dark, #334155);
+      background: var(--bg-primary-dark, var(--color-ink));
+      border-color: var(--border-color-dark, var(--color-ink));
     }
   }
 
@@ -417,7 +347,7 @@
     width: 2.5rem;
     height: 0.25rem;
     border-radius: 1rem;
-    background: var(--color-text-secondary, #94a3b8);
+    background: var(--color-text-secondary, var(--color-ink-soft));
     opacity: 0.6;
     transition: opacity 0.15s;
 
@@ -454,18 +384,18 @@
     &:active { transform: scale(0.9); }
 
     &--play {
-      background: var(--color-blue, #2d96cd);
+      background: var(--color-accent);
       color: #fff;
     }
     &--pause {
-      background: var(--color-blue, #2d96cd);
+      background: var(--color-accent);
       color: #fff;
     }
     &--stop {
-      background: var(--bg-secondary, #f1f5f9);
-      color: var(--color-text, #475569);
-      @media (prefers-color-scheme: dark) { background: #334155; color: #94a3b8; }
-      &:hover { background: #e2e8f0; @media (prefers-color-scheme: dark) { background: #475258; } }
+      background: var(--color-page);
+      color: var(--color-text, var(--color-ink-soft));
+      @media (prefers-color-scheme: dark) { background: var(--color-ink); color: var(--color-ink-soft); }
+      &:hover { background: var(--color-line); @media (prefers-color-scheme: dark) { background: var(--color-ink-soft); } }
     }
   }
 
@@ -483,13 +413,13 @@
     border-radius: 0.3rem;
     min-width: 0;
 
-    &:hover { background: var(--bg-secondary, #f1f5f9); @media (prefers-color-scheme: dark) { background: #334155; } }
+    &:hover { background: var(--color-page); @media (prefers-color-scheme: dark) { background: var(--color-ink); } }
   }
 
   .tts-bar__ref {
     font-size: 0.78rem;
     font-weight: 600;
-    color: var(--color-link, #2d96cd);
+    color: var(--color-link, var(--color-accent));
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -498,15 +428,15 @@
 
   .tts-bar__progress {
     height: 0.2rem;
-    background: var(--bg-secondary, #e2e8f0);
+    background: var(--color-page);
     border-radius: 1rem;
     overflow: hidden;
-    @media (prefers-color-scheme: dark) { background: #334155; }
+    @media (prefers-color-scheme: dark) { background: var(--color-ink); }
   }
 
   .tts-bar__progress-fill {
     height: 100%;
-    background: var(--color-blue, #2d96cd);
+    background: var(--color-accent);
     border-radius: 1rem;
     transition: width 0.3s linear;
   }
@@ -521,7 +451,7 @@
     border: none;
     cursor: pointer;
     border-radius: 0.3rem;
-    color: var(--color-text-secondary, #94a3b8);
+    color: var(--color-text-secondary, var(--color-ink-soft));
     flex-shrink: 0;
 
     svg {
@@ -534,16 +464,16 @@
       transform: rotate(180deg);
     }
 
-    &:hover { background: var(--bg-secondary, #f1f5f9); @media (prefers-color-scheme: dark) { background: #334155; } }
+    &:hover { background: var(--color-page); @media (prefers-color-scheme: dark) { background: var(--color-ink); } }
   }
 
   // ── Expanded panel ─────────────────────────────────────────────────────────
   .tts-panel {
-    border-top: 1px solid var(--border-color, #e2e8f0);
+    border-top: 1px solid var(--color-line);
     padding: 0.75rem 0.875rem 1rem;
     animation: panel-slide-up 0.2s ease-out;
 
-    @media (prefers-color-scheme: dark) { border-color: var(--border-color-dark, #334155); }
+    @media (prefers-color-scheme: dark) { border-color: var(--border-color-dark, var(--color-ink)); }
   }
 
   @keyframes panel-slide-up {
@@ -563,7 +493,7 @@
   .tts-panel__label {
     font-size: 0.7rem;
     font-weight: 600;
-    color: var(--color-text-secondary, #64748b);
+    color: var(--color-text-secondary, var(--color-ink-soft));
     text-transform: uppercase;
     letter-spacing: 0.04em;
     flex-shrink: 0;
@@ -579,22 +509,22 @@
   .tts-speed-btn {
     flex: 1;
     padding: 0.3rem 0.2rem;
-    border: 1px solid var(--border-color, #e2e8f0);
+    border: 1px solid var(--color-line);
     border-radius: 0.3rem;
-    background: var(--bg-secondary, #f8fafc);
-    color: var(--color-text-secondary, #64748b);
+    background: var(--color-page);
+    color: var(--color-text-secondary, var(--color-ink-soft));
     font-size: 0.72rem;
     font-weight: 600;
     cursor: pointer;
     transition: background 0.15s, border-color 0.15s;
 
-    @media (prefers-color-scheme: dark) { background: #1e293b; border-color: #334155; color: #94a3b8; }
+    @media (prefers-color-scheme: dark) { background: var(--color-ink); border-color: var(--color-ink); color: var(--color-ink-soft); }
 
-    &:hover { background: #e2e8f0; @media (prefers-color-scheme: dark) { background: #334155; } }
+    &:hover { background: var(--color-line); @media (prefers-color-scheme: dark) { background: var(--color-ink); } }
 
     &--active {
-      background: var(--color-blue, #2d96cd);
-      border-color: var(--color-blue, #2d96cd);
+      background: var(--color-accent);
+      border-color: var(--color-accent);
       color: #fff;
     }
   }
@@ -602,20 +532,20 @@
   .tts-select {
     flex: 1;
     padding: 0.3rem 0.5rem;
-    border: 1px solid var(--border-color, #e2e8f0);
+    border: 1px solid var(--color-line);
     border-radius: 0.3rem;
-    background: var(--bg-secondary, #f8fafc);
-    color: var(--color-text, #334155);
+    background: var(--color-page);
+    color: var(--color-text, var(--color-ink));
     font-size: 0.78rem;
     cursor: pointer;
 
-    @media (prefers-color-scheme: dark) { background: #1e293b; border-color: #334155; color: #e2e8f0; }
-    &:focus { outline: 2px solid var(--color-blue, #2d96cd); }
+    @media (prefers-color-scheme: dark) { background: var(--color-ink); border-color: var(--color-ink); color: var(--color-line); }
+    &:focus { outline: 2px solid var(--color-accent); }
   }
 
   .tts-range {
     flex: 1;
-    accent-color: var(--color-blue, #2d96cd);
+    accent-color: var(--color-accent);
     cursor: pointer;
     height: 0.3rem;
   }
@@ -626,7 +556,7 @@
     align-items: center;
     gap: 0.4rem;
     padding: 0.5rem 0.9rem 0.5rem 0.65rem;
-    background: var(--color-blue, #2d96cd);
+    background: var(--color-accent);
     color: #fff;
     border: none;
     border-radius: 2rem;
