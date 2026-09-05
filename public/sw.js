@@ -1,4 +1,4 @@
-const CACHE_NAME = 'robible-v24';
+const CACHE_NAME = 'robible-v25';
 
 const CORE_ASSETS = [
   '/',
@@ -30,8 +30,14 @@ const CORE_ASSETS = [
   '/assets/icon/fonts/icomoon.svg?bx6h1k',
   '/assets/icon/fonts/icomoon.ttf?bx6h1k',
   '/assets/icon/fonts/icomoon.woff?bx6h1k',
+  // Los cuatro idiomas de la interfaz, no solo los dos con Biblia: pesan 96 KB
+  // en total y antes `en` y `zh` no se precacheaban, así que dependían del
+  // stale-while-revalidate para actualizarse — y ese camino estaba roto (ver
+  // el comentario de staleWhileRevalidate más abajo).
   '/lang/ro.json',
   '/lang/es.json',
+  '/lang/en.json',
+  '/lang/zh.json',
   // Lista de referencias del versículo del día (~9 KB). Se precachea para que
   // el diálogo aparezca también sin conexión: el texto sale de la Biblia, que
   // ya está en cache.
@@ -97,11 +103,23 @@ const cacheFirst = async (request) => {
 // Stale-while-revalidate: sirve cache inmediatamente, en paralelo descarga
 // la versión nueva del servidor y actualiza la cache para la próxima vez.
 // Usado para archivos de traducción y otros assets que se actualizan con deploy.
+//
+// El `cache: 'reload'` del refresco no es decorativo: obliga a ir a la red
+// saltándose la caché HTTP del navegador. Sin él, este camino estaba muerto —
+// `/lang/*` se servía con `immutable, max-age=31536000` (ver netlify.toml), así
+// que este fetch se resolvía contra la copia guardada y volvía a meter en cache
+// exactamente los mismos bytes viejos, para siempre. El resultado era que al
+// añadir claves nuevas salían en crudo en pantalla.
+//
+// Aunque la cabecera ya está corregida, esto sigue haciendo falta: los usuarios
+// que visitaron el sitio antes del arreglo tienen la entrada `immutable`
+// guardada en su navegador hasta 2027, y solo un fetch que la ignore la
+// desaloja.
 const staleWhileRevalidate = async (request) => {
   const cachedResponse = await caches.match(request);
 
   // Lanzamos la petición de red en paralelo (sin await del set)
-  const networkUpdate = fetch(request)
+  const networkUpdate = fetch(request.url, { cache: 'reload' })
     .then((response) => putInCache(request, response))
     .catch(() => {
       // Red caída: nos quedamos con la cache
