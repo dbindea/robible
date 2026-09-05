@@ -59,6 +59,7 @@ const ERROR_KEYS = {
   verse_not_found: 'auth.errors.verse_not_found',
   favorite_already_exists: 'auth.errors.favorite_already_exists',
   favorite_not_found: 'auth.errors.favorite_not_found',
+  highlight_not_found: 'auth.errors.highlight_not_found',
   invalid_verse_ref: 'auth.errors.invalid_verse_ref',
   invalid_name: 'auth.errors.invalid_name',
   invalid_icon: 'auth.errors.invalid_icon',

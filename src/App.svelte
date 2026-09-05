@@ -6,6 +6,7 @@
   import PwaManager from './layouts/pwa/PwaManager.svelte';
   import AppMenu from './layouts/header/AppMenu.svelte';
   import AuthModal from './layouts/auth/AuthModal.svelte';
+  import DailyVerseModal from './components/DailyVerseModal.svelte';
   import { authMenuOpen } from './store/authMenuStore';
   import { _, currentLocale, DEFAULT_LOCALE, setupI18n, loadLocaleSync, localeVersion, _pendingLocale } from './services/i18n.service';
   import { applySeoMetadata, applyLandingSeoMetadata } from './services/seo.service';
@@ -235,6 +236,14 @@
     <AppMenu {onNavigate} />
   {/key}
   <PwaManager />
+  <!--
+    Fuera del {#key $localeVersion} a propósito: dentro se remontaría en cada
+    cambio de locale y volvería a lanzar su temporizador. Usa $_() en plantilla,
+    así que se traduce igual sin necesidad del {#key}.
+  -->
+  {#if !isBibleLoading && !bibleLoadError && Object.keys(map).length}
+    <DailyVerseModal {bible} {map} />
+  {/if}
   {#if $authMenuOpen}
     <AuthModal />
   {/if}

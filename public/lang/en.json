@@ -128,7 +128,8 @@
         "unfavorite_reference": "Remove {reference} from favorites",
         "favorite_login_required": "Sign in to add to favorites",
         "note_login_required": "Sign in to add a note",
-        "topics_login_required": "Sign in to save to a category"
+        "topics_login_required": "Sign in to save to a category",
+        "highlight_login_required": "Sign in to highlight verses"
       }
     },
     "favorites": {
@@ -281,6 +282,54 @@
       "ambient_prayer": "prayer music",
       "ambient_none": "no music",
       "volume_music": "Music"
+    },
+    "highlights": {
+      "eyebrow": "Highlight",
+      "add": "Highlight verse",
+      "change": "Change the color",
+      "add_reference": "Highlight {reference}",
+      "change_reference": "Change the color of {reference}",
+      "clear": "Remove highlight",
+      "saved": "Verse highlighted",
+      "removed": "Highlight removed",
+      "colors": {
+        "yellow": "Yellow",
+        "red": "Red",
+        "pink": "Pink",
+        "purple": "Purple",
+        "blue": "Blue"
+      }
+    },
+    "share": {
+      "eyebrow": "Share",
+      "open_action": "Share as image",
+      "open_action_reference": "Share {reference} as an image",
+      "background": "Background",
+      "format": "Format",
+      "format_story": "Status (9:16)",
+      "format_square": "Square (1:1)",
+      "backgrounds": {
+        "dawn": "Dawn",
+        "ocean": "Ocean",
+        "night": "Night",
+        "olive": "Olive",
+        "lavender": "Lavender",
+        "sand": "Sand"
+      },
+      "share": "Share",
+      "close": "Close",
+      "preparing": "Preparing the image...",
+      "hint": "Saved as a PNG, ready for your WhatsApp status.",
+      "shared": "Image shared",
+      "downloaded": "Image downloaded",
+      "failed": "The image could not be created"
+    },
+    "daily_verse": {
+      "eyebrow": "Verse of the day",
+      "hint": "Read it slowly and try to keep it with you today.",
+      "open": "See in context",
+      "share": "Share",
+      "never": "Don't show again"
     }
   },
   "auth": {
@@ -351,7 +400,8 @@
       "invalid_icon": "Invalid icon.",
       "invalid_color": "Invalid color.",
       "backend_unavailable": "Server not available. Using local cache.",
-      "unknown": "An error occurred. Try again."
+      "unknown": "An error occurred. Try again.",
+      "highlight_not_found": "Highlight not found"
     }
   },
   "landing": {

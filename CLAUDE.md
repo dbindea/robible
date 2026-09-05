@@ -33,7 +33,8 @@ PWA de lectura bíblica multiidioma con lectura acompañada de música, comparac
 | `node workers/robible-api/dev-server.js` | Backend local en `127.0.0.1:8787` (emula Workers+D1 con `node:sqlite`) |
 | `node scripts/build-logo.js` | Regenera todos los favicons desde el SVG fuente |
 | `node scripts/build-bible-data.mjs [ver]` | Descarga y valida los datos de una versión bíblica (ver `public/data/CREDITS.md`) |
-| `npm test` | Suite con `node --test` (59 tests, sin dependencias). **En Windows el glob es obligatorio**: `node --test tests` a secas intenta cargar el directorio como módulo y falla |
+| `node scripts/build-daily-verses.mjs` | Regenera `public/data/daily-verses.json` y valida las referencias contra **todas** las versiones instaladas |
+| `npm test` | Suite con `node --test` (99 tests, sin dependencias). **En Windows el glob es obligatorio**: `node --test tests` a secas intenta cargar el directorio como módulo y falla |
 
 Node ≥ 24.15.0 (ver `.nvmrc`).
 
@@ -51,7 +52,7 @@ Node ≥ 24.15.0 (ver `.nvmrc`).
 
 Cosas que rompen si no se saben:
 1. **El evento de navegación se llama `robibile:navigate`** — con la errata, `bibile` en vez de `bible`. Está así en 10 sitios. Al escuchar o emitir, hay que escribirlo mal a propósito. Renombrarlo es un cambio atómico o no es.
-2. **Tocar `public/sw.js` obliga a bumpear `CACHE_NAME`** (hoy `robible-v23`). Sin bump, los usuarios con la PWA instalada no reciben el cambio. `public/sw.js` es la única fuente de verdad de la versión de cache: no dupliques la constante en otro sitio.
+2. **Tocar `public/sw.js` obliga a bumpear `CACHE_NAME`** (hoy `robible-v24`). Sin bump, los usuarios con la PWA instalada no reciben el cambio. `public/sw.js` es la única fuente de verdad de la versión de cache: no dupliques la constante en otro sitio.
 3. **Los códigos de versión no describen el texto.** `rvl` **no es Reina-Valera**: es la Biblia en Español Sencillo (CC BY 4.0, atribución pendiente). `vdc` es la Cornilescu *corregida*, no la de 1924. Se mantienen así por decisión del propietario; ver `public/data/CREDITS.md`.
 4. **Hay cuatro Biblias y `bible.json` pesa entre 1 y 4 MB cada una.** No cargarlas en scripts ni en el arranque salvo que haga falta. La de comparación es lazy, y el SW solo precachea `vdc` y `rvl` (ver `public/data/CREDITS.md`).
 5. **No se generan páginas estáticas por versículo, a propósito.** Las hubo (~31.000 por versión) y se quitaron: `dist` bajó de 628 MB a 83 MB y el build de 4 min a 13 s. Los versículos siguen siendo direccionables — `netlify.toml` enruta `/biblia/:v/:libro/:cap/:versiculo` a la función `verse-meta`, que genera las etiquetas al vuelo. No las reintroduzcas sin medir el coste.
@@ -62,10 +63,13 @@ Cosas que rompen si no se saben:
 10. **No hay router.** Añadir una ruta implica tocar `Main.svelte` (detección), `bible-versions.js` (el path por idioma), `AppMenu.svelte` (navegación) y `generate-seo.mjs` (sitemap).
 11. **La lectura no tiene voz, por decisión de producto**: es música + resaltado visual. `TtsPlayer` recibe `playlist` (lo que hay en pantalla), no un capítulo. `tts.service.js` existe pero no lo importa nadie.
 12. **El sistema de diseño vive en `public/global.css`** y es la única fuente de verdad; la landing consume esos mismos tokens. Tres capas: escalas crudas (`--grey-*`, `--blue-*`, `--green-*`) → alias semánticos (`--color-accent`, `--color-surface`, `--color-ink`…) → alias heredados (`--color-blue`, `--color-white`…). **Usa los semánticos**; los heredados solo existen por los ~500 usos ya escritos. El modo oscuro solo reapunta los semánticos, así que los componentes no llevan reglas de tema.
-13. **Colores con significado fijo**: verde = versículo en lectura (`--color-success`) y el botón que lo activa; ámbar = favorito; el color del tema = índice temático. Los cuatro iconos del versículo comparten `.icon-btn` y el estado `.icon-btn--marked`, que solo lee `--marked-color`. Para un icono nuevo, añade un modificador que fije esa variable — no dupliques el bloque de estilos.
-14. **Diálogos**: usa `src/components/Modal.svelte` (centrado, hoja inferior en móvil, Escape y clic fuera). No vuelvas a anclar popups al botón con `getBoundingClientRect()`: se recortaban contra el borde en móvil.
-15. **En la landing, las clases que añade JS necesitan `:global()`**. Svelte poda como CSS muerto lo que no ve en la plantilla: por eso la animación de aparición (`.is-visible`) nunca funcionó hasta que se envolvió en `:global()`.
-16. **Los comentarios XML de los SVG no pueden contener `--`**: `sharp` revienta al leerlos. Por eso los nombres de token en `logo.svg` se escriben `(grey 800)`. Tras tocar un SVG del logo, `node scripts/build-logo.js` y bumpea el SW.
+13. **Colores con significado fijo**: verde = versículo en lectura (`--color-success`) y el botón que lo activa; ámbar = favorito; el color del tema = índice temático; el color elegido = subrayado. Los siete iconos del versículo comparten `.icon-btn` y el estado `.icon-btn--marked`, que solo lee `--marked-color`. Para un icono nuevo, añade un modificador que fije esa variable — no dupliques el bloque de estilos.
+14. **La paleta de subrayado se salta la franja verde-turquesa a propósito** (`src/config/highlight-palette.js`). El verde ya significa "versículo en lectura", y el subrayado se pinta como un lavado del fondo al 26 %: a esa intensidad un turquesa y el verde de lectura no se distinguen. Por lo mismo son cinco colores y no seis — en el arco que queda, seis dejaban el amarillo y el naranja a 16°, indistinguibles como lavado. `tests/highlights.test.js` vigila ambas cosas, así que si añades un color y falla, es esto.
+15. **El estado de lectura tiene que ganarle al subrayado del usuario.** `.highlight-verse` vive en `global.css` con un solo selector de clase; el scoping de Svelte le añade una clase más a `.verse--user-highlight`, así que sin la regla explícita `.verse--user-highlight:global(.highlight-verse)` de `Result.svelte` el subrayado tapaba el verde de lectura.
+16. **La imagen para compartir se genera al cambiar la vista previa, no al pulsar el botón** (`VerseImageModal.svelte`). iOS Safari exige que `navigator.share` salga del gesto del usuario, y un `await canvas.toBlob()` por medio rompe esa condición: la hoja de compartir no llega a abrirse y acaba descargando el PNG.
+17. **Diálogos**: usa `src/components/Modal.svelte` (centrado, hoja inferior en móvil, Escape y clic fuera). En móvil la hoja ocupa 92dvh fijos para que el teclado no la encoja al escribir; si el diálogo solo muestra algo corto, pásale `fitContent` o queda medio vacío. No vuelvas a anclar popups al botón con `getBoundingClientRect()`: se recortaban contra el borde en móvil.
+18. **En la landing, las clases que añade JS necesitan `:global()`**. Svelte poda como CSS muerto lo que no ve en la plantilla: por eso la animación de aparición (`.is-visible`) nunca funcionó hasta que se envolvió en `:global()`.
+19. **Los comentarios XML de los SVG no pueden contener `--`**: `sharp` revienta al leerlos. Por eso los nombres de token en `logo.svg` se escriben `(grey 800)`. Tras tocar un SVG del logo, `node scripts/build-logo.js` y bumpea el SW.
 
 ## Mapa rápido
 

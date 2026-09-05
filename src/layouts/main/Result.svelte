@@ -3,6 +3,8 @@
   import IconPicker from '../../components/IconPicker.svelte';
   import Modal from '../../components/Modal.svelte';
   import TtsPlayer from '../../components/TtsPlayer.svelte';
+  import VerseImageModal from '../../components/VerseImageModal.svelte';
+  import { HIGHLIGHT_COLORS } from '../../config/highlight-palette';
   import {
     buildBiblePath,
     getBookIdFromSlug,
@@ -16,6 +18,7 @@
   import { openAuthMenu } from '../../store/authMenuStore';
   import { isAuthenticated } from '../../store/authStore';
   import { favoritesStore } from '../../store/favoritesStore';
+  import { highlightsStore } from '../../store/highlightsStore';
   import { notesStore } from '../../store/notesStore';
   import { compareWithVersion, filter, getAvailableBibleVersions, getBibleVersionConfigOrDefault, immersiveMode, selectedBibleVersion, toggleImmersiveMode } from '../../store/stores';
   import { topicsContainingVerse, topicsStore } from '../../store/topicsStore';
@@ -122,6 +125,10 @@
   let noteText = '';
   let noteColor = '#3B82F6';
   let noteSaving = false;
+
+  // Highlight (subrayado de color) y compartir como imagen
+  let highlightMenuItem = null;
+  let shareImageItem = null;
 
   $: topics = $topicsStore.topics;
   $: verseRefs = $topicsStore.verseRefs;
@@ -264,6 +271,55 @@
       showToastMessage($_('app.notes.deleted'));
       closeNoteModal();
     }
+  };
+
+  // === Highlight (subrayado de color) ===
+  const getHighlightForVerse = (item) =>
+    $highlightsStore.find(
+      (h) => h.book === item.book && h.chapter === item.chapter && h.verse === item.index,
+    ) || null;
+
+  const openHighlightMenu = (item) => {
+    highlightMenuItem = item;
+  };
+
+  const closeHighlightMenu = () => {
+    highlightMenuItem = null;
+  };
+
+  // Pulsar el color que ya tiene puesto lo quita: es el gesto que espera
+  // cualquiera que haya usado un subrayador.
+  const applyHighlight = async (item, color) => {
+    const result = await highlightsStore.toggle(item.book, item.chapter, item.index, color);
+    const seguiaPintado = !!getHighlightForVerse(item);
+    showToastMessage(seguiaPintado ? $_('app.highlights.saved') : $_('app.highlights.removed'));
+    if (!result.ok && !seguiaPintado) {
+      // toggle() refresca la store igualmente, así que la UI ya está bien;
+      // el error solo interesa en consola.
+      console.warn('highlight toggle:', result.error);
+    }
+    closeHighlightMenu();
+  };
+
+  const clearHighlight = async (item) => {
+    await highlightsStore.remove(item.book, item.chapter, item.index);
+    showToastMessage($_('app.highlights.removed'));
+    closeHighlightMenu();
+  };
+
+  // === Compartir como imagen ===
+  const openShareImage = (item) => {
+    shareImageItem = item;
+  };
+
+  const closeShareImage = () => {
+    shareImageItem = null;
+  };
+
+  const onShareResult = (canal) => {
+    if (canal === 'downloaded') showToast($_('app.share.downloaded'));
+    else if (canal === 'shared') showToast($_('app.share.shared'));
+    else showToast($_('app.share.failed'));
   };
 
   const isVerseInTopic = (topicId, item) => {
@@ -947,10 +1003,13 @@
     {@const verseTopics = (() => { void $topicsStore; return topicsContainingVerse(item.book, item.chapter, item.index); })()}
     {@const primaryTopic = verseTopics[0]}
     {@const hasNote = !!$notesStore.find((n) => n.book === item.book && n.chapter === item.chapter && n.verse === item.index)}
+    {@const verseHighlight = $highlightsStore.find((h) => h.book === item.book && h.chapter === item.chapter && h.verse === item.index)}
     <div
       class:verse--tts-active={isVerseTtsActive(item.key)}
+      class:verse--user-highlight={verseHighlight}
       class:highlight-verse={isVerseTtsActive(item.key) || highlightedVerseId === getVerseId(item)}
       class="verse"
+      style={verseHighlight ? `--highlight-color: ${verseHighlight.color};` : ''}
       id={getVerseId(item)}
       tabindex="-1"
     >
@@ -994,6 +1053,23 @@
         </button>
         <button
           type="button"
+          class="icon-btn share-image-btn"
+          title={$_('app.share.open_action')}
+          aria-label={$_('app.share.open_action_reference', {
+            reference: `${map[item.book]} ${item.chapter}:${item.index}`,
+          })}
+          aria-haspopup="dialog"
+          on:click={(e) => { e.stopPropagation(); openShareImage(item); }}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="18" cy="5" r="3"/>
+            <circle cx="6" cy="12" r="3"/>
+            <circle cx="18" cy="19" r="3"/>
+            <path d="M8.59 13.51l6.83 3.98M15.41 6.51L8.59 10.49"/>
+          </svg>
+        </button>
+        <button
+          type="button"
           class="icon-btn favorite-btn icon-btn--marked-favorite"
           class:icon-btn--marked={$favoritesStore.some((f) => f.book === item.book && f.chapter === item.chapter && f.verse === item.index)}
           class:icon-btn--disabled={!$isAuthenticated}
@@ -1012,6 +1088,36 @@
         >
           <svg viewBox="0 0 24 24" fill={$favoritesStore.some((f) => f.book === item.book && f.chapter === item.chapter && f.verse === item.index) ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+          </svg>
+        </button>
+        <button
+          type="button"
+          class="icon-btn highlight-btn icon-btn--marked-highlight"
+          class:icon-btn--marked={verseHighlight}
+          class:icon-btn--disabled={!$isAuthenticated}
+          style={verseHighlight ? `--highlight-color: ${verseHighlight.color};` : ''}
+          title={$isAuthenticated
+            ? (verseHighlight ? $_('app.highlights.change') : $_('app.highlights.add'))
+            : $_('app.result.actions.highlight_login_required')}
+          aria-label={$isAuthenticated
+            ? (verseHighlight
+                ? $_('app.highlights.change_reference', { reference: `${map[item.book]} ${item.chapter}:${item.index}` })
+                : $_('app.highlights.add_reference', { reference: `${map[item.book]} ${item.chapter}:${item.index}` }))
+            : $_('app.result.actions.highlight_login_required')}
+          aria-haspopup={$isAuthenticated ? 'dialog' : undefined}
+          aria-expanded={highlightMenuItem?.key === item.key}
+          on:click={(e) => {
+            e.stopPropagation();
+            if (!$isAuthenticated) {
+              openAuthMenu();
+              return;
+            }
+            openHighlightMenu(item);
+          }}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M15 3l6 6-9.5 9.5H5.5V12.5z"/>
+            <path d="M3 21h18"/>
           </svg>
         </button>
         {#if availableOtherVersions.length > 0}
@@ -1220,6 +1326,58 @@
       </div>
     {/if}
 </Modal>
+
+<!-- Subrayado: paleta de colores del versículo -->
+{#if highlightMenuItem}
+  {@const actual = getHighlightForVerse(highlightMenuItem)}
+  <Modal
+    open={true}
+    eyebrow={$_('app.highlights.eyebrow')}
+    title={`${map[highlightMenuItem.book]} ${highlightMenuItem.chapter}:${highlightMenuItem.index}`}
+    size="sm"
+    fitContent
+    onClose={closeHighlightMenu}
+  >
+    <div class="highlight-palette" role="group" aria-label={$_('app.highlights.eyebrow')}>
+      {#each HIGHLIGHT_COLORS as color (color.key)}
+        {@const activo = actual && actual.color?.toUpperCase() === color.hex.toUpperCase()}
+        <button
+          type="button"
+          class="highlight-swatch"
+          class:highlight-swatch--active={activo}
+          style={`--swatch-color: ${color.hex};`}
+          title={$_(`app.highlights.colors.${color.key}`)}
+          aria-label={$_(`app.highlights.colors.${color.key}`)}
+          aria-pressed={!!activo}
+          on:click={() => applyHighlight(highlightMenuItem, color.hex)}
+        >
+          {#if activo}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M20 6L9 17l-5-5"/>
+            </svg>
+          {/if}
+        </button>
+      {/each}
+    </div>
+    {#if actual}
+      <button type="button" class="highlight-clear" on:click={() => clearHighlight(highlightMenuItem)}>
+        {$_('app.highlights.clear')}
+      </button>
+    {/if}
+  </Modal>
+{/if}
+
+<!-- Compartir el versículo como imagen -->
+{#if shareImageItem}
+  <VerseImageModal
+    open={true}
+    text={shareImageItem.text}
+    reference={`${map[shareImageItem.book]} ${shareImageItem.chapter}:${shareImageItem.index}`}
+    versionName={bibleVersionConfig?.bibleName || ''}
+    onClose={closeShareImage}
+    onResult={onShareResult}
+  />
+{/if}
 
 <!-- Note modal: rendered at top level (not inside .verse) to escape stacking context -->
 {#if noteModalVerseKey && noteModalItem}
@@ -1434,6 +1592,15 @@
       box-shadow: inset 0.25rem 0 0 var(--color-blue);
     }
 
+    // ── Subrayado del usuario ────────────────────────────────────────────
+    // El color llega inline como --highlight-color, igual que el del tema en
+    // el botón del índice. Se mezcla con el fondo en vez de aplicarse en
+    // crudo: así el mismo hex vale para claro y oscuro sin duplicar reglas.
+    &--user-highlight {
+      background-color: color-mix(in srgb, var(--highlight-color) 26%, transparent);
+      box-shadow: inset 0.25rem 0 0 var(--highlight-color);
+    }
+
     p {
       margin: 0.5rem 0;
     }
@@ -1441,6 +1608,87 @@
     &-index {
       font-size: 14px;
       font-weight: 600;
+    }
+  }
+
+  // El estado de lectura manda sobre el subrayado del usuario. Sin esto ganaba
+  // el subrayado: `.highlight-verse` vive en global.css con un solo selector de
+  // clase, y el scoping de Svelte le añade una clase más a `.verse--user-highlight`.
+  // Mientras el TTS va por un versículo hay que ver dónde va, no de qué color
+  // está pintado; al terminar vuelve a verse su color.
+  .verse--user-highlight:global(.highlight-verse) {
+    background-color: color-mix(in srgb, var(--color-success) 12%, transparent);
+    box-shadow: none;
+  }
+
+  :global(html[data-theme='dark']) .verse--user-highlight:global(.highlight-verse) {
+    background-color: color-mix(in srgb, var(--color-success) 18%, transparent);
+  }
+
+  // === PALETA DE SUBRAYADO ===
+  .highlight-palette {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    justify-content: center;
+    padding: 0.35rem 0 0.75rem;
+  }
+
+  .highlight-swatch {
+    display: grid;
+    place-items: center;
+    width: 3rem;
+    height: 3rem;
+    border: 2px solid transparent;
+    border-radius: var(--radius-pill);
+    background: var(--swatch-color);
+    color: #ffffff;
+    cursor: pointer;
+    transition: var(--transition), transform 0.15s ease;
+    box-shadow: inset 0 0 0 1px rgb(0 0 0 / 10%), var(--box-shadow-up);
+
+    svg {
+      width: 1.1rem;
+      height: 1.1rem;
+      filter: drop-shadow(0 1px 1px rgb(0 0 0 / 35%));
+    }
+
+    &:hover {
+      transform: translateY(-2px);
+    }
+
+    &--active {
+      border-color: var(--color-ink);
+      box-shadow: inset 0 0 0 1px rgb(0 0 0 / 10%), 0 0 0 3px color-mix(in srgb, var(--swatch-color) 40%, transparent);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--color-accent);
+      outline-offset: 2px;
+    }
+  }
+
+  .highlight-clear {
+    display: block;
+    width: 100%;
+    padding: 0.55rem 1rem;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--color-ink-soft);
+    font-size: var(--font-size-small);
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+
+    &:hover {
+      border-color: var(--color-accent);
+      color: var(--color-accent);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--color-accent);
+      outline-offset: 2px;
     }
   }
 
@@ -1531,6 +1779,8 @@
     // Color por tipo de marca
     &--marked-favorite { --marked-color: var(--color-marked-favorite); }
     &--marked-note { --marked-color: var(--color-marked-note); }
+    // El subrayado usa su propio color, que llega inline como --highlight-color.
+    &--marked-highlight { --marked-color: var(--highlight-color, var(--color-accent)); }
     // El índice temático usa el color del tema, que llega inline como
     // --topic-color desde la plantilla.
     &--marked-topic { --marked-color: var(--topic-color, var(--color-accent)); }

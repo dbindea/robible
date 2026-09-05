@@ -160,6 +160,26 @@ app.delete('/api/notes', requireAuthMw, async (c) => {
   return data.removeNote(c.req.raw, c.env.DB, user.id, corsFor(c));
 });
 
+// ── Highlights (auth required) ─────────────────────────
+app.get('/api/highlights', requireAuthMw, async (c) => {
+  const user = c.get('user');
+  applyCors(c);
+  const result = await data.listHighlights(c.env.DB, user.id);
+  return c.json({ ok: true, ...result }, 200);
+});
+
+app.post('/api/highlights', requireAuthMw, async (c) => {
+  const user = c.get('user');
+  applyCors(c);
+  return data.upsertHighlight(c.req.raw, c.env.DB, user.id, corsFor(c));
+});
+
+app.delete('/api/highlights', requireAuthMw, async (c) => {
+  const user = c.get('user');
+  applyCors(c);
+  return data.removeHighlight(c.req.raw, c.env.DB, user.id, corsFor(c));
+});
+
 // ── Searches (auth required) ────────────────────────────
 app.get('/api/searches', requireAuthMw, async (c) => {
   const user = c.get('user');

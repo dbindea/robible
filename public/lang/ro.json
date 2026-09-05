@@ -128,7 +128,8 @@
         "unfavorite_reference": "Scoate {reference} de la favorite",
         "favorite_login_required": "Conectează-te pentru a adăuga la favorite",
         "note_login_required": "Conectează-te pentru a adăuga o notiță",
-        "topics_login_required": "Conectează-te pentru a salva într-o categorie"
+        "topics_login_required": "Conectează-te pentru a salva într-o categorie",
+        "highlight_login_required": "Autentifică-te pentru a evidenția versete"
       }
     },
     "favorites": {
@@ -281,6 +282,54 @@
       "ambient_prayer": "muzică de rugăciune",
       "ambient_none": "fără muzică",
       "volume_music": "Muzică"
+    },
+    "highlights": {
+      "eyebrow": "Evidențiere",
+      "add": "Evidențiază versetul",
+      "change": "Schimbă culoarea",
+      "add_reference": "Evidențiază {reference}",
+      "change_reference": "Schimbă culoarea pentru {reference}",
+      "clear": "Șterge evidențierea",
+      "saved": "Verset evidențiat",
+      "removed": "Evidențiere ștearsă",
+      "colors": {
+        "yellow": "Galben",
+        "red": "Roșu",
+        "pink": "Roz",
+        "purple": "Mov",
+        "blue": "Albastru"
+      }
+    },
+    "share": {
+      "eyebrow": "Distribuie",
+      "open_action": "Distribuie ca imagine",
+      "open_action_reference": "Distribuie {reference} ca imagine",
+      "background": "Fundal",
+      "format": "Format",
+      "format_story": "Status (9:16)",
+      "format_square": "Pătrat (1:1)",
+      "backgrounds": {
+        "dawn": "Răsărit",
+        "ocean": "Ocean",
+        "night": "Noapte",
+        "olive": "Măsliniu",
+        "lavender": "Lavandă",
+        "sand": "Nisip"
+      },
+      "share": "Distribuie",
+      "close": "Închide",
+      "preparing": "Se pregătește imaginea...",
+      "hint": "Se salvează ca PNG, gata pentru statusul de WhatsApp.",
+      "shared": "Imagine distribuită",
+      "downloaded": "Imagine descărcată",
+      "failed": "Nu s-a putut crea imaginea"
+    },
+    "daily_verse": {
+      "eyebrow": "Versetul zilei",
+      "hint": "Citește-l încet și încearcă să-l ții minte azi.",
+      "open": "Vezi în context",
+      "share": "Distribuie",
+      "never": "Nu mai afișa"
     }
   },
   "auth": {
@@ -351,7 +400,8 @@
       "invalid_icon": "Iconiță invalidă.",
       "invalid_color": "Culoare invalidă.",
       "backend_unavailable": "Serverul nu este disponibil. Se folosește cache local.",
-      "unknown": "A apărut o eroare. Încearcă din nou."
+      "unknown": "A apărut o eroare. Încearcă din nou.",
+      "highlight_not_found": "Evidențierea nu a fost găsită"
     }
   },
   "landing": {
