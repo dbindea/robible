@@ -1,4 +1,4 @@
-// Data endpoints: topics + verse_refs + favorites + notes + searches + export
+// Data endpoints: topics + verse_refs + favorites + notes + highlights + searches + export
 import {
   validators,
   nowIso,
@@ -365,6 +365,104 @@ export async function removeNote(request, db, userId, cors) {
   return json({ ok: true }, 200, cors);
 }
 
+// ── HIGHLIGHTS (subrayados de color) ─────────────────────
+
+// GET /api/highlights
+export async function listHighlights(db, userId) {
+  const rows = await db
+    .prepare(
+      `SELECT id, book, chapter, verse, color, created_at, updated_at
+       FROM highlights WHERE user_id = ? ORDER BY book ASC, chapter ASC, verse ASC`,
+    )
+    .bind(userId)
+    .all();
+  return {
+    highlights: (rows.results || []).map((r) => ({
+      id: r.id,
+      book: r.book,
+      chapter: r.chapter,
+      verse: r.verse,
+      color: r.color,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
+    })),
+  };
+}
+
+// POST /api/highlights — upsert (repintar un versículo no crea una fila nueva)
+export async function upsertHighlight(request, db, userId, cors) {
+  let body;
+  try { body = await request.json(); } catch { return error('invalid_json', 400, cors); }
+  const { book, chapter, verse, color } = body || {};
+
+  if (!validators.verseRef({ book, chapter, verse })) {
+    return error('invalid_verse_ref', 400, cors);
+  }
+  if (!validators.color(color)) {
+    return error('invalid_color', 400, cors);
+  }
+
+  const now = nowIso();
+  const id = genId('hl');
+
+  await db
+    .prepare(
+      `INSERT INTO highlights (id, user_id, book, chapter, verse, color, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(user_id, book, chapter, verse) DO UPDATE SET
+         color = excluded.color,
+         updated_at = excluded.updated_at`,
+    )
+    .bind(id, userId, book, chapter, verse, color, now, now)
+    .run();
+
+  // Se relee la fila en vez de devolver `id` y `now` a secas: cuando el upsert
+  // cae en el ON CONFLICT, la fila conserva su id y su created_at originales, y
+  // devolver los recién generados dejaba al cliente con un id que no existe en
+  // la base de datos.
+  const row = await db
+    .prepare(
+      `SELECT id, created_at, updated_at FROM highlights
+       WHERE user_id = ? AND book = ? AND chapter = ? AND verse = ?`,
+    )
+    .bind(userId, book, chapter, verse)
+    .first();
+
+  return json({
+    ok: true,
+    highlight: {
+      id: row?.id || id,
+      book,
+      chapter,
+      verse,
+      color,
+      createdAt: row?.created_at || now,
+      updatedAt: row?.updated_at || now,
+    },
+  }, 201, cors);
+}
+
+// DELETE /api/highlights (body: { book, chapter, verse })
+export async function removeHighlight(request, db, userId, cors) {
+  let body;
+  try { body = await request.json(); } catch { return error('invalid_json', 400, cors); }
+  const { book, chapter, verse } = body || {};
+  if (!validators.verseRef({ book, chapter, verse })) {
+    return error('invalid_verse_ref', 400, cors);
+  }
+
+  const result = await db
+    .prepare(
+      `DELETE FROM highlights WHERE user_id = ? AND book = ? AND chapter = ? AND verse = ?`,
+    )
+    .bind(userId, book, chapter, verse)
+    .run();
+  if (!result.meta || result.meta.changes === 0) {
+    return error('highlight_not_found', 404, cors);
+  }
+  return json({ ok: true }, 200, cors);
+}
+
 // ── SEARCHES (Phase 3.4 — historial persistente multi-device) ───
 
 // GET /api/searches
@@ -473,6 +571,7 @@ export async function exportUserData(db, userId) {
   const topics = await listTopics(db, userId);
   const favorites = await listFavorites(db, userId);
   const notes = await listNotes(db, userId);
+  const highlights = await listHighlights(db, userId);
   const searches = await listSearches(db, userId);
   return {
     ok: true,
@@ -481,6 +580,7 @@ export async function exportUserData(db, userId) {
       verseRefs: topics.verseRefs,
       favorites: favorites.favorites,
       notes: notes.notes,
+      highlights: highlights.highlights,
       searches: searches.searches,
       exportedAt: nowIso(),
     },

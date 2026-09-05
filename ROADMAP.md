@@ -1,7 +1,7 @@
 # RoBible — Roadmap
 
 > Documento vivo. Actualizado en cada milestone.
-> Última actualización: **4 sep 2026** (revisión de traspaso: estado real verificado contra el código)
+> Última actualización: **5 sep 2026** (Phase 6.1/6.2/6.3: subrayados, compartir como imagen, versículo del día)
 
 > Documentación de referencia: [CLAUDE.md](CLAUDE.md) · [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) · [docs/OPERACIONES.md](docs/OPERACIONES.md)
 > Deuda técnica detectada: [docs/AUDITORIA-2026-09-04.md](docs/AUDITORIA-2026-09-04.md)
@@ -16,7 +16,7 @@ RoBible es una app web (PWA) de la Biblia con soporte offline, auth multi-device
 - Frontend: Svelte 5 (sintaxis legacy, no runes) + Vite 8, SCSS themeable (light/dark)
 - Data: JSON estáticos en `/public/data/{vdc,rvl}/bible.{map,json}` — 4,2 MB por Biblia
 - i18n: propio, sin librería. JSON en `/public/lang/{ro,es,en,zh}.json`
-- PWA: manifest + service worker (cache-first, versiones) — hoy `robible-v19`
+- PWA: manifest + service worker (cache-first, versiones) — hoy `robible-v24`
 - Rutas: path-based custom (parsea `window.location.pathname`)
 - Backend: Cloudflare Workers (`robible-api`) + D1 (`robible-db`), router Hono
 - Auth: PBKDF2 + HMAC tokens persistidos en D1 (revocables), TTL 30 días
@@ -258,6 +258,35 @@ Cuándo revisar: cada release mayor (Phase 4.1, 4.6, etc.) + cada 3 meses como m
 - [x] Cloudflare delante del dominio (commit `97a1a98`)
 - Cinco rutas del sitemap (`/temas`, `/favoritos`, `/favoriti`, `/notas`, `/notite`) no existían en la app y devolvían soft-404. Retiradas el 2026-09-04 (hallazgo 5).
 
+### Phase 6.1 — Subrayados de color por versículo ✅ COMPLETADA (2026-09-05)
+
+- [x] D1 table `highlights(id, user_id, book, chapter, verse, color, created_at, updated_at)` con UNIQUE en `(user_id, book, chapter, verse)` — schema_version **6**
+- [x] Endpoints `GET` / `POST` (upsert) / `DELETE` `/api/highlights`, incluidos en `/api/data/export`
+- [x] `highlights.service.js` API-first con fallback a localStorage + `highlightsStore.js`
+- [x] Sexto icono en el versículo, con la paleta en un `Modal`; repintar con el color actual lo quita
+- [x] El versículo se pinta con `color-mix()` sobre `--highlight-color`: una sola regla vale para claro y oscuro
+- **Paleta de cinco colores, no seis**: descontada la franja verde-turquesa (reservada al estado de lectura, trampa 13) queda un arco de ~210°, y con seis colores el amarillo y el naranja caían a 16° — como lavado al 26 % eran el mismo color. `tests/highlights.test.js` vigila las dos condiciones
+- **El estado de lectura manda sobre el subrayado**: `.verse--user-highlight:global(.highlight-verse)` existe porque el scoping de Svelte le daba más especificidad al subrayado que a `.highlight-verse` de `global.css`
+
+### Phase 6.2 — Compartir el versículo como imagen ✅ COMPLETADA (2026-09-05)
+
+- [x] `verse-image.service.js`: dibujo procedural en `<canvas>` (degradado + halo + bokeh + viñeta), 6 fondos
+- [x] Formatos 1080×1920 (estado de WhatsApp) y 1080×1080
+- [x] Ajuste automático del cuerpo de letra y recorte con puntos suspensivos en los versículos largos
+- [x] `navigator.share({files})` con descarga del PNG como alternativa
+- [x] `VerseImageModal.svelte`, reutilizado desde el versículo y desde el diálogo del día
+- **Sin fotos empaquetadas a propósito**: habría que versionar varios MB de JPG, resolver licencias y precachearlos en el SW. Mismo criterio que en `music.service.js`
+- **El PNG se genera al cambiar la vista previa, no al pulsar "Compartir"**: iOS Safari exige que `navigator.share` salga del gesto del usuario y un `await toBlob()` por medio ya rompe esa condición
+
+### Phase 6.3 — Versículo del día ✅ COMPLETADA (2026-09-05)
+
+- [x] `scripts/build-daily-verses.mjs` → `public/data/daily-verses.json`: 283 referencias curadas, **validadas contra las cuatro versiones** y barajadas con semilla fija
+- [x] `daily-verse.service.js`: elección determinista por fecha local (`días desde epoch % longitud`)
+- [x] `DailyVerseModal.svelte`, montado en `App.svelte` fuera del `{#key $localeVersion}` para que no se remonte al cambiar de idioma
+- [x] No aparece si la URL ya apunta a un versículo: quien llega de un enlace compartido viene a leer eso. En ese caso tampoco se marca como visto
+- [x] "No volver a mostrar" persistente en `robible:dailyVerse:enabled`
+- [x] `Modal.svelte` gana `fitContent`: en móvil la hoja se ajusta al contenido en vez de ocupar 92dvh fijos
+
 ---
 
 ## Deuda técnica
@@ -330,9 +359,9 @@ Reordenado el 2026-09-04. Lo completado se ha movido al historial de más abajo.
 ### Backend
 - `workers/robible-api/src/index.js` — Hono router + CORS
 - `workers/robible-api/src/auth.js` — register, login, recover, me, logout, change-password
-- `workers/robible-api/src/data.js` — topics, verse_refs, favorites, notes, searches, export, health
+- `workers/robible-api/src/data.js` — topics, verse_refs, favorites, notes, highlights, searches, export, health
 - `workers/robible-api/src/utils.js` — hashing, tokens (HMAC), validators, rate limit
-- `workers/robible-api/schema.sql` — D1 schema (versión 4)
+- `workers/robible-api/schema.sql` — D1 schema (versión 6)
 - `workers/robible-api/wrangler.toml` — bindings + env vars
 - `workers/robible-api/dev-server.js` — emulador local con `node:sqlite`
 
@@ -356,8 +385,8 @@ Reordenado el 2026-09-04. Lo completado se ha movido al historial de más abajo.
 - `src/components/TtsPlayer.svelte` — FAB flotante + panel expandible para lectura en voz alta
 - `src/components/{IconPicker,ActionButton}.svelte`
 - `src/store/stores.js` — stores globales (filter, selectedBibleVersion, compareWithVersion, themeMode, immersiveMode)
-- `src/store/{auth,favorites,notes,topics,searches,tts,appMenu,authMenu}Store.js`
-- `src/services/{auth,topics,favorites,notes,searches}.service.js` — API-first con fallback
+- `src/store/{auth,favorites,notes,highlights,topics,searches,tts,appMenu,authMenu}Store.js`
+- `src/services/{auth,topics,favorites,notes,highlights,searches}.service.js` — API-first con fallback
 - `src/services/apiClient.js` — cliente API + política de fallback (`withFallback`)
 - `src/services/referenceSearch.service.js` — búsqueda por referencia con fuzzy matching
 - `src/services/filter.service.js` — búsqueda por texto
@@ -376,11 +405,11 @@ Reordenado el 2026-09-04. Lo completado se ha movido al historial de más abajo.
 - `npm run lint` — ESLint (**debe salir en 0 errores**; quedan 14 avisos deliberados)
 - `node scripts/generate-seo.mjs` — genera SEO pages y sitemaps tras build
 - `node scripts/build-logo.js` — regenera todos los favicons
-- `npm test` — suite con el runner de Node (56 tests, sin dependencias)
+- `npm test` — suite con el runner de Node (99 tests, sin dependencias)
 - `node workers/robible-api/dev-server.js` — emulador backend
 
 ### Service Worker
-- Cache version: **`robible-v19`** (a bumpar a mano en `public/sw.js` con cada release)
+- Cache version: **`robible-v24`** (a bumpar a mano en `public/sw.js` con cada release)
 - `public/sw.js` es la **única** fuente de verdad de la versión de cache (la constante duplicada de `config.js` se eliminó el 2026-09-04)
 - Pre-cachea: ambas Biblias, todos los assets, lang files
 - Network-first para navegación · cache-first para assets y data · stale-while-revalidate para `/lang/`

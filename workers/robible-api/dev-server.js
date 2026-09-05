@@ -113,6 +113,7 @@ serve({ fetch: app.fetch, port: PORT }, (info) => {
   console.log(`    POST /api/topics/:id/verses  DELETE /api/topics/:id/verses  (Bearer)`);
   console.log(`    GET  /api/favorites  POST /api/favorites  DELETE /api/favorites  (Bearer)`);
   console.log(`    GET  /api/notes  POST /api/notes  DELETE /api/notes  (Bearer)`);
+  console.log(`    GET  /api/highlights  POST /api/highlights  DELETE /api/highlights  (Bearer)`);
   console.log(`    GET  /api/searches  POST /api/searches  DELETE /api/searches  (Bearer)`);
   console.log(`    GET  /api/data/export  (Bearer)`);
   console.log(`\n  Listo para peticiones.\n`);

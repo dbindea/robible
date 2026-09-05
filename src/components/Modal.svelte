@@ -25,6 +25,13 @@
   export let size = 'md';
   /** Elemento que recibe el foco al abrir. */
   export let autofocus = null;
+  /**
+   * En móvil la hoja ocupa 92dvh fijos, que es lo que necesitan los diálogos
+   * donde se escribe (nota, categoría nueva): así el teclado no la encoge.
+   * Para los que solo muestran algo corto ese alto deja un hueco enorme; con
+   * `fitContent` la hoja se ajusta a su contenido sin pasar de 92dvh.
+   */
+  export let fitContent = false;
 
   let panel;
 
@@ -74,6 +81,7 @@
   >
     <div
       class="modal__panel modal__panel--{size}"
+      class:modal__panel--fit={fitContent}
       bind:this={panel}
       role="dialog"
       aria-modal="true"
@@ -223,6 +231,12 @@
       border-bottom: none;
       padding: 1.5rem 1.1rem calc(1.1rem + env(safe-area-inset-bottom, 0px));
       animation: modal-sheet 0.2s ease-out;
+    }
+
+    // Va después de .modal__panel a propósito: misma especificidad, gana la
+    // última. Ver el comentario de `fitContent` arriba.
+    .modal__panel--fit {
+      height: auto;
     }
   }
 

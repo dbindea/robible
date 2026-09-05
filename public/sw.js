@@ -1,4 +1,4 @@
-const CACHE_NAME = 'robible-v23';
+const CACHE_NAME = 'robible-v24';
 
 const CORE_ASSETS = [
   '/',
@@ -32,6 +32,10 @@ const CORE_ASSETS = [
   '/assets/icon/fonts/icomoon.woff?bx6h1k',
   '/lang/ro.json',
   '/lang/es.json',
+  // Lista de referencias del versículo del día (~9 KB). Se precachea para que
+  // el diálogo aparezca también sin conexión: el texto sale de la Biblia, que
+  // ya está en cache.
+  '/data/daily-verses.json',
   // Solo se precachean las dos Biblias originales (~8,5 MB). Las de en_kjv y
   // zh_cuv NO van aquí a propósito: sumarlas dejaría la instalación en ~17 MB
   // para descargar cuatro Biblias de las que el usuario leerá una. Se cachean

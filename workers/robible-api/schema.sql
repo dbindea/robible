@@ -145,6 +145,26 @@ CREATE TABLE IF NOT EXISTS user_searches (
 );
 CREATE INDEX IF NOT EXISTS idx_user_searches_user_used ON user_searches(user_id, last_used_at DESC);
 
+-- ============== HIGHLIGHTS (subrayados de color) ==============
+-- Subrayado de color por versículo. Misma forma que `notes`: UNIQUE por
+-- (usuario, versículo) para que repintar un versículo sea un upsert y no
+-- acumule filas. El color se guarda como hex y no como nombre de paleta:
+-- así el día que se ofrezca un color libre no hace falta migrar la columna.
+CREATE TABLE IF NOT EXISTS highlights (
+  id TEXT PRIMARY KEY,                              -- 'hl_<uuid>'
+  user_id TEXT NOT NULL,
+  book INTEGER NOT NULL,                            -- 0-65
+  chapter INTEGER NOT NULL,                          -- 1-based
+  verse INTEGER NOT NULL,                            -- 1-based
+  color TEXT NOT NULL,                              -- '#xxxxxx'
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE (user_id, book, chapter, verse),            -- un subrayado por versículo
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_highlights_user ON highlights(user_id);
+CREATE INDEX IF NOT EXISTS idx_highlights_user_verse ON highlights(user_id, book, chapter, verse);
+
 -- ============== CLEANUP JOBS ==============
 -- Se ejecuta al inicio de cada request para limpiar sesiones/rate_limits expirados.
 -- (Cloudflare Workers no tiene cron, así que la limpieza es best-effort on-request.)
@@ -155,5 +175,6 @@ CREATE TABLE IF NOT EXISTS _meta (
   value TEXT NOT NULL
 );
 -- 5: se retira user_profiles (nunca usada, guardaba PII no deseada)
-INSERT OR IGNORE INTO _meta (key, value) VALUES ('schema_version', '5');
-UPDATE _meta SET value = '5' WHERE key = 'schema_version' AND value < '5';
+-- 6: se añade highlights (subrayados de color por versículo)
+INSERT OR IGNORE INTO _meta (key, value) VALUES ('schema_version', '6');
+UPDATE _meta SET value = '6' WHERE key = 'schema_version' AND value < '6';

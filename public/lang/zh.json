@@ -128,7 +128,8 @@
         "unfavorite_reference": "将{reference}从收藏中移除",
         "favorite_login_required": "登录后可添加到收藏",
         "note_login_required": "登录后可添加笔记",
-        "topics_login_required": "登录后可保存到分类"
+        "topics_login_required": "登录后可保存到分类",
+        "highlight_login_required": "登录后即可标记经文"
       }
     },
     "favorites": {
@@ -281,6 +282,54 @@
       "ambient_prayer": "祷告音乐",
       "ambient_none": "无音乐",
       "volume_music": "音乐"
+    },
+    "highlights": {
+      "eyebrow": "标记",
+      "add": "标记这节经文",
+      "change": "更改颜色",
+      "add_reference": "标记 {reference}",
+      "change_reference": "更改 {reference} 的颜色",
+      "clear": "取消标记",
+      "saved": "已标记经文",
+      "removed": "已取消标记",
+      "colors": {
+        "yellow": "黄色",
+        "red": "红色",
+        "pink": "粉色",
+        "purple": "紫色",
+        "blue": "蓝色"
+      }
+    },
+    "share": {
+      "eyebrow": "分享",
+      "open_action": "以图片分享",
+      "open_action_reference": "以图片分享 {reference}",
+      "background": "背景",
+      "format": "尺寸",
+      "format_story": "状态 (9:16)",
+      "format_square": "方形 (1:1)",
+      "backgrounds": {
+        "dawn": "黎明",
+        "ocean": "海洋",
+        "night": "夜晚",
+        "olive": "橄榄",
+        "lavender": "薰衣草",
+        "sand": "沙色"
+      },
+      "share": "分享",
+      "close": "关闭",
+      "preparing": "正在生成图片...",
+      "hint": "保存为 PNG，可直接发布到 WhatsApp 状态。",
+      "shared": "图片已分享",
+      "downloaded": "图片已下载",
+      "failed": "无法生成图片"
+    },
+    "daily_verse": {
+      "eyebrow": "每日经文",
+      "hint": "慢慢读一遍，试着把它记在心里。",
+      "open": "查看上下文",
+      "share": "分享",
+      "never": "不再显示"
     }
   },
   "auth": {
@@ -351,7 +400,8 @@
       "invalid_icon": "图标无效。",
       "invalid_color": "颜色无效。",
       "backend_unavailable": "服务器不可用，使用本地缓存。",
-      "unknown": "发生错误，请重试。"
+      "unknown": "发生错误，请重试。",
+      "highlight_not_found": "未找到标记"
     }
   },
   "landing": {

@@ -128,7 +128,8 @@
         "unfavorite_reference": "Quitar {reference} de favoritos",
         "favorite_login_required": "Inicia sesión para añadir a favoritos",
         "note_login_required": "Inicia sesión para añadir una nota",
-        "topics_login_required": "Inicia sesión para guardar en una categoría"
+        "topics_login_required": "Inicia sesión para guardar en una categoría",
+        "highlight_login_required": "Inicia sesión para subrayar versículos"
       }
     },
     "favorites": {
@@ -281,6 +282,54 @@
       "ambient_prayer": "música para orar",
       "ambient_none": "sin música",
       "volume_music": "Música"
+    },
+    "highlights": {
+      "eyebrow": "Subrayado",
+      "add": "Subrayar el versículo",
+      "change": "Cambiar el color",
+      "add_reference": "Subrayar {reference}",
+      "change_reference": "Cambiar el color de {reference}",
+      "clear": "Quitar el subrayado",
+      "saved": "Versículo subrayado",
+      "removed": "Subrayado quitado",
+      "colors": {
+        "yellow": "Amarillo",
+        "red": "Rojo",
+        "pink": "Rosa",
+        "purple": "Morado",
+        "blue": "Azul"
+      }
+    },
+    "share": {
+      "eyebrow": "Compartir",
+      "open_action": "Compartir como imagen",
+      "open_action_reference": "Compartir {reference} como imagen",
+      "background": "Fondo",
+      "format": "Formato",
+      "format_story": "Estado (9:16)",
+      "format_square": "Cuadrado (1:1)",
+      "backgrounds": {
+        "dawn": "Amanecer",
+        "ocean": "Océano",
+        "night": "Noche",
+        "olive": "Oliva",
+        "lavender": "Lavanda",
+        "sand": "Arena"
+      },
+      "share": "Compartir",
+      "close": "Cerrar",
+      "preparing": "Preparando la imagen...",
+      "hint": "Se guarda como PNG, listo para tu estado de WhatsApp.",
+      "shared": "Imagen compartida",
+      "downloaded": "Imagen descargada",
+      "failed": "No se pudo crear la imagen"
+    },
+    "daily_verse": {
+      "eyebrow": "Versículo del día",
+      "hint": "Léelo despacio e intenta retenerlo hoy.",
+      "open": "Ver en contexto",
+      "share": "Compartir",
+      "never": "No volver a mostrar"
     }
   },
   "auth": {
@@ -351,7 +400,8 @@
       "invalid_icon": "Iconiță invalidă.",
       "invalid_color": "Culoare invalidă.",
       "backend_unavailable": "Serverul nu este disponibil. Se folosește cache local.",
-      "unknown": "A apărut o eroare. Încearcă din nou."
+      "unknown": "A apărut o eroare. Încearcă din nou.",
+      "highlight_not_found": "No se ha encontrado el subrayado"
     }
   },
   "landing": {
