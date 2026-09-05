@@ -7,12 +7,35 @@ número de capítulos) antes de escribir nada.
 
 | Versión | Texto | Fuente | Licencia |
 |---|---|---|---|
-| `vdc` | Biblia Română (Cornilescu) | Heredada del proyecto | Dominio público |
-| `rvl` | Biblia Español (Reina-Valera) | Heredada del proyecto | Dominio público |
+| `vdc` | **Cornilescu Corregida (RCCV / VDCC)** | Heredada del proyecto | Dominio público |
+| `rvl` | **Biblia en Español Sencillo (BES)** | Heredada del proyecto | **CC BY 4.0** |
 | `en_kjv` | King James Version | [churchstudio-org/openbible](https://github.com/churchstudio-org/openbible) (`KJV/bible.json`) | Texto de dominio público; el repositorio, MIT |
 | `zh_cuv` | 和合本 Chinese Union Version, chino simplificado | [seven1m/open-bibles](https://github.com/seven1m/open-bibles) (`chi-cuv-simp.usfx.xml`) | Dominio público (publicada en 1919) |
 
-Descargadas el 4 septiembre 2026.
+Las dos últimas se descargaron el 4 septiembre 2026.
+
+## Qué son de verdad `vdc` y `rvl`
+
+Los dos textos venían heredados y sin documentar. Se identificaron el 5 sep 2026
+comparándolos verso a verso con candidatos de [seven1m/open-bibles](https://github.com/seven1m/open-bibles);
+en ambos casos **7 de 7 sondeos coincidieron literalmente** (Gn 1:1, Sal 23:1,
+Is 53:5, Jn 1:1, Jn 3:16, Rom 8:28, Ap 22:21).
+
+**`vdc` = `ron-rccv.usfx.xml`**, la *Romanian Corrected Cornilescu Version*.
+Es Cornilescu, pero la edición **corregida**, no la original de 1924. El código
+`vdc` se mantiene por decisión del propietario: es la misma familia y cambiarlo
+invalidaría las URLs ya indexadas del idioma principal de la aplicación.
+
+**`rvl` = `spa-bes.usfx.xml`**, la *Biblia en Español Sencillo*. **No es
+Reina-Valera**, pese a lo que sugiere el código: es una traducción a lenguaje
+sencillo derivada de la *Bible in Basic English*. Se ve claro en Juan 1:1, que
+dice «Desde el principio él era la Palabra» en lugar de «En el principio era el
+Verbo». El código `rvl` se mantiene, también por decisión del propietario.
+
+> ⚠️ **Pendiente**: la BES es **CC BY 4.0**, que obliga a atribuir. La aplicación
+> no muestra hoy ninguna atribución del texto español. Este archivo no basta:
+> la licencia pide crédito allí donde se usa la obra. Bastaría una línea en el
+> pie o en la pantalla «acerca de».
 
 ## Formato
 

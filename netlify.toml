@@ -70,6 +70,21 @@
   to = "/.netlify/functions/verse-meta?version=:version&book=:book&chapter=:chapter&verse=:verse"
   status = 200
 
+# Enlace a un versículo concreto.
+#
+# Antes esta forma la servía una página estática generada en el build: una por
+# versículo y versión, unas 31.000 por Biblia. Se eliminaron porque hinchaban el
+# despliegue y hacían que Googlebot recorriera decenas de miles de URLs casi
+# idénticas, marcadas además como `noindex`.
+#
+# Ahora las etiquetas se generan al vuelo. Solo entra por aquí quien abre el
+# enlace directamente (compartir, un rastreador); dentro de la aplicación la
+# navegación entre versículos es del lado del cliente y no llega al servidor.
+[[redirects]]
+  from = "/biblia/:version/:book/:chapter/:verse"
+  to = "/.netlify/functions/verse-meta?version=:version&book_slug=:book&chapter=:chapter&verse=:verse"
+  status = 200
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
