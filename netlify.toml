@@ -43,10 +43,19 @@
   [headers.values]
     Cache-Control = "public, max-age=0, must-revalidate"
 
+# Traducciones: NO pueden ser immutable.
+# `/lang/ro.json` es una URL estable cuyo contenido cambia en cada release (no
+# lleva hash en el nombre, como sí lo llevan los de /assets/). Con
+# `max-age=31536000, immutable` el navegador no vuelve a pedirlo en un año, así
+# que al añadir claves nuevas los usuarios veían la clave en crudo
+# ("app.share.eyebrow") en vez del texto. Peor aún: eso también anulaba el
+# stale-while-revalidate del service worker, porque su fetch de refresco se
+# resolvía contra la caché HTTP sin llegar a la red.
+# Se revalida siempre; el service worker es quien da la cobertura offline.
 [[headers]]
   for = "/lang/*"
   [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
+    Cache-Control = "public, max-age=0, must-revalidate"
 
 [[headers]]
   for = "/assets/*"

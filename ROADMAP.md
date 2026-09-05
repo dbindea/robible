@@ -16,7 +16,7 @@ RoBible es una app web (PWA) de la Biblia con soporte offline, auth multi-device
 - Frontend: Svelte 5 (sintaxis legacy, no runes) + Vite 8, SCSS themeable (light/dark)
 - Data: JSON estáticos en `/public/data/{vdc,rvl}/bible.{map,json}` — 4,2 MB por Biblia
 - i18n: propio, sin librería. JSON en `/public/lang/{ro,es,en,zh}.json`
-- PWA: manifest + service worker (cache-first, versiones) — hoy `robible-v24`
+- PWA: manifest + service worker (cache-first, versiones) — hoy `robible-v25`
 - Rutas: path-based custom (parsea `window.location.pathname`)
 - Backend: Cloudflare Workers (`robible-api`) + D1 (`robible-db`), router Hono
 - Auth: PBKDF2 + HMAC tokens persistidos en D1 (revocables), TTL 30 días
@@ -409,7 +409,7 @@ Reordenado el 2026-09-04. Lo completado se ha movido al historial de más abajo.
 - `node workers/robible-api/dev-server.js` — emulador backend
 
 ### Service Worker
-- Cache version: **`robible-v24`** (a bumpar a mano en `public/sw.js` con cada release)
+- Cache version: **`robible-v25`** (a bumpar a mano en `public/sw.js` con cada release)
 - `public/sw.js` es la **única** fuente de verdad de la versión de cache (la constante duplicada de `config.js` se eliminó el 2026-09-04)
 - Pre-cachea: ambas Biblias, todos los assets, lang files
 - Network-first para navegación · cache-first para assets y data · stale-while-revalidate para `/lang/`
