@@ -280,7 +280,24 @@ Tabla de endpoints y schema: [workers/robible-api/README.md](../workers/robible-
 
 ## SEO y PWA
 
-- [scripts/generate-seo.mjs](../scripts/generate-seo.mjs) corre tras `vite build` y genera en `dist/` páginas HTML estáticas de libro, capítulo y versículo (con contenido real para los crawlers), páginas temáticas tipo `/versiculos/amor`, y el índice de sitemaps troceado en `dist/sitemaps/` (45.000 URLs por archivo).
+- [scripts/generate-seo.mjs](../scripts/generate-seo.mjs) corre tras `vite build` y genera en `dist/` páginas HTML estáticas de **libro y capítulo** (con contenido real para los crawlers), páginas temáticas tipo `/versiculos/amor`, y el índice de sitemaps en `dist/sitemaps/`.
+
+### Por qué no hay páginas por versículo
+
+Las hubo: una por versículo y versión, unas 31.000 por Biblia. Se eliminaron el 5 sep 2026 porque el coste no compensaba:
+
+| | Antes | Ahora |
+|---|---|---|
+| Archivos en `dist` | 67.368 | **5.163** |
+| Tamaño de `dist` | 628 MB | **83 MB** |
+| Duración del build | 4 min 07 s | **13 s** |
+| URLs en el sitemap | ~67.000 | **5.028** |
+
+Además eran contradictorias: se marcaban `noindex` **y** se anunciaban en el sitemap, así que Googlebot gastaba presupuesto de rastreo recorriendo decenas de miles de URLs casi idénticas para luego no indexarlas.
+
+Los versículos **siguen siendo direccionables**. `/biblia/<version>/<libro>/<cap>/<versiculo>` lo resuelve la aplicación, y `netlify.toml` enruta esa forma a la función [verse-meta](../netlify/functions/verse-meta.mjs), que genera título, descripción, Open Graph y JSON-LD del versículo al vuelo. Compartir un enlace sigue mostrando el texto correcto; solo cambia que las etiquetas se calculan en la petición en vez de estar precocinadas en disco.
+
+Solo pasa por la función quien abre el enlace directamente —al compartirlo, o un rastreador—. Dentro de la aplicación, moverse entre versículos es navegación de cliente y no llega al servidor.
 - [seo.service.js](../src/services/seo.service.js) actualiza en runtime title, description, canonical, hreflang, Open Graph, Twitter Card y JSON-LD según la vista.
 - Netlify Functions: `og-image.mjs` genera un SVG por versículo para compartir; `verse-meta.mjs` sirve HTML con metadatos para la ruta legacy `/verse/...`.
 - [public/sw.js](../public/sw.js): *network-first* para navegación, *cache-first* para assets y datos, *stale-while-revalidate* para `/lang/`. Precachea las dos Biblias completas en la instalación.

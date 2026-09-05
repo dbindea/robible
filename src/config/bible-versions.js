@@ -19,7 +19,6 @@ export const BIBLE_VERSIONS = [
     chapterLabel: 'Capitolul',
     searchResultsLabel: 'Rezultate pentru',
     available: true,
-    seoVersePages: true,
     seo: {
       homeTitle: 'Biblia Română Online | RoBible',
       homeDescription:
@@ -59,7 +58,6 @@ export const BIBLE_VERSIONS = [
     chapterLabel: 'Capítulo',
     searchResultsLabel: 'Resultados para',
     available: true,
-    seoVersePages: true,
     seo: {
       homeTitle: 'Biblia Español Online | RoBible',
       homeDescription:
@@ -100,7 +98,6 @@ export const BIBLE_VERSIONS = [
     chapterLabel: 'Chapter',
     searchResultsLabel: 'Results for',
     available: true,
-    seoVersePages: false,
     seo: {
       homeTitle: 'King James Bible Online | RoBible',
       homeDescription:
@@ -140,7 +137,6 @@ export const BIBLE_VERSIONS = [
     chapterLabel: '第',
     searchResultsLabel: '搜索结果',
     available: true,
-    seoVersePages: false,
     seo: {
       homeTitle: '中文圣经和合本 在线阅读 | RoBible',
       homeDescription: '在线阅读中文圣经和合本，界面简洁快速，可即时查找书卷、章节和经文。',

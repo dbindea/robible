@@ -2,26 +2,18 @@
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <sitemap>
     <loc>https://robible.com/sitemaps/static.xml</loc>
-    <lastmod>2026-09-04</lastmod>
+    <lastmod>2026-09-05</lastmod>
   </sitemap>
   <sitemap>
     <loc>https://robible.com/sitemaps/books.xml</loc>
-    <lastmod>2026-09-04</lastmod>
+    <lastmod>2026-09-05</lastmod>
   </sitemap>
   <sitemap>
     <loc>https://robible.com/sitemaps/chapters.xml</loc>
-    <lastmod>2026-09-04</lastmod>
+    <lastmod>2026-09-05</lastmod>
   </sitemap>
   <sitemap>
     <loc>https://robible.com/sitemaps/topics.xml</loc>
-    <lastmod>2026-09-04</lastmod>
-  </sitemap>
-  <sitemap>
-    <loc>https://robible.com/sitemaps/verses-1.xml</loc>
-    <lastmod>2026-09-04</lastmod>
-  </sitemap>
-  <sitemap>
-    <loc>https://robible.com/sitemaps/verses-2.xml</loc>
-    <lastmod>2026-09-04</lastmod>
+    <lastmod>2026-09-05</lastmod>
   </sitemap>
 </sitemapindex>

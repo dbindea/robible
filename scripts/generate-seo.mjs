@@ -7,7 +7,6 @@ import { buildBiblePath } from '../src/services/bible-route.service.js';
 const ROOT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DIST_DIR = path.join(ROOT_DIR, 'dist');
 const DATA_DIR = path.join(ROOT_DIR, 'public', 'data');
-const SITEMAP_CHUNK_SIZE = 45000;
 const TODAY = new Date().toISOString().slice(0, 10);
 const SITE_URL = 'https://robible.com';
 const DEFAULT_IMAGE = `${SITE_URL}/assets/img/logo.png`;
@@ -161,16 +160,6 @@ function normalize(value = '') {
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase();
-}
-
-function truncateText(text = '', maxLength = 160) {
-  const normalizedText = text.replace(/\s+/g, ' ').trim();
-
-  if (normalizedText.length <= maxLength) {
-    return normalizedText;
-  }
-
-  return `${normalizedText.slice(0, maxLength - 1).trim()}...`;
 }
 
 function absoluteUrl(pathname = '/') {
@@ -374,96 +363,6 @@ function getChapterContent(versionData, book, chapter) {
   </article>`;
 }
 
-function getAdjacentVerse(versionData, book, chapter, verse, direction) {
-  let nextBook = book;
-  let nextChapterIndex = chapter - 1;
-  let nextVerseIndex = verse - 1 + direction;
-
-  while (nextBook >= 0 && nextBook < versionData.bible.length) {
-    const chapterList = versionData.bible[nextBook] || [];
-
-    while (nextChapterIndex >= 0 && nextChapterIndex < chapterList.length) {
-      const verseList = chapterList[nextChapterIndex] || [];
-
-      if (nextVerseIndex >= 0 && nextVerseIndex < verseList.length) {
-        return {
-          book: nextBook,
-          chapter: nextChapterIndex + 1,
-          verse: nextVerseIndex + 1,
-        };
-      }
-
-      nextChapterIndex += direction;
-      nextVerseIndex = direction > 0 ? 0 : (chapterList[nextChapterIndex]?.length || 0) - 1;
-    }
-
-    nextBook += direction;
-    nextChapterIndex = direction > 0 ? 0 : (versionData.bible[nextBook]?.length || 0) - 1;
-    nextVerseIndex = direction > 0 ? 0 : (versionData.bible[nextBook]?.[nextChapterIndex]?.length || 0) - 1;
-  }
-
-  return null;
-}
-
-function getVerseLink(versionData, target, label) {
-  if (!target) {
-    return '';
-  }
-
-  const bookName = versionData.map[target.book];
-  return `<a href="${buildBiblePath({
-    version: versionData.config.value,
-    map: versionData.map,
-    book: target.book,
-    chapter: target.chapter,
-    verse: target.verse,
-  })}">${escapeHtml(label || `${bookName} ${target.chapter}:${target.verse}`)}</a>`;
-}
-
-function getVerseContent(versionData, versionDataList, book, chapter, verse) {
-  const bookName = versionData.map[book];
-  const text = versionData.bible[book]?.[chapter - 1]?.[verse - 1] || '';
-  const previous = getAdjacentVerse(versionData, book, chapter, verse, -1);
-  const next = getAdjacentVerse(versionData, book, chapter, verse, 1);
-  const versionLinks = versionDataList
-    .filter((item) => item.config.value !== versionData.config.value)
-    .map((item) => {
-      const otherText = item.bible[book]?.[chapter - 1]?.[verse - 1];
-
-      if (!otherText) {
-        return '';
-      }
-
-      return `<li><a href="${buildBiblePath({
-        version: item.config.value,
-        map: item.map,
-        book,
-        chapter,
-        verse,
-      })}">${escapeHtml(item.config.bibleName)}</a></li>`;
-    })
-    .filter(Boolean)
-    .join('');
-
-  return `<article class="seo-prerender">
-    <nav>
-      <a href="/">RoBible</a> /
-      <a href="${buildBiblePath({ version: versionData.config.value, map: versionData.map, book })}">${escapeHtml(bookName)}</a> /
-      <a href="${buildBiblePath({ version: versionData.config.value, map: versionData.map, book, chapter })}">${escapeHtml(
-        `${versionData.config.chapterLabel} ${chapter}`,
-      )}</a>
-    </nav>
-    <h1>${escapeHtml(`${bookName} ${chapter}:${verse}`)}</h1>
-    <blockquote>${escapeHtml(text)}</blockquote>
-    <p>${escapeHtml(versionData.config.bibleName)}</p>
-    <nav>
-      ${getVerseLink(versionData, previous, 'Anterior')}
-      ${getVerseLink(versionData, next, 'Siguiente')}
-    </nav>
-    ${versionLinks ? `<h2>Otras versiones</h2><ul>${versionLinks}</ul>` : ''}
-  </article>`;
-}
-
 function getBreadcrumbSchema(items) {
   return {
     '@type': 'BreadcrumbList',
@@ -605,7 +504,6 @@ async function main() {
   const versionDataList = await loadVersionData();
   const bookUrls = [];
   const chapterUrls = [];
-  const verseUrls = [];
   const topicUrls = [];
 
   for (const versionData of versionDataList) {
@@ -651,7 +549,7 @@ async function main() {
 
       const chapters = versionData.bible[book] || [];
 
-      for (const [chapterIndex, verses] of chapters.entries()) {
+      for (const [chapterIndex] of chapters.entries()) {
         const chapter = chapterIndex + 1;
         const reference = `${bookName} ${chapter}`;
         const chapterPath = buildBiblePath({ version: versionData.config.value, map: versionData.map, book, chapter });
@@ -696,68 +594,17 @@ async function main() {
         );
         chapterUrls.push({ loc: absoluteUrl(chapterPath), lastmod: TODAY, priority: '0.7', alternates: getAlternates(versionDataList, { book, chapter }) });
 
-        // Página estática por versículo: ~31.000 archivos HTML por versión.
-        // Solo para las versiones que lo pidan explícitamente (ver
-        // `seoVersePages` en src/config/bible-versions.js). Con las cuatro
-        // versiones activadas el build pasaba de 13 s a 7 min y `dist` a
-        // 938 MB en 102.000 archivos, que hace el deploy inviable.
-        if (!versionData.config.seoVersePages) continue;
-
-        for (const [verseIndex, text] of verses.entries()) {
-          const verse = verseIndex + 1;
-          const versePath = buildBiblePath({
-            version: versionData.config.value,
-            map: versionData.map,
-            book,
-            chapter,
-            verse,
-          });
-          const verseReference = `${bookName} ${chapter}:${verse}`;
-          const verseDescription = `${truncateText(text, 150)} (${versionData.config.bibleName})`;
-          const ogImage = absoluteUrl(`/og/verse/${versionData.config.value}/${book}/${chapter}/${verse}.svg`);
-          const verseSchema = {
-            '@context': 'https://schema.org',
-            '@graph': [
-              ...getWebsiteSchema(versionData),
-              {
-                '@type': 'CreativeWork',
-                name: verseReference,
-                text,
-                isPartOf: { '@id': `${SITE_URL}/#bible-${versionData.config.value}` },
-                inLanguage: versionData.config.locale,
-                description: verseDescription,
-                url: absoluteUrl(versePath),
-              },
-              getBreadcrumbSchema([
-                { name: 'RoBible', href: `${SITE_URL}/` },
-                { name: bookName, href: absoluteUrl(bookPath) },
-                { name: `${versionData.config.chapterLabel} ${chapter}`, href: absoluteUrl(chapterPath) },
-                { name: verseReference, href: absoluteUrl(versePath) },
-              ]),
-            ],
-          };
-
-          await writeRoute(
-            versePath,
-            injectSeo(indexHtml, {
-              locale: versionData.config.locale,
-              ogLocale: versionData.config.ogLocale,
-              title: `${verseReference} | ${versionData.config.bibleName}`,
-              description: verseDescription,
-              canonicalPath: versePath,
-              type: 'article',
-              image: ogImage,
-              imageAlt: verseReference,
-              twitterCard: 'summary_large_image',
-              alternates: getAlternates(versionDataList, { book, chapter, verse }),
-              schema: verseSchema,
-              content: getVerseContent(versionData, versionDataList, book, chapter, verse),
-              // Versiculos individuales noindex para evitar crawling masivo
-              robots: 'noindex, follow',
-            }),
-          );
-          verseUrls.push({ loc: absoluteUrl(versePath), lastmod: TODAY, priority: '0.6', alternates: getAlternates(versionDataList, { book, chapter, verse }) });
-        }
+        // No se generan páginas estáticas por versículo. Antes había una por
+        // versículo y versión (~31.000 archivos cada una): hinchaban el build y
+        // el repositorio de despliegue, y sobre todo hacían que Googlebot
+        // recorriera decenas de miles de URLs casi idénticas. Encima estaban
+        // marcadas `noindex` pero seguían anunciándose en el sitemap, así que
+        // el rastreo se gastaba para nada.
+        //
+        // Los versículos siguen siendo direccionables: la aplicación resuelve
+        // /biblia/<version>/<libro>/<cap>/<versiculo>, y para que al compartir
+        // el enlace se vea el texto correcto, netlify.toml enruta esa forma a
+        // la función verse-meta, que genera las etiquetas al vuelo.
       }
     }
   }
@@ -844,18 +691,10 @@ async function main() {
   await writeSitemap('sitemaps/chapters.xml', chapterUrls);
   await writeSitemap('sitemaps/topics.xml', topicUrls);
 
-  const verseSitemapEntries = [];
-  for (let index = 0; index < verseUrls.length; index += SITEMAP_CHUNK_SIZE) {
-    const chunkIndex = Math.floor(index / SITEMAP_CHUNK_SIZE) + 1;
-    const sitemapPath = `sitemaps/verses-${chunkIndex}.xml`;
-    await writeSitemap(sitemapPath, verseUrls.slice(index, index + SITEMAP_CHUNK_SIZE));
-    verseSitemapEntries.push(`/${sitemapPath}`);
-  }
-
-  await writeSitemapIndex(['/sitemaps/static.xml', '/sitemaps/books.xml', '/sitemaps/chapters.xml', '/sitemaps/topics.xml', ...verseSitemapEntries]);
+  await writeSitemapIndex(['/sitemaps/static.xml', '/sitemaps/books.xml', '/sitemaps/chapters.xml', '/sitemaps/topics.xml']);
 
   console.log(
-    `Generated SEO pages: ${bookUrls.length} books, ${chapterUrls.length} chapters, ${verseUrls.length} verses, ${topicUrls.length} topics.`,
+    `Generated SEO pages: ${bookUrls.length} books, ${chapterUrls.length} chapters, ${topicUrls.length} topics.`,
   );
 }
 
