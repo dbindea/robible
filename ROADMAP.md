@@ -425,6 +425,29 @@ Rugăciune (drone grave), Liniște. Sin ficheros nuevos: cero licencias y offlin
 
 **Pendiente (5.B y 5.C)**: la preparación guiada en siete pasos, el documento final, la schiță y el Modo Amvon.
 
+### Fase 5.B — Preparación guiada, documento final y schiță ✅ COMPLETADA (2026-09-07)
+
+- [x] `sermon-content.service.js`: forma del documento, recuento, generación de la schiță (todo puro y probado)
+- [x] Ruta `/predici/:id` con los siete pasos: TEXT → OBSERVARE → CONTEXT → IDEE → STRUCTURĂ → DEZVOLTARE → FINALIZARE
+- [x] Marcado de palabras sobre la perícopa, asociado a esa predicación
+- [x] Contexto anterior y posterior, abiertos sin salir de la preparación
+- [x] Estructura con dos niveles, reordenable
+- [x] Guardado automático con «Salvat» discreto; sin botón de guardar
+- [x] Documento final con recuento de palabras y minutos
+- [x] Schiță generada desde la estructura y **completamente editable**
+
+**Decisiones que conviene no deshacer:**
+- **Nada es obligatorio.** Ningún paso bloquea al siguiente y todas las preguntas se pueden saltar. La aplicación acompaña, no examina.
+- **La schiță se genera una sola vez** y luego no se regenera sola: pisaría los retoques hechos a mano. Hay un botón explícito para rehacerla.
+- **La aplicación de la schiță va recortada.** El propósito se escribe con calma en el estudio y puede ocupar un párrafo; volcarlo entero convertiría la schiță en el resumen largo que no debe ser. Un test comprueba que una predicación de más de 1.500 palabras produce una schiță de 250 o menos.
+- **El recuento no cuenta la observación ni el contexto**: son notas de estudio, no se leen en el púlpito. Contarlas daría una duración falsa.
+- **Se guarda sin esperar al retardo al cambiar de paso y al salir de la pantalla.** Son los dos momentos en que se puede perder lo tecleado.
+- `normalizeContent` completa lo que falte: un documento guardado por una versión anterior reventaría la pantalla con el trabajo del predicador dentro.
+
+**Verificado en el navegador**: recorrido completo de los siete pasos —marcar dos palabras, idea central, dos puntos con subpunto, desarrollo, introducción y conclusión—, documento final con sus títulos y subtítulos, schiță generada con los títulos en mayúsculas, y todo persistido en el dispositivo.
+
+**Pendiente (5.C)**: el Modo Amvon.
+
 ### Fase 5 — Módulo «Predicile mele» (schema 9)
 
 Sólo para `preacher`. Preparación guiada por pasos → predicación → schiță → **Modo Amvon

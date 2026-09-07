@@ -11,6 +11,7 @@
   import Notes from './Notes.svelte';
   import PublicTopic from './PublicTopic.svelte';
   import Sermons from './Sermons.svelte';
+  import SermonPrep from './SermonPrep.svelte';
   import { getBibleVersionConfigOrDefault } from '../../store/stores';
 
   export let bible;
@@ -54,7 +55,11 @@
   // «Predicile mele». Ruta privada y sin traducir por idioma: no se indexa y
   // no gana nada teniendo cuatro formas distintas.
   const isSermonsPath = (path) => path === '/predici' || path.startsWith('/predici/');
+  // /predici      → la lista
+  // /predici/<id> → la preparación de esa predicación
+  const sermonIdFromPath = (path) => (path.match(/^\/predici\/([^/]+)\/?$/) || [])[1] || '';
   let isSermonsMode = typeof window !== 'undefined' ? isSermonsPath(window.location.pathname) : false;
+  let sermonId = typeof window !== 'undefined' ? sermonIdFromPath(window.location.pathname) : '';
 
   let isIndexMode = false;
   let isFavoritesMode = false;
@@ -93,6 +98,7 @@
     isCompareMode = isComparePath(window.location.pathname);
     isPublicTopicMode = isPublicTopicPath(window.location.pathname);
     isSermonsMode = isSermonsPath(window.location.pathname);
+    sermonId = sermonIdFromPath(window.location.pathname);
   };
 
   onMount(() => {
@@ -131,7 +137,11 @@
   <div class="layout">
     {#if Object.keys(bible).length}
       {#if isSermonsMode}
-        <Sermons {bible} {map} />
+        {#if sermonId}
+          <SermonPrep {bible} {map} {sermonId} />
+        {:else}
+          <Sermons {bible} {map} />
+        {/if}
       {:else if isPublicTopicMode}
         <PublicTopic {bible} {map} />
       {:else if isCompareMode}
