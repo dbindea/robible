@@ -461,6 +461,28 @@
       "action_continue": "继续准备",
       "action_view": "查看讲道",
       "action_preach_again": "再次讲道"
+    },
+    "pulpit": {
+      "mode": "讲台模式",
+      "start": "开始",
+      "exit": "退出",
+      "back": "返回",
+      "finish": "已讲完",
+      "check_offline_ok": "讲道已可离线使用",
+      "check_offline_missing": "讲道尚未准备好离线使用",
+      "check_outline_ok": "提纲已就绪",
+      "check_outline_missing": "尚无提纲 — 请先生成",
+      "check_screen": "屏幕将保持常亮",
+      "font_size": "文字大小",
+      "font_normal": "普通",
+      "font_large": "大",
+      "font_xlarge": "特大",
+      "planned_minutes": "预计时长",
+      "no_timer": "不计时",
+      "close_reference": "关闭",
+      "reference_unavailable": "该经文无法离线查看。",
+      "ready_offline": "讲道已准备就绪，可离线使用。",
+      "ready_no_offline": "讲道已就绪，但无法保存为离线内容。请清理设备空间。"
     }
   },
   "auth": {

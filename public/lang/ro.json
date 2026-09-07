@@ -461,6 +461,28 @@
       "action_continue": "Continuă pregătirea",
       "action_view": "Vezi predica",
       "action_preach_again": "Predică din nou"
+    },
+    "pulpit": {
+      "mode": "Mod Amvon",
+      "start": "Începe",
+      "exit": "Ieși",
+      "back": "Înapoi",
+      "finish": "Am predicat",
+      "check_offline_ok": "Predica este disponibilă offline",
+      "check_offline_missing": "Predica nu a fost pregătită pentru offline",
+      "check_outline_ok": "Schița este pregătită",
+      "check_outline_missing": "Nu există schiță — creeaz-o mai întâi",
+      "check_screen": "Ecranul va rămâne activ",
+      "font_size": "Mărimea textului",
+      "font_normal": "Normal",
+      "font_large": "Mare",
+      "font_xlarge": "Foarte mare",
+      "planned_minutes": "Durata dorită",
+      "no_timer": "Fără cronometru",
+      "close_reference": "Închide",
+      "reference_unavailable": "Textul nu este disponibil offline.",
+      "ready_offline": "Predica este pregătită și disponibilă offline.",
+      "ready_no_offline": "Predica este pregătită, dar nu s-a putut salva pentru offline. Eliberează spațiu pe dispozitiv."
     }
   },
   "auth": {

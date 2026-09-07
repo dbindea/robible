@@ -12,6 +12,7 @@
   import PublicTopic from './PublicTopic.svelte';
   import Sermons from './Sermons.svelte';
   import SermonPrep from './SermonPrep.svelte';
+  import SermonPulpit from './SermonPulpit.svelte';
   import { getBibleVersionConfigOrDefault } from '../../store/stores';
 
   export let bible;
@@ -58,8 +59,11 @@
   // /predici      → la lista
   // /predici/<id> → la preparación de esa predicación
   const sermonIdFromPath = (path) => (path.match(/^\/predici\/([^/]+)\/?$/) || [])[1] || '';
+  // /predici/<id>/amvon → el púlpito
+  const pulpitIdFromPath = (path) => (path.match(/^\/predici\/([^/]+)\/amvon\/?$/) || [])[1] || '';
   let isSermonsMode = typeof window !== 'undefined' ? isSermonsPath(window.location.pathname) : false;
   let sermonId = typeof window !== 'undefined' ? sermonIdFromPath(window.location.pathname) : '';
+  let pulpitId = typeof window !== 'undefined' ? pulpitIdFromPath(window.location.pathname) : '';
 
   let isIndexMode = false;
   let isFavoritesMode = false;
@@ -99,6 +103,7 @@
     isPublicTopicMode = isPublicTopicPath(window.location.pathname);
     isSermonsMode = isSermonsPath(window.location.pathname);
     sermonId = sermonIdFromPath(window.location.pathname);
+    pulpitId = pulpitIdFromPath(window.location.pathname);
   };
 
   onMount(() => {
@@ -137,7 +142,9 @@
   <div class="layout">
     {#if Object.keys(bible).length}
       {#if isSermonsMode}
-        {#if sermonId}
+        {#if pulpitId}
+          <SermonPulpit sermonId={pulpitId} />
+        {:else if sermonId}
           <SermonPrep {bible} {map} {sermonId} />
         {:else}
           <Sermons {bible} {map} />

@@ -461,6 +461,28 @@
       "action_continue": "Continue preparing",
       "action_view": "View the sermon",
       "action_preach_again": "Preach again"
+    },
+    "pulpit": {
+      "mode": "Pulpit mode",
+      "start": "Start",
+      "exit": "Exit",
+      "back": "Back",
+      "finish": "I have preached it",
+      "check_offline_ok": "The sermon is available offline",
+      "check_offline_missing": "The sermon has not been prepared for offline use",
+      "check_outline_ok": "The outline is ready",
+      "check_outline_missing": "There is no outline — create it first",
+      "check_screen": "The screen will stay awake",
+      "font_size": "Text size",
+      "font_normal": "Normal",
+      "font_large": "Large",
+      "font_xlarge": "Very large",
+      "planned_minutes": "Planned length",
+      "no_timer": "No timer",
+      "close_reference": "Close",
+      "reference_unavailable": "This text is not available offline.",
+      "ready_offline": "The sermon is ready and available offline.",
+      "ready_no_offline": "The sermon is ready, but it could not be saved for offline use. Free up space on your device."
     }
   },
   "auth": {

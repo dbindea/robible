@@ -162,6 +162,12 @@
     window.dispatchEvent(new PopStateEvent('popstate'));
   };
 
+  const alPulpito = (s) => {
+    window.history.pushState(null, '', `/predici/${encodeURIComponent(s.id)}/amvon`);
+    window.dispatchEvent(new CustomEvent('robibile:navigate'));
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  };
+
   // Qué dice el botón principal según en qué punto esté la predicación.
   const accionDe = (estado) =>
     estado === 'draft' ? 'continue' : estado === 'ready' ? 'view' : 'preach_again';
@@ -250,6 +256,13 @@
               </p>
             </button>
             <div class="predica__acciones">
+              {#if s.status !== 'draft'}
+                <!-- Sólo cuando está preparada: entrar al púlpito con una
+                     predicación a medias no lleva a ninguna parte. -->
+                <button type="button" class="predica__accion predica__accion--amvon" on:click={() => alPulpito(s)}>
+                  {$_('app.pulpit.mode')}
+                </button>
+              {/if}
               <button type="button" class="predica__accion predica__accion--principal" on:click={() => abrir(s)}>
                 {$_(`app.sermons.action_${accionDe(s.status)}`)}
               </button>
@@ -591,6 +604,12 @@
     &:hover {
       border-color: var(--color-accent);
       color: var(--color-accent);
+    }
+
+    &--amvon {
+      border-color: var(--color-success);
+      color: var(--color-success);
+      font-weight: 700;
     }
 
     &--principal {

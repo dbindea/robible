@@ -1,7 +1,7 @@
 # RoBible — Roadmap
 
 > Documento vivo. Actualizado en cada milestone.
-> Última actualización: **5 sep 2026** (Phase 6.4: temas compartibles · cierre del audio · arreglo de caché de idiomas)
+> Última actualización: **7 sep 2026** (Fases 2-5 del reenfoque: UX móvil · perfiles · player y música · «Predicile mele» con Modo Amvon offline)
 
 > Documentación de referencia: [CLAUDE.md](CLAUDE.md) · [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) · [docs/OPERACIONES.md](docs/OPERACIONES.md)
 > Deuda técnica detectada: [docs/AUDITORIA-2026-09-04.md](docs/AUDITORIA-2026-09-04.md)
@@ -16,7 +16,7 @@ RoBible es una app web (PWA) de la Biblia con soporte offline, auth multi-device
 - Frontend: Svelte 5 (sintaxis legacy, no runes) + Vite 8, SCSS themeable (light/dark)
 - Data: JSON estáticos en `/public/data/{vdc,rvl,en_kjv,zh_cuv}/bible.{map,json}` — entre 3 y 4,3 MB por Biblia
 - i18n: propio, sin librería. JSON en `/public/lang/{ro,es,en,zh}.json`
-- PWA: manifest + service worker (cache-first, versiones) — hoy `robible-v25`
+- PWA: manifest + service worker (cache-first, versiones) — hoy `robible-v26`
 - Rutas: path-based custom (parsea `window.location.pathname`)
 - Backend: Cloudflare Workers (`robible-api`) + D1 (`robible-db`), router Hono
 - Auth: PBKDF2 + HMAC tokens persistidos en D1 (revocables), TTL 30 días
@@ -344,24 +344,22 @@ Arreglados: idioma del TTS, `USE_BACKEND` en producción, idioma de las categor�
 
 El objetivo es doble: **limpiar el UX en móvil** y **abrir el producto a los predicadores**.
 
-### Fase 2 — Corregir el UX existente
+### Fase 2 — Corregir el UX existente ✅ COMPLETADA (2026-09-07)
 
-| # | Qué | Estado real encontrado |
+| # | Qué | Qué había realmente |
 |---|---|---|
-| 2.A | Selector idioma/versión con código corto visible (`RO · Biblia Română`) | Hoy muestra sólo el nombre del idioma |
-| 2.B | Historial de búsqueda: 3 visibles, desaparece al escribir | Ya hace scroll con 4; nada lo cierra al teclear |
-| 2.C | Abreviaturas de libro (`prov 3 4`), sin recuento de resultados, sin auto-salto | **8 de 11 abreviaturas comunes fallan** |
-| 2.D | Conservar el texto al cambiar palabras ↔ referencia | Hoy se borra **a propósito**; hay que invertir la decisión |
-| 2.E | Versículo: sólo copiar; el resto de acciones al seleccionar | Siete iconos permanentes |
-| 2.F | El color del usuario sustituye al azul del estado activo | Fallo de especificidad: **sólo se ve en tema oscuro** |
+| 2.A ✅ | Selector idioma/versión con código corto visible (`RO · Biblia Română`) | Mostraba sólo el nombre del idioma |
+| 2.B ✅ | Historial de búsqueda: 3 visibles, desaparece al escribir | Hacía scroll con 4; nada lo cerraba al teclear |
+| 2.C ✅ | Abreviaturas de libro (`prov 3 4`), sin recuento de resultados, sin auto-salto | **Fallaban 8 de 11 abreviaturas comunes** |
+| 2.D ✅ | Conservar el texto al cambiar palabras ↔ referencia | Se borraba **a propósito**; hubo que invertir la decisión |
+| 2.E ✅ | Versículo: sólo copiar; el resto de acciones al seleccionar | Siete iconos permanentes |
+| 2.F ✅ | El color del usuario sustituye al azul del estado activo | Fallo de especificidad: **sólo se veía en tema oscuro** |
 
-### Fase 3 — Perfiles (schema 8) — hecha, ver arriba
-
-`user_type` (`user` | `preacher`) y `email` opcional en `users`. Pregunta de seguridad
-escrita por el usuario, con respuesta de texto libre normalizada.
-
-⚠️ Guardar email **revierte** el principio «sin PII» del README del worker. Hay que
-actualizarlo. El envío de correo queda pendiente: hoy no hay proveedor.
+**Lo que costó más de lo que parecía:**
+- **El fallo de la búsqueda por referencia no estaba en la búsqueda.** Buscar, borrar con el aspa, teclear otra vez y tocar la sugerencia no navegaba porque el store `filter` entregaba **el mismo objeto** a `Sidebar` y a `Result`: mutarlo desde uno no disparaba la reactividad del otro. El store copia ahora en cada escritura.
+- **`isPlausiblePrefix` rechazaba cualquier prefijo más de 4 caracteres más corto que el nombre.** Con 2 letras o más el prefijo ya es intencionado y se acepta; con una sola se mantiene la guarda. Eso desbloquea `prov`, `deut`, `apoc` y `ps` → Psalmii.
+- **Un `{#if isVerseSelected(item.key)}` escondía la dependencia al compilador de Svelte**, así que los iconos no aparecían nunca. Comparando la variable directamente funciona (trampa 21).
+- **En tema oscuro `:global(html[data-theme='dark']) .icon-btn` (3 clases) ganaba a `.icon-btn--marked` (2)** y devolvía el icono a azul mientras borde y fondo mantenían el color del usuario. Resuelto con `:not(.icon-btn--marked)`.
 
 ### Fase 3 — Perfiles ✅ COMPLETADA (2026-09-07, schema 8)
 
@@ -381,12 +379,6 @@ actualizarlo. El envío de correo queda pendiente: hoy no hay proveedor.
 - ⚠️ El email **sólo se almacena**. El envío de correo necesita un proveedor y está pendiente. `workers/robible-api/README.md` está actualizado.
 
 **Arreglo colateral**: la sección `auth` del español estaba **entera en rumano** (63 claves). Un usuario hispano veía el registro, el login y todos los errores en un idioma que no es el suyo. Corregido. Quedan ~30 claves más fuera de `auth` en la misma situación.
-
-### Fase 4 — Player y música
-
-Player como tarjeta flotante translúcida (con degradación si no hay `backdrop-filter`).
-Tres ambientes **procedurales** extendiendo `music.service.js`: Ebraică (frigia dominante),
-Rugăciune (drone grave), Liniște. Sin ficheros nuevos: cero licencias y offline por construcción.
 
 ### Fase 4 — Player y música ✅ COMPLETADA (2026-09-07)
 
@@ -446,15 +438,29 @@ Rugăciune (drone grave), Liniște. Sin ficheros nuevos: cero licencias y offlin
 
 **Verificado en el navegador**: recorrido completo de los siete pasos —marcar dos palabras, idea central, dos puntos con subpunto, desarrollo, introducción y conclusión—, documento final con sus títulos y subtítulos, schiță generada con los títulos en mayúsculas, y todo persistido en el dispositivo.
 
-**Pendiente (5.C)**: el Modo Amvon.
+### Fase 5.C — Modo Amvon ✅ COMPLETADA (2026-09-07)
 
-### Fase 5 — Módulo «Predicile mele» (schema 9)
+- [x] `sermon-pulpit.service.js`: instantánea offline, posición, tamaño, cronómetro, `wakeLock` y recuperación
+- [x] «Pregătită pentru predicare» deja en el dispositivo predicación, schiță, perícopa y el **texto** de las referencias
+- [x] Antesala con tres comprobaciones, tamaño de letra (A− A A+) y duración prevista
+- [x] Púlpito a pantalla completa: sin menú, sin cabecera, tipografía grande, página vertical continua
+- [x] Referencias en overlay, con vuelta exacta a la misma posición del scroll
+- [x] Recuperación tras interrupción desde `main.js`, con ventana de seis horas
 
-Sólo para `preacher`. Preparación guiada por pasos → predicación → schiță → **Modo Amvon
-offline**. Una tabla `sermons` con `content_json` y `outline_json`: el árbol de preparación
-nunca se consulta por dentro, siempre se carga entero.
+**Decisiones que conviene no deshacer:**
+- **La instantánea guarda el TEXTO de las referencias, no sus coordenadas.** Resolverlas contra la Biblia en memoria funcionaría casi siempre; «casi siempre» no vale en un púlpito. Si la Biblia no llegó a cargarse, el predicador se quedaría mirando un versículo vacío delante de la congregación.
+- **Una referencia que no se puede resolver se guarda vacía, no se omite.** En el púlpito se lee «no disponible», que es honesto; quitarla haría desaparecer un botón que el predicador espera encontrar.
+- **Es una capa propia a pantalla completa (`fixed inset:0`), no el modo inmersivo de la lectura.** El inmersivo esconde la interfaz pero deja debajo la lógica de lectura entera —swipe, iconos, player—: cualquiera de esas cosas apareciendo a mitad de una predicación es exactamente lo que no puede pasar.
+- **Los controles de tamaño no siguen en pantalla.** Se elige antes de empezar. Lo que se toca por accidente en el atril se toca.
+- **La ventana de recuperación es de seis horas.** Sin límite, un Modo Amvon olvidado secuestraría el arranque de la aplicación meses después; con menos, una interrupción larga te dejaría fuera.
+- **`wakeLock` degrada en silencio.** Si el navegador no lo permite no se bloquea el modo ni se avisa: un predicador con un aviso rojo en pantalla está peor que uno que toca el móvil de vez en cuando. Se vuelve a pedir al recuperar la visibilidad, porque el navegador lo suelta al ocultar la pestaña.
+- **Ni una petición de red mientras se predica.** Todo sale de `localStorage`.
 
-**RoBible no escribe la predicación.** Sin IA, ni como dependencia ni como opción.
+**Verificado en el navegador (escenarios 5 y 6)**: con la **red cortada**, las tres comprobaciones en verde, el púlpito a pantalla completa con la letra a 37,6 px, las referencias abriéndose desde la instantánea y **cero peticiones de red** en todo el recorrido. Bajando al punto 2 (609 px), saliendo a la raíz y volviendo, la aplicación reabre la misma predicación en Modo Amvon en la posición **exacta**; abrir y cerrar una referencia también devuelve a 609.
+
+**Dos observaciones de la prueba:**
+- Google Analytics dispara **una** petición al cambiar de ruta al entrar en Amvon. No sale del código del módulo y falla en silencio sin conexión, pero conviene saberlo.
+- Quedan ~30 claves en rumano dentro del español fuera de `auth` (ver Fase 3).
 
 ### Fuera de alcance
 
@@ -472,7 +478,8 @@ colaboración, editor tipo Word, ni roles más allá de Utilizator/Predicator.
 - `workers/robible-api/src/auth.js` — register, login, recover, me, logout, change-password
 - `workers/robible-api/src/data.js` — topics, verse_refs, favorites, notes, highlights, searches, export, health
 - `workers/robible-api/src/utils.js` — hashing, tokens (HMAC), validators, rate limit
-- `workers/robible-api/schema.sql` — D1 schema (versión 7)
+- `workers/robible-api/src/sermons.js` — predicaciones (lista, detalle, creación, edición, borrado)
+- `workers/robible-api/schema.sql` — D1 schema (versión 9)
 - `workers/robible-api/wrangler.toml` — bindings + env vars
 - `workers/robible-api/dev-server.js` — emulador local con `node:sqlite`
 

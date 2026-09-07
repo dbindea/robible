@@ -17,8 +17,10 @@
   import { onDestroy, onMount } from 'svelte';
   import { _ } from '../../services/i18n.service';
   import { sermonsStore } from '../../store/sermonsStore';
+  import { buildSnapshot } from '../../services/sermon-pulpit.service';
   import {
     STEPS,
+    collectReferences,
     emptyContent,
     generateOutline,
     movePoint,
@@ -211,10 +213,45 @@
     }, RETARDO_MS);
   };
 
+  /**
+   * Marca la predicación como preparada y deja TODO listo en el dispositivo.
+   *
+   * Sin descarga manual, como pide la especificación: el predicador pulsa un
+   * botón y a partir de ahí el Modo Amvon funciona aunque no haya red. Se
+   * guardan la schiță, la perícopa y el texto de cada referencia citada.
+   */
   const marcarPreparada = async () => {
     await guardarYa();
+
+    // Si aún no hay schiță, se genera ahora: entrar al púlpito sin ella dejaría
+    // al predicador con una pantalla vacía.
+    let schita = normalizeOutline(sermon?.outline);
+    if (!schita.points.length && !schita.idea) {
+      schita = generateOutline(content);
+      await sermonsStore.update(sermonId, { outline: JSON.stringify(schita) });
+    }
+
+    const snapshot = buildSnapshot({
+      sermon: { id: sermonId, title: sermon.title, reference: referencia },
+      outline: schita,
+      pericope: pericopa,
+      references: collectReferences(content),
+      resolveVerse: (book, chapter, verse) => bible[book]?.[chapter - 1]?.[verse - 1] || '',
+    });
+
     await sermonsStore.update(sermonId, { status: 'ready' });
     sermon = sermonsStore.get(sermonId);
+    // El aviso es distinto si la instantánea no se pudo escribir (cuota llena):
+    // decirle que está listo para predicar sin conexión sería mentirle.
+    avisoPreparada = snapshot ? $_('app.pulpit.ready_offline') : $_('app.pulpit.ready_no_offline');
+  };
+
+  let avisoPreparada = '';
+
+  const irAlPulpito = () => {
+    window.history.pushState(null, '', `/predici/${encodeURIComponent(sermonId)}/amvon`);
+    window.dispatchEvent(new CustomEvent('robibile:navigate'));
+    window.dispatchEvent(new PopStateEvent('popstate'));
   };
 
   const volverALista = () => {
@@ -519,6 +556,15 @@
           {$_('app.sermons.mark_ready')}
         </button>
       </div>
+
+      {#if avisoPreparada}
+        <div class="prep__listo" role="status">
+          <p>{avisoPreparada}</p>
+          <button type="button" class="prep__cta" on:click={irAlPulpito}>
+            {$_('app.pulpit.mode')}
+          </button>
+        </div>
+      {/if}
 
     <!-- ── SCHIȚA ─────────────────────────────────────────────────────── -->
     {:else if vista === 'outline' && outline}
@@ -929,6 +975,20 @@
   }
 
   .prep__acciones { justify-content: flex-end; }
+
+  .prep__listo {
+    display: grid;
+    gap: 0.75rem;
+    justify-items: center;
+    margin-top: 1rem;
+    padding: 1rem;
+    border: 1px solid color-mix(in srgb, var(--color-success) 40%, transparent);
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--color-success) 8%, transparent);
+    text-align: center;
+
+    p { margin: 0; font-size: var(--font-size-small); color: var(--color-ink); }
+  }
 
   .prep__cta {
     justify-self: start;

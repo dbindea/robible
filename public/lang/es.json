@@ -461,6 +461,28 @@
       "action_continue": "Continuar la preparación",
       "action_view": "Ver la predicación",
       "action_preach_again": "Predicar de nuevo"
+    },
+    "pulpit": {
+      "mode": "Modo púlpito",
+      "start": "Empezar",
+      "exit": "Salir",
+      "back": "Atrás",
+      "finish": "Ya he predicado",
+      "check_offline_ok": "La predicación está disponible sin conexión",
+      "check_offline_missing": "La predicación no se ha preparado para usarse sin conexión",
+      "check_outline_ok": "La guía está lista",
+      "check_outline_missing": "No hay guía: créala primero",
+      "check_screen": "La pantalla se mantendrá encendida",
+      "font_size": "Tamaño del texto",
+      "font_normal": "Normal",
+      "font_large": "Grande",
+      "font_xlarge": "Muy grande",
+      "planned_minutes": "Duración prevista",
+      "no_timer": "Sin cronómetro",
+      "close_reference": "Cerrar",
+      "reference_unavailable": "El texto no está disponible sin conexión.",
+      "ready_offline": "La predicación está lista y disponible sin conexión.",
+      "ready_no_offline": "La predicación está lista, pero no se ha podido guardar para usarse sin conexión. Libera espacio en el dispositivo."
     }
   },
   "auth": {
