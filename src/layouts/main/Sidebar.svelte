@@ -1,4 +1,5 @@
 <script>
+  import Icon from '../../components/Icon.svelte';
   import { onDestroy, onMount } from 'svelte';
   import { _ } from '../../services/i18n.service';
   import { filter, selectedBibleVersion } from '../../store/stores';
@@ -462,9 +463,7 @@
             on:keydown={(e) => e.key === 'Enter' && applyRecentSearch(s)}
           >
             <span class="recent-search-item__icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
-                <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
-              </svg>
+              <Icon name="book" size="14px" />
             </span>
             <span class="recent-search-item__text">{s.searchText}</span>
             <button
@@ -473,9 +472,7 @@
               aria-label={$_('app.sidebar.recent_searches_delete')}
               on:click={(e) => deleteRecentSearch(e, s.id)}
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="12" height="12">
-                <path d="M18 6 6 18M6 6l12 12"/>
-              </svg>
+              <Icon name="close" size="12px" />
             </button>
           </div>
         {/each}
@@ -495,10 +492,7 @@
             on:keydown={(e) => e.key === 'Enter' && applyRecentSearch(s)}
           >
             <span class="recent-search-item__icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
-                <circle cx="11" cy="11" r="8"/>
-                <path d="m21 21-4.35-4.35"/>
-              </svg>
+              <Icon name="search" size="14px" />
             </span>
             <span class="recent-search-item__text">{s.searchText}</span>
             <button
@@ -507,9 +501,7 @@
               aria-label={$_('app.sidebar.recent_searches_delete')}
               on:click={(e) => deleteRecentSearch(e, s.id)}
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="12" height="12">
-                <path d="M18 6 6 18M6 6l12 12"/>
-              </svg>
+              <Icon name="close" size="12px" />
             </button>
           </div>
         {/each}
@@ -594,7 +586,7 @@
 
   // El panel de filtros es la única superficie oscura de la app: texto claro.
   div {
-    color: var(--color-on-primary);
+    color: var(--color-on-sidebar);
   }
 
   .sidebar {
@@ -604,15 +596,15 @@
     max-height: 100dvh;
     overflow-y: auto;
     padding: 2rem;
-    scrollbar-color: rgb(255 255 255 / 35%) transparent;
+    scrollbar-color: color-mix(in srgb, var(--color-on-sidebar) 35%, transparent) transparent;
   }
 
   input[type='text'] {
     height: var(--input-height);
     padding: 0 2.5rem 0 0.5rem;
-    border: solid 1px #7c8990;
+    border: solid 1px color-mix(in srgb, var(--color-on-sidebar) 38%, transparent);
     background-color: var(--color-sidebar);
-    color: var(--color-on-primary);
+    color: var(--color-on-sidebar);
     outline: none;
     transition: var(--transition);
     width: 100%;
@@ -626,7 +618,7 @@
   }
 
   input[type='text']::placeholder {
-    color: rgb(255 255 255 / 72%);
+    color: color-mix(in srgb, var(--color-on-sidebar) 72%, transparent);
   }
 
   .radio__label {
@@ -651,7 +643,7 @@
         &:before {
           content: '';
           border-radius: 100%;
-          border: 1px solid #b4b4b4;
+          border: 1px solid color-mix(in srgb, var(--color-on-sidebar) 62%, transparent);
           display: inline-block;
           width: 1.2em;
           height: 1.2em;
@@ -660,21 +652,21 @@
           vertical-align: top;
           cursor: pointer;
           text-align: center;
-          transition: all 250ms ease;
+          transition: all var(--motion-slow) ease;
         }
       }
       &:checked {
         + span {
           &:before {
             background-color: var(--color-blue);
-            box-shadow: inset 0 0 0 4px #f4f4f4;
+            box-shadow: inset 0 0 0 4px color-mix(in srgb, var(--color-on-sidebar) 92%, transparent);
           }
         }
       }
       &:focus {
         + span {
           &:before {
-            outline: 2px solid rgb(255 255 255 / 70%);
+            outline: 2px solid color-mix(in srgb, var(--color-on-sidebar) 70%, transparent);
             outline-offset: 2px;
             border-color: var(--color-blue);
           }
@@ -683,9 +675,9 @@
       &:disabled {
         + span {
           &:before {
-            box-shadow: inset 0 0 0 4px #f4f4f4;
-            border-color: #b4b4b4;
-            background: #b4b4b4;
+            box-shadow: inset 0 0 0 4px color-mix(in srgb, var(--color-on-sidebar) 92%, transparent);
+            border-color: color-mix(in srgb, var(--color-on-sidebar) 62%, transparent);
+            background: color-mix(in srgb, var(--color-on-sidebar) 62%, transparent);
           }
         }
       }
@@ -707,7 +699,7 @@
     cursor: pointer;
     display: block;
     margin-bottom: 0.2rem;
-    color: rgb(255 255 255 / 74%);
+    color: color-mix(in srgb, var(--color-on-sidebar) 74%, transparent);
     font-size: 1rem;
   }
 
@@ -725,7 +717,7 @@
   }
 
   .button__erase {
-    background-color: var(--color-blue);
+    background-color: var(--color-accent-solid);
     color: var(--color-on-primary);
     border: 0.1rem var(--border-blue);
     height: var(--button-height);
@@ -744,7 +736,7 @@
     }
 
     &:focus-visible {
-      outline: 2px solid rgb(255 255 255 / 70%);
+      outline: 2px solid color-mix(in srgb, var(--color-on-sidebar) 70%, transparent);
       outline-offset: 2px;
     }
   }
@@ -756,14 +748,14 @@
   .book-picker {
     display: grid;
     gap: 0.75rem;
-    border: 1px solid rgb(255 255 255 / 28%);
+    border: 1px solid color-mix(in srgb, var(--color-on-sidebar) 28%, transparent);
     border-radius: 0.5rem;
     padding: 0.9rem;
-    background-color: rgb(255 255 255 / 7%);
+    background-color: color-mix(in srgb, var(--color-on-sidebar) 7%, transparent);
 
     strong {
       display: block;
-      color: var(--color-on-primary);
+      color: var(--color-on-sidebar);
       font-size: 1rem;
       font-weight: 700;
       line-height: 1.3;
@@ -777,8 +769,8 @@
       width: 100%;
       min-height: 2.35rem;
       border: 1px solid color-mix(in srgb, var(--color-accent) 54%, transparent);
-      background: rgb(255 255 255 / 8%);
-      color: var(--color-on-primary);
+      background: color-mix(in srgb, var(--color-on-sidebar) 8%, transparent);
+      color: var(--color-on-sidebar);
       font-size: 14px;
       font-weight: 600;
       border-radius: 0.25rem;
@@ -795,7 +787,7 @@
       // reservado para el resaltado de lectura.
       &--active {
         border-color: var(--color-accent);
-        background: var(--color-accent);
+        background: var(--color-accent-solid);
         color: var(--color-on-primary);
         box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 22%, transparent);
       }
@@ -810,9 +802,9 @@
     &--input {
       font-size: 22px;
       cursor: pointer;
-      color: rgb(255 255 255 / 80%);
+      color: color-mix(in srgb, var(--color-on-sidebar) 80%, transparent);
       &:hover {
-        color: var(--color-on-primary);
+        color: var(--color-on-sidebar);
       }
     }
   }
@@ -835,20 +827,20 @@
     background: transparent;
 
     &:focus-visible {
-      outline: 2px solid rgb(255 255 255 / 70%);
+      outline: 2px solid color-mix(in srgb, var(--color-on-sidebar) 70%, transparent);
       outline-offset: 2px;
     }
   }
 
   .search-result-count {
     margin: 0.35rem 0 0;
-    color: rgb(255 255 255 / 68%);
+    color: color-mix(in srgb, var(--color-on-sidebar) 68%, transparent);
     font-size: 0.78rem;
     line-height: 1.35;
     text-align: right;
 
     span {
-      color: var(--color-on-primary);
+      color: var(--color-on-sidebar);
       font-weight: 600;
     }
   }
@@ -857,7 +849,7 @@
     position: relative;
     z-index: 10;
     background: var(--color-sidebar);
-    border: 1px solid rgb(255 255 255 / 22%);
+    border: 1px solid color-mix(in srgb, var(--color-on-sidebar) 22%, transparent);
     border-radius: 0.35rem;
     overflow: hidden;
     margin-top: -0.25rem;
@@ -879,7 +871,7 @@
     padding: 0.1rem 0.45rem;
     font-size: 0.62rem;
     font-weight: 700;
-    color: var(--color-on-primary);
+    color: var(--color-on-sidebar);
     background: var(--color-accent);
     border-radius: 0.3rem;
     text-transform: uppercase;
@@ -896,7 +888,7 @@
     position: relative;
     z-index: 11;
     background: var(--color-sidebar);
-    border: 1px solid rgb(255 255 255 / 22%);
+    border: 1px solid color-mix(in srgb, var(--color-on-sidebar) 22%, transparent);
     border-radius: 0.35rem;
     overflow: hidden;
     margin-top: -0.25rem;
@@ -914,13 +906,13 @@
     padding: 0.5rem 0.75rem;
     border: 0;
     background: transparent;
-    color: rgb(255 255 255 / 92%);
+    color: color-mix(in srgb, var(--color-on-sidebar) 92%, transparent);
     font-size: 0.88rem;
     text-align: left;
     cursor: pointer;
-    transition: background 0.12s;
+    transition: background var(--motion-fast);
     font-family: inherit;
-    border-bottom: 1px solid rgb(255 255 255 / 8%);
+    border-bottom: 1px solid color-mix(in srgb, var(--color-on-sidebar) 8%, transparent);
 
     &:last-child { border-bottom: 0; }
 
@@ -951,11 +943,11 @@
     padding: 0.5rem 0.75rem;
     border: 0;
     background: transparent;
-    color: rgb(255 255 255 / 85%);
+    color: color-mix(in srgb, var(--color-on-sidebar) 85%, transparent);
     font-size: 0.88rem;
     text-align: left;
     cursor: pointer;
-    transition: background 0.12s;
+    transition: background var(--motion-fast);
     font-family: inherit;
     font-weight: 300;
 
@@ -967,7 +959,7 @@
 
     &__icon {
       flex-shrink: 0;
-      color: rgb(255 255 255 / 50%);
+      color: color-mix(in srgb, var(--color-on-sidebar) 50%, transparent);
       display: grid;
       place-items: center;
     }
@@ -988,15 +980,15 @@
       border: 0;
       border-radius: 0.2rem;
       background: transparent;
-      color: rgb(255 255 255 / 40%);
+      color: color-mix(in srgb, var(--color-on-sidebar) 40%, transparent);
       cursor: pointer;
-      transition: color 0.12s, background 0.12s;
+      transition: color var(--motion-fast), background var(--motion-fast);
       padding: 0;
 
       &:hover,
       &:focus-visible {
-        color: var(--color-on-primary);
-        background: rgb(255 100 100 / 30%);
+        color: var(--color-on-sidebar);
+        background: var(--color-danger-wash);
         outline: none;
       }
     }

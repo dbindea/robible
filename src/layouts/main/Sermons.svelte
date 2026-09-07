@@ -155,6 +155,23 @@
     mostrarAviso(res.ok ? $_('app.sermons.duplicated') : $_(res.error));
   };
 
+  const abrir = (s) => {
+    window.history.pushState(null, '', `/predici/${encodeURIComponent(s.id)}`);
+    // La errata `robibile` es la del resto del proyecto (CLAUDE.md, trampa 1).
+    window.dispatchEvent(new CustomEvent('robibile:navigate'));
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  };
+
+  const alPulpito = (s) => {
+    window.history.pushState(null, '', `/predici/${encodeURIComponent(s.id)}/amvon`);
+    window.dispatchEvent(new CustomEvent('robibile:navigate'));
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  };
+
+  // Qué dice el botón principal según en qué punto esté la predicación.
+  const accionDe = (estado) =>
+    estado === 'draft' ? 'continue' : estado === 'ready' ? 'view' : 'preach_again';
+
   onMount(() => {
     sermonsStore.refresh();
   });
@@ -227,7 +244,7 @@
       <ul class="predici__lista">
         {#each visibles as s (s.id)}
           <li class="predica" class:predica--ready={s.status === 'ready'} class:predica--preached={s.status === 'preached'}>
-            <div class="predica__cuerpo">
+            <button type="button" class="predica__cuerpo" on:click={() => abrir(s)}>
               <h2 class="predica__titulo">{s.title || $_('app.sermons.untitled')}</h2>
               <p class="predica__ref">{referenciaDe(s)}</p>
               <p class="predica__meta">
@@ -237,8 +254,18 @@
                 <span aria-hidden="true">·</span>
                 <span>{fechaDe(s.updatedAt)}</span>
               </p>
-            </div>
+            </button>
             <div class="predica__acciones">
+              {#if s.status !== 'draft'}
+                <!-- Sólo cuando está preparada: entrar al púlpito con una
+                     predicación a medias no lleva a ninguna parte. -->
+                <button type="button" class="predica__accion predica__accion--amvon" on:click={() => alPulpito(s)}>
+                  {$_('app.pulpit.mode')}
+                </button>
+              {/if}
+              <button type="button" class="predica__accion predica__accion--principal" on:click={() => abrir(s)}>
+                {$_(`app.sermons.action_${accionDe(s.status)}`)}
+              </button>
               {#if s.status === 'preached'}
                 <button type="button" class="predica__accion" on:click={() => duplicar(s)}>
                   {$_('app.sermons.duplicate')}
@@ -392,7 +419,7 @@
     padding: 0.55rem 1.1rem;
     border: 1px solid var(--color-accent);
     border-radius: var(--radius-pill);
-    background: var(--color-accent);
+    background: var(--color-accent-solid);
     color: var(--color-on-primary);
     font-size: var(--font-size-small);
     font-weight: 700;
@@ -514,7 +541,23 @@
     &--preached { border-left-color: var(--color-success); }
   }
 
-  .predica__cuerpo { min-width: 0; flex: 1 1 14rem; }
+  // Toda la tarjeta abre la predicación: es el gesto que se espera al tocarla.
+  .predica__cuerpo {
+    min-width: 0;
+    flex: 1 1 14rem;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+    font: inherit;
+
+    &:focus-visible {
+      outline: 2px solid var(--color-accent);
+      outline-offset: 2px;
+      border-radius: var(--radius-sm);
+    }
+  }
 
   .predica__titulo {
     margin: 0;
@@ -559,6 +602,17 @@
     transition: var(--transition);
 
     &:hover {
+      border-color: var(--color-accent);
+      color: var(--color-accent);
+    }
+
+    &--amvon {
+      border-color: var(--color-success);
+      color: var(--color-success);
+      font-weight: 700;
+    }
+
+    &--principal {
       border-color: var(--color-accent);
       color: var(--color-accent);
     }
@@ -747,7 +801,7 @@
 
   .nueva__crear {
     border: 1px solid var(--color-accent);
-    background: var(--color-accent);
+    background: var(--color-accent-solid);
     color: var(--color-on-primary);
 
     &:hover:not(:disabled) { background: var(--color-accent-hover); }

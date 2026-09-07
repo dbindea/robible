@@ -180,7 +180,7 @@
 
   .daily-verse__primary {
     border: 1px solid var(--color-accent);
-    background: var(--color-accent);
+    background: var(--color-accent-solid);
     color: var(--color-on-primary);
 
     &:hover {

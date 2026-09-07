@@ -1,4 +1,5 @@
 <script>
+  import Icon from '../../components/Icon.svelte';
   import { onDestroy, onMount } from 'svelte';
   import { _ } from '../../services/i18n.service';
   import { bibleVersions, selectedBibleVersion } from '../../store/stores';
@@ -112,10 +113,7 @@
       aria-current={isOnCompare ? 'page' : undefined}
       on:click={(e) => navigate(e, '/compara')}
     >
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <rect x="3" y="3" width="7" height="18" rx="1"/>
-        <rect x="14" y="3" width="7" height="18" rx="1"/>
-      </svg>
+      <Icon name="compare" />
       <span class="nav-link__label">{$_('app.compare.title')}</span>
     </a>
 
@@ -127,9 +125,7 @@
       aria-current={isOnIndex ? 'page' : undefined}
       on:click={(e) => navigate(e, '/indice')}
     >
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/>
-      </svg>
+      <Icon name="bookmark" />
       <span class="nav-link__label">{$_('app.topics.title')}</span>
     </a>
 
@@ -209,8 +205,8 @@
     padding: 0.5rem 0.85rem;
     border: 1px solid color-mix(in srgb, var(--color-accent) 42%, transparent);
     border-radius: 0.28rem;
-    background: color-mix(in srgb, var(--color-blue) 11%, var(--color-white));
-    color: var(--color-bg-dark);
+    background: var(--wash-accent);
+    color: var(--color-ink-strong);
     font-size: 0.85rem;
     font-weight: 700;
     text-decoration: none;
@@ -218,11 +214,7 @@
     white-space: nowrap;
     flex-shrink: 0;
 
-    svg {
-      width: 1.1rem;
-      height: 1.1rem;
-      flex: 0 0 auto;
-    }
+    --icon-size: 1.1rem;
 
     .nav-link__label {
       // visible por defecto (desktop)
@@ -243,13 +235,13 @@
 
     &--active {
       border-color: var(--color-blue-hover);
-      background: var(--color-blue);
+      background: var(--color-accent-solid);
       color: var(--color-on-primary);
       box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 18%, transparent);
 
       &:hover,
       &:focus-visible {
-        background: var(--color-blue-hover);
+        background: var(--color-accent-solid-hover);
         color: var(--color-on-primary);
         border-color: var(--color-blue-hover);
       }
@@ -271,8 +263,8 @@
     min-height: var(--button-height);
     border: 1px solid color-mix(in srgb, var(--color-accent) 42%, transparent);
     border-radius: 0.28rem;
-    background: color-mix(in srgb, var(--color-blue) 11%, var(--color-white));
-    color: var(--color-bg-dark);
+    background: var(--wash-accent);
+    color: var(--color-ink-strong);
     padding: 0 0.7rem;
     font-weight: 700;
     font-size: 0.85rem;
@@ -293,7 +285,7 @@
     flex: 0 0 auto;
     padding: 0.1rem 0.35rem;
     border-radius: 0.22rem;
-    background: var(--color-accent);
+    background: var(--color-accent-solid);
     color: var(--color-on-primary);
     font-size: 0.72rem;
     font-weight: 700;
@@ -363,9 +355,9 @@
     width: max(100%, 16rem);
     max-width: calc(100vw - 1.5rem);
     padding: 0.35rem;
-    border: 1px solid rgb(63 88 103 / 18%);
+    border: 1px solid var(--color-line-strong);
     border-radius: 0.35rem;
-    background: var(--color-white);
+    background: var(--color-surface-raised);
     box-shadow: var(--box-shadow-down);
   }
 
@@ -392,19 +384,19 @@
 
     &--selected {
       border-color: var(--color-blue);
-      background: var(--color-blue);
+      background: var(--color-accent-solid);
       color: var(--color-on-primary);
       font-weight: 700;
 
       // Sobre el fondo azul de la opción activa, la pastilla del código se
       // volvía invisible: era azul sobre azul. Aquí se invierte.
       .version-picker__option-code {
-        background: rgb(255 255 255 / 24%);
+        background: color-mix(in srgb, var(--color-on-primary) 24%, transparent);
         color: var(--color-on-primary);
       }
 
       .version-picker__option-lang {
-        color: rgb(255 255 255 / 78%);
+        color: color-mix(in srgb, var(--color-on-primary) 78%, transparent);
       }
     }
   }
@@ -430,8 +422,8 @@
     padding: 0 0.85rem 0 0.7rem;
     border: 1px solid color-mix(in srgb, var(--color-accent) 42%, transparent);
     border-radius: 0.28rem;
-    background: color-mix(in srgb, var(--color-blue) 11%, var(--color-white));
-    color: var(--color-bg-dark);
+    background: var(--wash-accent);
+    color: var(--color-ink-strong);
     font-weight: 700;
     font-size: 0.92rem;
     cursor: pointer;
@@ -454,8 +446,8 @@
     // Cuando el menu está abierto, el botón refleja ese estado
     // con un color sólido (mismo lenguaje visual que nav-link--active).
     &--open {
-      background: var(--color-blue);
-      border-color: var(--color-blue-hover);
+      background: var(--color-accent-solid);
+      border-color: var(--color-accent-solid-hover);
       color: var(--color-on-primary);
       box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 18%, transparent);
     }
@@ -477,7 +469,7 @@
     height: 2px;
     background-color: currentcolor;
     border-radius: 2px;
-    transition: transform 0.24s ease, opacity 0.16s ease, top 0.24s ease;
+    transition: transform var(--motion-slow) ease, opacity var(--motion-fast) ease, top var(--motion-slow) ease;
     transform-origin: center;
   }
 
@@ -487,16 +479,11 @@
 
   // Cuando está logueado: tinte verde (mismo estilo que footer__auth--signed)
   .hamburger--signed {
-    border-color: #28a74566;
-    background: #28a7451a;
-    color: rgb(20 110 45);
+    border-color: color-mix(in srgb, var(--color-success) 40%, transparent);
+    background: var(--color-success-wash);
+    color: var(--color-success-ink);
   }
 
-  :global(html[data-theme='dark']) .hamburger--signed {
-    background: #28a7452e;
-    border-color: #28a74566;
-    color: #7ee79a;
-  }
 
   // Hover: tinte azul (estilo normal del header)
   .hamburger--signed:hover {
@@ -505,9 +492,6 @@
     color: var(--color-text-dark);
   }
 
-  :global(html[data-theme='dark']) .hamburger--signed:hover {
-    color: #ffffff;
-  }
 
   // Cuando está abierto, las dos exteriores rotan y se cruzan
   // en el centro, la del medio se desvanece → forma una X.
@@ -531,42 +515,9 @@
     line-height: 1;
   }
 
-  :global(html[data-theme='dark']) .nav-link {
-    background: rgb(255 255 255 / 8%);
-    color: #ffffff;
 
-    &:hover,
-    &:focus-visible {
-      background: color-mix(in srgb, var(--color-accent) 18%, transparent);
-      border-color: var(--color-blue);
-      color: #ffffff;
-    }
 
-    &--active {
-      background: var(--color-blue);
-      color: var(--color-on-primary);
-    }
-  }
 
-  :global(html[data-theme='dark']) .version-picker__button {
-    background: rgb(255 255 255 / 8%);
-    color: #ffffff;
-  }
-
-  :global(html[data-theme='dark']) .version-picker__menu {
-    background: #1a2733;
-    border-color: rgb(255 255 255 / 12%);
-  }
-
-  :global(html[data-theme='dark']) .version-picker__option {
-    color: #ffffff;
-
-    &:hover,
-    &:focus-visible {
-      background: color-mix(in srgb, var(--color-accent) 18%, transparent);
-      border-color: color-mix(in srgb, var(--color-accent) 34%, transparent);
-    }
-  }
 
   // ── Breakpoint 1: tablet (<60rem = 960px) ──
   // Los nav-links ocultan el texto, solo se ve el icono.

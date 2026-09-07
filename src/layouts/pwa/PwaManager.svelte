@@ -174,7 +174,7 @@
     align-items: center;
     width: min(30rem, calc(100vw - 2rem));
     padding: 0.9rem;
-    border: 1px solid rgb(63 88 103 / 18%);
+    border: 1px solid var(--color-line-strong);
     border-left: 0.3rem solid var(--color-blue);
     border-radius: 0.35rem;
     background: var(--color-white);
@@ -190,7 +190,7 @@
 
     p {
       margin: 0;
-      color: color-mix(in srgb, var(--color-bg-dark) 82%, white);
+      color: var(--color-ink-soft);
       font-size: 0.88rem;
       line-height: 1.4;
     }
@@ -214,7 +214,7 @@
 
   .pwa-notice__primary {
     border: 1px solid var(--color-blue);
-    background: var(--color-blue);
+    background: var(--color-accent-solid);
     color: var(--color-on-primary);
 
     &:hover,
@@ -225,14 +225,14 @@
   }
 
   .pwa-notice__ghost {
-    border: 1px solid rgb(63 88 103 / 22%);
+    border: 1px solid var(--color-line-strong);
     background: transparent;
     color: var(--color-bg-dark);
 
     &:hover,
     &:focus-visible {
       border-color: var(--color-bg-dark);
-      background: rgb(63 88 103 / 7%);
+      background: var(--color-line-soft);
     }
   }
 
@@ -245,6 +245,19 @@
 
     .pwa-notice__actions {
       justify-content: flex-end;
+    }
+  }
+  // ── Cristal ───────────────────────────────────────────────────────────
+  // El fondo opaco de la regla de arriba es la base y se queda: si el
+  // navegador no desenfoca, el texto se lee sobre color sólido en vez de
+  // sobre el contenido de la página. La transparencia sólo entra donde hay
+  // desenfoque real.
+  @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+    .pwa-notice {
+      background: var(--glass-tint);
+      -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+      backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+      border-color: var(--glass-line);
     }
   }
 </style>

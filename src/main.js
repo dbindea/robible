@@ -1,6 +1,7 @@
 import App from './App.svelte';
 import { mount } from 'svelte';
 import { tokenStore } from './services/apiClient';
+import { getActive as getActivePulpit } from './services/sermon-pulpit.service';
 
 // Limpiar el contenido pre-rendered (SEO) antes de montar la SPA
 // para que no se vea duplicado (seo-prerender + vista SPA).
@@ -15,9 +16,24 @@ if (appTarget) {
 // Si escribe /landing explícitamente, siempre lo mostramos.
 // Si va a una ruta interna (/biblia/...), no redirigimos (deep links).
 if (typeof window !== 'undefined' && window.location.pathname === '/') {
-  const user = tokenStore.getUser();
-  if (!user) {
-    window.history.replaceState(null, '', '/landing');
+  // ── Volver al púlpito tras una interrupción ──────────────────────────────
+  //
+  // Si el sistema mata la pestaña mientras se predica —una llamada, quedarse
+  // sin memoria—, al reabrir la aplicación se entra por la raíz y el predicador
+  // se encontraría la pantalla de inicio en mitad del sermón. Aquí se le
+  // devuelve a su predicación.
+  //
+  // Sólo aplica en la raíz: si escribió otra dirección a propósito, manda él.
+  // Y `getActive` sólo lo considera si empezó hace menos de seis horas, para
+  // que un Modo Amvon olvidado no secuestre el arranque meses después.
+  const enElPulpito = getActivePulpit();
+  if (enElPulpito) {
+    window.history.replaceState(null, '', `/predici/${encodeURIComponent(enElPulpito)}/amvon`);
+  } else {
+    const user = tokenStore.getUser();
+    if (!user) {
+      window.history.replaceState(null, '', '/landing');
+    }
   }
 }
 

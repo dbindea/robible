@@ -2,7 +2,9 @@
   import { onDestroy, onMount } from 'svelte';
   import packageInfo from '../../../package.json';
   import { _ } from '../../services/i18n.service';
-  import { themeMode, toggleThemeMode } from '../../store/stores';
+  import { themeMode, setThemeMode, PALETTES } from '../../store/stores';
+  import { getPalette } from '../../config/palettes';
+  import Modal from '../../components/Modal.svelte';
   import { isAuthenticated, currentUser, logout } from '../../store/authStore';
   import { openAuthMenu } from '../../store/authMenuStore';
 
@@ -10,7 +12,8 @@
   const appVersion = packageInfo.version;
   let swVersion = '—';
 
-  $: isDarkMode = $themeMode === 'dark';
+  let isPaletteOpen = false;
+  $: paletaActiva = getPalette($themeMode);
 
   // Botón auth del footer: muestra nickname o "Login" según estado
   const handleAuthClick = () => {
@@ -86,14 +89,55 @@
     <button
       type="button"
       class="theme-toggle"
-      aria-label={isDarkMode ? $_('app.footer.theme_light') : $_('app.footer.theme_dark')}
-      title={isDarkMode ? $_('app.footer.theme_light') : $_('app.footer.theme_dark')}
-      on:click={toggleThemeMode}
+      aria-label={$_('app.palette.open')}
+      title={$_('app.palette.open')}
+      on:click={() => (isPaletteOpen = true)}
     >
-      <span class:theme-toggle__icon--sun={isDarkMode} class="theme-toggle__icon" aria-hidden="true"></span>
+      <!-- Fondo, acento y tinta, no fondo/superficie/acento: en las paletas
+           claras el fondo y la superficie son dos blancos casi iguales, y el
+           botón acababa pareciendo la media luna del interruptor que sustituye. -->
+      <span class="theme-toggle__swatch" aria-hidden="true">
+        {#each ['page', 'accent', 'ink'] as capa (capa)}
+          <span style="background: {paletaActiva.swatch[capa]}"></span>
+        {/each}
+      </span>
     </button>
   </div>
 </div>
+
+<Modal open={isPaletteOpen} title={$_('app.palette.title')} eyebrow={$_('app.palette.eyebrow')} size="sm" fitContent onClose={() => (isPaletteOpen = false)}>
+  <ul class="palette-list">
+    {#each PALETTES as paleta (paleta.id)}
+      <li>
+        <button
+          type="button"
+          class="palette-option"
+          class:palette-option--active={$themeMode === paleta.id}
+          aria-pressed={$themeMode === paleta.id}
+          on:click={() => setThemeMode(paleta.id)}
+        >
+          <!-- La muestra usa los colores reales de la paleta, no los de la
+               activa: hay que poder compararlas sin aplicarlas una a una. -->
+          <span class="palette-option__swatch" style="background: {paleta.swatch.page}; border-color: {paleta.swatch.ink}33" aria-hidden="true">
+            <span class="palette-option__card" style="background: {paleta.swatch.surface}">
+              <span class="palette-option__line" style="background: {paleta.swatch.ink}"></span>
+              <span class="palette-option__line palette-option__line--short" style="background: {paleta.swatch.accent}"></span>
+            </span>
+          </span>
+          <span class="palette-option__text">
+            <span class="palette-option__name">{$_(paleta.labelKey)}</span>
+            <!-- "Nocturn" no dice nada por sí solo: la pista es lo que permite
+                 elegir sin ir probando las cinco. -->
+            <span class="palette-option__hint">{$_(`${paleta.labelKey}_hint`)}</span>
+          </span>
+          {#if $themeMode === paleta.id}
+            <span class="palette-option__check" aria-hidden="true">✓</span>
+          {/if}
+        </button>
+      </li>
+    {/each}
+  </ul>
+</Modal>
 
 {#if isAboutOpen}
   <div class="footer-modal" role="presentation" on:click={closeAbout}>
@@ -136,7 +180,11 @@
     box-shadow: var(--box-shadow-up);
     align-items: center;
     gap: 1.25rem;
-    padding: 1rem clamp(1rem, 5vw, 5rem);
+    // El relleno inferior reserva la franja de los botones flotantes (ver
+    // `--floating-band` en global.css). Sin él, al llegar al final de la página
+    // «Subir» y «pantalla completa» caían justo encima de «Autentificare» y del
+    // selector de paleta, y no había forma de pulsarlos.
+    padding: 1rem clamp(1rem, 5vw, 5rem) calc(1rem + var(--floating-band) + var(--player-offset, 0px));
     display: flex;
     color: var(--color-bg-dark);
     justify-content: space-between;
@@ -158,7 +206,7 @@
     display: flex;
     flex-wrap: wrap;
     gap: 0.4rem;
-    color: color-mix(in srgb, var(--color-bg-dark) 68%, var(--color-white));
+    color: var(--color-ink-soft);
     font-size: 0.82rem;
   }
 
@@ -184,7 +232,7 @@
     font-weight: 600;
 
     span {
-      color: color-mix(in srgb, var(--color-bg-dark) 62%, var(--color-white));
+      color: var(--color-ink-soft);
       font-size: 0.78rem;
       font-weight: 600;
     }
@@ -213,7 +261,7 @@
     cursor: pointer;
 
     .footer__auth-action {
-      color: color-mix(in srgb, var(--color-bg-dark) 55%, transparent);
+      color: var(--color-ink-soft);
       font-weight: 500;
     }
 
@@ -227,14 +275,14 @@
     &--signed {
       border-color: #28a74566;
       background: #28a7451a;
-      color: rgb(20 110 45);
+      color: var(--color-success-ink);
 
       &:hover,
       &:focus-visible {
-        border-color: rgb(220 53 69 / 50%);
-        background: rgb(220 53 69 / 10%);
-        color: rgb(150 25 40);
-        box-shadow: 0 0 0 3px rgb(220 53 69 / 14%);
+        border-color: color-mix(in srgb, var(--color-danger) 50%, transparent);
+        background: var(--color-danger-wash);
+        color: var(--color-danger-ink);
+        box-shadow: 0 0 0 3px var(--color-danger-wash);
       }
     }
   }
@@ -247,7 +295,7 @@
     width: 2.35rem;
     height: 2.35rem;
     flex: 0 0 auto;
-    border: 1px solid rgb(63 88 103 / 22%);
+    border: 1px solid var(--color-line-strong);
     border-radius: 0.25rem;
     background: transparent;
     color: var(--color-bg-dark);
@@ -261,26 +309,125 @@
     }
   }
 
-  .theme-toggle__icon {
-    position: relative;
-    width: 1.05rem;
-    height: 1.05rem;
+  // Tres franjas con los colores reales de la paleta activa: el botón dice de
+  // un vistazo cuál está puesta, que es lo que un icono de sol/luna no podría
+  // hacer con cinco opciones.
+  .theme-toggle__swatch {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    width: 1.15rem;
+    height: 1.15rem;
     border-radius: 999px;
-    box-shadow: inset -0.32rem 0 0 currentcolor;
-    color: currentcolor;
+    overflow: hidden;
+    box-shadow: inset 0 0 0 1px var(--color-line-strong);
 
-    &--sun {
-      border: 2px solid currentcolor;
-      box-shadow:
-        0 -0.48rem 0 -0.24rem currentcolor,
-        0 0.48rem 0 -0.24rem currentcolor,
-        0.48rem 0 0 -0.24rem currentcolor,
-        -0.48rem 0 0 -0.24rem currentcolor,
-        0.34rem 0.34rem 0 -0.24rem currentcolor,
-        -0.34rem -0.34rem 0 -0.24rem currentcolor,
-        0.34rem -0.34rem 0 -0.24rem currentcolor,
-        -0.34rem 0.34rem 0 -0.24rem currentcolor;
+    span {
+      display: block;
+      transition: background var(--motion-base) ease;
     }
+  }
+
+  // === SELECTOR DE PALETA ===
+  .palette-list {
+    display: grid;
+    gap: 0.4rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .palette-option {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.55rem 0.7rem;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+    color: var(--color-ink);
+    text-align: left;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: border-color var(--motion-base) ease, background var(--motion-base) ease,
+      transform var(--motion-fast) var(--ease-out);
+
+    &:hover,
+    &:focus-visible {
+      border-color: var(--color-accent);
+      background: var(--wash-accent);
+    }
+
+    // Un desplazamiento de 1px al pulsar: suficiente para que el dedo note que
+    // el botón responde, y no tanto como para que el texto salte.
+    &:active {
+      transform: translateY(1px);
+    }
+
+    &--active {
+      border-color: var(--color-accent);
+      background: var(--wash-accent);
+    }
+  }
+
+  // Miniatura de la paleta: una página con una tarjeta encima y dos renglones.
+  // Es el mínimo que deja ver de golpe fondo, superficie, tinta y acento.
+  .palette-option__swatch {
+    display: grid;
+    place-items: center;
+    width: 2.6rem;
+    height: 2rem;
+    flex: 0 0 auto;
+    border: 1px solid;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+  }
+
+  .palette-option__card {
+    display: grid;
+    align-content: center;
+    gap: 0.22rem;
+    width: 1.75rem;
+    height: 1.25rem;
+    padding: 0 0.2rem;
+    border-radius: 0.15rem;
+    // Sin borde, la tarjeta se funde con la página en las paletas donde ambas
+    // son casi del mismo tono (Sepia y Cald), y las dos muestras se veían
+    // iguales. La línea las separa aunque los colores estén a un paso.
+    box-shadow: inset 0 0 0 1px rgb(0 0 0 / 8%);
+  }
+
+  .palette-option__line {
+    height: 0.16rem;
+    border-radius: 999px;
+    opacity: 0.8;
+
+    // El acento es lo que de verdad distingue una paleta de otra —teja contra
+    // cobre, azul contra cian—, así que va más grueso que la línea de tinta.
+    &--short {
+      width: 68%;
+      height: 0.26rem;
+      opacity: 1;
+    }
+  }
+
+  .palette-option__text {
+    display: grid;
+    gap: 0.1rem;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .palette-option__hint {
+    color: var(--color-ink-soft);
+    font-size: 0.75rem;
+    font-weight: 400;
+    line-height: 1.35;
+  }
+
+  .palette-option__check {
+    color: var(--color-accent);
+    font-weight: 700;
   }
 
   .footer-modal {
@@ -290,7 +437,7 @@
     display: grid;
     place-items: center;
     padding: 1rem;
-    background: rgb(0 0 0 / 42%);
+    background: var(--color-scrim);
   }
 
   .footer-modal__panel {
@@ -343,7 +490,7 @@
     gap: 0.5rem;
     margin: 0;
     padding: 0.5rem 0.65rem;
-    border: 1px solid color-mix(in srgb, var(--color-bg-dark) 10%, transparent);
+    border: 1px solid var(--color-line);
     border-radius: 0.3rem;
     background: color-mix(in srgb, var(--color-bg-dark) 4%, var(--color-white));
     list-style: none;
@@ -357,7 +504,7 @@
     dt {
       font-size: 0.7rem;
       font-weight: 600;
-      color: color-mix(in srgb, var(--color-bg-dark) 60%, transparent);
+      color: var(--color-ink-soft);
       text-transform: uppercase;
       letter-spacing: 0.04em;
     }
@@ -379,7 +526,7 @@
     place-items: center;
     width: 2rem;
     height: 2rem;
-    border: 1px solid color-mix(in srgb, var(--color-bg-dark) 18%, transparent);
+    border: 1px solid var(--color-line-strong);
     border-radius: 0.25rem;
     background: transparent;
     color: var(--color-bg-dark);
@@ -410,31 +557,6 @@
   }
 
   // Dark mode auth button
-  :global(html[data-theme='dark']) .footer__auth {
-    color: #ffffff;
-    border-color: rgb(255 255 255 / 14%);
-
-    .footer__auth-action { color: rgb(255 255 255 / 55%); }
-
-    &:hover,
-    &:focus-visible {
-      background: color-mix(in srgb, var(--color-accent) 14%, transparent);
-      border-color: var(--color-accent-soft);
-    }
-
-    &--signed {
-      background: #28a7452e;
-      border-color: #28a74566;
-      color: #7ee79a;
-
-      &:hover,
-      &:focus-visible {
-        background: rgb(220 53 69 / 18%);
-        border-color: rgb(220 53 69 / 50%);
-        color: #ff8b95;
-      }
-    }
-  }
 
   @media (max-width: 32rem) {
     .footer {

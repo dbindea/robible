@@ -189,7 +189,7 @@
     padding: 0.6rem;
     border-radius: var(--radius-md);
     background: var(--color-surface-sunken);
-    transition: opacity 0.2s ease;
+    transition: opacity var(--motion-base) ease;
 
     &--busy {
       opacity: 0.55;
@@ -236,9 +236,9 @@
     height: 2.4rem;
     border: 2px solid transparent;
     border-radius: var(--radius-pill);
-    box-shadow: inset 0 0 0 1px rgb(0 0 0 / 12%), var(--box-shadow-up);
+    box-shadow: inset 0 0 0 1px var(--shadow-tint), var(--box-shadow-up);
     cursor: pointer;
-    transition: var(--transition), transform 0.15s ease;
+    transition: var(--transition), transform var(--motion-fast) ease;
 
     &:hover {
       transform: translateY(-1px);
@@ -246,7 +246,7 @@
 
     &--active {
       border-color: var(--color-accent);
-      box-shadow: inset 0 0 0 1px rgb(0 0 0 / 12%), 0 0 0 3px color-mix(in srgb, var(--color-accent) 25%, transparent);
+      box-shadow: inset 0 0 0 1px var(--shadow-tint), 0 0 0 3px color-mix(in srgb, var(--color-accent) 25%, transparent);
     }
 
     &:focus-visible {
@@ -317,7 +317,7 @@
 
   .share-image__submit {
     border: 1px solid var(--color-accent);
-    background: var(--color-accent);
+    background: var(--color-accent-solid);
     color: var(--color-on-primary);
 
     &:hover:not(:disabled) {

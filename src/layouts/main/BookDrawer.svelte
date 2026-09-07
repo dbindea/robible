@@ -101,7 +101,7 @@
     position: fixed;
     inset: 0;
     z-index: 20;
-    background-color: rgb(7 24 31 / 48%);
+    background-color: var(--color-scrim);
     backdrop-filter: blur(2px);
   }
 
@@ -113,9 +113,9 @@
     flex-direction: column;
     width: min(33rem, calc(100vw - 1.5rem));
     background-color: var(--color-white);
-    box-shadow: 1rem 0 2rem rgb(24 47 61 / 24%);
+    box-shadow: 1rem 0 2rem var(--shadow-tint-strong);
     transform: translateX(-104%);
-    transition: transform 0.24s ease;
+    transition: transform var(--motion-slow) var(--ease-out);
     will-change: transform;
   }
 
@@ -129,7 +129,7 @@
     justify-content: space-between;
     gap: 1rem;
     padding: 1.25rem;
-    border-bottom: 1px solid rgb(63 88 103 / 14%);
+    border-bottom: 1px solid var(--color-line);
 
     p,
     h2 {
@@ -155,7 +155,7 @@
     place-items: center;
     width: 2.5rem;
     height: 2.5rem;
-    border: 1px solid rgb(63 88 103 / 18%);
+    border: 1px solid var(--color-line-strong);
     border-radius: 0.35rem;
     background: var(--color-white);
     color: var(--color-bg-dark);
@@ -226,7 +226,7 @@
 
     &--active {
       border-color: var(--color-blue-hover);
-      background: var(--color-blue);
+      background: var(--color-accent-solid);
       color: var(--color-on-primary);
       box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 18%, transparent);
     }
@@ -251,6 +251,19 @@
   @media (prefers-reduced-motion: reduce) {
     .book-drawer {
       transition: none;
+    }
+  }
+  // ── Cristal ───────────────────────────────────────────────────────────
+  // El fondo opaco de la regla de arriba es la base y se queda: si el
+  // navegador no desenfoca, el texto se lee sobre color sólido en vez de
+  // sobre el contenido de la página. La transparencia sólo entra donde hay
+  // desenfoque real.
+  @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+    .book-drawer {
+      background: var(--glass-tint);
+      -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+      backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+      border-color: var(--glass-line);
     }
   }
 </style>

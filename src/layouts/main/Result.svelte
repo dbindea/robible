@@ -1,6 +1,8 @@
 <script>
   import { onDestroy, onMount, tick } from 'svelte';
   import IconPicker from '../../components/IconPicker.svelte';
+  import Icon from '../../components/Icon.svelte';
+  import { resolveTopicIcon } from '../../config/topic-icons.js';
   import Modal from '../../components/Modal.svelte';
   import TtsPlayer from '../../components/TtsPlayer.svelte';
   import VerseImageModal from '../../components/VerseImageModal.svelte';
@@ -186,32 +188,6 @@
     saveToTopicVerseKey = null;
     saveToTopicItem = null;
     showInlineCreate = false;
-  };
-
-  // Helper: devuelve el SVG del icono de un topic
-  const TOPIC_ICONS = {
-    cross: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 12h20"/></svg>`,
-    heart: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>`,
-    star: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`,
-    bookmark: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>`,
-    sun: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`,
-    moon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>`,
-    shield: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
-    crown: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7z"/><line x1="5" y1="20" x2="19" y2="20"/></svg>`,
-    dove: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20c-4-4-8-6-8-10a4 4 0 018 0 4 4 0 018 0c0 4-4 6-8 10z"/><path d="M12 10c-2 0-4-1-4-3"/><line x1="12" y1="7" x2="12" y2="10"/></svg>`,
-    hands: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8V6a2 2 0 00-2-2H4a2 2 0 00-2 2v7a2 2 0 002 2h8"/><path d="M14 4v8a6 6 0 0012 0V6"/></svg>`,
-    flame: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 01-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg>`,
-    water: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z"/></svg>`,
-    home: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
-    light: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`,
-    peace: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 000 20 14.5 14.5 0 000-20"/><path d="M2 12h20"/></svg>`,
-  };
-  const getTopicIconSvg = (iconKey) => TOPIC_ICONS[iconKey] || TOPIC_ICONS.bookmark;
-
-  // Get filled version of icon (for topic badge) - removes fill="none" so it can be colored
-  const getFilledTopicIconSvg = (iconKey) => {
-    const svg = TOPIC_ICONS[iconKey] || TOPIC_ICONS.bookmark;
-    return svg.replace(/fill="none"\s*/g, '').replace(/stroke-width="2"\s*/g, 'stroke-width="1.5"');
   };
 
   const addToTopic = async (item, topicId) => {
@@ -1090,10 +1066,7 @@
           class="icon-btn"
           on:click={(e) => { stopBubble(e); copyVerse(item); }}
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-          </svg>
+          <Icon name="copy" />
         </button>
 
         <!-- ── Acciones que sólo aparecen con el versículo seleccionado ──────
@@ -1110,12 +1083,7 @@
           aria-haspopup="dialog"
           on:click={(e) => { e.stopPropagation(); openShareImage(item); }}
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="18" cy="5" r="3"/>
-            <circle cx="6" cy="12" r="3"/>
-            <circle cx="18" cy="19" r="3"/>
-            <path d="M8.59 13.51l6.83 3.98M15.41 6.51L8.59 10.49"/>
-          </svg>
+          <Icon name="share" />
         </button>
         <button
           type="button"
@@ -1135,9 +1103,7 @@
           disabled={!$isAuthenticated}
           on:click={(e) => { stopBubble(e); if ($isAuthenticated) favoritesStore.toggle(item.book, item.chapter, item.index); }}
         >
-          <svg viewBox="0 0 24 24" fill={$favoritesStore.some((f) => f.book === item.book && f.chapter === item.chapter && f.verse === item.index) ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-          </svg>
+          <Icon name="star" weight={$favoritesStore.some((f) => f.book === item.book && f.chapter === item.chapter && f.verse === item.index) ? 'fill' : 'regular'} />
         </button>
         <button
           type="button"
@@ -1164,10 +1130,7 @@
             openHighlightMenu(item);
           }}
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M15 3l6 6-9.5 9.5H5.5V12.5z"/>
-            <path d="M3 21h18"/>
-          </svg>
+          <Icon name="palette" />
         </button>
         {#if availableOtherVersions.length > 0}
           <span class="verse-compare">
@@ -1182,9 +1145,7 @@
               aria-haspopup="listbox"
               aria-expanded={compareMenuVerseKey === item.key}
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M17 3l4 4-4 4M21 7H8M7 21l-4-4 4-4M3 17h13"/>
-              </svg>
+              <Icon name="compare" />
             </button>
           </span>
         {/if}
@@ -1211,13 +1172,11 @@
             aria-expanded={saveToTopicVerseKey === item.key}
           >
             {#if primaryTopic}
-              <svg viewBox="0 0 24 24" aria-hidden="true" style="color: {primaryTopic.color};">
-                {@html getFilledTopicIconSvg(primaryTopic.icon)}
-              </svg>
+              <span style="color: {primaryTopic.color}; display: contents;">
+                <Icon name={resolveTopicIcon(primaryTopic.icon)} weight="fill" />
+              </span>
             {:else}
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/>
-              </svg>
+              <Icon name="bookmark" />
             {/if}
           </button>
         </span>
@@ -1247,10 +1206,7 @@
               else openNoteModal(item);
             }}
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
-              <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
-            </svg>
+            <Icon name="note" />
           </button>
         </span>
         {/if}
@@ -1308,7 +1264,7 @@
               class:save-topic-option--active={inTopic}
               on:click={() => inTopic ? removeFromTopic(saveToTopicItem, topic.id) : addToTopic(saveToTopicItem, topic.id)}
             >
-              <span class="save-topic-option__icon" aria-hidden="true">{@html getTopicIconSvg(topic.icon)}</span>
+              <span class="save-topic-option__icon" aria-hidden="true"><Icon name={resolveTopicIcon(topic.icon)} size="1rem" /></span>
               <span class="save-topic-option__name">{topic.name}</span>
               <span class="save-topic-option__check" aria-hidden="true">{inTopic ? '✓' : '+'}</span>
             </button>
@@ -1402,9 +1358,7 @@
           on:click={() => applyHighlight(highlightMenuItem, color.hex)}
         >
           {#if activo}
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M20 6L9 17l-5-5"/>
-            </svg>
+            <Icon name="check" />
           {/if}
         </button>
       {/each}
@@ -1451,13 +1405,7 @@
     <div class="note-modal__footer">
       <div class="note-modal__color-row">
         <label class="note-modal__color-label" for="note-color-{noteModalItem.key}">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="14" height="14">
-            <circle cx="13.5" cy="6.5" r="0.5" fill="currentColor"/>
-            <circle cx="17.5" cy="10.5" r="0.5" fill="currentColor"/>
-            <circle cx="8.5" cy="7.5" r="0.5" fill="currentColor"/>
-            <circle cx="6.5" cy="12.5" r="0.5" fill="currentColor"/>
-            <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 011.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
-          </svg>
+          <Icon name="palette" size="14px" />
         </label>
         <input
           type="color"
@@ -1506,7 +1454,6 @@
 <button
   type="button"
   class="scroll-top-button"
-  class:scroll-top-button--tts-active={isTtsActive}
   aria-label={$_('app.result.actions.scroll_top')}
   title={$_('app.result.actions.scroll_top')}
   on:click={scrollToResultTop}
@@ -1551,11 +1498,6 @@
 <TtsPlayer playlist={result} {map} />
 
 <style lang="scss">
-  // Push scroll-to-top button up when TTS mini-player is visible
-  :global(.scroll-top-button.scroll-top-button--tts-active) {
-    bottom: 3.5rem !important;
-  }
-
   .result {
     width: 100%;
     max-width: 72rem;
@@ -1592,7 +1534,7 @@
     flex-wrap: wrap;
     gap: 0.35rem;
     margin-bottom: 0.8rem;
-    color: color-mix(in srgb, var(--color-bg-dark) 72%, white);
+    color: var(--color-ink-soft);
     font-size: 0.88rem;
 
     a {
@@ -1630,8 +1572,8 @@
     padding: 0.5rem clamp(0rem, 2vw, 2rem);
     line-height: 1.7;
     transition:
-      background-color 0.25s ease,
-      box-shadow 0.25s ease;
+      background-color var(--motion-slow) ease,
+      box-shadow var(--motion-slow) ease;
 
     &:focus {
       outline: none;
@@ -1701,9 +1643,6 @@
     box-shadow: none;
   }
 
-  :global(html[data-theme='dark']) .verse--user-highlight:global(.highlight-verse) {
-    background-color: color-mix(in srgb, var(--color-success) 18%, transparent);
-  }
 
   // === PALETA DE SUBRAYADO ===
   .highlight-palette {
@@ -1722,16 +1661,16 @@
     border: 2px solid transparent;
     border-radius: var(--radius-pill);
     background: var(--swatch-color);
+    // Blanco literal y no `--color-on-primary`: la marca de selección va encima
+    // del color que ha elegido el usuario, no de un color de la paleta. En
+    // nocturn el primer plano del acento es negro, y aquí sería ilegible.
     color: #ffffff;
     cursor: pointer;
-    transition: var(--transition), transform 0.15s ease;
-    box-shadow: inset 0 0 0 1px rgb(0 0 0 / 10%), var(--box-shadow-up);
+    transition: var(--transition), transform var(--motion-fast) ease;
+    box-shadow: inset 0 0 0 1px var(--shadow-tint), var(--box-shadow-up);
 
-    svg {
-      width: 1.1rem;
-      height: 1.1rem;
-      filter: drop-shadow(0 1px 1px rgb(0 0 0 / 35%));
-    }
+    --icon-size: 1.1rem;
+    filter: drop-shadow(0 1px 1px var(--shadow-tint-strong));
 
     &:hover {
       transform: translateY(-2px);
@@ -1739,7 +1678,7 @@
 
     &--active {
       border-color: var(--color-ink);
-      box-shadow: inset 0 0 0 1px rgb(0 0 0 / 10%), 0 0 0 3px color-mix(in srgb, var(--swatch-color) 40%, transparent);
+      box-shadow: inset 0 0 0 1px var(--shadow-tint), 0 0 0 3px color-mix(in srgb, var(--swatch-color) 40%, transparent);
     }
 
     &:focus-visible {
@@ -1774,7 +1713,7 @@
 
   // Verse index in immersive mode: blue color from the palette
   .result--immersive .verse-index {
-    color: var(--color-link, #0064c8);
+    color: var(--color-link);
   }
 
   .reference {
@@ -1808,18 +1747,17 @@
     width: 1.65rem;
     height: 1.65rem;
     margin-left: 0.2rem;
-    border: 1px solid color-mix(in srgb, var(--color-accent) 24%, transparent);
+    border: 1px solid var(--color-line-accent);
     border-radius: 0.28rem;
-    background: color-mix(in srgb, var(--color-accent) 7%, transparent);
-    color: var(--color-link);
+    background: var(--wash-accent);
+    color: var(--color-accent-ink);
     cursor: pointer;
     transition: var(--transition);
-    box-shadow: 0 1px 3px rgb(0 0 0 / 10%);
+    box-shadow: 0 1px 3px var(--shadow-tint);
 
-    svg {
-      width: 0.85rem;
-      height: 0.85rem;
-    }
+    // El tamaño va al contenedor: una regla `svg` de aquí no alcanza al
+    // <svg> de Icon.svelte, que lleva otra clase de scope.
+    --icon-size: 0.85rem;
 
     &:hover,
     &:focus-visible {
@@ -1875,7 +1813,7 @@
   .compare-link-btn {
     // Siempre visible con box-shadow consistente
     opacity: 1;
-    box-shadow: 0 1px 3px rgb(0 0 0 / 10%);
+    box-shadow: 0 1px 3px var(--shadow-tint);
 
     &:hover,
     &:focus-visible {
@@ -1903,7 +1841,7 @@
     width: 14rem;
     max-width: calc(100vw - 2rem);
     padding: 0.35rem;
-    border: 1px solid rgb(63 88 103 / 18%);
+    border: 1px solid var(--color-line-strong);
     border-radius: 0.35rem;
     background: var(--color-white);
     box-shadow: var(--box-shadow-down);
@@ -1932,7 +1870,7 @@
 
     &__locale {
       font-size: 0.7rem;
-      color: color-mix(in srgb, var(--color-bg-dark) 60%, transparent);
+      color: var(--color-ink-soft);
     }
 
     &:hover,
@@ -1942,30 +1880,8 @@
     }
   }
 
-  :global(html[data-theme='dark']) .verse-compare-menu {
-    background: var(--color-surface);
-    border-color: rgb(255 255 255 / 15%);
-  }
 
-  :global(html[data-theme='dark']) .verse-compare-option {
-    color: #ffffff;
 
-    &__locale {
-      color: rgb(255 255 255 / 50%);
-    }
-
-    &:hover,
-    &:focus-visible {
-      background: color-mix(in srgb, var(--color-accent) 18%, transparent);
-      border-color: var(--color-blue);
-    }
-  }
-
-  :global(html[data-theme='dark']) .compare-link-btn {
-    background: color-mix(in srgb, var(--color-accent) 15%, transparent);
-    color: var(--color-accent-soft);
-    border-color: color-mix(in srgb, var(--color-accent) 25%, transparent);
-  }
 
   // === SAVE TO TOPIC ===
   .verse-save-topic {
@@ -1976,7 +1892,7 @@
   .save-topic-btn {
     // Siempre visible, con box-shadow consistente
     opacity: 1;
-    box-shadow: 0 1px 3px rgb(0 0 0 / 10%);
+    box-shadow: 0 1px 3px var(--shadow-tint);
 
     &:hover,
     &:focus-visible {
@@ -2006,7 +1922,7 @@
     max-height: min(70vh, 32rem);
     overflow-y: auto;
     padding: 0.55rem;
-    border: 1px solid rgb(63 88 103 / 18%);
+    border: 1px solid var(--color-line-strong);
     border-radius: 0.6rem;
     background: var(--color-white);
     box-shadow: var(--box-shadow-down);
@@ -2042,7 +1958,7 @@
       position: fixed;
       inset: 0;
       z-index: 105;
-      background: rgb(0 0 0 / 50%);
+      background: var(--color-scrim);
       backdrop-filter: blur(3px);
     }
   }
@@ -2058,7 +1974,7 @@
 
       @media (max-width: 480px) {
         padding: 0 0 0.5rem;
-        border-bottom: 1px solid rgb(63 88 103 / 18%);
+        border-bottom: 1px solid var(--color-line-strong);
         margin-bottom: 0.25rem;
       }
     }
@@ -2086,12 +2002,12 @@
       justify-content: center;
       width: 2rem;
       height: 2rem;
-      border: 1px solid rgb(63 88 103 / 20%);
+      border: 1px solid var(--color-line-strong);
       border-radius: 0.4rem;
       background: transparent;
       color: var(--color-bg-dark);
       cursor: pointer;
-      transition: background 0.12s;
+      transition: background var(--motion-fast);
 
       @media (max-width: 480px) {
         display: grid;
@@ -2109,7 +2025,7 @@
       margin: 0;
       padding: 0.75rem 0.4rem;
       font-size: 0.85rem;
-      color: color-mix(in srgb, var(--color-bg-dark) 60%, transparent);
+      color: var(--color-ink-soft);
     }
 
     &__list {
@@ -2179,8 +2095,8 @@
         padding: 1.5rem 1rem;
         border-radius: 0.5rem;
         background: var(--color-white);
-        border: 1px solid rgb(63 88 103 / 20%);
-        box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
+        border: 1px solid var(--color-line-strong);
+        box-shadow: 0 4px 12px var(--shadow-tint);
 
         input[type='text'] {
           width: 100%;
@@ -2255,12 +2171,12 @@
       }
 
       &-save {
-        background: var(--color-blue);
-        border: 1px solid var(--color-blue);
-        color: var(--color-white);
+        background: var(--color-accent-solid);
+        border: 1px solid var(--color-accent-solid);
+        color: var(--color-on-primary);
 
         &:hover:not(:disabled) {
-          background: var(--color-blue-hover);
+          background: var(--color-accent-solid-hover);
         }
 
         &:disabled {
@@ -2358,22 +2274,15 @@
     }
   }
 
-  :global(html[data-theme='dark']) .save-topic-btn {
-    background: color-mix(in srgb, var(--color-accent) 15%, transparent);
-    color: var(--color-accent-soft);
-    border-color: color-mix(in srgb, var(--color-accent) 25%, transparent);
-  }
 
   // === FAVORITE BUTTON ===
   // Siempre visible (es la acción primaria). Estado activo = estrella rellena en amarillo.
   .favorite-btn {
     opacity: 1;
 
-    svg {
-      transition: transform 0.15s ease, fill 0.15s ease;
-    }
+    transition: transform var(--motion-fast) ease;
 
-    &:hover:not(:disabled) svg {
+    &:hover:not(:disabled) {
       transform: scale(1.15);
     }
 
@@ -2383,62 +2292,12 @@
     }
   }
 
-  :global(html[data-theme='dark']) .favorite-btn {
-    color: #ffffff;
-    border-color: rgb(255 255 255 / 14%);
 
-  }
 
-  :global(html[data-theme='dark']) .save-topic-menu {
-    background: var(--color-surface);
-    border-color: rgb(255 255 255 / 15%);
-  }
 
-  :global(html[data-theme='dark']) .save-topic-menu__header {
-    border-color: rgb(255 255 255 / 15%);
-  }
 
-  :global(html[data-theme='dark']) .save-topic-menu__label {
-    color: var(--color-accent-soft);
-  }
 
-  :global(html[data-theme='dark']) .save-topic-menu__close {
-    color: #ffffff;
-    border-color: rgb(255 255 255 / 20%);
 
-    &:hover,
-    &:focus-visible {
-      background: rgb(255 255 255 / 10%);
-      border-color: rgb(255 255 255 / 30%);
-    }
-  }
-
-  :global(html[data-theme='dark']) .save-topic-option {
-    color: #ffffff;
-
-    &--active {
-      background: color-mix(in srgb, var(--color-accent) 18%, transparent);
-      border-color: var(--color-blue);
-    }
-
-    &:hover,
-    &:focus-visible {
-      background: color-mix(in srgb, var(--color-accent) 15%, transparent);
-      border-color: var(--color-blue);
-    }
-  }
-
-  :global(html[data-theme='dark']) .save-topic-menu__inline {
-    background: rgb(255 255 255 / 4%);
-    border-color: rgb(255 255 255 / 15%);
-
-    input[type='text'],
-    input[type='color'] {
-      background: rgb(255 255 255 / 8%);
-      border-color: rgb(255 255 255 / 20%);
-      color: #ffffff;
-    }
-  }
 
   .count {
     font-weight: 700;
@@ -2493,7 +2352,7 @@
 
     input[type='radio']:checked + label {
       border-color: var(--color-blue-hover);
-      background: var(--color-blue);
+      background: var(--color-accent-solid);
       color: var(--color-on-primary);
       box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 18%, transparent);
     }
@@ -2517,7 +2376,10 @@
   .scroll-top-button {
     position: fixed;
     right: 1rem;
-    bottom: 1rem;
+    // `--player-offset` lo publica TtsPlayer: mientras suena la música su barra
+    // ocupa la parte de abajo y este botón se quedaba detrás.
+    bottom: calc(1rem + var(--player-offset, 0px));
+    transition: bottom var(--motion-base) var(--ease-out);
     z-index: 8;
     display: none;
     place-items: center;
@@ -2525,7 +2387,7 @@
     height: 2.5rem;
     border: 1px solid var(--color-blue);
     border-radius: 0.35rem;
-    background: var(--color-blue);
+    background: var(--color-accent-solid);
     color: var(--color-on-primary);
     box-shadow: var(--box-shadow-down);
     transition: var(--transition);
@@ -2602,7 +2464,7 @@
   }
 
   .result-content {
-    transition: transform 0.15s ease, opacity 0.15s ease;
+    transition: transform var(--motion-fast) ease, opacity var(--motion-fast) ease;
   }
 
   .swipe-indicator {
@@ -2617,7 +2479,7 @@
     padding: 0.75rem 0.5rem;
     background-color: color-mix(in srgb, var(--color-accent) 14%, transparent);
     border-radius: 0.35rem;
-    transition: opacity 0.2s ease;
+    transition: opacity var(--motion-base) ease;
     pointer-events: none;
 
     &--left {
@@ -2684,7 +2546,10 @@
   /* === Chapter Navigation (Desktop) === */
   .chapter-nav {
     position: fixed;
-    bottom: 2.5rem;
+    // A media altura y no abajo: pegados al pie se solapaban con el footer,
+    // que es fijo, y el botón quedaba debajo sin poder pulsarse.
+    top: 50%;
+    transform: translateY(-50%);
     z-index: 8;
     display: flex;
     align-items: center;
@@ -2692,19 +2557,19 @@
     padding: 0.55rem 0.85rem;
     border: 1px solid var(--color-blue);
     border-radius: 999px;
-    background: var(--color-white);
-    color: var(--color-bg-dark);
+    background: var(--color-surface-raised);
+    color: var(--color-ink-strong);
     font-size: 0.82rem;
     font-weight: 700;
     cursor: pointer;
     transition: var(--transition);
     box-shadow: var(--box-shadow-down);
-    animation: chapterNavFadeIn 0.2s ease;
+    animation: chapterNavFadeIn var(--motion-base) var(--ease-out);
 
     &:hover,
     &:focus-visible {
-      background: var(--color-blue);
-      color: var(--color-white);
+      background: var(--color-accent-solid);
+      color: var(--color-on-primary);
       box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 25%, transparent), var(--box-shadow-down);
     }
 
@@ -2743,14 +2608,14 @@
     }
   }
 
+  // Sólo opacidad: un desplazamiento en Y anularía el translateY(-50%) que
+  // centra el botón y aparecería descolocado.
   @keyframes chapterNavFadeIn {
     from {
       opacity: 0;
-      transform: translateY(0.5rem);
     }
     to {
       opacity: 1;
-      transform: translateY(0);
     }
   }
 
@@ -2760,22 +2625,11 @@
     }
   }
 
-  // Dark mode chapter nav
-  :global(html[data-theme='dark']) .chapter-nav {
-    background: var(--color-white);
-    color: var(--color-bg-dark);
-
-    &:hover,
-    &:focus-visible {
-      background: var(--color-blue);
-      color: var(--color-white);
-    }
-  }
 
   /* === Note button === */
   .note-btn {
     opacity: 1;
-    box-shadow: 0 1px 3px rgb(0 0 0 / 10%);
+    box-shadow: 0 1px 3px var(--shadow-tint);
 
   }
 
@@ -2788,7 +2642,7 @@
     position: fixed;
     inset: 0;
     z-index: 105;
-    background: rgb(0 0 0 / 50%);
+    background: var(--color-scrim);
     backdrop-filter: blur(3px);
   }
 
@@ -2850,12 +2704,12 @@
       place-items: center;
       width: 2rem;
       height: 2rem;
-      border: 1px solid rgb(63 88 103 / 20%);
+      border: 1px solid var(--color-line-strong);
       border-radius: 0.4rem;
       background: transparent;
       color: var(--color-bg-dark);
       cursor: pointer;
-      transition: background 0.12s;
+      transition: background var(--motion-fast);
 
       &:hover,
       &:focus-visible {
@@ -2870,7 +2724,7 @@
       flex: 1;
       resize: none;
       min-height: 0;
-      border: 1px solid rgb(63 88 103 / 20%);
+      border: 1px solid var(--color-line-strong);
       border-radius: 0.5rem;
       padding: 0.75rem;
       font-size: 0.9rem;
@@ -2879,7 +2733,7 @@
       background: var(--color-bg-light);
       line-height: 1.6;
       outline: none;
-      transition: border-color 0.15s;
+      transition: border-color var(--motion-fast);
 
       &:focus {
         border-color: var(--color-blue);
@@ -2905,7 +2759,7 @@
     }
 
     &__color-label {
-      color: color-mix(in srgb, var(--color-bg-dark) 50%, transparent);
+      color: var(--color-ink-soft);
       display: flex;
       align-items: center;
       cursor: default;
@@ -2915,7 +2769,7 @@
       width: 28px;
       height: 28px;
       padding: 0;
-      border: 1px solid rgb(63 88 103 / 22%);
+      border: 1px solid var(--color-line-strong);
       border-radius: 0.35rem;
       cursor: pointer;
       background: none;
@@ -2938,16 +2792,16 @@
 
     &__delete {
       font-size: 0.75rem;
-      color: #ef4444;
+      color: var(--color-danger);
       background: none;
       border: none;
       cursor: pointer;
       padding: 0.2rem 0.3rem;
       border-radius: 0.3rem;
-      transition: background 0.15s;
+      transition: background var(--motion-fast);
 
       &:hover {
-        background: rgb(239 68 68 / 0.1);
+        background: var(--color-danger-wash);
       }
     }
 
@@ -2959,7 +2813,7 @@
       border-radius: 999px;
       cursor: pointer;
       padding: 0.3rem 0.7rem;
-      transition: background 0.15s;
+      transition: background var(--motion-fast);
 
       &:hover {
         background: color-mix(in srgb, var(--color-accent) 8%, transparent);
@@ -2969,13 +2823,13 @@
     &__save {
       font-size: 0.75rem;
       font-weight: 700;
-      color: #ffffff;
+      color: var(--color-on-primary);
       background: var(--color-blue);
       border: none;
       border-radius: 999px;
       cursor: pointer;
       padding: 0.3rem 0.85rem;
-      transition: background 0.15s;
+      transition: background var(--motion-fast);
 
       &:disabled {
         opacity: 0.45;
@@ -2985,80 +2839,6 @@
       &:not(:disabled):hover {
         background: var(--color-blue-hover);
       }
-    }
-  }
-
-  // El `:not(.icon-btn--marked)` es imprescindible, no cosmético.
-  //
-  // Esta regla tiene tres clases de especificidad y `.icon-btn--marked` sólo
-  // dos, así que sin la exclusión ganaba siempre: en tema oscuro, un icono
-  // marcado se quedaba con el borde y el fondo del color elegido por el usuario
-  // pero el trazo volvía al azul del tema. Ese era el "azul + amarillo" que se
-  // veía en un versículo subrayado, y por eso sólo pasaba en oscuro.
-  //
-  // Regla de la casa: cuando una acción tiene color propio, ese color sustituye
-  // por completo al azul de estado activo; no se mezclan.
-  :global(html[data-theme='dark']) .icon-btn:not(.icon-btn--marked) {
-    background: color-mix(in srgb, var(--color-accent) 15%, transparent);
-    color: var(--color-accent-soft);
-    border-color: color-mix(in srgb, var(--color-accent) 25%, transparent);
-  }
-
-  // Dark mode note modal — centered overlay (auth-modal style)
-  :global(html[data-theme='dark']) .note-overlay {
-    background: rgb(0 0 0 / 60%);
-  }
-
-  :global(html[data-theme='dark']) .note-modal {
-    background: var(--color-surface);
-    border-color: rgb(255 255 255 / 15%);
-    color: #ffffff;
-
-    &__eyebrow {
-      color: var(--color-accent-soft);
-    }
-
-    &__title {
-      color: #ffffff;
-    }
-
-    &__close {
-      border-color: rgb(255 255 255 / 18%);
-      color: #ffffff;
-
-      &:hover,
-      &:focus-visible {
-        background: color-mix(in srgb, var(--color-accent) 18%, transparent);
-        border-color: var(--color-accent-soft);
-      }
-    }
-
-    &__textarea {
-      background: rgb(255 255 255 / 8%);
-      border-color: rgb(255 255 255 / 20%);
-      color: #ffffff;
-
-      &:focus {
-        border-color: var(--color-blue);
-        box-shadow: 0 0 0 2px rgb(77 178 230 / 30%);
-      }
-
-      &::placeholder {
-        color: rgb(255 255 255 / 45%);
-      }
-    }
-
-    &__cancel {
-      color: #ffffff;
-      border-color: rgb(255 255 255 / 25%);
-
-      &:hover {
-        background: rgb(255 255 255 / 8%);
-      }
-    }
-
-    &__color-picker {
-      border-color: rgb(255 255 255 / 25%);
     }
   }
 
@@ -3100,5 +2880,30 @@
 
   .tts-verse-text {
     display: inline;
+  }
+  // ── Cristal ───────────────────────────────────────────────────────────
+  // El fondo opaco de la regla de arriba es la base y se queda: si el
+  // navegador no desenfoca, el texto se lee sobre color sólido en vez de
+  // sobre el contenido de la página. La transparencia sólo entra donde hay
+  // desenfoque real.
+  @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+    .chapter-nav {
+      background: var(--glass-tint);
+      -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+      backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+      border-color: var(--glass-line);
+    }
+    .scroll-top-button {
+      background: var(--glass-accent);
+      -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+      backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+      border-color: var(--glass-line);
+    }
+    .toast {
+      background: var(--glass-tint);
+      -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+      backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+      border-color: var(--glass-line);
+    }
   }
 </style>

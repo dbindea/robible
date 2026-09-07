@@ -8,6 +8,9 @@ import {
   getDefaultCompareWith,
 } from '../config/bible-versions.js';
 import { parseBiblePath, parseLegacyVersePath } from '../services/bible-route.service.js';
+import { PALETTES, SYSTEM_DARK, SYSTEM_LIGHT, getPalette, isValidPalette, migratePalette } from '../config/palettes.js';
+
+export { PALETTES };
 
 export const BIBLE_VERSION_STORAGE_KEY = 'selectedBibleVersion';
 export const COMPARE_WITH_STORAGE_KEY = 'robible:compareWith';
@@ -45,20 +48,21 @@ const getSavedBibleVersion = () => {
   }
 };
 
-const isValidThemeMode = (value) => value === 'light' || value === 'dark';
+const isValidThemeMode = (value) => isValidPalette(value);
 
 const getSystemThemeMode = () => {
   try {
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? SYSTEM_DARK : SYSTEM_LIGHT;
   } catch {
-    return 'light';
+    return SYSTEM_LIGHT;
   }
 };
 
 const getSavedThemeMode = () => {
   try {
-    const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
-    return isValidThemeMode(savedTheme) ? savedTheme : getSystemThemeMode();
+    // `migratePalette` traduce los antiguos 'light' / 'dark': quien ya tenía
+    // RoBible instalado conserva su preferencia en lugar de volver al defecto.
+    return migratePalette(localStorage.getItem(THEME_STORAGE_KEY)) || getSystemThemeMode();
   } catch {
     return getSystemThemeMode();
   }
@@ -66,11 +70,13 @@ const getSavedThemeMode = () => {
 
 const applyThemeMode = (themeMode) => {
   try {
-    document.documentElement.dataset.theme = themeMode;
-    document.documentElement.style.colorScheme = themeMode;
-    document
-      .querySelector('meta[name="theme-color"]')
-      ?.setAttribute('content', themeMode === 'dark' ? '#0f1720' : '#3f5867');
+    const paleta = getPalette(themeMode);
+    document.documentElement.dataset.theme = paleta.id;
+    // `color-scheme` sigue siendo binario aunque haya cinco paletas: es lo que
+    // le dice al navegador de qué color pintar las barras de scroll y los
+    // controles nativos. Sepia y cald son claras; nocturn, oscura.
+    document.documentElement.style.colorScheme = paleta.scheme;
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', paleta.themeColor);
   } catch {
     // The theme store can still be used in memory if document is unavailable.
   }
@@ -198,25 +204,31 @@ try {
   const systemTheme = window.matchMedia('(prefers-color-scheme: dark)');
   systemTheme.addEventListener('change', (event) => {
     if (!localStorage.getItem(THEME_STORAGE_KEY)) {
-      themeMode.set(event.matches ? 'dark' : 'light');
+      // Sólo mientras el usuario no haya elegido paleta: en cuanto elige, manda
+      // él y el sistema deja de opinar.
+      themeMode.set(event.matches ? SYSTEM_DARK : SYSTEM_LIGHT);
     }
   });
 } catch {
   // System theme detection is optional.
 }
 
-export const toggleThemeMode = () => {
-  themeMode.update((mode) => {
-    const nextMode = mode === 'dark' ? 'light' : 'dark';
+/**
+ * Fija la paleta activa y la recuerda.
+ *
+ * Sustituye al antiguo `toggleThemeMode`: con cinco paletas, alternar deja de
+ * tener sentido — no hay "la otra". El usuario elige de una lista.
+ */
+export const setThemeMode = (id) => {
+  if (!isValidPalette(id)) return;
 
-    try {
-      localStorage.setItem(THEME_STORAGE_KEY, nextMode);
-    } catch {
-      // Theme changes still apply for this session if storage is unavailable.
-    }
+  themeMode.set(id);
 
-    return nextMode;
-  });
+  try {
+    localStorage.setItem(THEME_STORAGE_KEY, id);
+  } catch {
+    // Theme changes still apply for this session if storage is unavailable.
+  }
 };
 
 export const resetFilter = () => {

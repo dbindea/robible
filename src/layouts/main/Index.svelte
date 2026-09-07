@@ -11,29 +11,12 @@
   import { isAuthenticated } from '../../store/authStore';
   import { openAuthMenu } from '../../store/authMenuStore';
   import IconPicker from '../../components/IconPicker.svelte';
+  import Icon from '../../components/Icon.svelte';
+  import { resolveTopicIcon } from '../../config/topic-icons.js';
 
   export let bible = [];
   export let map = {};
 
-  // Helper para renderizar icono SVG de topic
-  const TOPIC_ICONS = {
-    cross: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 12h20"/></svg>`,
-    heart: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>`,
-    star: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`,
-    bookmark: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>`,
-    sun: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`,
-    moon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>`,
-    shield: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
-    crown: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7z"/><line x1="5" y1="20" x2="19" y2="20"/></svg>`,
-    dove: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20c-4-4-8-6-8-10a4 4 0 018 0 4 4 0 018 0c0 4-4 6-8 10z"/><path d="M12 10c-2 0-4-1-4-3"/><line x1="12" y1="7" x2="12" y2="10"/></svg>`,
-    hands: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8V6a2 2 0 00-2-2H4a2 2 0 00-2 2v7a2 2 0 002 2h8"/><path d="M14 4v8a6 6 0 0012 0V6"/></svg>`,
-    flame: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 01-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg>`,
-    water: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z"/></svg>`,
-    home: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
-    light: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`,
-    peace: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 000 20 14.5 14.5 0 000-20"/><path d="M2 12h20"/></svg>`,
-  };
-  const getTopicIconSvg = (iconKey) => TOPIC_ICONS[iconKey] || TOPIC_ICONS.bookmark;
 
   let view = 'list'; // 'list' | 'detail'
   let selectedTopicId = null;
@@ -296,7 +279,7 @@
               style:--topic-color={topic.color}
               on:click={() => openTopic(topic.id)}
             >
-              <span class="topic-card__icon" aria-hidden="true">{@html getTopicIconSvg(topic.icon)}</span>
+              <span class="topic-card__icon" aria-hidden="true"><Icon name={resolveTopicIcon(topic.icon)} size="1.1rem" /></span>
               <span class="topic-card__name">{topic.name}</span>
               <span class="topic-card__count">
                 {count === 1
@@ -328,7 +311,7 @@
     {:else if view === 'detail' && selectedTopic}
       <div class="topic-detail">
         <header class="topic-detail__header" style:--topic-color={selectedTopic.color}>
-          <span class="topic-detail__icon" aria-hidden="true">{@html getTopicIconSvg(selectedTopic.icon)}</span>
+          <span class="topic-detail__icon" aria-hidden="true"><Icon name={resolveTopicIcon(selectedTopic.icon)} size="1.35rem" /></span>
           <div class="topic-detail__meta">
             <h2>{selectedTopic.name}</h2>
             <p>
@@ -350,14 +333,9 @@
               disabled={publicando}
               on:click={alternarPublicacion}
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                {#if selectedTopic.isPublic}
-                  <path d="M12 2a10 10 0 100 20 10 10 0 000-20zM2 12h20M12 2a15 15 0 010 20 15 15 0 010-20z"/>
-                {:else}
-                  <rect x="4" y="11" width="16" height="10" rx="2"/>
-                  <path d="M8 11V7a4 4 0 118 0v4"/>
-                {/if}
-              </svg>
+              <!-- Globo si el tema es público, candado si es privado: el estado
+                   se lee del icono sin tener que abrir nada. -->
+              <Icon name={selectedTopic.isPublic ? 'globe' : 'lock'} />
               <span>
                 {selectedTopic.isPublic
                   ? $_('app.topics.share.unpublish')
@@ -484,7 +462,7 @@
     position: sticky;
     top: 0;
     z-index: 10;
-    box-shadow: 0 2px 12px rgb(0 0 0 / 10%);
+    box-shadow: 0 2px 12px var(--shadow-tint);
     margin: 0 calc(-1 * clamp(1rem, 5vw, 5rem)) 1.5rem;
 
     &__inner {
@@ -510,7 +488,7 @@
       p {
         margin: 0.2rem 0 0;
         font-size: 0.85rem;
-        color: color-mix(in srgb, var(--color-bg-dark) 65%, transparent);
+        color: var(--color-ink-soft);
       }
     }
   }
@@ -544,8 +522,8 @@
     padding: 0.5rem 0.95rem;
     border: 1px solid var(--color-blue);
     border-radius: 999px;
-    background: var(--color-blue);
-    color: var(--color-white);
+    background: var(--color-accent-solid);
+    color: var(--color-on-primary);
     font-size: 0.85rem;
     font-weight: 700;
     cursor: pointer;
@@ -586,7 +564,7 @@
       margin: 0;
       font-size: 1rem;
       max-width: 28rem;
-      color: color-mix(in srgb, var(--color-bg-dark) 65%, transparent);
+      color: var(--color-ink-soft);
     }
   }
 
@@ -599,9 +577,9 @@
     min-height: 40vh;
     text-align: center;
     padding: 3rem 1.5rem;
-    border: 2px dashed color-mix(in srgb, var(--color-bg-dark) 14%, transparent);
+    border: 2px dashed var(--color-line-strong);
     border-radius: 0.75rem;
-    background: color-mix(in srgb, var(--color-bg-dark) 3%, var(--color-white));
+    background: var(--wash-subtle);
 
     &__icon {
       margin: 0;
@@ -619,7 +597,7 @@
     &__hint {
       margin: 0;
       font-size: 0.9rem;
-      color: color-mix(in srgb, var(--color-bg-dark) 60%, transparent);
+      color: var(--color-ink-soft);
     }
 
     &__btn {
@@ -627,8 +605,8 @@
       padding: 0.6rem 1.4rem;
       border: 1px solid var(--color-blue);
       border-radius: 0.4rem;
-      background: var(--color-blue);
-      color: var(--color-white);
+      background: var(--color-accent-solid);
+      color: var(--color-on-primary);
       font-size: 0.92rem;
       font-weight: 700;
       cursor: pointer;
@@ -715,7 +693,7 @@
       border: 0;
       border-radius: 50%;
       background: transparent;
-      color: color-mix(in srgb, var(--color-bg-dark) 50%, transparent);
+      color: var(--color-ink-soft);
       cursor: pointer;
       transition: var(--transition);
       opacity: 0;
@@ -723,8 +701,8 @@
 
       &:hover,
       &:focus-visible {
-        background: rgb(220 50 50 / 12%);
-        color: #c0392b;
+        background: var(--color-danger-wash);
+        color: var(--color-danger);
         opacity: 1;
       }
 
@@ -786,7 +764,9 @@
     cursor: pointer;
     transition: var(--transition);
 
-    svg { width: 0.95rem; height: 0.95rem; }
+    // El tamaño va al contenedor: una regla `svg` de aquí no alcanza al
+    // <svg> de Icon.svelte, que lleva otra clase de scope.
+    --icon-size: 0.95rem;
 
     &:hover:not(:disabled) {
       border-color: var(--color-accent);
@@ -825,7 +805,7 @@
 
     &--principal {
       border-color: var(--color-accent);
-      background: var(--color-accent);
+      background: var(--color-accent-solid);
       color: var(--color-on-primary);
 
       &:hover {
@@ -956,7 +936,7 @@
 
       &:hover,
       &:focus-visible {
-        background: var(--color-blue);
+        background: var(--color-accent-solid);
         color: var(--color-on-primary);
         border-color: var(--color-blue);
       }
@@ -978,7 +958,7 @@
       border: 0;
       border-radius: 50%;
       background: transparent;
-      color: color-mix(in srgb, var(--color-bg-dark) 50%, transparent);
+      color: var(--color-ink-soft);
       cursor: pointer;
       transition: var(--transition);
       opacity: 0;
@@ -987,8 +967,8 @@
 
       &:hover,
       &:focus-visible {
-        background: rgb(220 50 50 / 12%);
-        color: #c0392b;
+        background: var(--color-danger-wash);
+        color: var(--color-danger);
         opacity: 1;
       }
 
@@ -1009,9 +989,9 @@
     justify-content: center;
     padding: 1rem;
     min-height: 100dvh;
-    background: rgb(0 0 0 / 45%);
+    background: var(--color-scrim);
     backdrop-filter: blur(2px);
-    animation: fadeIn 0.15s ease;
+    animation: fadeIn var(--motion-fast) var(--ease-out);
     overflow-y: auto;
   }
 
@@ -1025,7 +1005,7 @@
     box-shadow: var(--box-shadow-down);
     padding: 1.25rem;
     color: var(--color-bg-dark);
-    animation: scaleIn 0.15s ease;
+    animation: scaleIn var(--motion-fast) var(--ease-out);
     margin: auto;
 
     &__title {
@@ -1061,7 +1041,7 @@
     &__label {
       font-size: 0.78rem;
       font-weight: 700;
-      color: color-mix(in srgb, var(--color-bg-dark) 70%, transparent);
+      color: var(--color-ink-soft);
       text-transform: uppercase;
       letter-spacing: 0.04em;
     }
@@ -1125,13 +1105,13 @@
       }
 
       &--primary {
-        background: var(--color-blue);
-        border: 1px solid var(--color-blue);
-        color: var(--color-white);
+        background: var(--color-accent-solid);
+        border: 1px solid var(--color-accent-solid);
+        color: var(--color-on-primary);
 
         &:hover:not(:disabled) {
-          background: var(--color-blue-hover);
-          border-color: var(--color-blue-hover);
+          background: var(--color-accent-solid-hover);
+          border-color: var(--color-accent-solid-hover);
         }
 
         &:disabled {
@@ -1153,98 +1133,6 @@
   }
 
   // === DARK MODE ===
-  :global(html[data-theme='dark']) {
-    .index-header {
-      background: var(--color-page);
-      border-bottom-color: var(--color-blue);
-    }
-
-    .index-empty p {
-      color: rgb(255 255 255 / 60%);
-    }
-
-    .auth-prompt {
-      background: rgb(255 255 255 / 3%);
-      border-color: rgb(255 255 255 / 14%);
-
-      &__text { color: #ffffff; }
-      &__hint { color: rgb(255 255 255 / 55%); }
-    }
-
-    .topic-card {
-      background: var(--color-surface);
-      border-color: rgb(255 255 255 / 12%);
-
-      &__count {
-        color: rgb(255 255 255 / 65%);
-      }
-
-      &:hover,
-      &:focus-visible {
-        background: #243549;
-      }
-    }
-
-    .topic-detail {
-      &__header {
-        background: rgb(255 255 255 / 5%);
-      }
-
-      &__meta {
-        h2 { color: #ffffff; }
-        p { color: rgb(255 255 255 / 60%); }
-      }
-    }
-
-    .verse-item {
-      background: var(--color-surface);
-      border-color: rgb(255 255 255 / 12%);
-
-      &:hover {
-        background: #243549;
-        border-color: var(--color-blue);
-      }
-
-      &__ref {
-        background: color-mix(in srgb, var(--color-accent) 18%, transparent);
-        color: var(--color-accent-soft);
-        border-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
-      }
-
-      &__text {
-        color: #ffffff;
-      }
-
-      &__remove {
-        color: rgb(255 255 255 / 50%);
-      }
-    }
-
-    .modal {
-      background: var(--color-surface);
-      color: #ffffff;
-    }
-
-    .modal__label {
-      color: rgb(255 255 255 / 65%);
-    }
-
-    .modal input[type='text'],
-    .modal input[type='color'] {
-      background: rgb(255 255 255 / 8%);
-      border-color: rgb(255 255 255 / 25%);
-      color: #ffffff;
-    }
-
-    .modal__btn--ghost {
-      color: #ffffff;
-      border-color: rgb(255 255 255 / 25%);
-
-      &:hover {
-        background: rgb(255 255 255 / 8%);
-      }
-    }
-  }
 
   // === MOBILE ===
   @media (max-width: 38rem) {

@@ -1,7 +1,7 @@
 # RoBible — Roadmap
 
 > Documento vivo. Actualizado en cada milestone.
-> Última actualización: **5 sep 2026** (Phase 6.4: temas compartibles · cierre del audio · arreglo de caché de idiomas)
+> Última actualización: **7 sep 2026** (Fases 2-7: UX móvil · perfiles · player y música · «Predicile mele» con Modo Amvon offline · cinco paletas, cristal e iconos nuevos)
 
 > Documentación de referencia: [CLAUDE.md](CLAUDE.md) · [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) · [docs/OPERACIONES.md](docs/OPERACIONES.md)
 > Deuda técnica detectada: [docs/AUDITORIA-2026-09-04.md](docs/AUDITORIA-2026-09-04.md)
@@ -16,7 +16,7 @@ RoBible es una app web (PWA) de la Biblia con soporte offline, auth multi-device
 - Frontend: Svelte 5 (sintaxis legacy, no runes) + Vite 8, SCSS themeable (light/dark)
 - Data: JSON estáticos en `/public/data/{vdc,rvl,en_kjv,zh_cuv}/bible.{map,json}` — entre 3 y 4,3 MB por Biblia
 - i18n: propio, sin librería. JSON en `/public/lang/{ro,es,en,zh}.json`
-- PWA: manifest + service worker (cache-first, versiones) — hoy `robible-v25`
+- PWA: manifest + service worker (cache-first, versiones) — hoy `robible-v27`
 - Rutas: path-based custom (parsea `window.location.pathname`)
 - Backend: Cloudflare Workers (`robible-api`) + D1 (`robible-db`), router Hono
 - Auth: PBKDF2 + HMAC tokens persistidos en D1 (revocables), TTL 30 días
@@ -344,24 +344,22 @@ Arreglados: idioma del TTS, `USE_BACKEND` en producción, idioma de las categor�
 
 El objetivo es doble: **limpiar el UX en móvil** y **abrir el producto a los predicadores**.
 
-### Fase 2 — Corregir el UX existente
+### Fase 2 — Corregir el UX existente ✅ COMPLETADA (2026-09-07)
 
-| # | Qué | Estado real encontrado |
+| # | Qué | Qué había realmente |
 |---|---|---|
-| 2.A | Selector idioma/versión con código corto visible (`RO · Biblia Română`) | Hoy muestra sólo el nombre del idioma |
-| 2.B | Historial de búsqueda: 3 visibles, desaparece al escribir | Ya hace scroll con 4; nada lo cierra al teclear |
-| 2.C | Abreviaturas de libro (`prov 3 4`), sin recuento de resultados, sin auto-salto | **8 de 11 abreviaturas comunes fallan** |
-| 2.D | Conservar el texto al cambiar palabras ↔ referencia | Hoy se borra **a propósito**; hay que invertir la decisión |
-| 2.E | Versículo: sólo copiar; el resto de acciones al seleccionar | Siete iconos permanentes |
-| 2.F | El color del usuario sustituye al azul del estado activo | Fallo de especificidad: **sólo se ve en tema oscuro** |
+| 2.A ✅ | Selector idioma/versión con código corto visible (`RO · Biblia Română`) | Mostraba sólo el nombre del idioma |
+| 2.B ✅ | Historial de búsqueda: 3 visibles, desaparece al escribir | Hacía scroll con 4; nada lo cerraba al teclear |
+| 2.C ✅ | Abreviaturas de libro (`prov 3 4`), sin recuento de resultados, sin auto-salto | **Fallaban 8 de 11 abreviaturas comunes** |
+| 2.D ✅ | Conservar el texto al cambiar palabras ↔ referencia | Se borraba **a propósito**; hubo que invertir la decisión |
+| 2.E ✅ | Versículo: sólo copiar; el resto de acciones al seleccionar | Siete iconos permanentes |
+| 2.F ✅ | El color del usuario sustituye al azul del estado activo | Fallo de especificidad: **sólo se veía en tema oscuro** |
 
-### Fase 3 — Perfiles (schema 8) — hecha, ver arriba
-
-`user_type` (`user` | `preacher`) y `email` opcional en `users`. Pregunta de seguridad
-escrita por el usuario, con respuesta de texto libre normalizada.
-
-⚠️ Guardar email **revierte** el principio «sin PII» del README del worker. Hay que
-actualizarlo. El envío de correo queda pendiente: hoy no hay proveedor.
+**Lo que costó más de lo que parecía:**
+- **El fallo de la búsqueda por referencia no estaba en la búsqueda.** Buscar, borrar con el aspa, teclear otra vez y tocar la sugerencia no navegaba porque el store `filter` entregaba **el mismo objeto** a `Sidebar` y a `Result`: mutarlo desde uno no disparaba la reactividad del otro. El store copia ahora en cada escritura.
+- **`isPlausiblePrefix` rechazaba cualquier prefijo más de 4 caracteres más corto que el nombre.** Con 2 letras o más el prefijo ya es intencionado y se acepta; con una sola se mantiene la guarda. Eso desbloquea `prov`, `deut`, `apoc` y `ps` → Psalmii.
+- **Un `{#if isVerseSelected(item.key)}` escondía la dependencia al compilador de Svelte**, así que los iconos no aparecían nunca. Comparando la variable directamente funciona (trampa 21).
+- **En tema oscuro `:global(html[data-theme='dark']) .icon-btn` (3 clases) ganaba a `.icon-btn--marked` (2)** y devolvía el icono a azul mientras borde y fondo mantenían el color del usuario. Resuelto con `:not(.icon-btn--marked)`.
 
 ### Fase 3 — Perfiles ✅ COMPLETADA (2026-09-07, schema 8)
 
@@ -381,12 +379,6 @@ actualizarlo. El envío de correo queda pendiente: hoy no hay proveedor.
 - ⚠️ El email **sólo se almacena**. El envío de correo necesita un proveedor y está pendiente. `workers/robible-api/README.md` está actualizado.
 
 **Arreglo colateral**: la sección `auth` del español estaba **entera en rumano** (63 claves). Un usuario hispano veía el registro, el login y todos los errores en un idioma que no es el suyo. Corregido. Quedan ~30 claves más fuera de `auth` en la misma situación.
-
-### Fase 4 — Player y música
-
-Player como tarjeta flotante translúcida (con degradación si no hay `backdrop-filter`).
-Tres ambientes **procedurales** extendiendo `music.service.js`: Ebraică (frigia dominante),
-Rugăciune (drone grave), Liniște. Sin ficheros nuevos: cero licencias y offline por construcción.
 
 ### Fase 4 — Player y música ✅ COMPLETADA (2026-09-07)
 
@@ -425,13 +417,188 @@ Rugăciune (drone grave), Liniște. Sin ficheros nuevos: cero licencias y offlin
 
 **Pendiente (5.B y 5.C)**: la preparación guiada en siete pasos, el documento final, la schiță y el Modo Amvon.
 
-### Fase 5 — Módulo «Predicile mele» (schema 9)
+### Fase 5.B — Preparación guiada, documento final y schiță ✅ COMPLETADA (2026-09-07)
 
-Sólo para `preacher`. Preparación guiada por pasos → predicación → schiță → **Modo Amvon
-offline**. Una tabla `sermons` con `content_json` y `outline_json`: el árbol de preparación
-nunca se consulta por dentro, siempre se carga entero.
+- [x] `sermon-content.service.js`: forma del documento, recuento, generación de la schiță (todo puro y probado)
+- [x] Ruta `/predici/:id` con los siete pasos: TEXT → OBSERVARE → CONTEXT → IDEE → STRUCTURĂ → DEZVOLTARE → FINALIZARE
+- [x] Marcado de palabras sobre la perícopa, asociado a esa predicación
+- [x] Contexto anterior y posterior, abiertos sin salir de la preparación
+- [x] Estructura con dos niveles, reordenable
+- [x] Guardado automático con «Salvat» discreto; sin botón de guardar
+- [x] Documento final con recuento de palabras y minutos
+- [x] Schiță generada desde la estructura y **completamente editable**
 
-**RoBible no escribe la predicación.** Sin IA, ni como dependencia ni como opción.
+**Decisiones que conviene no deshacer:**
+- **Nada es obligatorio.** Ningún paso bloquea al siguiente y todas las preguntas se pueden saltar. La aplicación acompaña, no examina.
+- **La schiță se genera una sola vez** y luego no se regenera sola: pisaría los retoques hechos a mano. Hay un botón explícito para rehacerla.
+- **La aplicación de la schiță va recortada.** El propósito se escribe con calma en el estudio y puede ocupar un párrafo; volcarlo entero convertiría la schiță en el resumen largo que no debe ser. Un test comprueba que una predicación de más de 1.500 palabras produce una schiță de 250 o menos.
+- **El recuento no cuenta la observación ni el contexto**: son notas de estudio, no se leen en el púlpito. Contarlas daría una duración falsa.
+- **Se guarda sin esperar al retardo al cambiar de paso y al salir de la pantalla.** Son los dos momentos en que se puede perder lo tecleado.
+- `normalizeContent` completa lo que falte: un documento guardado por una versión anterior reventaría la pantalla con el trabajo del predicador dentro.
+
+**Verificado en el navegador**: recorrido completo de los siete pasos —marcar dos palabras, idea central, dos puntos con subpunto, desarrollo, introducción y conclusión—, documento final con sus títulos y subtítulos, schiță generada con los títulos en mayúsculas, y todo persistido en el dispositivo.
+
+### Fase 5.C — Modo Amvon ✅ COMPLETADA (2026-09-07)
+
+- [x] `sermon-pulpit.service.js`: instantánea offline, posición, tamaño, cronómetro, `wakeLock` y recuperación
+- [x] «Pregătită pentru predicare» deja en el dispositivo predicación, schiță, perícopa y el **texto** de las referencias
+- [x] Antesala con tres comprobaciones, tamaño de letra (A− A A+) y duración prevista
+- [x] Púlpito a pantalla completa: sin menú, sin cabecera, tipografía grande, página vertical continua
+- [x] Referencias en overlay, con vuelta exacta a la misma posición del scroll
+- [x] Recuperación tras interrupción desde `main.js`, con ventana de seis horas
+
+**Decisiones que conviene no deshacer:**
+- **La instantánea guarda el TEXTO de las referencias, no sus coordenadas.** Resolverlas contra la Biblia en memoria funcionaría casi siempre; «casi siempre» no vale en un púlpito. Si la Biblia no llegó a cargarse, el predicador se quedaría mirando un versículo vacío delante de la congregación.
+- **Una referencia que no se puede resolver se guarda vacía, no se omite.** En el púlpito se lee «no disponible», que es honesto; quitarla haría desaparecer un botón que el predicador espera encontrar.
+- **Es una capa propia a pantalla completa (`fixed inset:0`), no el modo inmersivo de la lectura.** El inmersivo esconde la interfaz pero deja debajo la lógica de lectura entera —swipe, iconos, player—: cualquiera de esas cosas apareciendo a mitad de una predicación es exactamente lo que no puede pasar.
+- **Los controles de tamaño no siguen en pantalla.** Se elige antes de empezar. Lo que se toca por accidente en el atril se toca.
+- **La ventana de recuperación es de seis horas.** Sin límite, un Modo Amvon olvidado secuestraría el arranque de la aplicación meses después; con menos, una interrupción larga te dejaría fuera.
+- **`wakeLock` degrada en silencio.** Si el navegador no lo permite no se bloquea el modo ni se avisa: un predicador con un aviso rojo en pantalla está peor que uno que toca el móvil de vez en cuando. Se vuelve a pedir al recuperar la visibilidad, porque el navegador lo suelta al ocultar la pestaña.
+- **Ni una petición de red mientras se predica.** Todo sale de `localStorage`.
+
+**Verificado en el navegador (escenarios 5 y 6)**: con la **red cortada**, las tres comprobaciones en verde, el púlpito a pantalla completa con la letra a 37,6 px, las referencias abriéndose desde la instantánea y **cero peticiones de red** en todo el recorrido. Bajando al punto 2 (609 px), saliendo a la raíz y volviendo, la aplicación reabre la misma predicación en Modo Amvon en la posición **exacta**; abrir y cerrar una referencia también devuelve a 609.
+
+**Dos observaciones de la prueba:**
+- Google Analytics dispara **una** petición al cambiar de ruta al entrar en Amvon. No sale del código del módulo y falla en silencio sin conexión, pero conviene saberlo.
+- Quedan ~30 claves en rumano dentro del español fuera de `auth` (ver Fase 3).
+
+### Fase 7 — Cinco paletas, cristal y iconos nuevos ✅ COMPLETADA (2026-09-07)
+
+- [x] **Cinco paletas** en lugar del interruptor día/noche: Lumină · Noapte · Sepia · Minimal · Nocturn
+- [x] Selector con muestra real de cada paleta y una pista de para qué sirve, en los cuatro idiomas
+- [x] **Migración de la preferencia**: quien tenía `light`/`dark` guardado cae en Lumină/Noapte y no pierde su elección
+- [x] Cristal esmerilado con bordes sobre transparencia en las superficies fijas
+- [x] Movimiento unificado en tres duraciones y una curva de salida
+- [x] **94 SVG inline → `Icon.svelte`** con trazos de Phosphor (MIT) copiados al árbol
+- [x] SW bumpeado a `robible-v27`; 183 tests (12 nuevos de paletas)
+
+**Lo que había que arreglar antes de poder hacer nada:**
+
+Las paletas no eran el trabajo; el trabajo era que se pudieran tener. `global.css`
+estaba bien montado, pero los componentes se lo saltaban: **~60 reglas
+`html[data-theme='dark']`** repartidas por 15 ficheros, con **123 colores hex** y
+**~170 rgba** escritos a mano. Esos valores son correctos en oscuro y falsos en
+las otras cuatro paletas. Hoy **no queda ninguna regla por tema en ningún
+componente**.
+
+**Decisiones que conviene no deshacer:**
+- **Los derivados se calculan desde `--color-ink`.** El tema claro ya mezclaba contra `--color-bg-dark` y el oscuro contra `rgb(255 255 255)`: dos dialectos para lo mismo. Como la tinta cambia con la paleta, un único `color-mix` da el valor correcto en las cinco. Eso convirtió ~30 reglas en cuatro tokens.
+- **`--color-white` no es un color de texto.** Significa "fondo de tarjeta". Se usaba también como texto sobre el acento en 17 sitios, y en oscuro eso ya pintaba gris marengo sobre azul — un bug que llevaba ahí desde que existe el modo oscuro. Ahora es `--color-on-primary`.
+- **El sidebar conserva sus blancos, pero con nombre.** Es chrome oscuro en las cinco paletas, así que su primer plano siempre es tinta clara: `--color-on-sidebar`, que en sepia se entibia sin tocar 18 reglas.
+- **El velo de los diálogos va por paleta y no derivado.** Un scrim es siempre oscuro, también en las paletas oscuras; derivarlo de la tinta lo habría vuelto blanco en nocturn.
+- **`tests/palettes.test.js` compara los cinco bloques token a token.** Un token que falta no falla: hereda el de Lumină, y el síntoma es un panel blanco en mitad de nocturn que sólo se ve cambiando de paleta a mano. El test cazó dos huecos reales (`--color-accent-ink`) el mismo día que se escribió.
+- **El cristal, sólo en lo que está fijo.** Cada capa con `backdrop-filter` se recompone en cada fotograma del scroll: en un capítulo largo serían 40-80 capas y la lectura —lo único que esta app hace todo el rato— pierde fluidez en cualquier Android que no sea de gama alta. Navbar tampoco lo lleva: no es sticky, se va con el scroll. El Modo Amvon queda fuera a propósito.
+- **Los botones de acción llevan cristal teñido de acento** (`--glass-accent`), no el neutro: con el neutro perdían el color y dejaban de leerse como botones.
+- **Iconos copiados, no instalados.** Phosphor (MIT) vía `scripts/build-icons.mjs`; cero dependencias en tiempo de ejecución, coherente con el resto del proyecto. Se descartó Lucide **precisamente por ser el sucesor de Feather**: misma geometría, mismo trazo — habría sido tocar 94 sitios para que se viera igual. Los iconos parecían antiguos porque eran Feather de 2017.
+- **El peso `fill` sustituye a `getFilledTopicIconSvg`**, que fabricaba la versión rellena quitando `fill="none"` de una cadena con un `replace`. Y el badge de tema metía un `<svg>` dentro de otro `<svg>`.
+- **Las 14 claves de icono de tema están en D1** (`topics.icon`), ahora listadas en `src/config/topic-icons.js`. Antes la tabla estaba **copiada con los SVG dentro en tres ficheros** que tenían que coincidir y nadie comprobaba. De paso se arregló que `light` y `sun` dibujaran exactamente el mismo sol.
+
+**Efecto en el bundle**: CSS 183 kB → **170 kB** (−13 kB, al desaparecer las reglas por tema); JS 369 kB → 371 kB (+2 kB netos: entran los trazos de 45 iconos y salen 94 SVG inline).
+
+⚠️ **Sin verificación en navegador**: el servidor de Playwright no conectó. Verificado con `npm run lint` (0 errores), `npm test` (183/183) y `npm run build`, más el test de paridad de paletas. Falta pasar las cinco paletas por la pantalla.
+
+### Fase 7.1 — Correcciones tras la primera revisión visual ✅ (2026-09-07)
+
+Tres cosas que sólo se ven abriendo la aplicación, reportadas con capturas:
+
+- **El panel del player salía en blanco.** Tres causas encadenadas: nueve `@media (prefers-color-scheme: dark)` que responden al **sistema operativo** y no a la paleta elegida; tres tokens que nunca existieron (`--color-text`, `--color-text-secondary`, `--border-color-dark`) escritos como `var(--inexistente, var(--real))`, así que el primero era decorado; y `color: var(--color-line)` en el desplegable — `--color-line` es el token de **borde**, una tinta al 14 %, de ahí el texto invisible. El desplegable lleva ahora `appearance: none` con la flecha dibujada aparte, porque el nativo de Windows ignora `color` y sale gris sobre gris.
+- **Los botones de capítulo anterior/siguiente se solapaban con el footer**, que es fijo, y quedaban debajo sin poder pulsarse. Pasan al centro vertical (`top: 50%` + `translateY(-50%)`). El keyframe de entrada animaba `translateY`, que habría anulado el centrado: ahora sólo anima opacidad.
+- **Minimal fuera, Cald dentro.** La paleta monocroma dejaba tinta fuerte y chrome a un paso el uno del otro, y ya había dos paletas oscuras. La sustituye la crema y cobre con la que nació la landing (`#F5F0E6` / `#FAF6EE` / `#B8763E`, recuperados de su primer commit).
+- **Y el fallo de fondo que destapó lo anterior**: el sidebar fijaba su color de fondo pero **no el del texto**, así que todo lo que no llevaba color propio heredaba la tinta oscura del `body`. Sobre el chrome oscuro del sidebar, los dos títulos de sección salían negro sobre negro — en las cinco paletas, no sólo en Minimal. Arreglado en un sitio con `--color-on-sidebar`.
+
+### Fase 7.2 — Contraste medido en las cinco paletas ✅ (2026-09-07)
+
+`tests/contrast.test.js` calcula el contraste WCAG 2.1 de **26 pares por paleta**
+(4.5:1 para texto, 3:1 para iconos y bordes con significado). La primera
+ejecución falló en **cuatro de las cinco**:
+
+| Paleta | Qué falló | Antes | Ahora |
+|---|---|---|---|
+| lumina | texto del botón de acento | 3.30:1 | **5.54:1** |
+| lumina | ámbar de favorito sobre tarjeta | 2.94:1 | **4.92:1** |
+| noapte | texto del botón de acento | 2.38:1 | **7.58:1** |
+| noapte | el mismo, en hover | 1.87:1 | **9.67:1** |
+| sepia | acento sobre el chrome del sidebar | 1.22:1 | **4.52:1** |
+| cald | texto secundario sobre la página | 4.42:1 | **4.90:1** |
+| cald | texto del botón de acento | 3.60:1 | **5.31:1** |
+
+**Dos de estos venían de antes de que hubiera paletas**: el blanco sobre el azul
+de la casa lleva fallando AA desde siempre, y el ámbar de favorito también.
+
+**Lo que se decidió:**
+- **El acento pasa a tener dos tokens.** `--color-accent` sigue siendo el azul de RoBible y vale para bordes e iconos (3:1, pasa de sobra). Como **fondo bajo texto** no valía, así que ahí va `--color-accent-solid`, el mismo acento oscurecido. Se prefirió esto a oscurecer `--color-accent` a secas, que habría cambiado el color de la marca en toda la aplicación para arreglar un problema que sólo aparece bajo texto. 35 rellenos migrados.
+- **En las paletas oscuras el acento es claro, así que lo que va encima es oscuro.** `--color-on-primary` pasa a ser `--grey-900` en Noapte. Para poder hacerlo hubo que sacarlo antes del sidebar: allí no era texto sobre un botón, era texto sobre chrome oscuro —el propio comentario del archivo lo decía— y ahora usa `--color-on-sidebar`. Ocho usos movidos, dos se quedaron porque ahí el fondo sí era el acento.
+- **`--color-accent-soft` significa "acento sobre chrome oscuro"** y en Sepia estaba puesto un cobre oscuro. Sobre el sidebar marrón daba 1.22:1, es decir, invisible.
+
+Contraste final de los pares principales:
+
+```
+paleta     cuerpo/página  secundario/tarjeta  acento/tarjeta  botón   sidebar
+lumina         6.85            4.97               5.54         5.54    7.49
+noapte        14.16            8.32               8.73         7.58   13.56
+sepia          7.51            5.05               6.70         5.12    8.36
+cald           8.13            5.17               5.04         5.31    8.57
+nocturn       16.55            7.72              11.87         9.80   19.80
+```
+
+### Fase 7.3 — Revisión pantalla por pantalla ✅ (2026-09-07)
+
+Con Playwright ya conectado, recorrido de las cinco paletas en escritorio
+(1440×900) y móvil (390×844): lectura, comparación, índice, menú, selector de
+paletas, modal de autenticación, modo inmersivo y player.
+
+**Lo que se encontró y arregló:**
+- **El deslizador de volumen tenía la pista negra.** No era el tema oscuro ni el navegador headless: **`accent-color` hace que Chromium pinte la parte sin rellenar casi negra**. Comprobado poniendo un `range` sin estilos al lado de otro que sólo llevaba `accent-color`. La pista y el pulgar se dibujan ahora a mano en `global.css`, con el relleno pasado en `--range-fill`.
+- **El botón de subir y el de modo lectura quedaban debajo del player** (z-index 8 y 50 contra 60): se veía asomar media pastilla. Había un apaño previo al mismo problema —`bottom: 3.5rem !important` con la altura a ojo— que además ganaba a cualquier arreglo posterior. Ahora el player mide su altura real con `ResizeObserver` y la publica en `--player-offset`; los otros dos se apartan, también con el panel abierto (101 px cerrado, 228 px abierto).
+- **El botón del pie parecía la media luna que sustituye**: sus tres franjas eran fondo/superficie/acento, y en las paletas claras las dos primeras son el mismo blanco. Pasan a fondo/acento/tinta.
+- **Las muestras de Sepia y Cald se confundían** en el selector: el acento era una línea de 0,16 rem. Ahora es más gruesa y la tarjeta lleva borde, que es lo que las separa cuando fondo y superficie están a un paso.
+- **El breadcrumb se quedaba en 3,74:1** en las tres paletas claras: usaba `color-mix(…, white)` con blanco **literal**, que no se adapta. Cuatro colores de texto más estaban lavados igual.
+- **El botón verde «Citește cu muzică»**: 3,13:1. Mismo caso que el acento, y misma solución — `--color-success-solid`.
+- **El eyebrow del menú** usaba `--color-accent` como texto: 3,02:1 en Lumină.
+
+**Cómo se encontraron los cuatro últimos:** un barrido en el navegador que recorre
+cada elemento con texto en las cinco paletas, resuelve su fondo real subiendo por
+el árbol y calcula el contraste. Es lo que ve cosas que el test de tokens no
+puede: allí se comprueba que el token sea correcto, aquí que el componente use el
+token correcto. Terminó en **cero fallos en las cinco paletas**, con el player y
+el menú abiertos.
+
+Un aviso sobre el método: la primera pasada dio cuatro falsos positivos porque
+`color-mix()` devuelve `color(srgb 0.89 …)` con los canales en 0-1, y el parser
+los estaba dividiendo entre 255. El fallo era de la medición, no de la aplicación.
+
+**Playwright**: configuración global arreglada (`@latest` → `@0.0.80`). `@latest`
+obliga a consultar el registro de npm en cada arranque y eso se comía el margen
+de 60 s del handshake; con la versión fija arranca en 4,3 s.
+
+**Y una regresión de la propia migración de iconos, encontrada al revisar la
+lista de pendientes:** al pasar los 94 SVG sueltos a `<Icon>`, las **17 reglas**
+`.contenedor svg { width; height }` dejaron de alcanzar al icono —el scoping de
+Svelte le pone otra clase— y se quedaron muertas. Los iconos volvieron al tamaño
+por defecto sin que nada fallara, y dentro de un botón estrecho el
+`max-width: 100%` que `global.css` da a todo `svg` recortaba el ancho y no el
+alto: el icono de acción del versículo salía a **13×16 px**, deformado. Ahora el
+tamaño se pasa con `--icon-size` en el contenedor y `Icon.svelte` lleva
+`max-width: none`. Verificado en pantalla: los cuatro iconos medidos salen
+cuadrados y al tamaño pedido. **Lo delató el aviso de "Unused CSS selector" del
+build**, que conviene no ignorar.
+
+**Los botones flotantes tapaban el pie al llegar al final de la página.** El
+arreglo anterior los apartaba del player, pero no del pie: «Subir» y «pantalla
+completa» caían justo encima de «Autentificare» y del selector de paleta, que
+quedaban intocables — en móvil sobre todo, pero también en escritorio. El pie
+reserva ahora esa franja como relleno inferior (`--floating-band` +
+`--player-offset`), así que hay scroll de sobra y el orden de abajo arriba queda:
+player → flotantes → botones del pie. Los tres flotantes comparten además la
+misma línea base, para que se lean como una fila. Verificado en móvil (390×844) y
+escritorio (1440×900), con el player parado y en marcha.
+
+**Y el arreglo de los iconos destapó otro, en los dos botones de la landing:** siete
+llamadas tenían `size="18"` sin unidad. Como atributo del `<svg>` eso era válido
+—y por eso nadie lo notó—, pero al pasar el tamaño a CSS `width: 18` se descarta
+y el icono se dibuja a su tamaño intrínseco: empujaba el texto a **una letra por
+línea**. Corregidas las siete, y `Icon.svelte` convierte ahora un número suelto a
+píxeles para que no vuelva a fallar en silencio.
 
 ### Fuera de alcance
 
@@ -449,7 +616,8 @@ colaboración, editor tipo Word, ni roles más allá de Utilizator/Predicator.
 - `workers/robible-api/src/auth.js` — register, login, recover, me, logout, change-password
 - `workers/robible-api/src/data.js` — topics, verse_refs, favorites, notes, highlights, searches, export, health
 - `workers/robible-api/src/utils.js` — hashing, tokens (HMAC), validators, rate limit
-- `workers/robible-api/schema.sql` — D1 schema (versión 7)
+- `workers/robible-api/src/sermons.js` — predicaciones (lista, detalle, creación, edición, borrado)
+- `workers/robible-api/schema.sql` — D1 schema (versión 9)
 - `workers/robible-api/wrangler.toml` — bindings + env vars
 - `workers/robible-api/dev-server.js` — emulador local con `node:sqlite`
 
