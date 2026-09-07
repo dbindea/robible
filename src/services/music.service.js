@@ -1,33 +1,108 @@
 /**
  * Music service — música ambiental de fondo para la lectura.
  *
- * Pista principal: un MP3 en bucle infinito (`/assets/audio/prayer-ambient.mp3`),
- * reproducido con Web Audio (`AudioBufferSourceNode.loop = true`), que empalma
- * el final con el principio de forma exacta a nivel de muestra. Con un
- * `<audio loop>` normal se oiría un pequeño hueco en cada vuelta.
+ * Tres ambientes, cada uno con dos formas de sonar:
  *
- * Fallback: si el MP3 no se puede cargar o decodificar (offline en la primera
- * visita, formato no soportado), cae a un pad sintético generado con
- * osciladores. Suena peor, pero evita quedarse sin música.
+ *   1. **Pista de audio**, si el fichero existe en `/assets/audio/`. Se reproduce
+ *      con Web Audio (`AudioBufferSourceNode.loop = true`), que empalma el final
+ *      con el principio a nivel de muestra; con un `<audio loop>` normal se oiría
+ *      un hueco en cada vuelta.
+ *   2. **Síntesis procedural**, si no hay fichero o falla al cargar.
  *
- * Créditos y licencia de la pista: public/assets/audio/CREDITS.md
+ * El fichero es OPCIONAL a propósito. Los tres ambientes suenan hoy sin ningún
+ * MP3 en el repositorio: cero problemas de licencia, cero bytes añadidos a la
+ * instalación y funcionan sin conexión desde el primer día. Cuando haya pistas
+ * con licencia clara, basta con dejarlas en la ruta que indica cada ambiente y
+ * pasan a usarse solas, sin tocar código. Ver `public/assets/audio/CREDITS.md`.
+ *
+ * Ojo: la síntesis no pretende imitar una grabación. Busca dar a cada ambiente
+ * un carácter propio y reconocible, y sobre todo no competir con la lectura.
  */
 
-// ── Pista de audio ────────────────────────────────────────────────────────────
-export const PRAYER_TRACK_URL = '/assets/audio/prayer-ambient.mp3';
+// ── Ambientes ─────────────────────────────────────────────────────────────────
+//
+// `url`          ruta de la pista, si algún día existe. Si no está, se sintetiza.
+// `octave`       registro base: más bajo = más envolvente y menos presente.
+// `chordSeconds` cuánto dura cada acorde. Largo = ambiente; corto = canción.
+// `peak`         volumen de cada voz. El conjunto se regula aparte con setVolume.
+// `drone`        nota tenida bajo la progresión, para dar cuerpo.
+// `progression`  grados sobre la tónica, con el tipo de acorde.
+export const AMBIENCES = [
+  {
+    key: 'ebraica',
+    url: '/assets/audio/ebraica.mp3',
+    octave: 3,
+    chordSeconds: 10,
+    peak: 0.045,
+    drone: true,
+    waveform: 'triangle',
+    // Frigia dominante, el modo *Ahava Raba* de la liturgia judía:
+    // 1 - b2 - 3 - 4 - 5 - b6 - b7. Lo que da ese color tan reconocible es la
+    // segunda aumentada entre la b2 y la 3ª mayor, y el movimiento I → bII → I.
+    progression: [
+      { root: 0, type: 'maj' },
+      { root: 1, type: 'maj' },
+      { root: 0, type: 'maj' },
+      { root: 5, type: 'min' },
+    ],
+  },
+  {
+    key: 'rugaciune',
+    url: '/assets/audio/rugaciune.mp3',
+    // Dos octavas por debajo del ambiente neutro: es lo que pide "más grave,
+    // más envolvente, menos aguda". Acordes muy largos y casi sin melodía, para
+    // que se pueda orar o escuchar la Biblia sin que la música tire de la atención.
+    octave: 2,
+    chordSeconds: 14,
+    peak: 0.05,
+    drone: true,
+    waveform: 'sine',
+    progression: [
+      { root: 0, type: 'min7' },
+      { root: 0, type: 'sus4' },
+      { root: 8, type: 'maj7' },
+      { root: 5, type: 'min7' },
+    ],
+  },
+  {
+    key: 'liniste',
+    url: '/assets/audio/liniste.mp3',
+    // El más discreto de los tres: pads suaves, sin dramatismo, pensado para
+    // dejarlo puesto de fondo mientras se lee.
+    octave: 4,
+    chordSeconds: 8,
+    peak: 0.035,
+    drone: false,
+    waveform: 'sine',
+    progression: [
+      { root: 0, type: 'maj7' },
+      { root: 5, type: 'maj7' },
+      { root: 9, type: 'min7' },
+      { root: 7, type: 'sus4' },
+    ],
+  },
+];
+
+export const getAmbience = (key) => AMBIENCES.find((a) => a.key === key) || null;
+
+/**
+ * Traduce el valor guardado en localStorage al catálogo actual.
+ *
+ * Antes sólo había dos opciones: 'prayer' (el MP3) y 'none'. El comentario del
+ * store hablaba además de 'procedural', que el player nunca llegó a usar. Quien
+ * tenga cualquiera de esas dos cae en 'rugaciune', que es lo más parecido a lo
+ * que venía escuchando; así nadie se encuentra la música apagada de repente.
+ */
+export const migrateAmbience = (value) => {
+  if (value === 'none') return 'none';
+  if (getAmbience(value)) return value;
+  if (value === 'prayer' || value === 'procedural') return 'rugaciune';
+  return 'none';
+};
 
 // Silencio al entrar y al salir, para que no "arranque" de golpe.
 const FADE_IN_SEC = 1.5;
 const FADE_OUT_SEC = 1.0;
-
-// ── Fallback procedural ───────────────────────────────────────────────────────
-// Acordes suaves y sostenidos. Solo se usa si el MP3 falla.
-const FALLBACK_PROGRESSION = [
-  { root: 0, type: 'maj7' },
-  { root: 5, type: 'maj7' },
-  { root: 9, type: 'min7' },
-  { root: 7, type: 'sus4' },
-];
 
 const CHORD_INTERVALS = {
   maj: [0, 4, 7],
@@ -37,9 +112,7 @@ const CHORD_INTERVALS = {
   sus4: [0, 5, 7],
 };
 
-const BASE_OCTAVE = 3;
 const BASE_KEY = 0; // C
-const CHORD_DURATION = 8; // acordes largos: ambiente, no canción
 
 let audioContext = null;
 let masterGain = null;
@@ -47,15 +120,19 @@ let musicGain = null;
 let _initialized = false;
 let desiredVolume = 0.5;
 
-// Estado de la pista MP3
-let trackBuffer = null; // AudioBuffer decodificado (se cachea entre plays)
-let trackLoadPromise = null; // evita descargas simultáneas
-let sourceNode = null; // AudioBufferSourceNode en curso
+// Buffers por ambiente. Se cachean para que la segunda reproducción arranque al
+// instante, y se recuerda cuáles no existen para no volver a pedirlos.
+const trackBuffers = new Map();
+const trackMissing = new Set();
+const trackLoading = new Map();
 
-// Estado del fallback procedural
+let sourceNode = null;
+
+// Estado de la síntesis
 let activeVoices = [];
 let progressionTimer = null;
 let progressionIndex = 0;
+let droneVoices = [];
 
 let currentTrack = 'none';
 
@@ -88,45 +165,51 @@ async function resumeContext() {
   }
 }
 
-// ── Carga del MP3 ─────────────────────────────────────────────────────────────
+// ── Carga de la pista ─────────────────────────────────────────────────────────
 /**
- * Descarga y decodifica la pista. Cachea el AudioBuffer, así que a partir de la
- * segunda reproducción arranca al instante. Devuelve null si falla.
+ * Intenta descargar y decodificar la pista de un ambiente. Devuelve null si no
+ * existe o no se puede decodificar, que es el caso normal mientras no haya
+ * ficheros: entonces suena la síntesis.
+ *
+ * El fallo se recuerda en `trackMissing` para no repetir la petición en cada
+ * play; sin eso, cada arranque pagaría un 404.
  */
-async function loadTrack() {
-  if (trackBuffer) return trackBuffer;
-  if (trackLoadPromise) return trackLoadPromise;
+async function loadTrack(ambience) {
+  if (!ambience?.url) return null;
+  if (trackBuffers.has(ambience.key)) return trackBuffers.get(ambience.key);
+  if (trackMissing.has(ambience.key)) return null;
+  if (trackLoading.has(ambience.key)) return trackLoading.get(ambience.key);
 
-  trackLoadPromise = (async () => {
+  const promesa = (async () => {
     try {
-      const response = await fetch(PRAYER_TRACK_URL);
+      const response = await fetch(ambience.url);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const arrayBuffer = await response.arrayBuffer();
-      trackBuffer = await audioContext.decodeAudioData(arrayBuffer);
-      return trackBuffer;
-    } catch (err) {
-      console.warn('[music] No se pudo cargar la pista, usando fallback:', err.message);
+      const buffer = await audioContext.decodeAudioData(arrayBuffer);
+      trackBuffers.set(ambience.key, buffer);
+      return buffer;
+    } catch {
+      // Silencio deliberado: no tener fichero es el estado normal, no un error.
+      trackMissing.add(ambience.key);
       return null;
     } finally {
-      trackLoadPromise = null;
+      trackLoading.delete(ambience.key);
     }
   })();
 
-  return trackLoadPromise;
+  trackLoading.set(ambience.key, promesa);
+  return promesa;
 }
 
-/**
- * Precarga la pista sin reproducirla. Útil para llamarla al abrir el panel,
- * de modo que al pulsar play ya esté decodificada.
- */
-export async function preload() {
+/** Precarga sin reproducir, para que al pulsar play ya esté decodificada. */
+export async function preload(key) {
   await initContext();
   if (!audioContext) return false;
-  return !!(await loadTrack());
+  return !!(await loadTrack(getAmbience(key)));
 }
 
-// ── Fallback procedural ───────────────────────────────────────────────────────
-function playChord(rootMidi, rootOffset, type, when, duration) {
+// ── Síntesis ──────────────────────────────────────────────────────────────────
+function playChord(rootMidi, rootOffset, type, when, duration, ambience) {
   if (!audioContext) return;
 
   const intervals = CHORD_INTERVALS[type] || CHORD_INTERVALS.maj;
@@ -134,11 +217,12 @@ function playChord(rootMidi, rootOffset, type, when, duration) {
     const freq = midiToFreq(rootMidi + rootOffset + interval);
 
     const osc = audioContext.createOscillator();
-    osc.type = 'sine';
+    osc.type = ambience.waveform || 'sine';
     osc.frequency.value = freq;
 
     const gain = audioContext.createGain();
-    const peak = 0.05;
+    const peak = ambience.peak;
+    // Ataque y caída largos: lo que evita que se oiga como una canción.
     gain.gain.setValueAtTime(0, when);
     gain.gain.linearRampToValueAtTime(peak, when + 1.5);
     gain.gain.setValueAtTime(peak, when + duration - 2);
@@ -153,27 +237,54 @@ function playChord(rootMidi, rootOffset, type, when, duration) {
   }
 }
 
-function startFallbackProgression() {
+/**
+ * Nota tenida bajo la progresión. Da cuerpo y hace que los cambios de acorde no
+ * se perciban como cortes. Se arranca una vez y dura hasta el stop.
+ */
+function startDrone(rootMidi, ambience) {
   if (!audioContext) return;
-  const rootMidi = 12 * (BASE_OCTAVE + 1) + BASE_KEY;
+  for (const offset of [0, 12]) {
+    const osc = audioContext.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.value = midiToFreq(rootMidi + offset);
+
+    const gain = audioContext.createGain();
+    const peak = ambience.peak * (offset === 0 ? 0.9 : 0.35);
+    gain.gain.setValueAtTime(0, audioContext.currentTime);
+    gain.gain.linearRampToValueAtTime(peak, audioContext.currentTime + 3);
+
+    osc.connect(gain);
+    gain.connect(musicGain);
+    osc.start();
+
+    droneVoices.push({ osc, gain });
+  }
+}
+
+function startProgression(ambience) {
+  if (!audioContext) return;
+  const rootMidi = 12 * (ambience.octave + 1) + BASE_KEY;
+
+  if (ambience.drone && !droneVoices.length) startDrone(rootMidi, ambience);
 
   const playNext = () => {
     if (currentTrack === 'none' || !audioContext) return;
-    const chord = FALLBACK_PROGRESSION[progressionIndex];
-    playChord(rootMidi, chord.root, chord.type, audioContext.currentTime + 0.05, CHORD_DURATION);
-    progressionIndex = (progressionIndex + 1) % FALLBACK_PROGRESSION.length;
-    progressionTimer = setTimeout(playNext, (CHORD_DURATION - 1.5) * 1000);
+    const chord = ambience.progression[progressionIndex];
+    playChord(rootMidi, chord.root, chord.type, audioContext.currentTime + 0.05, ambience.chordSeconds, ambience);
+    progressionIndex = (progressionIndex + 1) % ambience.progression.length;
+    progressionTimer = setTimeout(playNext, (ambience.chordSeconds - 1.5) * 1000);
   };
 
   playNext();
 }
 
-function clearFallbackVoices() {
-  for (const voice of activeVoices) {
+function clearSynthVoices() {
+  for (const voice of [...activeVoices, ...droneVoices]) {
     try { voice.osc.stop(); } catch { /* ya parado */ }
     try { voice.gain.disconnect(); } catch { /* ya desconectado */ }
   }
   activeVoices = [];
+  droneVoices = [];
   if (progressionTimer) {
     clearTimeout(progressionTimer);
     progressionTimer = null;
@@ -182,30 +293,32 @@ function clearFallbackVoices() {
 
 // ── API pública ───────────────────────────────────────────────────────────────
 /**
- * Arranca la música. `track` acepta:
- *   'prayer'     → MP3 en bucle (con fallback procedural si falla)
- *   'procedural' → fuerza el pad sintético
- *   'none'       → no hace nada
+ * Arranca la música. `track` es la clave de un ambiente ('ebraica',
+ * 'rugaciune', 'liniste') o 'none'.
  *
  * Debe llamarse desde un gesto del usuario (click): los navegadores bloquean
  * el audio automático.
  */
-export async function play(track = 'prayer') {
-  if (track === 'none') return;
+export async function play(track = 'liniste') {
+  const key = migrateAmbience(track);
+  if (key === 'none') return;
+
+  const ambience = getAmbience(key);
+  if (!ambience) return;
 
   await initContext();
   if (!audioContext) return;
   await resumeContext();
 
-  if (currentTrack === track && (sourceNode || progressionTimer)) return;
+  if (currentTrack === key && (sourceNode || progressionTimer)) return;
 
   stop();
-  currentTrack = track;
+  currentTrack = key;
 
-  const buffer = track === 'procedural' ? null : await loadTrack();
+  const buffer = await loadTrack(ambience);
 
   // stop() pudo haberse llamado mientras se descargaba
-  if (currentTrack !== track) return;
+  if (currentTrack !== key) return;
 
   if (buffer) {
     sourceNode = audioContext.createBufferSource();
@@ -214,7 +327,7 @@ export async function play(track = 'prayer') {
     sourceNode.connect(musicGain);
     sourceNode.start(0);
   } else {
-    startFallbackProgression();
+    startProgression(ambience);
   }
 
   // Fade-in
@@ -242,15 +355,16 @@ export async function resume() {
   if (audioContext && audioContext.state === 'suspended') {
     await audioContext.resume();
   }
-  // El fallback necesita que se reprograme el temporizador; el MP3 no, porque
+  // La síntesis necesita que se reprograme el temporizador; la pista no, porque
   // el AudioBufferSourceNode sigue vivo dentro del contexto suspendido.
   if (currentTrack !== 'none' && !sourceNode && !progressionTimer) {
-    startFallbackProgression();
+    const ambience = getAmbience(currentTrack);
+    if (ambience) startProgression(ambience);
   }
 }
 
 export function stop() {
-  clearFallbackVoices();
+  clearSynthVoices();
 
   if (sourceNode) {
     const node = sourceNode;
@@ -292,6 +406,11 @@ export function getCurrentTrack() {
   return currentTrack || 'none';
 }
 
+/** true si ese ambiente está sonando desde un fichero y no sintetizado. */
+export function isUsingTrackFile(key) {
+  return trackBuffers.has(key);
+}
+
 export function isAvailable() {
   return !!(window.AudioContext || window.webkitAudioContext);
 }
@@ -305,5 +424,6 @@ export const musicService = {
   setVolume,
   setMasterVolume,
   getCurrentTrack,
+  isUsingTrackFile,
   isAvailable,
 };

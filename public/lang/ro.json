@@ -302,9 +302,11 @@
       "stop": "Oprește",
       "speed": "Ritm",
       "ambient": "Fundal",
-      "ambient_prayer": "muzică de rugăciune",
       "ambient_none": "fără muzică",
-      "volume_music": "Muzică"
+      "volume_music": "Muzică",
+      "ambient_ebraica": "ebraică",
+      "ambient_rugaciune": "rugăciune",
+      "ambient_liniste": "liniște"
     },
     "highlights": {
       "eyebrow": "Evidențiere",

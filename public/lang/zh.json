@@ -302,9 +302,11 @@
       "stop": "停止",
       "speed": "节奏",
       "ambient": "背景",
-      "ambient_prayer": "祷告音乐",
       "ambient_none": "无音乐",
-      "volume_music": "音乐"
+      "volume_music": "音乐",
+      "ambient_ebraica": "希伯来",
+      "ambient_rugaciune": "祷告",
+      "ambient_liniste": "宁静"
     },
     "highlights": {
       "eyebrow": "标记",

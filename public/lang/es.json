@@ -302,9 +302,11 @@
       "stop": "Parar",
       "speed": "Ritmo",
       "ambient": "Fondo",
-      "ambient_prayer": "música para orar",
       "ambient_none": "sin música",
-      "volume_music": "Música"
+      "volume_music": "Música",
+      "ambient_ebraica": "hebrea",
+      "ambient_rugaciune": "oración",
+      "ambient_liniste": "calma"
     },
     "highlights": {
       "eyebrow": "Subrayado",

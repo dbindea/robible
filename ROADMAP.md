@@ -388,6 +388,23 @@ Player como tarjeta flotante translúcida (con degradación si no hay `backdrop-
 Tres ambientes **procedurales** extendiendo `music.service.js`: Ebraică (frigia dominante),
 Rugăciune (drone grave), Liniște. Sin ficheros nuevos: cero licencias y offline por construcción.
 
+### Fase 4 — Player y música ✅ COMPLETADA (2026-09-07)
+
+- [x] Player como tarjeta flotante translúcida, con degradación si no hay `backdrop-filter`
+- [x] Tres ambientes: **ebraică** (frigia dominante), **rugăciune** (grave y envolvente), **liniște** (suave)
+- [x] Cada ambiente admite **fichero de audio opcional**; si no hay o falla, se sintetiza
+- [x] Migración del valor guardado (`prayer` → `rugaciune`)
+- [x] SW bumpeado a `robible-v26`
+
+**Cosas que conviene saber:**
+- El selector de ambiente **no tenía ningún efecto**: `TtsPlayer` llamaba a `musicService.play('prayer')` en duro, eligieras lo que eligieras. Ahora pasa el ambiente seleccionado.
+- Se retiró un `@media (prefers-color-scheme: dark)` del player. Competía con `html[data-theme]`, que es como el resto de la app decide el tema, y dejaba el player en oscuro aunque el usuario hubiera elegido claro.
+- `prayer-ambient.mp3` (CC0, «Contemplation» de Joth) pasó a llamarse `rugaciune.mp3`: es exactamente el uso que ya tenía, y así uno de los tres ambientes tiene audio real desde el primer día. Los otros dos suenan sintetizados hasta que haya pistas.
+- Los ficheros de audio **no se precachean** en el service worker: son opcionales y precargar uno inexistente daría 404 en cada instalación. Caen bajo la regla cache-first de `/assets/`, así que se guardan en la primera reproducción.
+- La transparencia va dentro de `@supports (backdrop-filter: ...)` con fondo opaco de base. Sin eso, en un navegador sin desenfoque el texto del player se leería sobre el contenido de la página.
+
+**Verificado en el navegador**: los tres ambientes generan registros distintos (rugăciune 65-131 Hz, ebraică 131-262, liniște 262-494); la escala hebrea produce Do, Do#, Mi, Fa, Sol, Sol# — frigia dominante con la segunda aumentada característica; `rugaciune` reproduce desde fichero y los otros dos caen a síntesis.
+
 ### Fase 5 — Módulo «Predicile mele» (schema 9)
 
 Sólo para `preacher`. Preparación guiada por pasos → predicación → schiță → **Modo Amvon

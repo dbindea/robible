@@ -302,9 +302,11 @@
       "stop": "Stop",
       "speed": "Pace",
       "ambient": "Background",
-      "ambient_prayer": "prayer music",
       "ambient_none": "no music",
-      "volume_music": "Music"
+      "volume_music": "Music",
+      "ambient_ebraica": "Hebrew",
+      "ambient_rugaciune": "prayer",
+      "ambient_liniste": "stillness"
     },
     "highlights": {
       "eyebrow": "Highlight",
