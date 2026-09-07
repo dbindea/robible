@@ -122,21 +122,6 @@ RoBible es una app web (PWA) de la Biblia con soporte offline, auth multi-device
 - [x] Sincronización: al login, merge local + server; al buscar, save a ambos
 - [x] Cada item del dropdown: click para aplicar, X para eliminar
 
-### Phase 3.5 — Nickname hints + sugerencias en conflicto (Backend)
-
-**Nickname hint (no olvidar el nickname):**
-- [ ] D1 table: `nickname_hints(user_id, hint_text, created_at)` con UNIQUE en `user_id`
-- [ ] Endpoint `GET /api/auth/me/hint` — devuelve el hint si existe
-- [ ] Endpoint `POST /api/auth/me/hint` — guarda hint del usuario actual
-- [ ] Frontend: al abrir "olvidé mi nickname", input de hint (muestra "antes te registraste como ___?")
-- [ ] Login flow extendido: si el usuario introduce un nickname que no existe, mostrar "guardaste una pista: sí/no" → si sí, pedir la pista
-
-**Sugerencias en conflicto de registro:**
-- [ ] Endpoint `POST /api/auth/suggest-nickname` body `{nickname: "x"}` → devuelve array `["x_1", "x_42", "x_2026"]`
-- [ ] Lógica: probar sufijos numéricos cortos (1, 2, 42, 123, 2026) hasta encontrar uno disponible
-- [ ] Frontend: al recibir `nickname_taken`, llamar a este endpoint y mostrar chips con sugerencias
-- [ ] i18n: "El nickname 'x' ya existe. Prueba con:" + chips clickables que rellenan el input
-
 ### Phase 4.1 — Lectura acompañada de música ✅ CERRADA (2026-09-05)
 
 > **Ojo: esta fase ya no es "audio TTS".** Nació como lectura en voz alta con
@@ -182,9 +167,6 @@ RoBible es una app web (PWA) de la Biblia con soporte offline, auth multi-device
 - [x] Click-outside para cerrar (ya estaba implementado)
 - [x] Verificado con Playwright: ambos menus aparecen correctamente fuera del .result
 - Pendiente: en mobile, hacer los menus a ancho completo o bottom sheet
-
-### Phase 4.4 — Mobile play overlap
-- PENDIENTE. El botón TTS aún no existe (Phase 4.1). Cuando se implemente, coordinar z-index y posiciones con `.scroll-top-button`.
 
 ### Phase 4.5 — Eliminar plan de lectura + historial ✅ COMPLETADA (2026-08-28)
 - [x] Eliminado `src/components/AutoRead.svelte` (auto-advance con timer)
@@ -351,33 +333,54 @@ Arreglados: idioma del TTS, `USE_BACKEND` en producción, idioma de las categor�
 
 ---
 
-## Próximos pasos inmediatos (orden sugerido)
+## Dirección de producto (7 sep 2026)
 
-Reordenado el 2026-09-05. Lo completado se ha movido al historial de más abajo.
+> **Los pendientes anteriores se han retirado.** La lista que había aquí (páginas SEO en
+> cuatro idiomas, nickname hints, paths por idioma, avisos de lint, CAPTCHA…) ya no
+> refleja hacia dónde va el producto. Se sustituye por la especificación de abajo.
+>
+> Especificación completa, con el análisis del código que la sostiene:
+> **[docs/PLAN-2026-09-07.md](docs/PLAN-2026-09-07.md)**
 
-1. **Llevar las páginas `/versiculos/*` a los cuatro idiomas**: hoy son 8 y solo en español, con `rvl` cableado en `generate-seo.mjs`. Con cuatro Biblias servidas, pasar a 32 páginas curadas es el mayor tráfico de cola larga disponible sin riesgo de contenido fino. Es la continuación de la Phase 6.4
-2. **Arreglar el CSP de Clarity**: `script-src` permite `https://www.clarity.ms` pero el script se carga desde `https://scripts.clarity.ms`, así que Microsoft Clarity está **bloqueado en producción** y no recoge nada. Una línea en `netlify.toml`
-3. **Sacar `robible/` del control de versiones** (deuda 8): `git rm -r --cached robible/` — 17 MB en 16 ficheros
-4. **Frontend — decidir si se traducen los paths por idioma** (`indexPath`/`favoritesPath`/`notesPath` son hoy iguales en ro y es). Si se hace, añadir las variantes al sitemap
-5. **Revisar los 12 avisos de lint que quedan** (`require-each-key`, `infinite-reactive-loop`, `no-reactive-reassign`): son señales reales que se dejaron como warning para no bloquear
-6. **Backend — Phase 3.5 Nickname hints + sugerencias** (única fase funcional pendiente del plan original)
-7. **Frontend — Phase 4.4 Mobile play overlap** — coordinar el z-index del FAB con `.scroll-top-button`
-8. **Decisión de producto**: qué hacer con `user_profiles` (implementar o retirar del schema de la D1 desplegada)
-9. **Actualizar wrangler** (3.114 → 4.x): `d1 execute --file` falla con "fetch failed" en la versión actual; el DDL del 5 sep hubo que aplicarlo con `--command`
+El objetivo es doble: **limpiar el UX en móvil** y **abrir el producto a los predicadores**.
 
-**Cerrados el 5 sep 2026**: `VITE_API_BASE_URL` (sí estaba configurada), la reproducción de audio (era decisión de producto, no bug) y `en_kjv`/`zh_cuv` (las cuatro versiones están en `available: true` y se sirven en producción).
+### Fase 2 — Corregir el UX existente
 
----
+| # | Qué | Estado real encontrado |
+|---|---|---|
+| 2.A | Selector idioma/versión con código corto visible (`RO · Biblia Română`) | Hoy muestra sólo el nombre del idioma |
+| 2.B | Historial de búsqueda: 3 visibles, desaparece al escribir | Ya hace scroll con 4; nada lo cierra al teclear |
+| 2.C | Abreviaturas de libro (`prov 3 4`), sin recuento de resultados, sin auto-salto | **8 de 11 abreviaturas comunes fallan** |
+| 2.D | Conservar el texto al cambiar palabras ↔ referencia | Hoy se borra **a propósito**; hay que invertir la decisión |
+| 2.E | Versículo: sólo copiar; el resto de acciones al seleccionar | Siete iconos permanentes |
+| 2.F | El color del usuario sustituye al azul del estado activo | Fallo de especificidad: **sólo se ve en tema oscuro** |
 
-## TODO futuro: CAPTCHA
+### Fase 3 — Perfiles (schema 8)
 
-> Anotado para cuando el rate limit de D1 se quede corto (probablemente ~100 usuarios reales).
+`user_type` (`user` | `preacher`) y `email` opcional en `users`. Pregunta de seguridad
+escrita por el usuario, con respuesta de texto libre normalizada.
 
-- **Opción A**: Cloudflare Turnstile (gratis, invisible, sin fricción). Requiere añadir widget en el frontend + verificar token en el backend.
-- **Opción B**: reCAPTCHA v3 de Google. Más invasivo, scoring-based.
-- **Trigger**: cuando un mismo IP tenga > X registros fallidos en 1h, mostrar CAPTCHA antes de permitir registro.
-- **Scope**: solo registro (no login, para no molestar al usuario legítimo).
-- **Esfuerzo**: 1-2 días. Requiere cuenta en Cloudflare/Google.
+⚠️ Guardar email **revierte** el principio «sin PII» del README del worker. Hay que
+actualizarlo. El envío de correo queda pendiente: hoy no hay proveedor.
+
+### Fase 4 — Player y música
+
+Player como tarjeta flotante translúcida (con degradación si no hay `backdrop-filter`).
+Tres ambientes **procedurales** extendiendo `music.service.js`: Ebraică (frigia dominante),
+Rugăciune (drone grave), Liniște. Sin ficheros nuevos: cero licencias y offline por construcción.
+
+### Fase 5 — Módulo «Predicile mele» (schema 9)
+
+Sólo para `preacher`. Preparación guiada por pasos → predicación → schiță → **Modo Amvon
+offline**. Una tabla `sermons` con `content_json` y `outline_json`: el árbol de preparación
+nunca se consulta por dentro, siempre se carga entero.
+
+**RoBible no escribe la predicación.** Sin IA, ni como dependencia ni como opción.
+
+### Fuera de alcance
+
+IA, chatbot, red social, predicaciones públicas, marketplace, comentarios, seguidores,
+colaboración, editor tipo Word, ni roles más allá de Utilizator/Predicator.
 
 ---
 

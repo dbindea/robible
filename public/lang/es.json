@@ -129,7 +129,8 @@
         "favorite_login_required": "Inicia sesión para añadir a favoritos",
         "note_login_required": "Inicia sesión para añadir una nota",
         "topics_login_required": "Inicia sesión para guardar en una categoría",
-        "highlight_login_required": "Inicia sesión para subrayar versículos"
+        "highlight_login_required": "Inicia sesión para subrayar versículos",
+        "verse_actions": "Acciones para {reference}"
       }
     },
     "favorites": {

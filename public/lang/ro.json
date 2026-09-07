@@ -129,7 +129,8 @@
         "favorite_login_required": "Conectează-te pentru a adăuga la favorite",
         "note_login_required": "Conectează-te pentru a adăuga o notiță",
         "topics_login_required": "Conectează-te pentru a salva într-o categorie",
-        "highlight_login_required": "Autentifică-te pentru a evidenția versete"
+        "highlight_login_required": "Autentifică-te pentru a evidenția versete",
+        "verse_actions": "Acțiuni pentru {reference}"
       }
     },
     "favorites": {

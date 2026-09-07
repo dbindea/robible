@@ -129,7 +129,8 @@
         "favorite_login_required": "登录后可添加到收藏",
         "note_login_required": "登录后可添加笔记",
         "topics_login_required": "登录后可保存到分类",
-        "highlight_login_required": "登录后即可标记经文"
+        "highlight_login_required": "登录后即可标记经文",
+        "verse_actions": "{reference} 的操作"
       }
     },
     "favorites": {

@@ -6,8 +6,8 @@ import {
   getBibleVersionConfigOrDefault,
   getAvailableBibleVersions,
   getDefaultCompareWith,
-} from '../config/bible-versions';
-import { parseBiblePath, parseLegacyVersePath } from '../services/bible-route.service';
+} from '../config/bible-versions.js';
+import { parseBiblePath, parseLegacyVersePath } from '../services/bible-route.service.js';
 
 export const BIBLE_VERSION_STORAGE_KEY = 'selectedBibleVersion';
 export const COMPARE_WITH_STORAGE_KEY = 'robible:compareWith';
@@ -84,15 +84,41 @@ export const createDefaultSearchForm = () => ({
   chapter: [],
 });
 
+// Copia normalizada del formulario. Los arrays también se clonan: si se
+// reutilizara la referencia, el alias que se describe abajo seguiría abierto
+// por `book` y `chapter`.
 const createSearchForm = (form = {}) => ({
   searchText: form.searchText || null,
   searchType: form.searchType || 'match',
   testament: form.testament || 'all',
-  book: Array.isArray(form.book) ? form.book : [],
-  chapter: Array.isArray(form.chapter) ? form.chapter : [],
+  book: Array.isArray(form.book) ? [...form.book] : [],
+  chapter: Array.isArray(form.chapter) ? [...form.chapter] : [],
 });
 
-export const filter = writable(createSearchForm(getSavedFilter()));
+// ── El store nunca guarda el objeto que le entregan, sino una copia ──────────
+//
+// Sidebar hace `bind:value={searchForm.searchText}` sobre su propio objeto y
+// luego lo mete en el store. Result lee `$: searchForm = $filter`, así que a
+// partir de ese momento los dos apuntaban al MISMO objeto: teclear en el
+// buscador mutaba en silencio el estado de Result, sin pasar por el store y sin
+// notificar a nadie.
+//
+// El síntoma era éste: buscabas por referencia, borrabas con el aspa, escribías
+// otra vez y al pulsar la sugerencia la URL cambiaba pero el texto no. Result
+// veía un `searchText` que creía vacío, su guarda `if (!searchForm.searchText)`
+// daba falso y se negaba a sincronizar el libro y el capítulo desde la URL.
+// La primera búsqueda sí funcionaba porque hasta el primer `updateFilter` cada
+// componente tenía su propia copia.
+//
+// Copiando en `set` el alias no puede volver a formarse, ni aquí ni en el
+// próximo sitio que escriba en el store.
+const _filter = writable(createSearchForm(getSavedFilter()));
+
+export const filter = {
+  subscribe: _filter.subscribe,
+  set: (value) => _filter.set(createSearchForm(value)),
+  update: (fn) => _filter.update((actual) => createSearchForm(fn(actual))),
+};
 
 export const selectedBibleVersion = writable(getSavedBibleVersion());
 export const themeMode = writable(getSavedThemeMode());

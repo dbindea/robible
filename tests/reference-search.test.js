@@ -6,6 +6,8 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { searchReferences, formatReference, parseReference } from '../src/services/referenceSearch.service.js';
 
 const MAPA = {
@@ -73,7 +75,14 @@ test('distingue los libros numerados', () => {
 
 test('una entrada ambigua devuelve varios candidatos', () => {
   // "io" encaja con Ioan y con 1/2/3 Ioan: hay que ofrecerlos todos, no elegir.
-  const r = buscar('io 1 5');
+  //
+  // Se pide un límite alto a propósito. Con el corte por defecto de 5 esta
+  // comprobación medía dos cosas a la vez —qué empareja y qué se trunca— y se
+  // rompía sola: al aceptar prefijos de 2 letras contra nombres largos, "io"
+  // pasó a encontrar también Iosua y algún miembro de la familia Ioan quedaba
+  // fuera del top 5. Lo que importa aquí es el emparejamiento; del truncado se
+  // encarga "respeta el número máximo de resultados".
+  const r = searchReferences('io 1 5', MAPA, 20);
   const libros = new Set(r.map((m) => m.book));
   for (const esperado of [42, 61, 62, 63]) {
     assert.ok(libros.has(esperado), `falta el libro ${esperado} (${MAPA[esperado]}) entre los candidatos`);
@@ -137,4 +146,66 @@ test('parseReference resuelve solo cuando la referencia es inequívoca', () => {
 
 test('respeta el número máximo de resultados', () => {
   assert.ok(searchReferences('io', MAPA, 2).length <= 2);
+});
+
+// ── Abreviaturas sobre el mapa real ─────────────────────────────────────────
+//
+// Estas comprobaciones usan el bible.map.json de producción y no el mapa de
+// juguete de arriba, porque el fallo que cubren dependía de la longitud de los
+// nombres reales: `isPlausiblePrefix` descartaba un prefijo cuando el nombre
+// del libro era más de 4 caracteres más largo que lo escrito. Con nombres
+// cortos no se notaba; con "Proverbele" o "Faptele Apostolilor", sí.
+//
+// El síntoma era que `prov 3 4` no devolvía absolutamente nada.
+
+const MAPA_REAL = JSON.parse(
+  readFileSync(path.join(import.meta.dirname, '..', 'public', 'data', 'vdc', 'bible.map.json'), 'utf8'),
+);
+
+const buscarReal = (texto, max = 5) => searchReferences(texto, MAPA_REAL, max);
+
+test('las abreviaturas habituales encuentran su libro', () => {
+  const esperado = {
+    prov: 'Proverbele',
+    deut: 'Deuteronomul',
+    apoc: 'Apocalipsa',
+    ecl: 'Eclesiastul',
+    gal: 'Galateni',
+    judec: 'Judecătorii',
+    fapte: 'Faptele Apostolilor',
+    plang: 'Plângerile lui Ieremia',
+    efes: 'Efeseni',
+    filip: 'Filipeni',
+    colos: 'Coloseni',
+    ps: 'Psalmii',
+  };
+  for (const [abreviatura, libro] of Object.entries(esperado)) {
+    const r = buscarReal(abreviatura);
+    assert.ok(r.length >= 1, `"${abreviatura}" no devolvió nada`);
+    assert.equal(r[0].name, libro, `"${abreviatura}" → ${r[0].name}, se esperaba ${libro}`);
+  }
+});
+
+test('prov 3 4 resuelve a Proverbele 3:4', () => {
+  // El ejemplo exacto de la especificación, y el que estaba roto.
+  for (const entrada of ['prov 3 4', 'prov 3:4', 'Prov 3:4', 'proverbe 3:4']) {
+    const r = buscarReal(entrada);
+    assert.ok(r.length >= 1, `"${entrada}" no devolvió nada`);
+    assert.equal(r[0].name, 'Proverbele');
+    assert.equal(r[0].chapter, 3);
+    assert.equal(r[0].verse, 4);
+  }
+});
+
+test('una sola letra no empareja media Biblia', () => {
+  // Sin esta guarda, "i" devolvía 14 libros y la lista era inservible.
+  assert.equal(buscarReal('a').length, 0);
+  assert.equal(buscarReal('x').length, 0);
+});
+
+test('nunca se devuelven más de 5 sugerencias', () => {
+  // La interfaz muestra como mucho 5: el usuario afina, no elige entre veinte.
+  for (const entrada of ['i', 'io', 'ioan', '1', 'ps']) {
+    assert.ok(buscarReal(entrada).length <= 5, `"${entrada}" devolvió demasiadas`);
+  }
 });

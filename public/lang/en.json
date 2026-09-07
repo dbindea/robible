@@ -129,7 +129,8 @@
         "favorite_login_required": "Sign in to add to favorites",
         "note_login_required": "Sign in to add a note",
         "topics_login_required": "Sign in to save to a category",
-        "highlight_login_required": "Sign in to highlight verses"
+        "highlight_login_required": "Sign in to highlight verses",
+        "verse_actions": "Actions for {reference}"
       }
     },
     "favorites": {
