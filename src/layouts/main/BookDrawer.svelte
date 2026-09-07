@@ -97,10 +97,20 @@
 </aside>
 
 <style lang="scss">
+  // ── Por encima de los diálogos ──────────────────────────────────────────
+  //
+  // El cajón se abre también DESDE dentro de un modal (al crear una predicación
+  // se elige el libro sin salir del diálogo). Con z-index 20 quedaba por debajo
+  // del velo del modal, que está en 110: se veía desenfocado, los clics no le
+  // llegaban y al pulsar un libro el clic caía en el velo, que cierra el
+  // diálogo. Los tres síntomas eran el mismo fallo de apilado.
+  //
+  // 120/121 lo deja sobre cualquier modal y por debajo del Modo Amvon (200),
+  // que tiene que tapar absolutamente todo.
   .book-drawer__overlay {
     position: fixed;
     inset: 0;
-    z-index: 20;
+    z-index: 120;
     background-color: var(--color-scrim);
     backdrop-filter: blur(2px);
   }
@@ -108,7 +118,7 @@
   .book-drawer {
     position: fixed;
     inset: 0 auto 0 0;
-    z-index: 21;
+    z-index: 121;
     display: flex;
     flex-direction: column;
     width: min(33rem, calc(100vw - 1.5rem));
