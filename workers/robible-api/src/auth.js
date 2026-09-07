@@ -13,11 +13,17 @@ import {
   checkRateLimit,
   json,
   error,
+  normalizeSecurityAnswer,
   RESET_TOKEN_TTL_MS,
 } from './utils.js';
 
-// Preguntas de seguridad predefinidas (mismas que el frontend)
-export const SECURITY_QUESTIONS = ['siblings', 'favorite_number', 'bible_start_year', 'pets_count', 'countries_visited'];
+// Claves de las preguntas predefinidas que se usaban antes del schema 8.
+//
+// Ya NO se puede registrar con ellas: la pregunta la escribe el usuario. Se
+// conserva la lista porque las cuentas creadas antes las tienen guardadas en
+// `sec_question` y el frontend necesita traducirlas al recuperar la cuenta.
+// Para cuentas nuevas, `sec_question` vale siempre 'custom'.
+export const LEGACY_SECURITY_QUESTIONS = ['siblings', 'favorite_number', 'bible_start_year', 'pets_count', 'countries_visited'];
 
 // ── REGISTER ────────────────────────────────────────────
 export async function register(request, db, env, cors) {
@@ -27,17 +33,25 @@ export async function register(request, db, env, cors) {
   let body;
   try { body = await request.json(); } catch { return error('invalid_json', 400, cors); }
 
-  const { nickname, password, securityQuestion, securityQuestionText, securityAnswer, locale } = body || {};
+  const { nickname, password, securityQuestionText, securityAnswer, userType, email, locale } = body || {};
 
   if (!validators.nickname(nickname)) return error('invalid_nickname', 400, cors);
   if (!validators.password(password)) return error('invalid_password', 400, cors);
-  if (!securityQuestion || !SECURITY_QUESTIONS.includes(securityQuestion)) {
+
+  // La pregunta la escribe el usuario. Ya no se acepta elegir de una lista: con
+  // cinco opciones fijas, mucha gente terminaba usando la misma pregunta.
+  if (!validators.securityQuestionText(securityQuestionText)) {
     return error('invalid_security_question', 400, cors);
   }
-  if (securityQuestion === 'custom' && (!securityQuestionText || !securityQuestionText.trim())) {
-    return error('security_question_required', 400, cors);
-  }
-  if (!validators.numericAnswer(securityAnswer)) return error('invalid_security_answer', 400, cors);
+  if (!validators.securityAnswer(securityAnswer)) return error('invalid_security_answer', 400, cors);
+
+  // Tipo de cuenta: si no llega, cuenta normal.
+  const tipo = userType === undefined || userType === null ? 'user' : userType;
+  if (!validators.userType(tipo)) return error('invalid_user_type', 400, cors);
+
+  // El email es opcional de verdad: sólo se valida si viene con algo escrito.
+  const emailLimpio = typeof email === 'string' ? email.trim() : '';
+  if (emailLimpio && !validators.email(emailLimpio)) return error('invalid_email', 400, cors);
 
   const normalized = nickname.trim().toLowerCase();
 
@@ -52,23 +66,28 @@ export async function register(request, db, env, cors) {
   const passwordSalt = crypto.randomUUID().replace(/-/g, '').substring(0, 32);
   const passwordHash = await hashValue(password, passwordSalt);
   const answerSalt = crypto.randomUUID().replace(/-/g, '').substring(0, 32);
-  const answerHash = await hashValue(securityAnswer.trim(), answerSalt);
+  // `normalizeSecurityAnswer` y no `.trim()`: la verificación al recuperar la
+  // cuenta usa exactamente la misma función. Si las dos rutas normalizaran
+  // distinto, el usuario escribiría la respuesta correcta y no entraría nunca.
+  const answerHash = await hashValue(normalizeSecurityAnswer(securityAnswer), answerSalt);
 
   const now = nowIso();
   await db
     .prepare(
-      `INSERT INTO users (id, nickname, password_salt, password_hash, sec_question, sec_question_text, sec_answer_salt, sec_answer_hash, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO users (id, nickname, password_salt, password_hash, sec_question, sec_question_text, sec_answer_salt, sec_answer_hash, user_type, email, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .bind(
       userId,
       normalized,
       passwordSalt,
       passwordHash,
-      securityQuestion,
-      securityQuestion === 'custom' ? securityQuestionText.trim() : null,
+      'custom',
+      securityQuestionText.trim(),
       answerSalt,
       answerHash,
+      tipo,
+      emailLimpio || null,
       now,
       now,
     )
@@ -86,7 +105,14 @@ export async function register(request, db, env, cors) {
 
   return json({
     ok: true,
-    user: { id: userId, nickname: normalized, createdAt: now, updatedAt: now },
+    user: {
+      id: userId,
+      nickname: normalized,
+      userType: tipo,
+      email: emailLimpio || null,
+      createdAt: now,
+      updatedAt: now,
+    },
     token,
   }, 201, cors);
 }
@@ -133,7 +159,7 @@ export async function login(request, db, env, cors) {
 
   const user = await db
     .prepare(
-      `SELECT id, nickname, password_salt, password_hash, created_at, updated_at
+      `SELECT id, nickname, password_salt, password_hash, user_type, email, created_at, updated_at
        FROM users WHERE nickname = ?`,
     )
     .bind(nickname.trim().toLowerCase())
@@ -151,6 +177,8 @@ export async function login(request, db, env, cors) {
     user: {
       id: user.id,
       nickname: user.nickname,
+      userType: user.user_type || 'user',
+      email: user.email || null,
       createdAt: user.created_at,
       updatedAt: user.updated_at,
     },
@@ -191,7 +219,7 @@ export async function verifyRecoverAnswer(request, db, env, cors) {
   try { body = await request.json(); } catch { return error('invalid_json', 400, cors); }
   const { nickname, answer } = body || {};
   if (!validators.nickname(nickname)) return error('invalid_nickname', 400, cors);
-  if (!validators.numericAnswer(answer)) return error('invalid_security_answer', 400, cors);
+  if (!validators.securityAnswer(answer)) return error('invalid_security_answer', 400, cors);
 
   const user = await db
     .prepare(
@@ -201,7 +229,10 @@ export async function verifyRecoverAnswer(request, db, env, cors) {
     .first();
   if (!user) return error('user_not_found', 404, cors);
 
-  const valid = await verifyHash(answer.trim(), user.sec_answer_salt, user.sec_answer_hash);
+  // Misma normalización que al registrar, por fuerza: lo guardado es un hash.
+  // Con las respuestas numéricas de las cuentas antiguas la normalización no
+  // cambia nada ("3" sigue siendo "3"), así que sus hashes siguen valiendo.
+  const valid = await verifyHash(normalizeSecurityAnswer(answer), user.sec_answer_salt, user.sec_answer_hash);
   if (!valid) return error('invalid_security_answer', 401, cors);
 
   const resetToken = await makeToken(user.id, env.JWT_SECRET, RESET_TOKEN_TTL_MS);
@@ -301,4 +332,84 @@ export async function changePassword(request, db, env, cors) {
     .run();
 
   return json({ ok: true }, 200, cors);
+}
+
+// ── ACTUALIZAR PERFIL ───────────────────────────────────
+//
+// Cambia el tipo de cuenta, el email o la pregunta de seguridad. Todo opcional:
+// se toca sólo lo que venga en el cuerpo.
+//
+// Cambiar de tipo NO borra nada. Un predicador que pase a usuario normal
+// conserva sus predicaciones; simplemente deja de ver el menú. Así volver atrás
+// no cuesta nada y nadie pierde trabajo por probar.
+export async function updateProfile(request, db, env, cors) {
+  const auth = await requireAuth(request, db, env);
+  if (!auth.user) return error(auth.error, 401, cors);
+
+  let body;
+  try { body = await request.json(); } catch { return error('invalid_json', 400, cors); }
+  const { userType, email, securityQuestionText, securityAnswer } = body || {};
+
+  const campos = [];
+  const valores = [];
+
+  if (userType !== undefined) {
+    if (!validators.userType(userType)) return error('invalid_user_type', 400, cors);
+    campos.push('user_type = ?');
+    valores.push(userType);
+  }
+
+  if (email !== undefined) {
+    // Mandar cadena vacía o null es la forma de quitarlo.
+    const limpio = typeof email === 'string' ? email.trim() : '';
+    if (limpio && !validators.email(limpio)) return error('invalid_email', 400, cors);
+    campos.push('email = ?');
+    valores.push(limpio || null);
+  }
+
+  // La pregunta y la respuesta se cambian juntas o no se cambian: dejar una
+  // pregunta nueva con la respuesta vieja deja al usuario sin poder recuperar
+  // la cuenta, y encima sin enterarse hasta que la necesite.
+  if (securityQuestionText !== undefined || securityAnswer !== undefined) {
+    if (!validators.securityQuestionText(securityQuestionText)) {
+      return error('invalid_security_question', 400, cors);
+    }
+    if (!validators.securityAnswer(securityAnswer)) {
+      return error('invalid_security_answer', 400, cors);
+    }
+    const salt = crypto.randomUUID().replace(/-/g, '').substring(0, 32);
+    const hash = await hashValue(normalizeSecurityAnswer(securityAnswer), salt);
+    campos.push('sec_question = ?', 'sec_question_text = ?', 'sec_answer_salt = ?', 'sec_answer_hash = ?');
+    valores.push('custom', securityQuestionText.trim(), salt, hash);
+  }
+
+  if (!campos.length) return error('missing_fields', 400, cors);
+
+  const now = nowIso();
+  campos.push('updated_at = ?');
+  valores.push(now, auth.user.id);
+
+  await db
+    .prepare(`UPDATE users SET ${campos.join(', ')} WHERE id = ?`)
+    .bind(...valores)
+    .run();
+
+  const actualizado = await db
+    .prepare('SELECT id, nickname, user_type, email, created_at, updated_at FROM users WHERE id = ?')
+    .bind(auth.user.id)
+    .first();
+
+  // La respuesta de seguridad nunca vuelve en claro, ni siquiera al dueño:
+  // lo que se guarda es un hash y no hay forma de reconstruirla.
+  return json({
+    ok: true,
+    user: {
+      id: actualizado.id,
+      nickname: actualizado.nickname,
+      userType: actualizado.user_type || 'user',
+      email: actualizado.email || null,
+      createdAt: actualizado.created_at,
+      updatedAt: actualizado.updated_at,
+    },
+  }, 200, cors);
 }

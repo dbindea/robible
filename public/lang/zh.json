@@ -369,10 +369,10 @@
     "password": "密码",
     "security_question": "安全问题",
     "custom_question": "其他问题（在下方填写）",
-    "custom_question_placeholder": "例如：去年我读了几本书？",
-    "security_answer": "数字答案",
-    "security_answer_hint": "例如：3",
-    "security_answer_help": "答案必须仅为数字（最多6位）。",
+    "custom_question_placeholder": "例如：我的第一只狗叫什么名字？",
+    "security_answer": "答案",
+    "security_answer_hint": "你的答案",
+    "security_answer_help": "大小写、重音和空格都不影响。",
     "your_question": "您的安全问题",
     "new_password": "新密码",
     "login_action": "登录",
@@ -401,7 +401,7 @@
     "errors": {
       "invalid_nickname": "用户名无效（3-24个字符：字母、数字、_、.、-）。",
       "invalid_password": "密码无效（最少6个字符）。",
-      "invalid_security_answer": "答案必须仅为数字（最多6位）。",
+      "invalid_security_answer": "请输入答案（最多 100 个字符）。",
       "nickname_taken": "此用户名已被占用。",
       "user_not_found": "未找到此名称的账户。",
       "invalid_credentials": "用户名或密码错误。",
@@ -424,8 +424,19 @@
       "invalid_color": "颜色无效。",
       "backend_unavailable": "服务器不可用，使用本地缓存。",
       "unknown": "发生错误，请重试。",
-      "highlight_not_found": "未找到标记"
-    }
+      "highlight_not_found": "未找到标记",
+      "invalid_user_type": "账号类型无效",
+      "invalid_email": "邮箱地址格式不正确"
+    },
+    "user_type": "账号类型",
+    "user_type_user": "普通用户",
+    "user_type_user_hint": "阅读、收藏、笔记和主题。",
+    "user_type_preacher": "讲道者",
+    "user_type_preacher_hint": "普通用户的全部功能，另加讲道工具。",
+    "email_optional": "邮箱（可选）",
+    "email_placeholder": "name@example.com",
+    "email_help": "仅用于找回账号，可以留空。",
+    "security_question_help": "写一个只有你知道答案的问题。"
   },
   "landing": {
     "skip_to_content": "跳到主要内容",

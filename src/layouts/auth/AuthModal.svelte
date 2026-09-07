@@ -12,7 +12,7 @@
     resetPassword,
   } from '../../store/authStore';
   import { closeAuthMenu } from '../../store/authMenuStore';
-  import { SECURITY_QUESTIONS, validators } from '../../services/auth.service';
+  import { LEGACY_SECURITY_QUESTIONS, USER_TYPES, validators } from '../../services/auth.service';
   import { onMount } from 'svelte';
 
   // Vistas: 'login' | 'register' | 'recover-question' | 'recover-reset'
@@ -22,10 +22,11 @@
   let busy = false;
   let nickname = '';
   let password = '';
-  let securityQuestion = SECURITY_QUESTIONS[0].key;
   let customQuestion = '';
   let securityAnswer = '';
   let newPassword = '';
+  let userType = 'user';
+  let email = '';
 
   // Si ya está logueado, mostramos el perfil + logout
   $: if ($isAuthenticated) {
@@ -84,12 +85,13 @@
   const submitRegister = async () => {
     error = '';
     message = '';
-    const finalQuestion = securityQuestion === 'custom' ? customQuestion.trim() : securityQuestion;
     const result = await register({
       nickname,
       password,
-      securityQuestion: finalQuestion,
+      securityQuestionText: customQuestion,
       securityAnswer,
+      userType,
+      email,
     });
     if (result.ok) {
       message = $_('auth.welcome_new', { nickname: result.user.nickname });
@@ -112,14 +114,26 @@
     busy = false;
     if (result.ok) {
       view = 'recover-reset';
-      // Guardamos la pregunta resuelta en una variable local
-      recoveredQuestion = result.securityQuestion;
+      // Dos formas posibles según cuándo se creó la cuenta:
+      //   - 'custom' (todas las nuevas): la pregunta la escribió el usuario y
+      //     viene en `securityQuestionText`; se muestra tal cual.
+      //   - una clave antigua ('siblings', 'pets_count'…): hay que traducirla.
+      // Sin esta distinción, a los usuarios nuevos les salía la palabra
+      // "custom" en pantalla en vez de su pregunta.
+      recoveredQuestion = result.securityQuestion === 'custom'
+        ? (result.securityQuestionText || '')
+        : traducirPreguntaAntigua(result.securityQuestion);
     } else {
       error = $_(result.error);
     }
   };
 
   let recoveredQuestion = '';
+
+  const traducirPreguntaAntigua = (clave) => {
+    const conocida = LEGACY_SECURITY_QUESTIONS.find((q) => q.key === clave);
+    return conocida ? $_(conocida.i18nKey) : clave || '';
+  };
 
   const submitRecoverReset = async () => {
     error = '';
@@ -256,38 +270,62 @@
               disabled={busy}
             />
           </label>
+          <!-- Tipo de cuenta. Un predicador es un usuario normal más las
+               herramientas de predicación: no pierde nada, así que se puede
+               cambiar después sin consecuencias. -->
+          <fieldset class="auth-field auth-usertype">
+            <legend>{$_('auth.user_type')}</legend>
+            <div class="auth-usertype__options">
+              {#each USER_TYPES as tipo}
+                <label class="auth-usertype__option" class:auth-usertype__option--active={userType === tipo}>
+                  <input type="radio" name="userType" value={tipo} bind:group={userType} disabled={busy} />
+                  <span class="auth-usertype__name">{$_(`auth.user_type_${tipo}`)}</span>
+                  <span class="auth-usertype__hint">{$_(`auth.user_type_${tipo}_hint`)}</span>
+                </label>
+              {/each}
+            </div>
+          </fieldset>
+
+          <!-- La pregunta la escribe el usuario. Antes se elegía de una lista
+               de cinco y mucha gente acababa compartiendo la misma. -->
           <label class="auth-field">
             <span>{$_('auth.security_question')}</span>
-            <select bind:value={securityQuestion} disabled={busy}>
-              {#each SECURITY_QUESTIONS as q}
-                <option value={q.key}>{$_(q.i18nKey)}</option>
-              {/each}
-              <option value="custom">{$_('auth.custom_question')}</option>
-            </select>
-            {#if securityQuestion === 'custom'}
-              <input
-                type="text"
-                bind:value={customQuestion}
-                maxlength="120"
-                placeholder={$_('auth.custom_question_placeholder')}
-                required
-                disabled={busy}
-              />
-            {/if}
+            <input
+              type="text"
+              bind:value={customQuestion}
+              maxlength="120"
+              placeholder={$_('auth.custom_question_placeholder')}
+              required
+              disabled={busy}
+            />
+            <small class="auth-field__hint">{$_('auth.security_question_help')}</small>
           </label>
           <label class="auth-field">
             <span>{$_('auth.security_answer')}</span>
             <input
               type="text"
-              inputmode="numeric"
-              pattern="[0-9]*"
               bind:value={securityAnswer}
-              maxlength="6"
+              maxlength="100"
               required
               placeholder={$_('auth.security_answer_hint')}
               disabled={busy}
             />
             <small class="auth-field__hint">{$_('auth.security_answer_help')}</small>
+          </label>
+
+          <!-- Email opcional de verdad: sin asterisco, sin `required`, y el
+               texto lo dice. No se vuelve a pedir más adelante. -->
+          <label class="auth-field">
+            <span>{$_('auth.email_optional')}</span>
+            <input
+              type="email"
+              bind:value={email}
+              maxlength="254"
+              autocomplete="email"
+              placeholder={$_('auth.email_placeholder')}
+              disabled={busy}
+            />
+            <small class="auth-field__hint">{$_('auth.email_help')}</small>
           </label>
           <button class="auth-modal__primary" type="submit" disabled={busy}>
             {busy ? $_('auth.working') : $_('auth.register_action')}
@@ -338,10 +376,8 @@
             <span>{$_('auth.security_answer')}</span>
             <input
               type="text"
-              inputmode="numeric"
-              pattern="[0-9]*"
               bind:value={securityAnswer}
-              maxlength="6"
+              maxlength="100"
               required
               placeholder={$_('auth.security_answer_hint')}
               disabled={busy}
@@ -505,6 +541,73 @@
     gap: 0.75rem;
   }
 
+  // ── Tipo de cuenta ────────────────────────────────────────────────────────
+  // Dos tarjetas y no un desplegable: son sólo dos opciones y cada una necesita
+  // una línea de explicación para que se entienda la diferencia sin abrir nada.
+  .auth-usertype {
+    margin: 0;
+    padding: 0;
+    border: 0;
+
+    legend {
+      padding: 0 0 0.3rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--color-bg-dark);
+    }
+  }
+
+  .auth-usertype__options {
+    display: grid;
+    gap: 0.45rem;
+  }
+
+  .auth-usertype__option {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: baseline;
+    gap: 0.15rem 0.55rem;
+    padding: 0.55rem 0.7rem;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: var(--transition);
+
+    input {
+      grid-row: span 2;
+      align-self: center;
+      min-height: 0;
+      margin: 0;
+      accent-color: var(--color-accent);
+    }
+
+    &:hover {
+      border-color: var(--color-accent);
+    }
+
+    &--active {
+      border-color: var(--color-accent);
+      background: color-mix(in srgb, var(--color-accent) 8%, transparent);
+    }
+
+    &:focus-within {
+      outline: 2px solid var(--color-accent);
+      outline-offset: 2px;
+    }
+  }
+
+  .auth-usertype__name {
+    font-weight: 600;
+    color: var(--color-bg-dark);
+  }
+
+  .auth-usertype__hint {
+    grid-column: 2;
+    font-size: var(--font-size-tiny);
+    line-height: 1.35;
+    color: var(--color-ink-soft);
+  }
+
   .auth-field {
     display: grid;
     gap: 0.3rem;
@@ -515,7 +618,9 @@
       color: var(--color-bg-dark);
     }
 
-    input, select {
+    // Ya no hay ningún `select` en este formulario: la pregunta de seguridad se
+    // elegía de una lista y ahora la escribe el usuario.
+    input {
       min-height: 2.5rem;
       padding: 0.45rem 0.65rem;
       border: 1px solid color-mix(in srgb, var(--color-bg-dark) 18%, transparent);
@@ -532,8 +637,6 @@
         box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 18%, transparent);
       }
     }
-
-    select { padding-right: 2rem; }
   }
 
   .auth-field__hint {
@@ -631,9 +734,24 @@
   :global(html[data-theme='dark']) .auth-modal__lead {
     color: rgb(255 255 255 / 60%);
   }
+  :global(html[data-theme='dark']) .auth-usertype {
+    legend { color: #ffffff; }
+
+    .auth-usertype__name { color: #ffffff; }
+
+    .auth-usertype__option {
+      border-color: rgb(255 255 255 / 18%);
+    }
+
+    .auth-usertype__option--active {
+      border-color: var(--color-accent);
+      background: color-mix(in srgb, var(--color-accent) 16%, transparent);
+    }
+  }
+
   :global(html[data-theme='dark']) .auth-field {
     > span { color: #ffffff; }
-    input, select {
+    input {
       background: #243442;
       border-color: rgb(255 255 255 / 12%);
       color: #ffffff;

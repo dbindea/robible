@@ -369,10 +369,10 @@
     "password": "Password",
     "security_question": "Security question",
     "custom_question": "Other question (write it below)",
-    "custom_question_placeholder": "e.g.: How many books did I read last year?",
-    "security_answer": "Numeric answer",
-    "security_answer_hint": "e.g.: 3",
-    "security_answer_help": "The answer must be numbers only (max 6 digits).",
+    "custom_question_placeholder": "e.g.: What was my first dog called?",
+    "security_answer": "Answer",
+    "security_answer_hint": "Your answer",
+    "security_answer_help": "Capitals, accents and spaces do not matter.",
     "your_question": "Your security question",
     "new_password": "New password",
     "login_action": "Sign in",
@@ -401,7 +401,7 @@
     "errors": {
       "invalid_nickname": "Invalid name (3-24 characters: letters, numbers, _, ., -).",
       "invalid_password": "Invalid password (minimum 6 characters).",
-      "invalid_security_answer": "The answer must be numbers only (max 6 digits).",
+      "invalid_security_answer": "Write an answer (100 characters max).",
       "nickname_taken": "This username is already taken.",
       "user_not_found": "No account found with this name.",
       "invalid_credentials": "Incorrect name or password.",
@@ -424,8 +424,19 @@
       "invalid_color": "Invalid color.",
       "backend_unavailable": "Server not available. Using local cache.",
       "unknown": "An error occurred. Try again.",
-      "highlight_not_found": "Highlight not found"
-    }
+      "highlight_not_found": "Highlight not found",
+      "invalid_user_type": "Invalid account type",
+      "invalid_email": "That email address does not look right"
+    },
+    "user_type": "Account type",
+    "user_type_user": "User",
+    "user_type_user_hint": "Reading, favourites, notes and topics.",
+    "user_type_preacher": "Preacher",
+    "user_type_preacher_hint": "Everything a user has, plus the sermon tools.",
+    "email_optional": "Email (optional)",
+    "email_placeholder": "name@example.com",
+    "email_help": "Only used to recover your account. You can leave it empty.",
+    "security_question_help": "Write a question only you know the answer to."
   },
   "landing": {
     "skip_to_content": "Skip to content",

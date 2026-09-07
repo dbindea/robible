@@ -355,13 +355,32 @@ El objetivo es doble: **limpiar el UX en móvil** y **abrir el producto a los pr
 | 2.E | Versículo: sólo copiar; el resto de acciones al seleccionar | Siete iconos permanentes |
 | 2.F | El color del usuario sustituye al azul del estado activo | Fallo de especificidad: **sólo se ve en tema oscuro** |
 
-### Fase 3 — Perfiles (schema 8)
+### Fase 3 — Perfiles (schema 8) — hecha, ver arriba
 
 `user_type` (`user` | `preacher`) y `email` opcional en `users`. Pregunta de seguridad
 escrita por el usuario, con respuesta de texto libre normalizada.
 
 ⚠️ Guardar email **revierte** el principio «sin PII» del README del worker. Hay que
 actualizarlo. El envío de correo queda pendiente: hoy no hay proveedor.
+
+### Fase 3 — Perfiles ✅ COMPLETADA (2026-09-07, schema 8)
+
+- [x] `users` gana `user_type` ('user' | 'preacher') y `email` opcional
+- [x] La pregunta de seguridad la **escribe el usuario**; se retira la lista de cinco
+- [x] Respuesta de texto libre, normalizada al comparar (minúsculas, sin diacríticos, espacios colapsados)
+- [x] `PATCH /api/auth/me` para cambiar tipo, email y pregunta
+- [x] Formulario de registro con selector de tipo y email opcional
+- [x] Desplegado en producción (versión `38b626b5`)
+
+**Detalles que conviene no perder:**
+- `normalizeSecurityAnswer` vive en `utils.js` y la usan **registro y verificación**. Si las dos rutas normalizaran distinto, el usuario escribiría la respuesta correcta y no entraría nunca: lo guardado es un hash.
+- Con respuestas numéricas la normalización no cambia nada ("3" sigue siendo "3"), así que las cuentas antiguas no habrían perdido el acceso.
+- `sec_question` vale ahora siempre `'custom'`; `LEGACY_SECURITY_QUESTIONS` se conserva sólo para traducir las claves de cuentas anteriores al recuperar el acceso.
+- Cambiar de tipo **no borra nada**: verificado que las categorías sobreviven.
+- El item de menú "Predicile mele" **no** se ha añadido todavía: llevaría a una ruta que aún no existe. Va con la Fase 5, donde tiene destino.
+- ⚠️ El email **sólo se almacena**. El envío de correo necesita un proveedor y está pendiente. `workers/robible-api/README.md` está actualizado.
+
+**Arreglo colateral**: la sección `auth` del español estaba **entera en rumano** (63 claves). Un usuario hispano veía el registro, el login y todos los errores en un idioma que no es el suyo. Corregido. Quedan ~30 claves más fuera de `auth` en la misma situación.
 
 ### Fase 4 — Player y música
 

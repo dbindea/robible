@@ -45,6 +45,8 @@ const ERROR_KEYS = {
   invalid_password: 'auth.errors.invalid_password',
   invalid_security_question: 'auth.errors.invalid_security_question',
   invalid_security_answer: 'auth.errors.invalid_security_answer',
+  invalid_user_type: 'auth.errors.invalid_user_type',
+  invalid_email: 'auth.errors.invalid_email',
   nickname_taken: 'auth.errors.nickname_taken',
   user_not_found: 'auth.errors.user_not_found',
   invalid_credentials: 'auth.errors.invalid_credentials',

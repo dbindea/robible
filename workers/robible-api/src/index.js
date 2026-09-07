@@ -82,6 +82,13 @@ app.post('/api/auth/change-password', requireAuthMw, async (c) => {
   return auth.changePassword(c.req.raw, c.env.DB, c.env, corsFor(c));
 });
 
+// Tipo de cuenta, email y pregunta de seguridad. Todo opcional: se actualiza
+// sólo lo que venga en el cuerpo.
+app.patch('/api/auth/me', requireAuthMw, async (c) => {
+  applyCors(c);
+  return auth.updateProfile(c.req.raw, c.env.DB, c.env, corsFor(c));
+});
+
 // ── Temas públicos (sin auth) ──────────────────────────
 // Van con rate limit porque son los únicos endpoints de datos abiertos: sin él
 // serían una invitación a barrer la base a base de peticiones.

@@ -8,15 +8,42 @@ CREATE TABLE IF NOT EXISTS users (
   nickname TEXT UNIQUE NOT NULL COLLATE NOCASE,     -- 3-24 chars, case-insensitive
   password_salt TEXT NOT NULL,                      -- hex 16 bytes
   password_hash TEXT NOT NULL,                      -- hex 32 bytes (PBKDF2-SHA256, 100k iter)
-  sec_question TEXT NOT NULL,                       -- 'siblings' | 'favorite_number' | ... | 'custom'
-  sec_question_text TEXT,                          -- cuando sec_question = 'custom'
+  -- La pregunta de seguridad la escribe siempre el usuario (schema_version 8).
+  -- Antes se elegía de una lista de cinco, con el efecto de que mucha gente
+  -- acababa compartiendo la misma. `sec_question` se queda en 'custom' y el
+  -- texto real vive en `sec_question_text`; las filas antiguas conservan su
+  -- clave ('siblings', 'favorite_number'…) y el frontend sigue traduciéndolas.
+  sec_question TEXT NOT NULL,                       -- 'custom' | claves antiguas
+  sec_question_text TEXT,                           -- la pregunta, cuando es 'custom'
   sec_answer_salt TEXT NOT NULL,                    -- hex 16 bytes
   sec_answer_hash TEXT NOT NULL,                    -- hex 32 bytes (PBKDF2-SHA256, 100k iter)
+  -- Tipo de cuenta (schema_version 8): 'user' | 'preacher'.
+  -- Un preacher es un user con las herramientas de predicación añadidas; no se
+  -- le oculta nada, así que cambiar de tipo no toca ningún otro dato.
+  user_type TEXT NOT NULL DEFAULT 'user',
+  -- Email OPCIONAL para recuperar la cuenta (schema_version 8). Puede ser NULL
+  -- y la app no debe insistir en pedirlo.
+  --
+  -- Ojo: esto revierte un principio del proyecto. El README de este worker decía
+  -- "sin dependencias de OAuth ni de PII", y la tabla `user_profiles` se retiró
+  -- en septiembre de 2026 justamente por guardar email. Se reintroduce como
+  -- decisión de producto explícita, sólo para recuperación y sin nada más de PII.
+  -- El envío de correo NO está implementado: hoy el email sólo se almacena.
+  email TEXT,
   created_at TEXT NOT NULL,                          -- ISO 8601
   updated_at TEXT NOT NULL                           -- ISO 8601
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_nickname ON users(nickname);
+
+-- ── Migración para bases ya desplegadas (schema_version 8) ───────────────────
+-- Este archivo sólo crea; las columnas nuevas no aparecen en una tabla que ya
+-- existía. En una base desplegada hay que aplicarlas a mano:
+--
+--   ALTER TABLE users ADD COLUMN user_type TEXT NOT NULL DEFAULT 'user';
+--   ALTER TABLE users ADD COLUMN email TEXT;
+--
+-- Aplicado en producción el 7 sep 2026.
 
 -- ============== AUTH SESSIONS ==============
 -- Tokens mock-JWT con expiración. Persistidos en DB para poder invalidar.
@@ -204,5 +231,6 @@ CREATE TABLE IF NOT EXISTS _meta (
 -- 5: se retira user_profiles (nunca usada, guardaba PII no deseada)
 -- 6: se añade highlights (subrayados de color por versículo)
 -- 7: topics gana is_public / public_slug / public_version / published_at
-INSERT OR IGNORE INTO _meta (key, value) VALUES ('schema_version', '7');
-UPDATE _meta SET value = '7' WHERE key = 'schema_version' AND value < '7';
+-- 8: users gana user_type y email; la pregunta de seguridad pasa a ser libre
+INSERT OR IGNORE INTO _meta (key, value) VALUES ('schema_version', '8');
+UPDATE _meta SET value = '8' WHERE key = 'schema_version' AND value < '8';

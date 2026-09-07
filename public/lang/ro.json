@@ -369,10 +369,10 @@
     "password": "Parolă",
     "security_question": "Întrebare de securitate",
     "custom_question": "Altă întrebare (scrie-o mai jos)",
-    "custom_question_placeholder": "Ex: Câte cărți am citit anul trecut?",
-    "security_answer": "Răspuns numeric",
-    "security_answer_hint": "Ex: 3",
-    "security_answer_help": "Răspunsul trebuie să fie doar cifre (maxim 6).",
+    "custom_question_placeholder": "Ex: Cum se numea primul meu câine?",
+    "security_answer": "Răspuns",
+    "security_answer_hint": "Răspunsul tău",
+    "security_answer_help": "Nu contează majusculele, diacriticele sau spațiile.",
     "your_question": "Întrebarea ta de securitate",
     "new_password": "Parolă nouă",
     "login_action": "Conectare",
@@ -401,7 +401,7 @@
     "errors": {
       "invalid_nickname": "Nume invalid (3-24 caractere: litere, cifre, _, ., -).",
       "invalid_password": "Parolă invalidă (mínimo 6 caracteres).",
-      "invalid_security_answer": "Răspunsul trebuie să fie doar cifre (maxim 6).",
+      "invalid_security_answer": "Scrie un răspuns (maximum 100 de caractere).",
       "nickname_taken": "Acest nume de utilizator este deja ocupat.",
       "user_not_found": "Nu am găsit un cont cu acest nume.",
       "invalid_credentials": "Nume sau parolă incorecte.",
@@ -424,8 +424,19 @@
       "invalid_color": "Culoare invalidă.",
       "backend_unavailable": "Serverul nu este disponibil. Se folosește cache local.",
       "unknown": "A apărut o eroare. Încearcă din nou.",
-      "highlight_not_found": "Evidențierea nu a fost găsită"
-    }
+      "highlight_not_found": "Evidențierea nu a fost găsită",
+      "invalid_user_type": "Tip de cont nevalid",
+      "invalid_email": "Adresa de email nu pare corectă"
+    },
+    "user_type": "Tipul contului",
+    "user_type_user": "Utilizator",
+    "user_type_user_hint": "Citire, favorite, notițe și teme.",
+    "user_type_preacher": "Predicator",
+    "user_type_preacher_hint": "Tot ce are un utilizator, plus instrumentele pentru predici.",
+    "email_optional": "Email (opțional)",
+    "email_placeholder": "nume@exemplu.ro",
+    "email_help": "Doar pentru recuperarea contului. Poți lăsa gol.",
+    "security_question_help": "Scrie o întrebare la care doar tu știi răspunsul."
   },
   "landing": {
     "skip_to_content": "Sari la conținut",

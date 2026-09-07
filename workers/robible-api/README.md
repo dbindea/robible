@@ -11,7 +11,17 @@ Sesiones con TTL de **30 días** (`SESSION_TTL_MS` en `src/utils.js`); los token
 - **Tokens**: HMAC-SHA256 firmados, persistidos en D1 (revocables)
 - **Rate limiting**: persistente en D1 (sobrevive cold starts de Workers) por IP + endpoint + ventana
 - **CORS**: configurable, solo orígenes allowlist
-- **Sin dependencias de OAuth ni de PII** (email, nombre real, etc.)
+- **Sin OAuth.** La cuenta es nickname + contraseña, nada más.
+- **PII reducida al mínimo**: sólo un `email` **opcional** en `users`, y únicamente
+  para recuperar la cuenta. Ni nombre real, ni avatar, ni nada más.
+  - Esto cambió el 7 sep 2026 (schema 8). Antes aquí ponía «sin dependencias de
+    OAuth ni de PII (email, nombre real, etc.)», y la tabla `user_profiles` se
+    había retirado en septiembre precisamente por guardar email. El email vuelve
+    como decisión de producto explícita, no por descuido: es opcional de verdad,
+    la interfaz no insiste y la app funciona igual sin él.
+  - **El envío de correo NO está implementado.** Hoy el email sólo se almacena;
+    para usarlo de verdad hace falta un proveedor (MailChannels desde Workers,
+    Resend, Postmark…) y un flujo de token por correo. Está pendiente.
 - **Multi-idioma**: las preguntas de seguridad se devuelven como clave, el frontend las traduce
 
 ## Estructura
