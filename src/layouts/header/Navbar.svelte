@@ -214,11 +214,7 @@
     white-space: nowrap;
     flex-shrink: 0;
 
-    svg {
-      width: 1.1rem;
-      height: 1.1rem;
-      flex: 0 0 auto;
-    }
+    --icon-size: 1.1rem;
 
     .nav-link__label {
       // visible por defecto (desktop)

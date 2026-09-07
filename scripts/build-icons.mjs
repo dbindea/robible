@@ -123,15 +123,30 @@ const salida = `<script>
    * \`getFilledTopicIconSvg\`, que quitaba \`fill="none"\` de una cadena a mano.
    * Sólo los iconos con estado tienen relleno; el resto cae en \`regular\`.
    *
-   * El viewBox es 0 0 256 256 —el de Phosphor— y no 0 0 24 24. Los tamaños se
-   * siguen fijando desde CSS con \`width\`/\`height\`, así que ningún estilo
-   * existente cambia por esto.
+   * El viewBox es 0 0 256 256 —el de Phosphor— y no 0 0 24 24. Eso da igual
+   * para el tamaño, que se fija desde fuera de dos maneras:
+   *
+   *   <Icon name="x" size="1.2rem" />     ← una instancia concreta
+   *   .mi-boton { --icon-size: 1.2rem; }  ← todos los iconos de un contenedor
+   *
+   * La variable existe porque el scoping de Svelte rompe la forma obvia: una
+   * regla \`.mi-boton svg { width: … }\` del componente padre **no** alcanza al
+   * \`<svg>\` de aquí, que lleva otra clase de scope. Al migrar los 94 SVG
+   * sueltos, catorce reglas así se quedaron muertas y los iconos volvieron al
+   * tamaño por defecto sin que nada fallara.
    */
   export let name;
   /** 'regular' | 'fill' */
   export let weight = 'regular';
   /** Cualquier medida CSS. Por defecto hereda el tamaño de la fuente. */
   export let size = '1em';
+
+  // Un número suelto (size="18") no es una medida CSS: \`width: 18\` se descarta
+  // y el icono se dibuja a su tamaño intrínseco, enorme. Pasaba desapercibido
+  // porque antes el tamaño iba como atributo del <svg>, donde 18 sí es válido.
+  // Reventó los botones de la landing: el icono empujaba el texto a una letra
+  // por línea.
+  $: medida = /^\\d+(\\.\\d+)?$/.test(String(size)) ? \`\${size}px\` : size;
 
   const PATHS = ${'{'}
 ${lineas.join('\n')}
@@ -146,8 +161,7 @@ ${lineas.join('\n')}
 <svg
   viewBox="0 0 256 256"
   fill="currentColor"
-  width={size}
-  height={size}
+  style="--icon-fallback: {medida}"
   aria-hidden="true"
   focusable="false"
 >
@@ -158,6 +172,13 @@ ${lineas.join('\n')}
   svg {
     display: block;
     flex-shrink: 0;
+    /* El contenedor manda si define \`--icon-size\`; si no, el prop \`size\`. */
+    width: var(--icon-size, var(--icon-fallback));
+    height: var(--icon-size, var(--icon-fallback));
+    /* \`global.css\` pone \`max-width: 100%\` a todo svg, pensando en imágenes. En
+       un icono con tamaño propio eso sólo recorta el ancho —no el alto— y lo
+       deja aplastado: dentro de un botón estrecho salía a 13×16 px. */
+    max-width: none;
   }
 </style>
 `;

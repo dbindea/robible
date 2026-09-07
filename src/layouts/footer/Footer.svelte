@@ -180,7 +180,11 @@
     box-shadow: var(--box-shadow-up);
     align-items: center;
     gap: 1.25rem;
-    padding: 1rem clamp(1rem, 5vw, 5rem);
+    // El relleno inferior reserva la franja de los botones flotantes (ver
+    // `--floating-band` en global.css). Sin él, al llegar al final de la página
+    // «Subir» y «pantalla completa» caían justo encima de «Autentificare» y del
+    // selector de paleta, y no había forma de pulsarlos.
+    padding: 1rem clamp(1rem, 5vw, 5rem) calc(1rem + var(--floating-band) + var(--player-offset, 0px));
     display: flex;
     color: var(--color-bg-dark);
     justify-content: space-between;

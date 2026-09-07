@@ -696,10 +696,9 @@
       display: flex;
       align-items: center;
 
-      svg {
-        width: 0.95rem;
-        height: 0.95rem;
-      }
+      // El tamaño va al contenedor: una regla `svg` de aquí no alcanza al
+      // <svg> de Icon.svelte, que lleva otra clase de scope.
+      --icon-size: 0.95rem;
     }
 
     &__label {
@@ -802,11 +801,7 @@
     transition: var(--transition);
     box-shadow: var(--box-shadow-down);
 
-    svg {
-      width: 0.95rem;
-      height: 0.95rem;
-      flex: 0 0 auto;
-    }
+    --icon-size: 0.95rem;
 
     &:hover,
     &:focus-visible {
@@ -1039,10 +1034,9 @@
       color: var(--color-blue);
       opacity: 0.5;
 
-      svg {
-        width: 100%;
-        height: 100%;
-      }
+      // El tamaño va al contenedor: una regla `svg` de aquí no alcanza al
+      // <svg> de Icon.svelte, que lleva otra clase de scope.
+      --icon-size: 100%;
     }
 
     h2 {
@@ -1178,10 +1172,9 @@
       opacity: 0;
       transition: var(--transition);
 
-      svg {
-        width: 0.8rem;
-        height: 0.8rem;
-      }
+      // El tamaño va al contenedor: una regla `svg` de aquí no alcanza al
+      // <svg> de Icon.svelte, que lleva otra clase de scope.
+      --icon-size: 0.8rem;
 
       &:hover,
       &:focus-visible {

@@ -1405,7 +1405,7 @@
     <div class="note-modal__footer">
       <div class="note-modal__color-row">
         <label class="note-modal__color-label" for="note-color-{noteModalItem.key}">
-          <Icon name="palette" size="14" />
+          <Icon name="palette" size="14px" />
         </label>
         <input
           type="color"
@@ -1669,11 +1669,8 @@
     transition: var(--transition), transform var(--motion-fast) ease;
     box-shadow: inset 0 0 0 1px var(--shadow-tint), var(--box-shadow-up);
 
-    svg {
-      width: 1.1rem;
-      height: 1.1rem;
-      filter: drop-shadow(0 1px 1px var(--shadow-tint-strong));
-    }
+    --icon-size: 1.1rem;
+    filter: drop-shadow(0 1px 1px var(--shadow-tint-strong));
 
     &:hover {
       transform: translateY(-2px);
@@ -1758,10 +1755,9 @@
     transition: var(--transition);
     box-shadow: 0 1px 3px var(--shadow-tint);
 
-    svg {
-      width: 0.85rem;
-      height: 0.85rem;
-    }
+    // El tamaño va al contenedor: una regla `svg` de aquí no alcanza al
+    // <svg> de Icon.svelte, que lleva otra clase de scope.
+    --icon-size: 0.85rem;
 
     &:hover,
     &:focus-visible {
@@ -2284,11 +2280,9 @@
   .favorite-btn {
     opacity: 1;
 
-    svg {
-      transition: transform var(--motion-fast) ease, fill var(--motion-fast) ease;
-    }
+    transition: transform var(--motion-fast) ease;
 
-    &:hover:not(:disabled) svg {
+    &:hover:not(:disabled) {
       transform: scale(1.15);
     }
 

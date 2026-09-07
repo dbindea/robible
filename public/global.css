@@ -141,6 +141,15 @@
   /* ── Tamaños ── */
   --button-height: 2.5rem;
   --input-height: 3rem;
+
+  /* ── Banda de los botones flotantes ─────────────────────────────────────── */
+  /* Abajo del todo hay tres controles fijos: salir del modo lectura (izquierda),
+     leer con música (centro) y subir (derecha). Al llegar al final de la página
+     se plantaban encima de los botones del pie, que quedaban intocables.
+     El pie reserva esta franja como relleno inferior, así que hay scroll de
+     sobra y los flotantes acaban **por debajo** de sus botones, no encima.
+     `--player-offset` se suma aparte: lo publica TtsPlayer con su altura real. */
+  --floating-band: 4.75rem;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

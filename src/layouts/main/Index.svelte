@@ -764,7 +764,9 @@
     cursor: pointer;
     transition: var(--transition);
 
-    svg { width: 0.95rem; height: 0.95rem; }
+    // El tamaño va al contenedor: una regla `svg` de aquí no alcanza al
+    // <svg> de Icon.svelte, que lleva otra clase de scope.
+    --icon-size: 0.95rem;
 
     &:hover:not(:disabled) {
       border-color: var(--color-accent);

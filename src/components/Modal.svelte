@@ -168,7 +168,9 @@
     cursor: pointer;
     transition: var(--transition);
 
-    svg { width: 1rem; height: 1rem; }
+    // El tamaño va al contenedor: una regla `svg` de aquí no alcanza al
+    // <svg> de Icon.svelte, que lleva otra clase de scope.
+    --icon-size: 1rem;
 
     &:hover,
     &:focus-visible {

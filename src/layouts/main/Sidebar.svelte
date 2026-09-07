@@ -463,7 +463,7 @@
             on:keydown={(e) => e.key === 'Enter' && applyRecentSearch(s)}
           >
             <span class="recent-search-item__icon" aria-hidden="true">
-              <Icon name="book" size="14" />
+              <Icon name="book" size="14px" />
             </span>
             <span class="recent-search-item__text">{s.searchText}</span>
             <button
@@ -472,7 +472,7 @@
               aria-label={$_('app.sidebar.recent_searches_delete')}
               on:click={(e) => deleteRecentSearch(e, s.id)}
             >
-              <Icon name="close" size="12" />
+              <Icon name="close" size="12px" />
             </button>
           </div>
         {/each}
@@ -492,7 +492,7 @@
             on:keydown={(e) => e.key === 'Enter' && applyRecentSearch(s)}
           >
             <span class="recent-search-item__icon" aria-hidden="true">
-              <Icon name="search" size="14" />
+              <Icon name="search" size="14px" />
             </span>
             <span class="recent-search-item__text">{s.searchText}</span>
             <button
@@ -501,7 +501,7 @@
               aria-label={$_('app.sidebar.recent_searches_delete')}
               on:click={(e) => deleteRecentSearch(e, s.id)}
             >
-              <Icon name="close" size="12" />
+              <Icon name="close" size="12px" />
             </button>
           </div>
         {/each}

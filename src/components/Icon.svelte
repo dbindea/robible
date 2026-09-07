@@ -25,6 +25,13 @@
   /** Cualquier medida CSS. Por defecto hereda el tamaño de la fuente. */
   export let size = '1em';
 
+  // Un número suelto (size="18") no es una medida CSS: `width: 18` se descarta
+  // y el icono se dibuja a su tamaño intrínseco, enorme. Pasaba desapercibido
+  // porque antes el tamaño iba como atributo del <svg>, donde 18 sí es válido.
+  // Reventó los botones de la landing: el icono empujaba el texto a una letra
+  // por línea.
+  $: medida = /^\d+(\.\d+)?$/.test(String(size)) ? `${size}px` : size;
+
   const PATHS = {
   'cross': {
     regular: `<path d="M200,72H160V32a16,16,0,0,0-16-16H112A16,16,0,0,0,96,32V72H56A16,16,0,0,0,40,88v32a16,16,0,0,0,16,16H96v88a16,16,0,0,0,16,16h32a16,16,0,0,0,16-16V136h40a16,16,0,0,0,16-16V88A16,16,0,0,0,200,72Zm0,48H152a8,8,0,0,0-8,8v96H112V128a8,8,0,0,0-8-8H56V88h48a8,8,0,0,0,8-8V32h32V80a8,8,0,0,0,8,8h48Z"/>`,
@@ -191,8 +198,7 @@
 <svg
   viewBox="0 0 256 256"
   fill="currentColor"
-  width={size}
-  height={size}
+  style="--icon-fallback: {medida}"
   aria-hidden="true"
   focusable="false"
 >
@@ -203,5 +209,12 @@
   svg {
     display: block;
     flex-shrink: 0;
+    /* El contenedor manda si define --icon-size; si no, el prop size. */
+    width: var(--icon-size, var(--icon-fallback));
+    height: var(--icon-size, var(--icon-fallback));
+    /* global.css pone max-width: 100% a todo svg, pensando en imágenes. En un
+       icono con tamaño propio eso sólo recorta el ancho —no el alto— y lo deja
+       aplastado: dentro de un botón estrecho salía a 13x16 px. */
+    max-width: none;
   }
 </style>

@@ -457,7 +457,9 @@
     cursor: pointer;
     transition: transform var(--motion-fast);
 
-    svg { width: 0.9rem; height: 0.9rem; }
+    // El tamaño va al contenedor: una regla `svg` de aquí no alcanza al
+    // <svg> de Icon.svelte, que lleva otra clase de scope.
+    --icon-size: 0.9rem;
 
     &:active { transform: scale(0.9); }
 
@@ -668,7 +670,9 @@
     box-shadow: 0 4px 16px color-mix(in srgb, var(--color-accent) 35%, transparent);
     transition: transform var(--motion-base), box-shadow var(--motion-base);
 
-    svg { width: 1rem; height: 1rem; }
+    // El tamaño va al contenedor: una regla `svg` de aquí no alcanza al
+    // <svg> de Icon.svelte, que lleva otra clase de scope.
+    --icon-size: 1rem;
 
     &:hover {
       transform: scale(1.05);
@@ -690,7 +694,9 @@
   .tts-start-btn--centered {
     position: fixed;
     left: 50%;
-    bottom: 2rem;
+    // A la misma altura que los otros dos flotantes: los tres forman la fila
+    // más baja de la pantalla, por debajo de los botones del pie.
+    bottom: calc(1rem + var(--player-offset, 0px));
     transform: translateX(-50%);
     z-index: 60;
     padding: 0.75rem 1.5rem 0.75rem 1.2rem;
@@ -698,7 +704,9 @@
     box-shadow: 0 6px 24px color-mix(in srgb, var(--color-success) 40%, transparent);
     border-radius: 2rem;
 
-    svg { width: 1.2rem; height: 1.2rem; }
+    // El tamaño va al contenedor: una regla `svg` de aquí no alcanza al
+    // <svg> de Icon.svelte, que lleva otra clase de scope.
+    --icon-size: 1.2rem;
 
     &:hover {
       transform: translateX(-50%) scale(1.05);
@@ -711,7 +719,9 @@
       padding: 0.6rem 1rem 0.6rem 0.8rem;
       font-size: 0.8rem;
 
-      svg { width: 1rem; height: 1rem; }
+      // El tamaño va al contenedor: una regla `svg` de aquí no alcanza al
+      // <svg> de Icon.svelte, que lleva otra clase de scope.
+      --icon-size: 1rem;
     }
   }
 </style>

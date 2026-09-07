@@ -261,10 +261,9 @@
     transition: var(--transition);
     box-shadow: var(--box-shadow-down);
 
-    svg {
-      width: 1.3rem;
-      height: 1.3rem;
-    }
+    // El tamaño va al contenedor: una regla `svg` de aquí no alcanza al
+    // <svg> de Icon.svelte, que lleva otra clase de scope.
+    --icon-size: 1.3rem;
 
     &:hover,
     &:focus-visible {
@@ -305,10 +304,9 @@
     border-color: var(--color-blue);
     box-shadow: var(--box-shadow-down), 0 0 0 3px color-mix(in srgb, var(--color-accent) 25%, transparent);
 
-    svg {
-      width: 1.2rem;
-      height: 1.2rem;
-    }
+    // El tamaño va al contenedor: una regla `svg` de aquí no alcanza al
+    // <svg> de Icon.svelte, que lleva otra clase de scope.
+    --icon-size: 1.2rem;
 
     &:hover,
     &:focus-visible {

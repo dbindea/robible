@@ -571,6 +571,35 @@ los estaba dividiendo entre 255. El fallo era de la medición, no de la aplicaci
 obliga a consultar el registro de npm en cada arranque y eso se comía el margen
 de 60 s del handshake; con la versión fija arranca en 4,3 s.
 
+**Y una regresión de la propia migración de iconos, encontrada al revisar la
+lista de pendientes:** al pasar los 94 SVG sueltos a `<Icon>`, las **17 reglas**
+`.contenedor svg { width; height }` dejaron de alcanzar al icono —el scoping de
+Svelte le pone otra clase— y se quedaron muertas. Los iconos volvieron al tamaño
+por defecto sin que nada fallara, y dentro de un botón estrecho el
+`max-width: 100%` que `global.css` da a todo `svg` recortaba el ancho y no el
+alto: el icono de acción del versículo salía a **13×16 px**, deformado. Ahora el
+tamaño se pasa con `--icon-size` en el contenedor y `Icon.svelte` lleva
+`max-width: none`. Verificado en pantalla: los cuatro iconos medidos salen
+cuadrados y al tamaño pedido. **Lo delató el aviso de "Unused CSS selector" del
+build**, que conviene no ignorar.
+
+**Los botones flotantes tapaban el pie al llegar al final de la página.** El
+arreglo anterior los apartaba del player, pero no del pie: «Subir» y «pantalla
+completa» caían justo encima de «Autentificare» y del selector de paleta, que
+quedaban intocables — en móvil sobre todo, pero también en escritorio. El pie
+reserva ahora esa franja como relleno inferior (`--floating-band` +
+`--player-offset`), así que hay scroll de sobra y el orden de abajo arriba queda:
+player → flotantes → botones del pie. Los tres flotantes comparten además la
+misma línea base, para que se lean como una fila. Verificado en móvil (390×844) y
+escritorio (1440×900), con el player parado y en marcha.
+
+**Y el arreglo de los iconos destapó otro, en los dos botones de la landing:** siete
+llamadas tenían `size="18"` sin unidad. Como atributo del `<svg>` eso era válido
+—y por eso nadie lo notó—, pero al pasar el tamaño a CSS `width: 18` se descarta
+y el icono se dibuja a su tamaño intrínseco: empujaba el texto a **una letra por
+línea**. Corregidas las siete, y `Icon.svelte` convierte ahora un número suelto a
+píxeles para que no vuelva a fallar en silencio.
+
 ### Fuera de alcance
 
 IA, chatbot, red social, predicaciones públicas, marketplace, comentarios, seguidores,

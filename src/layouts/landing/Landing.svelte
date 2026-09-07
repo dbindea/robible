@@ -287,7 +287,7 @@
         <div class="hero__cta">
           <a class="btn btn--primary" href="/biblia">
             {$_('landing.hero.cta_primary')}
-            <Icon name="arrow-right" size="18" />
+            <Icon name="arrow-right" size="18px" />
           </a>
           <a class="btn btn--ghost" href="#demo">{$_('landing.hero.cta_secondary')}</a>
         </div>
@@ -602,7 +602,7 @@
       <p class="final-cta__text">{$_('landing.final.text')}</p>
       <a class="btn btn--primary btn--large" href="/biblia">
         {$_('landing.final.cta')}
-        <Icon name="arrow-right" size="18" />
+        <Icon name="arrow-right" size="18px" />
       </a>
     </div>
   </section>

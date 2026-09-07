@@ -52,10 +52,9 @@
     transition: opacity var(--motion-fast) ease, border-color var(--motion-fast) ease, background var(--motion-fast) ease, box-shadow var(--motion-fast) ease;
     opacity: 0;
 
-    svg {
-      width: 0.82rem;
-      height: 0.82rem;
-    }
+    // El tamaño va al contenedor: una regla `svg` de aquí no alcanza al
+    // <svg> de Icon.svelte, que lleva otra clase de scope.
+    --icon-size: 0.82rem;
 
     &:hover:not(:disabled),
     &:focus-visible:not(:disabled) {

@@ -302,10 +302,9 @@
       background: var(--wash-accent);
       color: var(--color-accent-ink);
 
-      svg {
-        width: 1.15rem;
-        height: 1.15rem;
-      }
+      // El tamaño va al contenedor: una regla `svg` de aquí no alcanza al
+      // <svg> de Icon.svelte, que lleva otra clase de scope.
+      --icon-size: 1.15rem;
     }
 
     // Online dot — usa la clase global .online-dot--absolute (definida en global.css)
