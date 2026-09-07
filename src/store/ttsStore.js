@@ -1,13 +1,21 @@
 /**
- * TTS store — global state for karaoke playback.
- * Persists speed, ambient, volume in localStorage.
+ * Estado global de la lectura acompañada de música.
+ *
+ * Se sigue llamando `tts` por herencia: hubo una versión que leía en voz alta
+ * con SpeechSynthesis. Se retiró por decisión de producto —la voz del navegador
+ * no daba la calidad que pide un texto bíblico— y hoy la función es música de
+ * fondo + resaltado del versículo que toca. **Aquí no hay síntesis de voz.**
+ * El nombre se mantiene porque renombrarlo toca el store, el componente, las
+ * claves de i18n y las de localStorage de todos los usuarios; sería un cambio
+ * atómico o nada (ver CLAUDE.md, trampa 1, sobre `robibile:navigate`).
+ *
+ * Persiste velocidad, ambiente y volumen de música en localStorage.
  */
 
-import { writable, derived } from 'svelte/store';
+import { writable } from 'svelte/store';
 
 const TTS_SPEED_KEY = 'robible:tts:speed';
 const TTS_AMBIENT_KEY = 'robible:tts:ambient';
-const TTS_VOLUME_KEY = 'robible:tts:volume';
 const TTS_MUSIC_VOLUME_KEY = 'robible:tts:musicVolume';
 
 // ─── Load persisted values ────────────────────────────────────────────────────
@@ -30,8 +38,9 @@ const loadString = (key, fallback) => {
 
 // ─── Stores ──────────────────────────────────────────────────────────────────
 export const ttsSpeed = writable(loadNumber(TTS_SPEED_KEY, 1.0));
-export const ttsAmbient = writable(loadString(TTS_AMBIENT_KEY, 'none')); // 'none' | 'procedural' | 'hymn'
-export const ttsVolume = writable(loadNumber(TTS_VOLUME_KEY, 1.0));
+// Solo hay dos ambientes reales. El comentario decía además 'hymn', que nunca
+// llegó a existir en music.service.js.
+export const ttsAmbient = writable(loadString(TTS_AMBIENT_KEY, 'none')); // 'none' | 'procedural'
 export const musicVolume = writable(loadNumber(TTS_MUSIC_VOLUME_KEY, 0.15));
 
 // Playback state (not persisted)
@@ -60,24 +69,8 @@ ttsAmbient.subscribe((v) => {
   try { localStorage.setItem(TTS_AMBIENT_KEY, v); } catch (_) {}
 });
 
-ttsVolume.subscribe((v) => {
-  try { localStorage.setItem(TTS_VOLUME_KEY, String(v)); } catch (_) {}
-});
-
 musicVolume.subscribe((v) => {
   try { localStorage.setItem(TTS_MUSIC_VOLUME_KEY, String(v)); } catch (_) {}
-});
-
-// ─── Derived ─────────────────────────────────────────────────────────────────
-export const ttsProgress = derived(ttsState, ($s) => {
-  if ($s.wordCount === 0 || $s.wordIndex < 0) return 0;
-  return Math.min(1, ($s.wordIndex + 1) / $s.wordCount);
-});
-
-export const ttsDisplayState = derived(ttsState, ($s) => {
-  if ($s.paused) return 'paused';
-  if ($s.playing) return 'playing';
-  return 'idle';
 });
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────

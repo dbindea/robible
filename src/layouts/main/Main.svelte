@@ -9,6 +9,7 @@
   import Index from './Index.svelte';
   import Favorites from './Favorites.svelte';
   import Notes from './Notes.svelte';
+  import PublicTopic from './PublicTopic.svelte';
   import { getBibleVersionConfigOrDefault } from '../../store/stores';
 
   export let bible;
@@ -40,6 +41,14 @@
 
   // Detectar ruta de notas (depende del idioma)
   const getNotesPath = () => getBiblePath('notesPath', 'notes');
+
+  // Tema público compartido. A diferencia del resto, esta ruta NO se traduce
+  // por idioma: el slug se genera una vez y el enlace se reparte por fuera, así
+  // que tiene que abrir igual sea cual sea la versión bíblica de quien lo
+  // recibe. Con un path por idioma el mismo tema tendría varias URLs y el
+  // enlace se rompería al cambiar de versión.
+  const isPublicTopicPath = (path) => /^\/tema\/[^/]+\/?$/.test(path);
+  let isPublicTopicMode = typeof window !== 'undefined' ? isPublicTopicPath(window.location.pathname) : false;
 
   let isIndexMode = false;
   let isFavoritesMode = false;
@@ -76,6 +85,7 @@
   const updateCompareMode = () => {
     if (typeof window === 'undefined') return;
     isCompareMode = isComparePath(window.location.pathname);
+    isPublicTopicMode = isPublicTopicPath(window.location.pathname);
   };
 
   onMount(() => {
@@ -105,15 +115,17 @@
 </script>
 
 <!-- La ruta /landing la resuelve App.svelte antes de montar Main. -->
-<div class="main" class:main--immersive={isImmersive} class:main--compare={isCompareMode} class:main--index={isIndexMode} class:main--favorites={isFavoritesMode} class:main--notes={isNotesMode}>
-  {#if !isImmersive && !isCompareMode && !isIndexMode && !isFavoritesMode && !isNotesMode}
+<div class="main" class:main--immersive={isImmersive} class:main--compare={isCompareMode} class:main--index={isIndexMode} class:main--favorites={isFavoritesMode} class:main--notes={isNotesMode || isPublicTopicMode}>
+  {#if !isImmersive && !isCompareMode && !isIndexMode && !isFavoritesMode && !isNotesMode && !isPublicTopicMode}
     <div class="sidebar">
       <Sidebar {map} {result} {count} />
     </div>
   {/if}
   <div class="layout">
     {#if Object.keys(bible).length}
-      {#if isCompareMode}
+      {#if isPublicTopicMode}
+        <PublicTopic {bible} {map} />
+      {:else if isCompareMode}
         <Compare {bible} {map} {compareBible} {compareMap} />
       {:else if isIndexMode}
         <Index {bible} {map} />

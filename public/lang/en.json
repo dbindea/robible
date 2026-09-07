@@ -202,7 +202,29 @@
       "close": "Close",
       "add_to_existing": "Add to an existing category",
       "or": "or",
-      "create_new_inline": "Create a new one"
+      "create_new_inline": "Create a new one",
+      "share": {
+        "publish": "Publish topic",
+        "unpublish": "Make private",
+        "copy_link": "Copy link",
+        "share": "Share",
+        "copied": "Link copied",
+        "copy_failed": "The link could not be copied",
+        "published": "The topic is now public",
+        "unpublished": "The topic is private again",
+        "needs_verses": "Add at least one verse before publishing",
+        "needs_backend": "Publishing needs a connection",
+        "public_hint": "Anyone with the link can read the topic, no account needed. Your name is not shown.",
+        "private_hint": "This topic is private. Publish it to get a link you can send to anyone.",
+        "eyebrow": "Shared topic",
+        "seo_title": "{topic} — Bible verses | RoBible",
+        "seo_description": "{count} verses about {topic}, ready to read and share.",
+        "not_found_title": "This topic does not exist",
+        "not_found_hint": "The link may be wrong, or its author made it private.",
+        "go_home": "Open the Bible",
+        "cta": "Open RoBible",
+        "cta_hint": "Read the Bible and build your own topics."
+      }
     },
     "notes": {
       "add_note": "Add a note",
@@ -267,7 +289,7 @@
       }
     },
     "tts": {
-      "start": "Music + reading",
+      "start": "Read with music",
       "start_hint": "Listen to music while verses are highlighted one by one",
       "player": "Reading player",
       "controls": "Reading controls",

@@ -202,7 +202,29 @@
       "close": "Închide",
       "add_to_existing": "Adaugă la o categorie existentă",
       "or": "sau",
-      "create_new_inline": "Creează una nouă"
+      "create_new_inline": "Creează una nouă",
+      "share": {
+        "publish": "Publică tema",
+        "unpublish": "Fă tema privată",
+        "copy_link": "Copiază linkul",
+        "share": "Distribuie",
+        "copied": "Link copiat",
+        "copy_failed": "Nu s-a putut copia linkul",
+        "published": "Tema este publică",
+        "unpublished": "Tema este din nou privată",
+        "needs_verses": "Adaugă cel puțin un verset înainte de a publica",
+        "needs_backend": "Publicarea are nevoie de conexiune",
+        "public_hint": "Oricine are linkul poate citi tema, fără cont. Nu îți arată numele.",
+        "private_hint": "Tema este privată. Dacă o publici, primește un link pe care îl poți trimite oricui.",
+        "eyebrow": "Temă distribuită",
+        "seo_title": "{topic} — versete din Biblie | RoBible",
+        "seo_description": "{count} versete despre {topic}, gata de citit și distribuit.",
+        "not_found_title": "Tema nu există",
+        "not_found_hint": "Linkul poate fi greșit sau autorul a făcut tema privată.",
+        "go_home": "Deschide Biblia",
+        "cta": "Deschide RoBible",
+        "cta_hint": "Citește Biblia și creează-ți propriile teme."
+      }
     },
     "notes": {
       "add_note": "Adaugă o notiță",
@@ -267,7 +289,7 @@
       }
     },
     "tts": {
-      "start": "Muzică + citire",
+      "start": "Citește cu muzică",
       "start_hint": "Ascultă muzică în timp ce versetele se evidențiază pe rând",
       "player": "Player de citire",
       "controls": "Controale de citire",

@@ -117,6 +117,8 @@ export const validators = {
     Number.isInteger(r.verse) && r.verse >= 1
   ),
   noteText: (t) => typeof t === 'string' && t.trim().length >= 1 && t.trim().length <= 500,
+  bibleVersion: (v) => typeof v === 'string' && /^[a-z0-9_]{2,12}$/.test(v),
+  publicSlug: (s) => typeof s === 'string' && s.length >= 1 && s.length <= 80 && !/[/?#\s]/.test(s),
 };
 
 // ── Helpers de respuesta ────────────────────────────────
@@ -284,6 +286,27 @@ export async function deleteSession(db, token) {
     .run()
     .catch(() => {});
 }
+
+/**
+ * Slug legible para la URL pública de un tema: `ansiedad-a3f2`.
+ *
+ * Filtra con `\p{L}\p{N}` y no con `[a-z0-9]` por lo mismo que
+ * `slugifyBookName` en el frontend (CLAUDE.md, trampa 6): con lo segundo, un
+ * tema con nombre en chino o en rumano con diacríticos se quedaba vacío y
+ * todos acababan compartiendo el mismo slug. El sufijo aleatorio garantiza
+ * unicidad aunque dos usuarios publiquen "Ansiedad".
+ */
+export const genPublicSlug = (name = '') => {
+  const base = String(name)
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/\p{Diacritic}/gu, '')
+    .replace(/[^\p{L}\p{N}]+/gu, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 48);
+  const rand = crypto.randomUUID().split('-')[0].slice(0, 4);
+  return base ? `${base}-${rand}` : rand;
+};
 
 export const genId = (prefix) => `${prefix}_${crypto.randomUUID()}`;
 export const genShortId = (prefix, name = '') => {

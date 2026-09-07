@@ -41,11 +41,38 @@ CREATE TABLE IF NOT EXISTS topics (
   color TEXT NOT NULL DEFAULT '#2E7D9B',
   is_default INTEGER NOT NULL DEFAULT 0,            -- 0/1
   created_at TEXT NOT NULL,
+  -- ── Publicación (schema_version 7) ──────────────────────────────────────
+  -- Un tema publicado se puede leer sin cuenta en /tema/<public_slug>.
+  -- `public_slug` se conserva al despublicar para que, si el usuario vuelve a
+  -- publicarlo, los enlaces que ya compartió sigan valiendo.
+  -- `public_version` es la versión bíblica con la que se publicó: el tema son
+  -- referencias, y sin esto no se sabría con qué texto renderizarlo.
+  is_public INTEGER NOT NULL DEFAULT 0,             -- 0/1
+  public_slug TEXT,                                 -- 'ansiedad-a3f2', único
+  public_version TEXT,                              -- 'vdc' | 'rvl' | ...
+  published_at TEXT,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   UNIQUE (user_id, name)                            -- no duplicar nombres por usuario
 );
 
 CREATE INDEX IF NOT EXISTS idx_topics_user ON topics(user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_topics_public_slug ON topics(public_slug)
+  WHERE public_slug IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_topics_public ON topics(is_public, published_at DESC)
+  WHERE is_public = 1;
+
+-- ── Migración para bases ya desplegadas ──────────────────────────────────────
+-- Este archivo solo crea; las columnas de arriba NO aparecen en una tabla que
+-- ya existía. En una base ya desplegada hay que aplicarlas a mano:
+--
+--   ALTER TABLE topics ADD COLUMN is_public INTEGER NOT NULL DEFAULT 0;
+--   ALTER TABLE topics ADD COLUMN public_slug TEXT;
+--   ALTER TABLE topics ADD COLUMN public_version TEXT;
+--   ALTER TABLE topics ADD COLUMN published_at TEXT;
+--   CREATE UNIQUE INDEX IF NOT EXISTS idx_topics_public_slug ON topics(public_slug) WHERE public_slug IS NOT NULL;
+--   CREATE INDEX IF NOT EXISTS idx_topics_public ON topics(is_public, published_at DESC) WHERE is_public = 1;
+--
+-- Aplicado en producción el 5 sep 2026.
 
 -- ============== VERSE REFS (versículos asignados a topics) ==============
 CREATE TABLE IF NOT EXISTS verse_refs (
@@ -176,5 +203,6 @@ CREATE TABLE IF NOT EXISTS _meta (
 );
 -- 5: se retira user_profiles (nunca usada, guardaba PII no deseada)
 -- 6: se añade highlights (subrayados de color por versículo)
-INSERT OR IGNORE INTO _meta (key, value) VALUES ('schema_version', '6');
-UPDATE _meta SET value = '6' WHERE key = 'schema_version' AND value < '6';
+-- 7: topics gana is_public / public_slug / public_version / published_at
+INSERT OR IGNORE INTO _meta (key, value) VALUES ('schema_version', '7');
+UPDATE _meta SET value = '7' WHERE key = 'schema_version' AND value < '7';

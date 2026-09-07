@@ -50,6 +50,16 @@ const createTopicsStore = () => {
       refresh();
       return ok;
     },
+    publish: async (id, version) => {
+      const res = await topicsService.publishTopic(id, version);
+      refresh();
+      return res;
+    },
+    unpublish: async (id) => {
+      const res = await topicsService.unpublishTopic(id);
+      refresh();
+      return res;
+    },
     addVerse: async (topicId, ref) => {
       const ok = await topicsService.addVerseRef(topicId, ref);
       if (ok) refresh();

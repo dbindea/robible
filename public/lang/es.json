@@ -202,7 +202,29 @@
       "create_new_inline": "Crear una nueva",
       "login_required": "Inicia sesión para ver las categorías",
       "login_required_hint": "Las categorías se guardan por usuario y se sincronizan entre dispositivos.",
-      "login_prompt_action": "Iniciar sesión"
+      "login_prompt_action": "Iniciar sesión",
+      "share": {
+        "publish": "Publicar el tema",
+        "unpublish": "Hacer privado",
+        "copy_link": "Copiar el enlace",
+        "share": "Compartir",
+        "copied": "Enlace copiado",
+        "copy_failed": "No se pudo copiar el enlace",
+        "published": "El tema ya es público",
+        "unpublished": "El tema vuelve a ser privado",
+        "needs_verses": "Añade al menos un versículo antes de publicar",
+        "needs_backend": "Publicar necesita conexión",
+        "public_hint": "Cualquiera con el enlace puede leer el tema, sin cuenta. No se muestra tu nombre.",
+        "private_hint": "El tema es privado. Si lo publicas, obtienes un enlace que puedes enviar a quien quieras.",
+        "eyebrow": "Tema compartido",
+        "seo_title": "{topic} — versículos de la Biblia | RoBible",
+        "seo_description": "{count} versículos sobre {topic}, listos para leer y compartir.",
+        "not_found_title": "Este tema no existe",
+        "not_found_hint": "El enlace puede estar mal o su autor lo ha hecho privado.",
+        "go_home": "Abrir la Biblia",
+        "cta": "Abrir RoBible",
+        "cta_hint": "Lee la Biblia y crea tus propios temas."
+      }
     },
     "notes": {
       "add_note": "Añadir una nota",
@@ -267,7 +289,7 @@
       }
     },
     "tts": {
-      "start": "Música + lectura",
+      "start": "Leer con música",
       "start_hint": "Escucha música mientras los versículos se resaltan uno a uno",
       "player": "Reproductor de lectura",
       "controls": "Controles de lectura",
