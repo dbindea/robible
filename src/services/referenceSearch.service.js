@@ -39,8 +39,22 @@ function levenshtein(a, b) {
 }
 
 // ── Heuristica de prefijo plausible ─────────────────────────────────
-// Para queries cortas, evitar falsos positivos.
-// Regla: el nombre del libro debe estar a 1-3 chars del query (no más).
+//
+// El problema que resuelve: con una query de 1-2 letras, cualquier libro que
+// empiece por ahí es candidato, y la lista de sugerencias se vuelve inútil.
+// Hace falta un filtro, pero tiene que dejar pasar las abreviaturas normales.
+//
+// La versión anterior lo medía por diferencia de longitud: si el nombre tenía
+// más de 4 caracteres de más que la query, se descartaba. Eso tumbaba justo las
+// abreviaturas que más se escriben, porque los nombres de libro son largos:
+// "prov" → Proverbele (6 de más), "deut" → Deuteronomul (8), "apoc" →
+// Apocalipsa (6), "fapte" → Faptele Apostolilor (14). Fallaban 8 de las 11
+// abreviaturas habituales, incluida `prov 3 4`, que no devolvía nada.
+//
+// Lo que de verdad discrimina no es la longitud del nombre sino la de la query:
+// con tres letras ya escritas, el usuario ha dicho bastante como para aceptar
+// un nombre tan largo como haga falta. La guarda estricta sólo hace falta
+// mientras la query es muy corta.
 function isPlausiblePrefix(query, name) {
   // Si el nombre es igual al query, OK
   if (query === name) return true;
@@ -57,11 +71,18 @@ function isPlausiblePrefix(query, name) {
     return true;
   }
 
-  // Sin numero: el nombre debe estar cerca del query
-  if (lengthDiff > 4) return false;
-  // Si la query es muy corta (1-2 chars), el nombre debe ser 2x mas largo como maximo
-  if (query.length <= 2 && lengthDiff > 2) return false;
-  return true;
+  // Con 2 o más letras el prefijo es intencionado: se acepta sin mirar cuánto
+  // más largo sea el nombre. Es lo que hace funcionar "prov", "deut", "apoc" y
+  // también "ps" → Psalmii, que es de las abreviaturas más escritas.
+  //
+  // El umbral está en 2 y no en 3 porque el reparto real de los 66 libros lo
+  // permite: con dos letras, el prefijo más ambiguo ("io") empareja 8 libros, y
+  // la lista de sugerencias corta en 5 ya ordenados por score. Con una sola
+  // letra el peor caso son 14 ("i"), que sí es ruido inservible.
+  if (query.length >= 2) return true;
+
+  // Una sola letra: se mantiene la guarda estricta.
+  return lengthDiff <= 2;
 }
 
 // ── Buscar libro por nombre flexible ───────────────────────────────

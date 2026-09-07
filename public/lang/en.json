@@ -129,7 +129,8 @@
         "favorite_login_required": "Sign in to add to favorites",
         "note_login_required": "Sign in to add a note",
         "topics_login_required": "Sign in to save to a category",
-        "highlight_login_required": "Sign in to highlight verses"
+        "highlight_login_required": "Sign in to highlight verses",
+        "verse_actions": "Actions for {reference}"
       }
     },
     "favorites": {
@@ -285,6 +286,10 @@
           "label": "Sign in",
           "hint": "Sync between devices",
           "signed_in_hint": "Signed in — tap to manage account"
+        },
+        "sermons": {
+          "label": "My sermons",
+          "hint": "Prepare and deliver sermons"
         }
       }
     },
@@ -301,9 +306,11 @@
       "stop": "Stop",
       "speed": "Pace",
       "ambient": "Background",
-      "ambient_prayer": "prayer music",
       "ambient_none": "no music",
-      "volume_music": "Music"
+      "volume_music": "Music",
+      "ambient_ebraica": "Hebrew",
+      "ambient_rugaciune": "prayer",
+      "ambient_liniste": "stillness"
     },
     "highlights": {
       "eyebrow": "Highlight",
@@ -352,6 +359,47 @@
       "open": "See in context",
       "share": "Share",
       "never": "Don't show again"
+    },
+    "sermons": {
+      "eyebrow": "Sermons",
+      "title": "My sermons",
+      "new": "New sermon",
+      "start": "Start preparing",
+      "search": "Search by title or Bible text…",
+      "empty": "You have no sermons yet",
+      "empty_hint": "Pick a Bible passage and RoBible guides you step by step.",
+      "no_matches": "No sermon matches",
+      "untitled": "Untitled",
+      "created": "Sermon created",
+      "deleted": "Sermon deleted",
+      "duplicated": "Copy created",
+      "delete": "Delete",
+      "duplicate": "Create a copy",
+      "filter_label": "Filter sermons",
+      "filter_all": "All",
+      "filter_draft": "In progress",
+      "filter_ready": "Ready",
+      "filter_preached": "Preached",
+      "status_draft": "In progress",
+      "status_ready": "Ready",
+      "status_preached": "Preached",
+      "type_expositive": "Expository",
+      "type_expositive_hint": "Study and unfold the message of a Bible passage.",
+      "type_textual": "Textual",
+      "type_textual_hint": "Start from a short text and develop it.",
+      "type_thematic": "Thematic",
+      "type_thematic_hint": "Follow one theme across several passages.",
+      "field_title": "Title (optional)",
+      "field_title_hint": "e.g.: The house built on the rock",
+      "field_passage": "The Bible text",
+      "field_chapter": "Chapter",
+      "field_verse_start": "From verse",
+      "field_verse_end": "To",
+      "field_type": "Sermon type",
+      "pick_book": "Pick the book",
+      "login_required": "Sign in to prepare your sermons",
+      "only_preachers": "This section is for Preacher accounts",
+      "only_preachers_hint": "You can change your account type from your profile."
     }
   },
   "auth": {
@@ -368,10 +416,10 @@
     "password": "Password",
     "security_question": "Security question",
     "custom_question": "Other question (write it below)",
-    "custom_question_placeholder": "e.g.: How many books did I read last year?",
-    "security_answer": "Numeric answer",
-    "security_answer_hint": "e.g.: 3",
-    "security_answer_help": "The answer must be numbers only (max 6 digits).",
+    "custom_question_placeholder": "e.g.: What was my first dog called?",
+    "security_answer": "Answer",
+    "security_answer_hint": "Your answer",
+    "security_answer_help": "Capitals, accents and spaces do not matter.",
     "your_question": "Your security question",
     "new_password": "New password",
     "login_action": "Sign in",
@@ -400,7 +448,7 @@
     "errors": {
       "invalid_nickname": "Invalid name (3-24 characters: letters, numbers, _, ., -).",
       "invalid_password": "Invalid password (minimum 6 characters).",
-      "invalid_security_answer": "The answer must be numbers only (max 6 digits).",
+      "invalid_security_answer": "Write an answer (100 characters max).",
       "nickname_taken": "This username is already taken.",
       "user_not_found": "No account found with this name.",
       "invalid_credentials": "Incorrect name or password.",
@@ -423,8 +471,21 @@
       "invalid_color": "Invalid color.",
       "backend_unavailable": "Server not available. Using local cache.",
       "unknown": "An error occurred. Try again.",
-      "highlight_not_found": "Highlight not found"
-    }
+      "highlight_not_found": "Highlight not found",
+      "invalid_user_type": "Invalid account type",
+      "invalid_email": "That email address does not look right",
+      "sermon_not_found": "Sermon not found.",
+      "sermon_content_too_large": "The sermon is too long to save."
+    },
+    "user_type": "Account type",
+    "user_type_user": "User",
+    "user_type_user_hint": "Reading, favourites, notes and topics.",
+    "user_type_preacher": "Preacher",
+    "user_type_preacher_hint": "Everything a user has, plus the sermon tools.",
+    "email_optional": "Email (optional)",
+    "email_placeholder": "name@example.com",
+    "email_help": "Only used to recover your account. You can leave it empty.",
+    "security_question_help": "Write a question only you know the answer to."
   },
   "landing": {
     "skip_to_content": "Skip to content",

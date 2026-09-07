@@ -129,7 +129,8 @@
         "favorite_login_required": "登录后可添加到收藏",
         "note_login_required": "登录后可添加笔记",
         "topics_login_required": "登录后可保存到分类",
-        "highlight_login_required": "登录后即可标记经文"
+        "highlight_login_required": "登录后即可标记经文",
+        "verse_actions": "{reference} 的操作"
       }
     },
     "favorites": {
@@ -285,6 +286,10 @@
           "label": "登录",
           "hint": "设备间同步",
           "signed_in_hint": "已登录 — 点击管理账户"
+        },
+        "sermons": {
+          "label": "我的讲道",
+          "hint": "准备并进行讲道"
         }
       }
     },
@@ -301,9 +306,11 @@
       "stop": "停止",
       "speed": "节奏",
       "ambient": "背景",
-      "ambient_prayer": "祷告音乐",
       "ambient_none": "无音乐",
-      "volume_music": "音乐"
+      "volume_music": "音乐",
+      "ambient_ebraica": "希伯来",
+      "ambient_rugaciune": "祷告",
+      "ambient_liniste": "宁静"
     },
     "highlights": {
       "eyebrow": "标记",
@@ -352,6 +359,47 @@
       "open": "查看上下文",
       "share": "分享",
       "never": "不再显示"
+    },
+    "sermons": {
+      "eyebrow": "讲道",
+      "title": "我的讲道",
+      "new": "新建讲道",
+      "start": "开始准备",
+      "search": "按标题或经文搜索…",
+      "empty": "你还没有任何讲道",
+      "empty_hint": "选择一段经文，RoBible 会一步步引导你。",
+      "no_matches": "没有符合的讲道",
+      "untitled": "无标题",
+      "created": "讲道已创建",
+      "deleted": "讲道已删除",
+      "duplicated": "副本已创建",
+      "delete": "删除",
+      "duplicate": "创建副本",
+      "filter_label": "筛选讲道",
+      "filter_all": "全部",
+      "filter_draft": "进行中",
+      "filter_ready": "已准备",
+      "filter_preached": "已讲过",
+      "status_draft": "进行中",
+      "status_ready": "已准备",
+      "status_preached": "已讲过",
+      "type_expositive": "解经式",
+      "type_expositive_hint": "研读并展开一段经文的信息。",
+      "type_textual": "经文式",
+      "type_textual_hint": "从一段短经文出发加以发挥。",
+      "type_thematic": "专题式",
+      "type_thematic_hint": "围绕一个主题贯穿多处经文。",
+      "field_title": "标题（可选）",
+      "field_title_hint": "例如：把房子盖在磐石上",
+      "field_passage": "经文",
+      "field_chapter": "章",
+      "field_verse_start": "起始节",
+      "field_verse_end": "结束节",
+      "field_type": "讲道类型",
+      "pick_book": "选择书卷",
+      "login_required": "登录后即可准备讲道",
+      "only_preachers": "此区域仅供「讲道者」账号使用",
+      "only_preachers_hint": "你可以在个人资料中更改账号类型。"
     }
   },
   "auth": {
@@ -368,10 +416,10 @@
     "password": "密码",
     "security_question": "安全问题",
     "custom_question": "其他问题（在下方填写）",
-    "custom_question_placeholder": "例如：去年我读了几本书？",
-    "security_answer": "数字答案",
-    "security_answer_hint": "例如：3",
-    "security_answer_help": "答案必须仅为数字（最多6位）。",
+    "custom_question_placeholder": "例如：我的第一只狗叫什么名字？",
+    "security_answer": "答案",
+    "security_answer_hint": "你的答案",
+    "security_answer_help": "大小写、重音和空格都不影响。",
     "your_question": "您的安全问题",
     "new_password": "新密码",
     "login_action": "登录",
@@ -400,7 +448,7 @@
     "errors": {
       "invalid_nickname": "用户名无效（3-24个字符：字母、数字、_、.、-）。",
       "invalid_password": "密码无效（最少6个字符）。",
-      "invalid_security_answer": "答案必须仅为数字（最多6位）。",
+      "invalid_security_answer": "请输入答案（最多 100 个字符）。",
       "nickname_taken": "此用户名已被占用。",
       "user_not_found": "未找到此名称的账户。",
       "invalid_credentials": "用户名或密码错误。",
@@ -423,8 +471,21 @@
       "invalid_color": "颜色无效。",
       "backend_unavailable": "服务器不可用，使用本地缓存。",
       "unknown": "发生错误，请重试。",
-      "highlight_not_found": "未找到标记"
-    }
+      "highlight_not_found": "未找到标记",
+      "invalid_user_type": "账号类型无效",
+      "invalid_email": "邮箱地址格式不正确",
+      "sermon_not_found": "未找到该讲道。",
+      "sermon_content_too_large": "讲道内容过长，无法保存。"
+    },
+    "user_type": "账号类型",
+    "user_type_user": "普通用户",
+    "user_type_user_hint": "阅读、收藏、笔记和主题。",
+    "user_type_preacher": "讲道者",
+    "user_type_preacher_hint": "普通用户的全部功能，另加讲道工具。",
+    "email_optional": "邮箱（可选）",
+    "email_placeholder": "name@example.com",
+    "email_help": "仅用于找回账号，可以留空。",
+    "security_question_help": "写一个只有你知道答案的问题。"
   },
   "landing": {
     "skip_to_content": "跳到主要内容",

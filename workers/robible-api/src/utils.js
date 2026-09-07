@@ -7,7 +7,44 @@ export const RESET_TOKEN_TTL_MS = 5 * 60 * 1000;             // 5 min
 
 const VALID_NICKNAME = /^[a-zA-Z0-9_.-]{3,24}$/;
 const VALID_PASSWORD = (p) => typeof p === 'string' && p.length >= 6 && p.length <= 128;
-const VALID_NUMERIC_ANSWER = (a) => typeof a === 'string' && /^\d{1,6}$/.test(a.trim());
+
+// Tipos de cuenta. `preacher` es un `user` con las herramientas de predicación
+// añadidas: no se le retira nada, así que cambiar de tipo no toca ningún dato.
+export const USER_TYPES = ['user', 'preacher'];
+
+// Tipos de predicación. La expositiva es la principal; las otras dos existen
+// porque el predicador las pide, no porque cambien el flujo de preparación.
+export const SERMON_TYPES = ['expositive', 'textual', 'thematic'];
+// draft = en lucru · ready = pregătită · preached = predicată
+export const SERMON_STATUSES = ['draft', 'ready', 'preached'];
+
+// Comprobación de email deliberadamente laxa: algo@algo.algo sin espacios. El
+// email es opcional y sólo sirve para recuperar la cuenta; validarlo con una
+// expresión estricta rechaza direcciones perfectamente válidas y no aporta
+// seguridad. Quien se equivoque al escribirlo se queda sin ese camino de
+// recuperación, que es exactamente lo mismo que no ponerlo.
+const VALID_EMAIL = (e) => typeof e === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim()) && e.trim().length <= 254;
+
+/**
+ * Normaliza la respuesta de seguridad antes de hashearla.
+ *
+ * **Tiene que usarse en los dos sitios** —al registrar y al verificar—, porque
+ * lo que se guarda es un hash: si las dos rutas normalizan distinto, el usuario
+ * escribe la respuesta correcta y no entra nunca. Por eso vive aquí y no
+ * duplicada en auth.js.
+ *
+ * Se quitan mayúsculas, diacríticos y espacios de más: la pregunta la escribe
+ * el propio usuario y meses después nadie recuerda si respondió "Rex", "rex" o
+ * " Rex ". Con respuestas numéricas —las de los usuarios antiguos— la
+ * normalización no cambia nada, así que sus hashes siguen siendo válidos.
+ */
+export const normalizeSecurityAnswer = (answer) =>
+  String(answer ?? '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .replace(/\s+/g, ' ');
 
 // ── Encoding helpers ────────────────────────────────────
 const toHex = (buf) =>
@@ -106,7 +143,6 @@ export async function readToken(token, secret) {
 export const validators = {
   nickname: (n) => typeof n === 'string' && VALID_NICKNAME.test(n.trim()),
   password: VALID_PASSWORD,
-  numericAnswer: VALID_NUMERIC_ANSWER,
   topicName: (n) => typeof n === 'string' && n.trim().length >= 1 && n.trim().length <= 40,
   // Icon: acepta 1-4 chars (emoji como 📌) o 1-20 chars (slug como 'bookmark', 'cross')
   icon: (i) => typeof i === 'string' && i.length >= 1 && i.length <= 20,
@@ -118,6 +154,25 @@ export const validators = {
   ),
   noteText: (t) => typeof t === 'string' && t.trim().length >= 1 && t.trim().length <= 500,
   bibleVersion: (v) => typeof v === 'string' && /^[a-z0-9_]{2,12}$/.test(v),
+  email: VALID_EMAIL,
+  userType: (t) => typeof t === 'string' && USER_TYPES.includes(t),
+  sermonType: (t) => typeof t === 'string' && SERMON_TYPES.includes(t),
+  sermonStatus: (s) => typeof s === 'string' && SERMON_STATUSES.includes(s),
+  sermonTitle: (t) => typeof t === 'string' && t.trim().length <= 120,
+  sermonSeries: (s) => typeof s === 'string' && s.trim().length <= 80,
+  // Tope al JSON de preparación. D1 limita el tamaño de fila y, sobre todo, una
+  // predicación con 200 KB de texto no es una predicación: es un accidente o un
+  // abuso. El límite es holgado — 2.500 palabras rondan los 20 KB.
+  sermonContent: (c) => c === null || c === undefined || (typeof c === 'string' && c.length <= 200_000),
+  sermonOutline: (o) => o === null || o === undefined || (typeof o === 'string' && o.length <= 50_000),
+  // La pregunta la escribe el usuario: una línea, ni vacía ni un ensayo.
+  securityQuestionText: (q) => typeof q === 'string' && q.trim().length >= 5 && q.trim().length <= 120,
+  // La respuesta ya no tiene por qué ser un número. Se mide sobre el texto
+  // normalizado, que es lo que acaba hasheándose.
+  securityAnswer: (a) => {
+    const limpia = normalizeSecurityAnswer(a);
+    return limpia.length >= 1 && limpia.length <= 100;
+  },
   publicSlug: (s) => typeof s === 'string' && s.length >= 1 && s.length <= 80 && !/[/?#\s]/.test(s),
 };
 
@@ -248,7 +303,7 @@ export async function requireAuth(request, db, env) {
   // 3) Cargar usuario
   const user = await db
     .prepare(
-      'SELECT id, nickname, created_at, updated_at FROM users WHERE id = ?',
+      'SELECT id, nickname, user_type, email, created_at, updated_at FROM users WHERE id = ?',
     )
     .bind(payload.sub)
     .first();
@@ -259,6 +314,8 @@ export async function requireAuth(request, db, env) {
     user: {
       id: user.id,
       nickname: user.nickname,
+      userType: user.user_type || 'user',
+      email: user.email || null,
       createdAt: user.created_at,
       updatedAt: user.updated_at,
     },

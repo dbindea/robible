@@ -14,6 +14,7 @@ import {
   readToken,
   genId,
   genPublicSlug,
+  normalizeSecurityAnswer,
   genShortId,
   PBKDF2_ITERATIONS,
   SESSION_TTL_MS,
@@ -39,14 +40,69 @@ test('password: mínimo 6, máximo 128', () => {
   assert.ok(!validators.password(123456));
 });
 
-test('numericAnswer: solo dígitos, de 1 a 6', () => {
-  assert.ok(validators.numericAnswer('7'));
-  assert.ok(validators.numericAnswer('2010'));
-  assert.ok(validators.numericAnswer('  42  '), 'debería tolerar espacios alrededor');
-  assert.ok(!validators.numericAnswer('1234567'));
-  assert.ok(!validators.numericAnswer('siete'));
-  assert.ok(!validators.numericAnswer(''));
-  assert.ok(!validators.numericAnswer(7), 'un número no es una cadena');
+// ── Pregunta de seguridad escrita por el usuario (schema 8) ─────────────────
+//
+// Antes la pregunta se elegía de una lista de cinco y la respuesta tenía que
+// ser un número de 1 a 6 dígitos. Ahora la pregunta la escribe el usuario, así
+// que la respuesta es texto libre.
+
+test('securityQuestionText: una línea, ni vacía ni un ensayo', () => {
+  assert.ok(validators.securityQuestionText('Cum se numea câinele meu?'));
+  assert.ok(!validators.securityQuestionText('¿?'), 'demasiado corta para significar algo');
+  assert.ok(!validators.securityQuestionText(''));
+  assert.ok(!validators.securityQuestionText('a'.repeat(121)));
+  assert.ok(!validators.securityQuestionText(null));
+});
+
+test('securityAnswer: texto libre, no sólo números', () => {
+  assert.ok(validators.securityAnswer('Rex'));
+  assert.ok(validators.securityAnswer('7'), 'las respuestas numéricas antiguas siguen valiendo');
+  assert.ok(validators.securityAnswer('  Bucureşti  '));
+  assert.ok(!validators.securityAnswer(''));
+  assert.ok(!validators.securityAnswer('   '), 'sólo espacios no es una respuesta');
+  assert.ok(!validators.securityAnswer('a'.repeat(101)));
+});
+
+test('normalizeSecurityAnswer ignora mayúsculas, tildes y espacios de más', () => {
+  // Es la razón de ser de la función: meses después nadie recuerda si escribió
+  // "Rex", "rex" o " Rex ". Lo que se guarda es un hash, así que sin esto la
+  // respuesta correcta no abriría la cuenta.
+  const esperado = normalizeSecurityAnswer('Rex');
+  for (const variante of ['rex', 'REX', '  Rex  ', 'Réx']) {
+    assert.equal(normalizeSecurityAnswer(variante), esperado, `"${variante}" debería normalizar igual`);
+  }
+  assert.equal(normalizeSecurityAnswer('Cluj  Napoca'), 'cluj napoca', 'espacios internos colapsados');
+});
+
+test('normalizeSecurityAnswer no altera las respuestas numéricas', () => {
+  // Las cuentas creadas antes del schema 8 guardan el hash de un número. Si la
+  // normalización lo cambiara, esos usuarios perderían el acceso.
+  for (const n of ['3', '42', '2010']) {
+    assert.equal(normalizeSecurityAnswer(n), n);
+  }
+});
+
+test('normalizeSecurityAnswer aguanta valores que no son texto', () => {
+  assert.equal(normalizeSecurityAnswer(null), '');
+  assert.equal(normalizeSecurityAnswer(undefined), '');
+  assert.equal(normalizeSecurityAnswer(42), '42');
+});
+
+test('userType: sólo los dos tipos previstos', () => {
+  assert.ok(validators.userType('user'));
+  assert.ok(validators.userType('preacher'));
+  assert.ok(!validators.userType('admin'), 'no se inventan roles nuevos');
+  assert.ok(!validators.userType(''));
+  assert.ok(!validators.userType(null));
+});
+
+test('email: laxo pero no cualquier cosa', () => {
+  assert.ok(validators.email('a@b.co'));
+  assert.ok(validators.email('nombre.apellido+etiqueta@dominio.com'));
+  assert.ok(!validators.email('sin-arroba.com'));
+  assert.ok(!validators.email('con espacio@dominio.com'));
+  assert.ok(!validators.email('sin@dominio'));
+  assert.ok(!validators.email('a'.repeat(250) + '@b.co'), 'más de 254 caracteres');
 });
 
 test('verseRef: rangos de libro, capítulo y versículo', () => {

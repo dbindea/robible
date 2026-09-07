@@ -130,6 +130,29 @@
   let highlightMenuItem = null;
   let shareImageItem = null;
 
+  // ── Versículo seleccionado ──────────────────────────────────────────────
+  //
+  // Sólo uno a la vez. En reposo cada versículo enseña únicamente el botón de
+  // copiar; el resto de acciones aparece al tocarlo. Antes se pintaban los
+  // siete iconos en todos los versículos del capítulo, que en un móvil son
+  // varios cientos de botones y hacían la lectura imposible.
+  //
+  // Es el mismo gesto que el índice temático: se elige un elemento y entonces
+  // aparece lo que se puede hacer con él.
+  // Ojo al usarla en la plantilla: hay que comparar contra `selectedVerseKey`
+  // escribiéndolo tal cual (`selectedVerseKey === item.key`). Envolverlo en un
+  // helper —`isVerseSelected(item.key)`— esconde la dependencia y Svelte deja de
+  // repintar al cambiar la selección: los iconos no llegaban a aparecer.
+  let selectedVerseKey = null;
+
+  const toggleVerseSelection = (item) => {
+    selectedVerseKey = selectedVerseKey === item.key ? null : item.key;
+  };
+
+  // Tocar un icono no debe además seleccionar o deseleccionar el versículo:
+  // el clic burbujea hasta el contenedor, que es quien gestiona la selección.
+  const stopBubble = (event) => event.stopPropagation();
+
   $: topics = $topicsStore.topics;
   $: verseRefs = $topicsStore.verseRefs;
 
@@ -991,7 +1014,9 @@
     <p>{pageLead}</p>
   </header>
 
-  {#if searchForm.searchText}
+  <!-- Igual que en la Sidebar: buscando por referencia no se cuentan
+       resultados, se ofrecen sugerencias. -->
+  {#if searchForm.searchText && searchForm.searchType !== 'reference'}
     <p>
       {$_('app.result.result_count_start')}
       <span class="count">{result.length}</span>
@@ -1004,14 +1029,33 @@
     {@const primaryTopic = verseTopics[0]}
     {@const hasNote = !!$notesStore.find((n) => n.book === item.book && n.chapter === item.chapter && n.verse === item.index)}
     {@const verseHighlight = $highlightsStore.find((h) => h.book === item.book && h.chapter === item.chapter && h.verse === item.index)}
+    <!-- El versículo entero es el área que selecciona. `tabindex` pasa de -1 a
+         0 y se añade el manejador de teclado para que quien navegue con teclado
+         llegue a las acciones: si sólo respondiese al ratón, los botones
+         ocultos serían inalcanzables. El texto no es seleccionable
+         (`user-select: none` en `.result`, por el swipe), así que el toque no
+         compite con seleccionar texto. -->
     <div
       class:verse--tts-active={isVerseTtsActive(item.key)}
       class:verse--user-highlight={verseHighlight}
+      class:verse--selected={selectedVerseKey === item.key}
       class:highlight-verse={isVerseTtsActive(item.key) || highlightedVerseId === getVerseId(item)}
       class="verse"
       style={verseHighlight ? `--highlight-color: ${verseHighlight.color};` : ''}
       id={getVerseId(item)}
-      tabindex="-1"
+      role="button"
+      tabindex="0"
+      aria-expanded={selectedVerseKey === item.key}
+      aria-label={$_('app.result.actions.verse_actions', {
+        reference: `${map[item.book]} ${item.chapter}:${item.index}`,
+      })}
+      on:click={() => toggleVerseSelection(item)}
+      on:keydown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          toggleVerseSelection(item);
+        }
+      }}
     >
       <div>
         <span class="verse-index">{item.index}.</span>
@@ -1032,7 +1076,7 @@
           type="button"
           title={$_('app.result.actions.open_chapter')}
           class="reference"
-          on:click={() => navigateToVerse(item)}
+          on:click={(e) => { stopBubble(e); navigateToVerse(item); }}
         >
           ({map[item.book]}
           {item.chapter}:{item.index})
@@ -1044,13 +1088,18 @@
             reference: `${map[item.book]} ${item.chapter}:${item.index}`,
           })}
           class="icon-btn"
-          on:click={() => copyVerse(item)}
+          on:click={(e) => { stopBubble(e); copyVerse(item); }}
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
             <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
           </svg>
         </button>
+
+        <!-- ── Acciones que sólo aparecen con el versículo seleccionado ──────
+             Copiar se queda siempre visible porque es lo que más se usa y no
+             merece un toque previo. -->
+        {#if selectedVerseKey === item.key}
         <button
           type="button"
           class="icon-btn share-image-btn"
@@ -1084,7 +1133,7 @@
                 : $_('app.result.actions.favorite_reference', { reference: `${map[item.book]} ${item.chapter}:${item.index}` }))
             : $_('app.result.actions.favorite_login_required')}
           disabled={!$isAuthenticated}
-          on:click={() => $isAuthenticated && favoritesStore.toggle(item.book, item.chapter, item.index)}
+          on:click={(e) => { stopBubble(e); if ($isAuthenticated) favoritesStore.toggle(item.book, item.chapter, item.index); }}
         >
           <svg viewBox="0 0 24 24" fill={$favoritesStore.some((f) => f.book === item.book && f.chapter === item.chapter && f.verse === item.index) ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
@@ -1204,6 +1253,7 @@
             </svg>
           </button>
         </span>
+        {/if}
       </div>
     </div>
     <div class="verse-divider" aria-hidden="true"></div>
@@ -1592,6 +1642,11 @@
       box-shadow: inset 0.25rem 0 0 var(--color-blue);
     }
 
+    &:focus-visible {
+      outline: 2px solid var(--color-accent);
+      outline-offset: 2px;
+    }
+
     // ── Subrayado del usuario ────────────────────────────────────────────
     // El color llega inline como --highlight-color, igual que el del tema en
     // el botón del índice. Se mezcla con el fondo en vez de aplicarse en
@@ -1599,6 +1654,31 @@
     &--user-highlight {
       background-color: color-mix(in srgb, var(--highlight-color) 26%, transparent);
       box-shadow: inset 0.25rem 0 0 var(--highlight-color);
+    }
+
+    // ── Versículo seleccionado ───────────────────────────────────────────
+    // Suave a propósito: marca dónde está el foco de trabajo sin competir con
+    // el subrayado del usuario ni con el verde del estado de lectura.
+    //
+    // Va después de `--user-highlight` porque las dos usan `box-shadow` y la
+    // última gana. Un versículo subrayado y además seleccionado tiene que
+    // enseñar las dos cosas, así que abajo se combinan las dos sombras a mano.
+    &--selected {
+      background-color: color-mix(in srgb, var(--color-accent) 8%, transparent);
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 34%, transparent);
+    }
+
+    &--user-highlight#{&}--selected {
+      background-color: color-mix(in srgb, var(--highlight-color) 26%, transparent);
+      box-shadow:
+        inset 0.25rem 0 0 var(--highlight-color),
+        inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 34%, transparent);
+    }
+
+    // El cursor sólo en escritorio: en móvil no existe y `pointer` sobre un
+    // bloque de texto largo confunde más que ayuda.
+    @media (hover: hover) {
+      cursor: pointer;
     }
 
     p {
@@ -2908,7 +2988,17 @@
     }
   }
 
-  :global(html[data-theme='dark']) .icon-btn {
+  // El `:not(.icon-btn--marked)` es imprescindible, no cosmético.
+  //
+  // Esta regla tiene tres clases de especificidad y `.icon-btn--marked` sólo
+  // dos, así que sin la exclusión ganaba siempre: en tema oscuro, un icono
+  // marcado se quedaba con el borde y el fondo del color elegido por el usuario
+  // pero el trazo volvía al azul del tema. Ese era el "azul + amarillo" que se
+  // veía en un versículo subrayado, y por eso sólo pasaba en oscuro.
+  //
+  // Regla de la casa: cuando una acción tiene color propio, ese color sustituye
+  // por completo al azul de estado activo; no se mezclan.
+  :global(html[data-theme='dark']) .icon-btn:not(.icon-btn--marked) {
     background: color-mix(in srgb, var(--color-accent) 15%, transparent);
     color: var(--color-accent-soft);
     border-color: color-mix(in srgb, var(--color-accent) 25%, transparent);

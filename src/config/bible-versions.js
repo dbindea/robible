@@ -1,9 +1,21 @@
 export const DEFAULT_BIBLE_VERSION = 'vdc';
 
+// Campos que conviene no confundir entre sí:
+//
+//   label      nombre del idioma tal cual se lista: 'Română', 'English (KJV)'
+//   code       código corto en mayúsculas para el selector: 'RO', 'ES'
+//   bibleName  nombre de la versión bíblica: 'Biblia Română', 'King James Version'
+//
+// `code` se escribe a mano y no se deriva de `locale` a propósito. Hoy hay una
+// versión por idioma y bastaría con `locale.toUpperCase()`, pero en cuanto haya
+// dos versiones del mismo idioma (dos rumanas, por ejemplo) el código lo tendrán
+// que compartir y el nombre de la versión será lo que las distinga. Dejarlo
+// explícito evita tener que desenredar eso más tarde.
 export const BIBLE_VERSIONS = [
   {
     value: 'vdc',
     label: 'Română',
+    code: 'RO',
     locale: 'ro',
     ogLocale: 'ro_RO',
     hreflang: 'ro',
@@ -43,6 +55,7 @@ export const BIBLE_VERSIONS = [
   {
     value: 'rvl',
     label: 'Español',
+    code: 'ES',
     locale: 'es',
     ogLocale: 'es_ES',
     hreflang: 'es',
@@ -83,6 +96,7 @@ export const BIBLE_VERSIONS = [
   {
     value: 'en_kjv',
     label: 'English (KJV)',
+    code: 'EN',
     locale: 'en',
     ogLocale: 'en_US',
     hreflang: 'en',
@@ -122,6 +136,7 @@ export const BIBLE_VERSIONS = [
   {
     value: 'zh_cuv',
     label: '中文 (和合本)',
+    code: 'ZH',
     locale: 'zh',
     ogLocale: 'zh_CN',
     hreflang: 'zh',

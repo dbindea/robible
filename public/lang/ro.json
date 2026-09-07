@@ -129,7 +129,8 @@
         "favorite_login_required": "Conectează-te pentru a adăuga la favorite",
         "note_login_required": "Conectează-te pentru a adăuga o notiță",
         "topics_login_required": "Conectează-te pentru a salva într-o categorie",
-        "highlight_login_required": "Autentifică-te pentru a evidenția versete"
+        "highlight_login_required": "Autentifică-te pentru a evidenția versete",
+        "verse_actions": "Acțiuni pentru {reference}"
       }
     },
     "favorites": {
@@ -285,6 +286,10 @@
           "label": "Autentificare",
           "hint": "Sincronizare între dispozitive",
           "signed_in_hint": "Conectat — atinge pentru gestionare cont"
+        },
+        "sermons": {
+          "label": "Predicile mele",
+          "hint": "Pregătește și prezintă predici"
         }
       }
     },
@@ -301,9 +306,11 @@
       "stop": "Oprește",
       "speed": "Ritm",
       "ambient": "Fundal",
-      "ambient_prayer": "muzică de rugăciune",
       "ambient_none": "fără muzică",
-      "volume_music": "Muzică"
+      "volume_music": "Muzică",
+      "ambient_ebraica": "ebraică",
+      "ambient_rugaciune": "rugăciune",
+      "ambient_liniste": "liniște"
     },
     "highlights": {
       "eyebrow": "Evidențiere",
@@ -352,6 +359,47 @@
       "open": "Vezi în context",
       "share": "Distribuie",
       "never": "Nu mai afișa"
+    },
+    "sermons": {
+      "eyebrow": "Predici",
+      "title": "Predicile mele",
+      "new": "Predică nouă",
+      "start": "Începe pregătirea",
+      "search": "Caută după titlu sau text biblic…",
+      "empty": "Încă nu ai nicio predică",
+      "empty_hint": "Alege un text biblic și RoBible te ghidează pas cu pas.",
+      "no_matches": "Nicio predică nu se potrivește",
+      "untitled": "Fără titlu",
+      "created": "Predică creată",
+      "deleted": "Predică ștearsă",
+      "duplicated": "Copie creată",
+      "delete": "Șterge",
+      "duplicate": "Creează o copie",
+      "filter_label": "Filtrează predicile",
+      "filter_all": "Toate",
+      "filter_draft": "În lucru",
+      "filter_ready": "Pregătite",
+      "filter_preached": "Predicate",
+      "status_draft": "În lucru",
+      "status_ready": "Pregătită",
+      "status_preached": "Predicată",
+      "type_expositive": "Expozitivă",
+      "type_expositive_hint": "Studiază și dezvoltă mesajul unui pasaj biblic.",
+      "type_textual": "Textuală",
+      "type_textual_hint": "Pornește de la un text scurt și îl dezvoltă.",
+      "type_thematic": "Tematică",
+      "type_thematic_hint": "Urmărește o temă prin mai multe pasaje.",
+      "field_title": "Titlu (opțional)",
+      "field_title_hint": "Ex: Casa zidită pe stâncă",
+      "field_passage": "Textul biblic",
+      "field_chapter": "Capitol",
+      "field_verse_start": "De la versetul",
+      "field_verse_end": "Până la",
+      "field_type": "Tipul predicii",
+      "pick_book": "Alege cartea",
+      "login_required": "Autentifică-te pentru a-ți pregăti predicile",
+      "only_preachers": "Această secțiune este pentru conturile de tip Predicator",
+      "only_preachers_hint": "Poți schimba tipul contului din profilul tău."
     }
   },
   "auth": {
@@ -368,10 +416,10 @@
     "password": "Parolă",
     "security_question": "Întrebare de securitate",
     "custom_question": "Altă întrebare (scrie-o mai jos)",
-    "custom_question_placeholder": "Ex: Câte cărți am citit anul trecut?",
-    "security_answer": "Răspuns numeric",
-    "security_answer_hint": "Ex: 3",
-    "security_answer_help": "Răspunsul trebuie să fie doar cifre (maxim 6).",
+    "custom_question_placeholder": "Ex: Cum se numea primul meu câine?",
+    "security_answer": "Răspuns",
+    "security_answer_hint": "Răspunsul tău",
+    "security_answer_help": "Nu contează majusculele, diacriticele sau spațiile.",
     "your_question": "Întrebarea ta de securitate",
     "new_password": "Parolă nouă",
     "login_action": "Conectare",
@@ -400,7 +448,7 @@
     "errors": {
       "invalid_nickname": "Nume invalid (3-24 caractere: litere, cifre, _, ., -).",
       "invalid_password": "Parolă invalidă (mínimo 6 caracteres).",
-      "invalid_security_answer": "Răspunsul trebuie să fie doar cifre (maxim 6).",
+      "invalid_security_answer": "Scrie un răspuns (maximum 100 de caractere).",
       "nickname_taken": "Acest nume de utilizator este deja ocupat.",
       "user_not_found": "Nu am găsit un cont cu acest nume.",
       "invalid_credentials": "Nume sau parolă incorecte.",
@@ -423,8 +471,21 @@
       "invalid_color": "Culoare invalidă.",
       "backend_unavailable": "Serverul nu este disponibil. Se folosește cache local.",
       "unknown": "A apărut o eroare. Încearcă din nou.",
-      "highlight_not_found": "Evidențierea nu a fost găsită"
-    }
+      "highlight_not_found": "Evidențierea nu a fost găsită",
+      "invalid_user_type": "Tip de cont nevalid",
+      "invalid_email": "Adresa de email nu pare corectă",
+      "sermon_not_found": "Predica nu a fost găsită.",
+      "sermon_content_too_large": "Predica este prea lungă pentru a fi salvată."
+    },
+    "user_type": "Tipul contului",
+    "user_type_user": "Utilizator",
+    "user_type_user_hint": "Citire, favorite, notițe și teme.",
+    "user_type_preacher": "Predicator",
+    "user_type_preacher_hint": "Tot ce are un utilizator, plus instrumentele pentru predici.",
+    "email_optional": "Email (opțional)",
+    "email_placeholder": "nume@exemplu.ro",
+    "email_help": "Doar pentru recuperarea contului. Poți lăsa gol.",
+    "security_question_help": "Scrie o întrebare la care doar tu știi răspunsul."
   },
   "landing": {
     "skip_to_content": "Sari la conținut",

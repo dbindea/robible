@@ -1,6 +1,6 @@
 <script>
   import { onDestroy } from 'svelte';
-  import { musicService } from '../services/music.service.js';
+  import { AMBIENCES, musicService } from '../services/music.service.js';
   import { _ } from '../services/i18n.service';
   import {
     ttsState,
@@ -41,8 +41,10 @@
     { value: 2.0, label: '2×' },
   ];
 
+  // El catálogo manda: así añadir un ambiente es tocar music.service.js y su
+  // clave de traducción, nada más.
   const AMBIENT_OPTIONS = [
-    { value: 'prayer', labelKey: 'app.tts.ambient_prayer' },
+    ...AMBIENCES.map((a) => ({ value: a.key, labelKey: `app.tts.ambient_${a.key}` })),
     { value: 'none', labelKey: 'app.tts.ambient_none' },
   ];
 
@@ -118,7 +120,7 @@
     // La música se arranca desde el click, que es el gesto de usuario que los
     // navegadores exigen para permitir audio.
     if ($ttsAmbient !== 'none') {
-      await musicService.play('prayer');
+      await musicService.play($ttsAmbient);
       musicService.setVolume($musicVolume);
     }
 
@@ -161,7 +163,7 @@
     if (value === 'none') {
       musicService.stop();
     } else {
-      await musicService.play('prayer');
+      await musicService.play($ttsAmbient);
       musicService.setVolume($musicVolume);
     }
   }
@@ -312,20 +314,45 @@
 
 <style lang="scss">
   // ── MINI PLAYER BAR ──────────────────────────────────────────────────────────
+  // ── Tarjeta flotante ──────────────────────────────────────────────────────
+  //
+  // Antes era una barra pegada al borde inferior, a todo el ancho y con fondo
+  // sólido: parecía una pieza aparte encima de la aplicación. Ahora flota
+  // separada de los bordes, con esquinas redondeadas y algo de transparencia,
+  // que es lo que la integra con el contenido de detrás.
+  //
+  // Se apoya en el tema, no en colores propios: `--color-surface` cambia con el
+  // modo claro/oscuro y la tarjeta lo sigue sin reglas duplicadas. Por eso se
+  // retiró el `@media (prefers-color-scheme: dark)` que había aquí: competía
+  // con `html[data-theme]`, que es como el resto de la app decide el tema, y
+  // dejaba el player en oscuro aunque el usuario hubiera elegido claro.
   .tts-bar {
     position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+    left: 0.75rem;
+    right: 0.75rem;
     z-index: 60;
+    margin-inline: auto;
+    max-width: 42rem;
+    border: 1px solid color-mix(in srgb, var(--color-ink) 12%, transparent);
+    border-radius: var(--radius-xl);
+    // Base opaca: es lo que se ve si el navegador no soporta backdrop-filter.
+    // Sin ella, el texto quedaría sobre el contenido de la página, ilegible.
     background: var(--color-surface);
-    border-top: 1px solid var(--color-line);
-    box-shadow: 0 -4px 24px rgb(0 0 0 / 10%);
-    transition: box-shadow 0.2s;
+    box-shadow:
+      0 0.5rem 1.5rem rgb(0 0 0 / 12%),
+      0 0.125rem 0.375rem rgb(0 0 0 / 8%);
+    overflow: hidden;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+  }
 
-    @media (prefers-color-scheme: dark) {
-      background: var(--bg-primary-dark, var(--color-ink));
-      border-color: var(--border-color-dark, var(--color-ink));
+  // La transparencia sólo donde hay desenfoque real. Sin el desenfoque, un
+  // fondo translúcido deja leer el texto de la página a través del player.
+  @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+    .tts-bar {
+      background: color-mix(in srgb, var(--color-surface) 82%, transparent);
+      backdrop-filter: blur(18px) saturate(160%);
+      -webkit-backdrop-filter: blur(18px) saturate(160%);
     }
   }
 

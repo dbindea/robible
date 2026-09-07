@@ -27,13 +27,31 @@ const getCurrentLocale = () => {
 const VALID_NICKNAME = /^[a-zA-Z0-9_.-]{3,24}$/;
 const isValidNickname = (n) => typeof n === 'string' && VALID_NICKNAME.test(n.trim());
 const isValidPassword = (p) => typeof p === 'string' && p.length >= 6 && p.length <= 128;
-const isValidSecurityAnswer = (a) => typeof a === 'string' && /^\d{1,6}$/.test(a.trim());
-const isValidSecurityQuestion = (q) => q === 'custom' || /^[a-z_]+$/.test(q);
+// La respuesta de seguridad ya no tiene que ser un número: la pregunta la
+// escribe el usuario, así que exigir dígitos dejaba fuera casi cualquier
+// pregunta con sentido. Los límites son los mismos que valida el backend.
+const isValidSecurityAnswer = (a) => typeof a === 'string' && a.trim().length >= 1 && a.trim().length <= 100;
+const isValidSecurityQuestionText = (q) => typeof q === 'string' && q.trim().length >= 5 && q.trim().length <= 120;
+const isValidEmail = (e) => typeof e === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim()) && e.trim().length <= 254;
 
-export const validators = { isValidNickname, isValidPassword, isValidSecurityAnswer };
+export const USER_TYPES = ['user', 'preacher'];
+const isValidUserType = (t) => USER_TYPES.includes(t);
 
-// Preguntas de seguridad predefinidas (mismas en backend y frontend)
-export const SECURITY_QUESTIONS = [
+export const validators = {
+  isValidNickname,
+  isValidPassword,
+  isValidSecurityAnswer,
+  isValidSecurityQuestionText,
+  isValidEmail,
+  isValidUserType,
+};
+
+// Claves de las preguntas predefinidas de antes del schema 8.
+//
+// Ya no se ofrecen al registrarse —cada usuario escribe la suya—, pero las
+// cuentas creadas antes las tienen guardadas y hay que poder traducirlas
+// cuando el usuario recupera el acceso.
+export const LEGACY_SECURITY_QUESTIONS = [
   { key: 'siblings', i18nKey: 'auth.questions.siblings' },
   { key: 'favorite_number', i18nKey: 'auth.questions.favorite_number' },
   { key: 'bible_start_year', i18nKey: 'auth.questions.bible_start_year' },
@@ -89,9 +107,11 @@ const readToken = (token) => {
 const validateRegister = (d) => {
   if (!isValidNickname(d.nickname)) return 'invalid_nickname';
   if (!isValidPassword(d.password)) return 'invalid_password';
-  if (!isValidSecurityQuestion(d.securityQuestion)) return 'invalid_security_question';
-  if (d.securityQuestion === 'custom' && !d.securityQuestionText?.trim()) return 'security_question_required';
+  if (!isValidSecurityQuestionText(d.securityQuestionText)) return 'invalid_security_question';
   if (!isValidSecurityAnswer(d.securityAnswer)) return 'invalid_security_answer';
+  if (d.userType !== undefined && !isValidUserType(d.userType)) return 'invalid_user_type';
+  // El email es opcional: sólo molesta si viene relleno y mal escrito.
+  if (d.email?.trim() && !isValidEmail(d.email)) return 'invalid_email';
   return null;
 };
 
@@ -104,9 +124,10 @@ export const register = async (data) => {
       const res = await api.post('/api/auth/register', {
         nickname: data.nickname.trim(),
         password: data.password,
-        securityQuestion: data.securityQuestion,
-        securityQuestionText: data.securityQuestion === 'custom' ? data.securityQuestionText?.trim() : undefined,
+        securityQuestionText: data.securityQuestionText.trim(),
         securityAnswer: data.securityAnswer.trim(),
+        userType: data.userType || 'user',
+        email: data.email?.trim() || undefined,
         // El backend seedea las categorías por defecto en este idioma.
         locale: getCurrentLocale(),
       });
@@ -260,6 +281,47 @@ export const me = () => {
   const lsUser = tokenStore.getUser();
   if (!lsUser) return null;
   return lsUser;
+};
+
+/**
+ * Cambia tipo de cuenta, email o pregunta de seguridad. Todo opcional: se manda
+ * sólo lo que se quiere cambiar.
+ *
+ * Necesita backend: el perfil vive en D1. En modo sin conexión no hay nada que
+ * actualizar, porque el usuario local no tiene ni tipo ni email.
+ */
+export const updateProfile = async (cambios) => {
+  if (!USE_BACKEND) return { ok: false, error: 'auth.errors.unknown' };
+
+  if (cambios.userType !== undefined && !isValidUserType(cambios.userType)) {
+    return { ok: false, error: translateApiError('invalid_user_type') };
+  }
+  if (cambios.email?.trim() && !isValidEmail(cambios.email)) {
+    return { ok: false, error: translateApiError('invalid_email') };
+  }
+  // La pregunta y la respuesta viajan juntas o no viajan: dejar una pregunta
+  // nueva con la respuesta vieja deja al usuario sin poder recuperar la cuenta.
+  const tocaSeguridad = cambios.securityQuestionText !== undefined || cambios.securityAnswer !== undefined;
+  if (tocaSeguridad) {
+    if (!isValidSecurityQuestionText(cambios.securityQuestionText)) {
+      return { ok: false, error: translateApiError('invalid_security_question') };
+    }
+    if (!isValidSecurityAnswer(cambios.securityAnswer)) {
+      return { ok: false, error: translateApiError('invalid_security_answer') };
+    }
+  }
+
+  try {
+    const res = await api.patch('/api/auth/me', cambios);
+    // Refrescar el usuario guardado: el tipo decide qué menús se ven.
+    tokenStore.set(null, res.user);
+    return { ok: true, user: res.user };
+  } catch (e) {
+    if (e instanceof ApiError && e.status >= 400 && e.status < 500) {
+      return { ok: false, error: translateApiError(e.code) };
+    }
+    return { ok: false, error: 'auth.errors.unknown' };
+  }
 };
 
 export const logout = async () => {

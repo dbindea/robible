@@ -63,39 +63,46 @@
     }
   }
 
-  // Último tipo de búsqueda aplicado, para saber si el cambio cruza la
-  // frontera entre "por palabras" y "por referencia".
-  let prevSearchType = 'match';
 
+  // Cambiar de modo resetea el ESTADO de la búsqueda anterior, pero nunca el
+  // texto que ha escrito el usuario.
+  //
+  // Antes sí se borraba al cruzar de palabras a referencia, con el argumento de
+  // que son sintaxis distintas. En la práctica el caso frecuente es el
+  // contrario: alguien escribe "prov 3 4" buscando por palabras, se da cuenta
+  // de que quería una referencia y cambia de modo. Borrarle el texto le obliga
+  // a reescribirlo, que es justo lo que venía a evitar. Ahora se conserva y se
+  // reinterpreta con el criterio del modo nuevo.
   function onSearchTypeChange() {
+    // Estado de la búsqueda anterior: fuera entero. Si algo de esto sobrevive,
+    // el modo nuevo hereda sugerencias o desplegables que ya no le pertenecen.
     referenceDropdownOpen = false;
     referenceMatches = [];
     referenceSelectedIdx = -1;
     recentSearchesOpen = false;
     recentReferencesOpen = false;
-
-    // El texto solo se limpia al pasar de palabras a referencia o al revés:
-    // son sintaxis distintas ("amor" no es una referencia, "jn 3 16" no es una
-    // palabra). Entre las tres variantes de búsqueda por palabras el texto se
-    // conserva, que es lo que el usuario espera al afinar la misma consulta.
-    const eraReferencia = prevSearchType === 'reference';
-    const esReferencia = searchForm.searchType === 'reference';
-    const cruzaModo = eraReferencia !== esReferencia;
-    prevSearchType = searchForm.searchType;
-
-    if (cruzaModo) {
-      searchForm = { ...searchForm, searchText: null };
-      if (searchTextInput) searchTextInput.value = '';
-    }
+    recentSearches = [];
+    recentReferences = [];
 
     if (typeof window !== 'undefined') {
       filter.set({ ...searchForm, searchType: searchForm.searchType });
+    }
+
+    // Reinterpretar lo ya escrito con el criterio del modo nuevo. En modo
+    // referencia hay que pedir las sugerencias a mano: el `on:input` no se
+    // dispara porque el texto no ha cambiado, sólo su significado.
+    if (searchForm.searchType === 'reference' && searchForm.searchText?.trim()) {
+      handleReferenceInput();
     }
   }
 
   function handleReferenceInput() {
     if (searchForm.searchType !== 'reference') return;
     const text = searchForm.searchText || '';
+
+    // Sugerencias e historial nunca a la vez: son dos listas distintas en el
+    // mismo hueco de la pantalla y superpuestas no se entiende cuál manda.
+    recentReferencesOpen = false;
 
     // No mostrar hasta que el usuario haya escrito algo
     if (text.trim().length < 2) {
@@ -109,10 +116,10 @@
     referenceSelectedIdx = -1;
     referenceDropdownOpen = matches.length > 0;
 
-    // Si hay un match UNICO con cap+vers (búsqueda inequívoca), navegar directamente
-    if (matches.length === 1 && matches[0].chapter && matches[0].verse) {
-      selectReferenceMatch(matches[0]);
-    }
+    // Aquí no se navega solo. Antes, al quedar un único match con capítulo y
+    // versículo, se saltaba directamente: escribiendo "Ioan 3:16" la app se te
+    // llevaba en cuanto tecleabas el 1 de 16, porque "Ioan 3:1" ya era único.
+    // El salto lo decide el usuario tocando la sugerencia.
   }
 
   function handleReferenceKeydown(e) {
@@ -153,7 +160,6 @@
   let searchFormInit = false;
   $: if (!searchFormInit) {
     searchForm = { ...$filter };
-    prevSearchType = searchForm.searchType || 'match';
     searchFormInit = true;
   }
   $: selectedBook = Array.isArray(searchForm.book) ? searchForm.book[0] : null;
@@ -259,6 +265,14 @@
   const clearInput = () => {
     searchForm.searchText = null;
     updateFilter(searchForm);
+    // Al vaciar el campo se vuelve al punto de partida, así que el historial
+    // tiene sentido otra vez. Sólo si el campo sigue teniendo el foco: si el
+    // usuario ha pulsado la X para irse, no le abrimos un panel encima.
+    referenceMatches = [];
+    referenceDropdownOpen = false;
+    if (typeof document !== 'undefined' && document.activeElement === searchTextInput) {
+      openRecentSearches();
+    }
   };
 
   // ── Recent searches ────────────────────────────────
@@ -266,6 +280,13 @@
   let recentReferences = [];
 
   const openRecentSearches = () => {
+    // El historial es una ayuda para empezar, no para afinar: en cuanto hay
+    // texto estorba, porque lo que el usuario quiere ver son los resultados o
+    // las sugerencias de lo que está escribiendo.
+    if (searchForm.searchText?.trim()) {
+      closeRecentSearches();
+      return;
+    }
     // Solo abrir el dropdown correspondiente al modo actual
     if (searchForm.searchType === 'reference') {
       recentReferences = searchesStore.recentFiltered(8, {
@@ -342,6 +363,19 @@
     openRecentSearches();
   };
 
+  // Un único manejador de `on:input` para los dos modos: así la regla del
+  // historial (fuera en cuanto hay texto, de vuelta al vaciarlo) vive en un
+  // solo sitio y no se desincroniza entre palabras y referencia.
+  const handleSearchInput = () => {
+    openRecentSearches(); // cierra si hay texto, reabre si el campo queda vacío
+
+    if (searchForm.searchType === 'reference') {
+      handleReferenceInput();
+    } else {
+      saveCurrentSearchDebounced();
+    }
+  };
+
   const handleInputBlur = () => {
     // Delay para permitir click en los items del dropdown
     setTimeout(() => {
@@ -384,7 +418,7 @@
         bind:this={searchTextInput}
         on:focus={handleInputFocus}
         on:blur={searchForm.searchType === 'reference' ? handleReferenceBlur : handleInputBlur}
-        on:input={searchForm.searchType === 'reference' ? handleReferenceInput : saveCurrentSearchDebounced}
+        on:input={handleSearchInput}
         on:keydown={searchForm.searchType === 'reference' ? handleReferenceKeydown : undefined}
       />
       <button class="clear-search" type="button" aria-label={$_('app.sidebar.clear_search_text')} on:click={clearInput}>
@@ -481,7 +515,9 @@
         {/each}
       </div>
     {/if}
-    {#if searchForm.searchText}
+    <!-- El recuento no tiene sentido buscando por referencia: allí no hay
+         "N resultados", hay una lista corta de sugerencias que se toca. -->
+    {#if searchForm.searchText && searchForm.searchType !== 'reference'}
       <p class="search-result-count" aria-live="polite">
         {$_('app.result.result_count_start')}
         <span>{result.length}</span>
@@ -825,11 +861,14 @@
     border-radius: 0.35rem;
     overflow: hidden;
     margin-top: -0.25rem;
-    max-height: 11rem; // 4 items × 2.75rem = 11rem; el resto hace scroll
+    // 3 items × 2.75rem. El historial es una ayuda para arrancar, no una lista
+    // que recorrer: enseñando tres se ve de un vistazo y en móvil no tapa el
+    // teclado ni el resto del formulario. El resto sigue ahí, con scroll.
+    max-height: 8.25rem;
     overflow-y: auto;
   }
 
-  // Cada item ocupa 2.75rem; con max-height 11rem se ven 4 sin scroll
+  // Cada item ocupa 2.75rem; con max-height 8.25rem se ven 3 sin scroll
   .recent-search-item {
     min-height: 2.75rem;
   }

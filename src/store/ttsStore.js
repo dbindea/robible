@@ -13,6 +13,7 @@
  */
 
 import { writable } from 'svelte/store';
+import { migrateAmbience } from '../services/music.service.js';
 
 const TTS_SPEED_KEY = 'robible:tts:speed';
 const TTS_AMBIENT_KEY = 'robible:tts:ambient';
@@ -38,9 +39,13 @@ const loadString = (key, fallback) => {
 
 // ─── Stores ──────────────────────────────────────────────────────────────────
 export const ttsSpeed = writable(loadNumber(TTS_SPEED_KEY, 1.0));
-// Solo hay dos ambientes reales. El comentario decía además 'hymn', que nunca
-// llegó a existir en music.service.js.
-export const ttsAmbient = writable(loadString(TTS_AMBIENT_KEY, 'none')); // 'none' | 'procedural'
+// 'none' | 'ebraica' | 'rugaciune' | 'liniste'.
+//
+// Se pasa por `migrateAmbience` al leerlo porque el valor guardado en los
+// navegadores es el del catálogo antiguo ('prayer'), y quien lo tuviera se
+// habría encontrado la música apagada sin explicación. Ahora cae en
+// 'rugaciune', que es lo más parecido a lo que venía escuchando.
+export const ttsAmbient = writable(migrateAmbience(loadString(TTS_AMBIENT_KEY, 'none')));
 export const musicVolume = writable(loadNumber(TTS_MUSIC_VOLUME_KEY, 0.15));
 
 // Playback state (not persisted)

@@ -10,11 +10,14 @@
   let currentPath = '/';
 
   $: selectedVersion = $selectedBibleVersion;
-  $: selectedVersionLabel =
-    visibleBibleVersions.find((version) => version.value === selectedVersion)?.label || selectedVersion;
+  $: selectedVersionConfig = visibleBibleVersions.find((version) => version.value === selectedVersion);
+  // Si la versión guardada no está en el catálogo, el propio identificador hace
+  // de código: es feo pero informativo, y mejor que un botón en blanco.
+  $: selectedVersionCode = selectedVersionConfig?.code || selectedVersion?.toUpperCase() || '';
+  $: selectedVersionName = selectedVersionConfig?.bibleName || '';
   $: visibleBibleVersions = bibleVersions.some((version) => version.value === selectedVersion)
     ? bibleVersions
-    : [{ value: selectedVersion, label: selectedVersion }, ...bibleVersions];
+    : [{ value: selectedVersion, label: selectedVersion, code: selectedVersion?.toUpperCase() }, ...bibleVersions];
 
   // Helpers para detectar ruta activa
   $: isOnCompare = currentPath.startsWith('/compara');
@@ -136,10 +139,14 @@
         class="version-picker__button"
         aria-haspopup="listbox"
         aria-expanded={isVersionMenuOpen}
-        aria-label={$_('app.nav.version_label')}
+        aria-label={`${$_('app.nav.version_label')}: ${selectedVersionCode} · ${selectedVersionName}`}
         on:click|stopPropagation={() => (isVersionMenuOpen = !isVersionMenuOpen)}
       >
-        <span class="version-picker__label">{selectedVersionLabel}</span>
+        <!-- El código nunca se oculta ni se trunca: es lo único que dice de un
+             vistazo en qué idioma estás. El nombre de la versión sí desaparece
+             cuando no hay ancho. -->
+        <span class="version-picker__code">{selectedVersionCode}</span>
+        <span class="version-picker__name">{selectedVersionName}</span>
         <span class="version-picker__chevron" aria-hidden="true"></span>
       </button>
 
@@ -154,7 +161,13 @@
               aria-selected={version.value === selectedVersion}
               on:click={() => selectVersion(version)}
             >
-              <span>{version.label}</span>
+              <span class="version-picker__option-code">{version.code || version.value?.toUpperCase()}</span>
+              <span class="version-picker__option-text">
+                <span class="version-picker__option-name">{version.bibleName || version.label}</span>
+                {#if version.label && version.bibleName && version.label !== version.bibleName}
+                  <span class="version-picker__option-lang">{version.label}</span>
+                {/if}
+              </span>
               {#if version.value === selectedVersion}
                 <span class="version-picker__check" aria-hidden="true"></span>
               {/if}
@@ -274,6 +287,27 @@
     }
   }
 
+  // Pastilla con el código de idioma. Es el elemento que resuelve la pregunta
+  // "¿en qué idioma estoy?" sin tener que abrir nada.
+  .version-picker__code {
+    flex: 0 0 auto;
+    padding: 0.1rem 0.35rem;
+    border-radius: 0.22rem;
+    background: var(--color-accent);
+    color: var(--color-on-primary);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    line-height: 1.5;
+  }
+
+  .version-picker__name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .version-picker__chevron {
     width: 0.55rem;
     height: 0.55rem;
@@ -283,6 +317,40 @@
     transform: translateY(-0.12rem) rotate(45deg);
   }
 
+  // ── Opciones del desplegable ──────────────────────────────────────────────
+  .version-picker__option-code {
+    flex: 0 0 auto;
+    min-width: 2.1rem;
+    padding: 0.1rem 0.3rem;
+    border-radius: 0.22rem;
+    background: color-mix(in srgb, var(--color-accent) 14%, transparent);
+    color: var(--color-accent);
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-align: center;
+  }
+
+  .version-picker__option-text {
+    display: grid;
+    flex: 1 1 auto; // empuja la marca de selección al borde derecho
+    min-width: 0;
+    text-align: left;
+  }
+
+  .version-picker__option-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  // El idioma en pequeño bajo el nombre de la versión: con una sola versión por
+  // idioma es redundante, pero en cuanto haya dos rumanas será lo que las separe.
+  .version-picker__option-lang {
+    font-size: 0.72rem;
+    font-weight: 400;
+    color: var(--color-ink-soft);
+  }
+
   .version-picker__menu {
     position: absolute;
     top: calc(100% + 0.45rem);
@@ -290,8 +358,10 @@
     z-index: 30;
     display: grid;
     gap: 0.25rem;
-    width: max(100%, 13rem);
-    max-width: calc(100vw - 2rem);
+    // 16rem y no 13rem: con la pastilla del código delante, a 13rem se truncaban
+    // "Biblia Română" y "King James Version", que es justo lo que hay que leer.
+    width: max(100%, 16rem);
+    max-width: calc(100vw - 1.5rem);
     padding: 0.35rem;
     border: 1px solid rgb(63 88 103 / 18%);
     border-radius: 0.35rem;
@@ -325,6 +395,17 @@
       background: var(--color-blue);
       color: var(--color-on-primary);
       font-weight: 700;
+
+      // Sobre el fondo azul de la opción activa, la pastilla del código se
+      // volvía invisible: era azul sobre azul. Aquí se invierte.
+      .version-picker__option-code {
+        background: rgb(255 255 255 / 24%);
+        color: var(--color-on-primary);
+      }
+
+      .version-picker__option-lang {
+        color: rgb(255 255 255 / 78%);
+      }
     }
   }
 
@@ -513,13 +594,17 @@
       padding: 0 0.55rem;
       .hamburger__text { display: none; }
     }
+    // En móvil se oculta el nombre de la versión, no el código.
+    //
+    // Antes se ocultaba la etiqueta entera y el botón se quedaba en un chevron
+    // suelto: no había forma de saber qué idioma estaba activo sin abrir el
+    // desplegable. El código ocupa tres caracteres y responde la pregunta.
     .version-picker__button {
       min-width: 0;
-      padding: 0 0.55rem;
-      .version-picker__label { display: none; }
-    }
-    .version-picker__chevron {
-      // al ocultar el label, el chevron queda solo a la derecha
+      padding: 0 0.45rem;
+      gap: 0.3rem;
+
+      .version-picker__name { display: none; }
     }
   }
 

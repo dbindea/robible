@@ -10,6 +10,7 @@
   import Favorites from './Favorites.svelte';
   import Notes from './Notes.svelte';
   import PublicTopic from './PublicTopic.svelte';
+  import Sermons from './Sermons.svelte';
   import { getBibleVersionConfigOrDefault } from '../../store/stores';
 
   export let bible;
@@ -50,6 +51,11 @@
   const isPublicTopicPath = (path) => /^\/tema\/[^/]+\/?$/.test(path);
   let isPublicTopicMode = typeof window !== 'undefined' ? isPublicTopicPath(window.location.pathname) : false;
 
+  // «Predicile mele». Ruta privada y sin traducir por idioma: no se indexa y
+  // no gana nada teniendo cuatro formas distintas.
+  const isSermonsPath = (path) => path === '/predici' || path.startsWith('/predici/');
+  let isSermonsMode = typeof window !== 'undefined' ? isSermonsPath(window.location.pathname) : false;
+
   let isIndexMode = false;
   let isFavoritesMode = false;
   let isNotesMode = false;
@@ -86,6 +92,7 @@
     if (typeof window === 'undefined') return;
     isCompareMode = isComparePath(window.location.pathname);
     isPublicTopicMode = isPublicTopicPath(window.location.pathname);
+    isSermonsMode = isSermonsPath(window.location.pathname);
   };
 
   onMount(() => {
@@ -115,15 +122,17 @@
 </script>
 
 <!-- La ruta /landing la resuelve App.svelte antes de montar Main. -->
-<div class="main" class:main--immersive={isImmersive} class:main--compare={isCompareMode} class:main--index={isIndexMode} class:main--favorites={isFavoritesMode} class:main--notes={isNotesMode || isPublicTopicMode}>
-  {#if !isImmersive && !isCompareMode && !isIndexMode && !isFavoritesMode && !isNotesMode && !isPublicTopicMode}
+<div class="main" class:main--immersive={isImmersive} class:main--compare={isCompareMode} class:main--index={isIndexMode} class:main--favorites={isFavoritesMode} class:main--notes={isNotesMode || isPublicTopicMode || isSermonsMode}>
+  {#if !isImmersive && !isCompareMode && !isIndexMode && !isFavoritesMode && !isNotesMode && !isPublicTopicMode && !isSermonsMode}
     <div class="sidebar">
       <Sidebar {map} {result} {count} />
     </div>
   {/if}
   <div class="layout">
     {#if Object.keys(bible).length}
-      {#if isPublicTopicMode}
+      {#if isSermonsMode}
+        <Sermons {bible} {map} />
+      {:else if isPublicTopicMode}
         <PublicTopic {bible} {map} />
       {:else if isCompareMode}
         <Compare {bible} {map} {compareBible} {compareMap} />
