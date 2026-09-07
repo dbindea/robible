@@ -423,7 +423,7 @@
 
   .antesala__empezar {
     border: 1px solid var(--color-accent);
-    background: var(--color-accent);
+    background: var(--color-accent-solid);
     color: var(--color-on-primary);
 
     &:disabled { opacity: 0.45; cursor: not-allowed; }
@@ -623,7 +623,7 @@
     padding: 0.75rem;
     border: 1px solid var(--color-accent);
     border-radius: var(--radius-pill);
-    background: var(--color-accent);
+    background: var(--color-accent-solid);
     color: var(--color-on-primary);
     font-size: var(--font-size-body);
     font-weight: 700;

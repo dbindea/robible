@@ -419,7 +419,7 @@
     padding: 0.55rem 1.1rem;
     border: 1px solid var(--color-accent);
     border-radius: var(--radius-pill);
-    background: var(--color-accent);
+    background: var(--color-accent-solid);
     color: var(--color-on-primary);
     font-size: var(--font-size-small);
     font-weight: 700;
@@ -801,7 +801,7 @@
 
   .nueva__crear {
     border: 1px solid var(--color-accent);
-    background: var(--color-accent);
+    background: var(--color-accent-solid);
     color: var(--color-on-primary);
 
     &:hover:not(:disabled) { background: var(--color-accent-hover); }

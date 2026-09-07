@@ -1,7 +1,7 @@
 # RoBible — Roadmap
 
 > Documento vivo. Actualizado en cada milestone.
-> Última actualización: **7 sep 2026** (Fases 2-5 del reenfoque: UX móvil · perfiles · player y música · «Predicile mele» con Modo Amvon offline)
+> Última actualización: **7 sep 2026** (Fases 2-7: UX móvil · perfiles · player y música · «Predicile mele» con Modo Amvon offline · cinco paletas, cristal e iconos nuevos)
 
 > Documentación de referencia: [CLAUDE.md](CLAUDE.md) · [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) · [docs/OPERACIONES.md](docs/OPERACIONES.md)
 > Deuda técnica detectada: [docs/AUDITORIA-2026-09-04.md](docs/AUDITORIA-2026-09-04.md)
@@ -16,7 +16,7 @@ RoBible es una app web (PWA) de la Biblia con soporte offline, auth multi-device
 - Frontend: Svelte 5 (sintaxis legacy, no runes) + Vite 8, SCSS themeable (light/dark)
 - Data: JSON estáticos en `/public/data/{vdc,rvl,en_kjv,zh_cuv}/bible.{map,json}` — entre 3 y 4,3 MB por Biblia
 - i18n: propio, sin librería. JSON en `/public/lang/{ro,es,en,zh}.json`
-- PWA: manifest + service worker (cache-first, versiones) — hoy `robible-v26`
+- PWA: manifest + service worker (cache-first, versiones) — hoy `robible-v27`
 - Rutas: path-based custom (parsea `window.location.pathname`)
 - Backend: Cloudflare Workers (`robible-api`) + D1 (`robible-db`), router Hono
 - Auth: PBKDF2 + HMAC tokens persistidos en D1 (revocables), TTL 30 días
@@ -461,6 +461,115 @@ El objetivo es doble: **limpiar el UX en móvil** y **abrir el producto a los pr
 **Dos observaciones de la prueba:**
 - Google Analytics dispara **una** petición al cambiar de ruta al entrar en Amvon. No sale del código del módulo y falla en silencio sin conexión, pero conviene saberlo.
 - Quedan ~30 claves en rumano dentro del español fuera de `auth` (ver Fase 3).
+
+### Fase 7 — Cinco paletas, cristal y iconos nuevos ✅ COMPLETADA (2026-09-07)
+
+- [x] **Cinco paletas** en lugar del interruptor día/noche: Lumină · Noapte · Sepia · Minimal · Nocturn
+- [x] Selector con muestra real de cada paleta y una pista de para qué sirve, en los cuatro idiomas
+- [x] **Migración de la preferencia**: quien tenía `light`/`dark` guardado cae en Lumină/Noapte y no pierde su elección
+- [x] Cristal esmerilado con bordes sobre transparencia en las superficies fijas
+- [x] Movimiento unificado en tres duraciones y una curva de salida
+- [x] **94 SVG inline → `Icon.svelte`** con trazos de Phosphor (MIT) copiados al árbol
+- [x] SW bumpeado a `robible-v27`; 183 tests (12 nuevos de paletas)
+
+**Lo que había que arreglar antes de poder hacer nada:**
+
+Las paletas no eran el trabajo; el trabajo era que se pudieran tener. `global.css`
+estaba bien montado, pero los componentes se lo saltaban: **~60 reglas
+`html[data-theme='dark']`** repartidas por 15 ficheros, con **123 colores hex** y
+**~170 rgba** escritos a mano. Esos valores son correctos en oscuro y falsos en
+las otras cuatro paletas. Hoy **no queda ninguna regla por tema en ningún
+componente**.
+
+**Decisiones que conviene no deshacer:**
+- **Los derivados se calculan desde `--color-ink`.** El tema claro ya mezclaba contra `--color-bg-dark` y el oscuro contra `rgb(255 255 255)`: dos dialectos para lo mismo. Como la tinta cambia con la paleta, un único `color-mix` da el valor correcto en las cinco. Eso convirtió ~30 reglas en cuatro tokens.
+- **`--color-white` no es un color de texto.** Significa "fondo de tarjeta". Se usaba también como texto sobre el acento en 17 sitios, y en oscuro eso ya pintaba gris marengo sobre azul — un bug que llevaba ahí desde que existe el modo oscuro. Ahora es `--color-on-primary`.
+- **El sidebar conserva sus blancos, pero con nombre.** Es chrome oscuro en las cinco paletas, así que su primer plano siempre es tinta clara: `--color-on-sidebar`, que en sepia se entibia sin tocar 18 reglas.
+- **El velo de los diálogos va por paleta y no derivado.** Un scrim es siempre oscuro, también en las paletas oscuras; derivarlo de la tinta lo habría vuelto blanco en nocturn.
+- **`tests/palettes.test.js` compara los cinco bloques token a token.** Un token que falta no falla: hereda el de Lumină, y el síntoma es un panel blanco en mitad de nocturn que sólo se ve cambiando de paleta a mano. El test cazó dos huecos reales (`--color-accent-ink`) el mismo día que se escribió.
+- **El cristal, sólo en lo que está fijo.** Cada capa con `backdrop-filter` se recompone en cada fotograma del scroll: en un capítulo largo serían 40-80 capas y la lectura —lo único que esta app hace todo el rato— pierde fluidez en cualquier Android que no sea de gama alta. Navbar tampoco lo lleva: no es sticky, se va con el scroll. El Modo Amvon queda fuera a propósito.
+- **Los botones de acción llevan cristal teñido de acento** (`--glass-accent`), no el neutro: con el neutro perdían el color y dejaban de leerse como botones.
+- **Iconos copiados, no instalados.** Phosphor (MIT) vía `scripts/build-icons.mjs`; cero dependencias en tiempo de ejecución, coherente con el resto del proyecto. Se descartó Lucide **precisamente por ser el sucesor de Feather**: misma geometría, mismo trazo — habría sido tocar 94 sitios para que se viera igual. Los iconos parecían antiguos porque eran Feather de 2017.
+- **El peso `fill` sustituye a `getFilledTopicIconSvg`**, que fabricaba la versión rellena quitando `fill="none"` de una cadena con un `replace`. Y el badge de tema metía un `<svg>` dentro de otro `<svg>`.
+- **Las 14 claves de icono de tema están en D1** (`topics.icon`), ahora listadas en `src/config/topic-icons.js`. Antes la tabla estaba **copiada con los SVG dentro en tres ficheros** que tenían que coincidir y nadie comprobaba. De paso se arregló que `light` y `sun` dibujaran exactamente el mismo sol.
+
+**Efecto en el bundle**: CSS 183 kB → **170 kB** (−13 kB, al desaparecer las reglas por tema); JS 369 kB → 371 kB (+2 kB netos: entran los trazos de 45 iconos y salen 94 SVG inline).
+
+⚠️ **Sin verificación en navegador**: el servidor de Playwright no conectó. Verificado con `npm run lint` (0 errores), `npm test` (183/183) y `npm run build`, más el test de paridad de paletas. Falta pasar las cinco paletas por la pantalla.
+
+### Fase 7.1 — Correcciones tras la primera revisión visual ✅ (2026-09-07)
+
+Tres cosas que sólo se ven abriendo la aplicación, reportadas con capturas:
+
+- **El panel del player salía en blanco.** Tres causas encadenadas: nueve `@media (prefers-color-scheme: dark)` que responden al **sistema operativo** y no a la paleta elegida; tres tokens que nunca existieron (`--color-text`, `--color-text-secondary`, `--border-color-dark`) escritos como `var(--inexistente, var(--real))`, así que el primero era decorado; y `color: var(--color-line)` en el desplegable — `--color-line` es el token de **borde**, una tinta al 14 %, de ahí el texto invisible. El desplegable lleva ahora `appearance: none` con la flecha dibujada aparte, porque el nativo de Windows ignora `color` y sale gris sobre gris.
+- **Los botones de capítulo anterior/siguiente se solapaban con el footer**, que es fijo, y quedaban debajo sin poder pulsarse. Pasan al centro vertical (`top: 50%` + `translateY(-50%)`). El keyframe de entrada animaba `translateY`, que habría anulado el centrado: ahora sólo anima opacidad.
+- **Minimal fuera, Cald dentro.** La paleta monocroma dejaba tinta fuerte y chrome a un paso el uno del otro, y ya había dos paletas oscuras. La sustituye la crema y cobre con la que nació la landing (`#F5F0E6` / `#FAF6EE` / `#B8763E`, recuperados de su primer commit).
+- **Y el fallo de fondo que destapó lo anterior**: el sidebar fijaba su color de fondo pero **no el del texto**, así que todo lo que no llevaba color propio heredaba la tinta oscura del `body`. Sobre el chrome oscuro del sidebar, los dos títulos de sección salían negro sobre negro — en las cinco paletas, no sólo en Minimal. Arreglado en un sitio con `--color-on-sidebar`.
+
+### Fase 7.2 — Contraste medido en las cinco paletas ✅ (2026-09-07)
+
+`tests/contrast.test.js` calcula el contraste WCAG 2.1 de **26 pares por paleta**
+(4.5:1 para texto, 3:1 para iconos y bordes con significado). La primera
+ejecución falló en **cuatro de las cinco**:
+
+| Paleta | Qué falló | Antes | Ahora |
+|---|---|---|---|
+| lumina | texto del botón de acento | 3.30:1 | **5.54:1** |
+| lumina | ámbar de favorito sobre tarjeta | 2.94:1 | **4.92:1** |
+| noapte | texto del botón de acento | 2.38:1 | **7.58:1** |
+| noapte | el mismo, en hover | 1.87:1 | **9.67:1** |
+| sepia | acento sobre el chrome del sidebar | 1.22:1 | **4.52:1** |
+| cald | texto secundario sobre la página | 4.42:1 | **4.90:1** |
+| cald | texto del botón de acento | 3.60:1 | **5.31:1** |
+
+**Dos de estos venían de antes de que hubiera paletas**: el blanco sobre el azul
+de la casa lleva fallando AA desde siempre, y el ámbar de favorito también.
+
+**Lo que se decidió:**
+- **El acento pasa a tener dos tokens.** `--color-accent` sigue siendo el azul de RoBible y vale para bordes e iconos (3:1, pasa de sobra). Como **fondo bajo texto** no valía, así que ahí va `--color-accent-solid`, el mismo acento oscurecido. Se prefirió esto a oscurecer `--color-accent` a secas, que habría cambiado el color de la marca en toda la aplicación para arreglar un problema que sólo aparece bajo texto. 35 rellenos migrados.
+- **En las paletas oscuras el acento es claro, así que lo que va encima es oscuro.** `--color-on-primary` pasa a ser `--grey-900` en Noapte. Para poder hacerlo hubo que sacarlo antes del sidebar: allí no era texto sobre un botón, era texto sobre chrome oscuro —el propio comentario del archivo lo decía— y ahora usa `--color-on-sidebar`. Ocho usos movidos, dos se quedaron porque ahí el fondo sí era el acento.
+- **`--color-accent-soft` significa "acento sobre chrome oscuro"** y en Sepia estaba puesto un cobre oscuro. Sobre el sidebar marrón daba 1.22:1, es decir, invisible.
+
+Contraste final de los pares principales:
+
+```
+paleta     cuerpo/página  secundario/tarjeta  acento/tarjeta  botón   sidebar
+lumina         6.85            4.97               5.54         5.54    7.49
+noapte        14.16            8.32               8.73         7.58   13.56
+sepia          7.51            5.05               6.70         5.12    8.36
+cald           8.13            5.17               5.04         5.31    8.57
+nocturn       16.55            7.72              11.87         9.80   19.80
+```
+
+### Fase 7.3 — Revisión pantalla por pantalla ✅ (2026-09-07)
+
+Con Playwright ya conectado, recorrido de las cinco paletas en escritorio
+(1440×900) y móvil (390×844): lectura, comparación, índice, menú, selector de
+paletas, modal de autenticación, modo inmersivo y player.
+
+**Lo que se encontró y arregló:**
+- **El deslizador de volumen tenía la pista negra.** No era el tema oscuro ni el navegador headless: **`accent-color` hace que Chromium pinte la parte sin rellenar casi negra**. Comprobado poniendo un `range` sin estilos al lado de otro que sólo llevaba `accent-color`. La pista y el pulgar se dibujan ahora a mano en `global.css`, con el relleno pasado en `--range-fill`.
+- **El botón de subir y el de modo lectura quedaban debajo del player** (z-index 8 y 50 contra 60): se veía asomar media pastilla. Había un apaño previo al mismo problema —`bottom: 3.5rem !important` con la altura a ojo— que además ganaba a cualquier arreglo posterior. Ahora el player mide su altura real con `ResizeObserver` y la publica en `--player-offset`; los otros dos se apartan, también con el panel abierto (101 px cerrado, 228 px abierto).
+- **El botón del pie parecía la media luna que sustituye**: sus tres franjas eran fondo/superficie/acento, y en las paletas claras las dos primeras son el mismo blanco. Pasan a fondo/acento/tinta.
+- **Las muestras de Sepia y Cald se confundían** en el selector: el acento era una línea de 0,16 rem. Ahora es más gruesa y la tarjeta lleva borde, que es lo que las separa cuando fondo y superficie están a un paso.
+- **El breadcrumb se quedaba en 3,74:1** en las tres paletas claras: usaba `color-mix(…, white)` con blanco **literal**, que no se adapta. Cuatro colores de texto más estaban lavados igual.
+- **El botón verde «Citește cu muzică»**: 3,13:1. Mismo caso que el acento, y misma solución — `--color-success-solid`.
+- **El eyebrow del menú** usaba `--color-accent` como texto: 3,02:1 en Lumină.
+
+**Cómo se encontraron los cuatro últimos:** un barrido en el navegador que recorre
+cada elemento con texto en las cinco paletas, resuelve su fondo real subiendo por
+el árbol y calcula el contraste. Es lo que ve cosas que el test de tokens no
+puede: allí se comprueba que el token sea correcto, aquí que el componente use el
+token correcto. Terminó en **cero fallos en las cinco paletas**, con el player y
+el menú abiertos.
+
+Un aviso sobre el método: la primera pasada dio cuatro falsos positivos porque
+`color-mix()` devuelve `color(srgb 0.89 …)` con los canales en 0-1, y el parser
+los estaba dividiendo entre 255. El fallo era de la medición, no de la aplicación.
+
+**Playwright**: configuración global arreglada (`@latest` → `@0.0.80`). `@latest`
+obliga a consultar el registro de npm en cada arranque y eso se comía el margen
+de 60 s del handshake; con la versión fija arranca en 4,3 s.
 
 ### Fuera de alcance
 

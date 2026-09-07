@@ -1,17 +1,27 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    SISTEMA DE DISEÑO
    ───────────────────────────────────────────────────────────────────────────
-   Paleta fría: grises azulados como base, azul como acento, verde reservado
-   para el estado de lectura. Única fuente de verdad para toda la app,
-   incluida la landing.
+   Única fuente de verdad para toda la app, incluida la landing.
 
    Estructura, de abajo arriba:
      1. Escalas crudas  (--grey-*, --blue-*, --green-*) — no usarlas directamente
-     2. Alias semánticos (--color-accent, --color-surface, --color-ink…) — usar estos
-     3. Alias heredados  (--color-blue, --color-white…) — solo por compatibilidad
+     2. Paleta activa   (--color-page, --color-surface, --color-ink…) — usar estas
+     3. Tokens derivados (--wash-*, --color-line…) — se calculan solos, ver abajo
+     4. Alias heredados  (--color-blue, --color-white…) — solo por compatibilidad
 
-   `--color-blue` y `--color-white` sobreviven porque hay ~500 usos repartidos
-   por los componentes. En código nuevo usa los semánticos.
+   ── Cinco paletas, no un interruptor ──────────────────────────────────────
+   `html[data-theme]` vale 'lumina' | 'noapte' | 'sepia' | 'cald' | 'nocturn'.
+   Cada bloque redefine **sólo** los ~18 valores de la capa 2. Ni un componente
+   necesita reglas por paleta: si un componente escribe un color a mano, está
+   roto en las otras cuatro. Es la razón de ser de este archivo.
+
+   ── Por qué los derivados se calculan desde --color-ink ────────────────────
+   Los bordes, las veladuras de hover y los fondos sutiles se mezclan contra la
+   tinta, no contra el negro ni el blanco. Como `--color-ink` cambia con la
+   paleta —oscuro sobre papel, claro sobre noche—, `color-mix()` da el valor
+   correcto en las cinco sin escribir ninguna. Antes esto estaba a mano en dos
+   dialectos: `color-mix(--color-bg-dark 12%)` en claro y `rgb(255 255 255/8%)`
+   en oscuro, repetidos por ~30 sitios. Un token los sustituye a todos.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 :root {
@@ -43,35 +53,33 @@
   --green-500: #28a745;
   --green-600: #1e8035;
 
-  /* ── 2. Alias semánticos (usa estos) ────────────────────────────────────── */
-  --color-page: var(--grey-50); /* fondo de página */
-  --color-surface: #ffffff; /* tarjetas y paneles */
-  --color-surface-sunken: var(--grey-100); /* fondo hundido */
-  --color-ink: var(--grey-600); /* títulos y superficies oscuras */
-  --color-ink-soft: var(--grey-500); /* texto secundario */
-  --color-accent: var(--blue-500);
-  --color-accent-hover: var(--blue-600);
-  --color-accent-soft: var(--blue-300); /* acento sobre fondo oscuro */
-  --color-success: var(--green-500); /* lectura en curso, confirmaciones */
+  /* ── 3. Derivados de la paleta activa ───────────────────────────────────── */
+  /* No se redefinen en ningún bloque de paleta: se recalculan solos porque
+     dependen de --color-ink y de --color-accent, que sí cambian. */
 
-  /* Colores de "marcado" de los iconos de versículo. Cada acción tiene el
-     suyo, pero todos comparten el mismo tratamiento visual (ver .icon-btn
-     en Result.svelte): así se distinguen por color sin parecer botones
-     distintos. El de índice temático lo pone el propio tema, inline. */
-  --color-marked-favorite: #ca8a04; /* ámbar */
-  --color-marked-note: var(--green-500);
+  /* Veladuras: fondos sutiles y estados de hover sobre cualquier superficie. */
+  --wash-subtle: color-mix(in srgb, var(--color-ink) 3%, transparent);
+  --wash-soft: color-mix(in srgb, var(--color-ink) 6%, transparent);
+  --wash-hover: color-mix(in srgb, var(--color-ink) 10%, transparent);
+  --wash-accent: color-mix(in srgb, var(--color-accent) 14%, transparent);
+  --wash-accent-strong: color-mix(in srgb, var(--color-accent) 22%, transparent);
 
-  /* ── 3. Alias heredados (compatibilidad, no usar en código nuevo) ───────── */
-  --color-bg-light: var(--color-page);
-  --color-bg-dark: var(--color-ink);
-  --color-text-dark: #131313;
-  --color-link: #0064c8;
-  --color-link-visited: #0050a0;
-  --color-white: var(--color-surface);
-  --color-on-primary: #ffffff;
-  --color-sidebar: var(--grey-600);
-  --color-blue: var(--color-accent);
-  --color-blue-hover: var(--color-accent-hover);
+  /* Líneas: tres pesos. `--color-line` es el borde normal de tarjetas y paneles. */
+  --color-line-soft: color-mix(in srgb, var(--color-ink) 7%, transparent);
+  --color-line: color-mix(in srgb, var(--color-ink) 14%, transparent);
+  --color-line-strong: color-mix(in srgb, var(--color-ink) 24%, transparent);
+  --color-line-accent: color-mix(in srgb, var(--color-accent) 25%, transparent);
+
+  /* Mensajes: fondo lavado + tinta legible encima, derivados del color base. */
+  --color-success-wash: color-mix(in srgb, var(--color-success) 16%, transparent);
+  --color-danger-wash: color-mix(in srgb, var(--color-danger) 16%, transparent);
+
+  /* ── Cristal (ver sección "SUPERFICIES DE CRISTAL" más abajo) ───────────── */
+  /* Un botón de acción no puede volverse cristal neutro: perdería el acento y
+     dejaría de leerse como botón. Éste conserva el color y sólo lo aligera. */
+  --glass-accent: color-mix(in srgb, var(--color-accent) 82%, transparent);
+  --glass-blur: 18px;
+  --glass-saturate: 1.6;
 
   /* ── Tipografía ── */
   --font-default-size: 16px;
@@ -107,52 +115,328 @@
   --radius-pill: 999px;
 
   /* ── Bordes y sombras ── */
-  --color-line: rgb(63 88 103 / 14%);
-  --color-line-soft: rgb(63 88 103 / 7%);
   --border-blue: solid var(--color-accent);
-  --border-gray: solid rgb(63 88 103 / 24%);
-  --box-shadow-up: 0 0.2rem 0.8rem rgb(71 84 92 / 12%);
-  --box-shadow-down: 0 0.35rem 1rem rgb(71 84 92 / 14%);
-  --box-shadow-lg: 0 0.2rem 0.8rem rgb(71 84 92 / 12%), 0 1.5rem 3.75rem rgb(71 84 92 / 10%);
-  --transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  --border-gray: solid var(--color-line-strong);
+  --box-shadow-up: 0 0.2rem 0.8rem var(--shadow-tint);
+  --box-shadow-down: 0 0.35rem 1rem var(--shadow-tint-strong);
+  --box-shadow-lg: 0 0.2rem 0.8rem var(--shadow-tint), 0 1.5rem 3.75rem var(--shadow-tint);
+
+  /* ── Movimiento ─────────────────────────────────────────────────────────── */
+  /* Tres duraciones y nada más. Lo que dura menos de 120 ms no se percibe como
+     animación y lo que pasa de 300 ms se interpone entre el dedo y la pantalla.
+     El bloque `prefers-reduced-motion` del final las anula todas. */
+  /* Los valores salen de los que ya había repartidos por los componentes (0.15s
+     era el dominante, con 40 usos): la unificación no debía cambiar cómo se
+     siente la aplicación, sólo dejar de escribir el número a mano. */
+  --motion-fast: 150ms;
+  --motion-base: 200ms;
+  --motion-slow: 260ms;
+  /* Curva de salida: arranca rápido y frena. Es la que hace que un panel
+     parezca que "llega" en vez de que "aparece". */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --transition: background-color var(--motion-base) ease, color var(--motion-base) ease,
+    border-color var(--motion-base) ease, box-shadow var(--motion-base) ease;
 
   /* ── Tamaños ── */
   --button-height: 2.5rem;
   --input-height: 3rem;
 }
 
-html[data-theme='dark'] {
+/* ═══════════════════════════════════════════════════════════════════════════
+   2. LAS CINCO PALETAS
+   ───────────────────────────────────────────────────────────────────────────
+   Cada bloque define el mismo juego de valores. Si añades un token aquí,
+   tiene que estar en las cinco o habrá una paleta con un hueco.
+
+   `--shadow-tint` va por paleta y no derivado: sobre papel la sombra es un gris
+   cálido y sobre negro tiene que ser negro puro, o el borde de las tarjetas se
+   ve como un halo sucio.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── LUMINĂ — claro, el de siempre ─────────────────────────────────────────
+   La base histórica de RoBible: grises azulados y azul de acento. */
+:root,
+html[data-theme='lumina'] {
+  color-scheme: light;
+
+  --color-page: var(--grey-50);
+  --color-surface: #ffffff; /* tarjetas y paneles */
+  --color-surface-raised: #ffffff; /* tarjeta sobre tarjeta (listas, modales) */
+  --color-surface-sunken: var(--grey-100); /* fondo hundido */
+  --color-field: #ffffff; /* fondo de input */
+
+  --color-ink: var(--grey-600); /* texto principal */
+  --color-ink-soft: var(--grey-500); /* texto secundario */
+  --color-ink-strong: var(--grey-800); /* títulos y énfasis */
+
+  --color-accent: var(--blue-500);
+  --color-accent-hover: var(--blue-600);
+  --color-accent-ink: var(--blue-600); /* acento como TEXTO sobre --color-surface */
+  /* Relleno de botón: el acento oscurecido lo justo para que el texto de
+     encima llegue a 4.5:1. El acento normal se queda para bordes e iconos. */
+  --color-accent-solid: var(--blue-600);
+  --color-accent-solid-hover: var(--blue-700);
+  --color-accent-soft: var(--blue-300); /* acento sobre chrome oscuro (menú, sidebar) */
+
+  --color-success: var(--green-500); /* lectura en curso, confirmaciones */
+  --color-danger: #dc3545;
+  /* Relleno de botón verde: mismo caso que --color-accent-solid, el verde
+     normal se queda en 3.13:1 bajo texto. */
+  --color-success-solid: #146e2d;
+  --color-danger-ink: #961928; /* rojo legible como texto */
+  --color-success-ink: #146e2d; /* verde legible como texto */
+  /* Lavado del versículo en lectura: ajustado a la luminosidad de esta paleta. */
+  --wash-reading: color-mix(in srgb, var(--color-success) 12%, transparent);
+
+  /* Colores de "marcado" de los iconos de versículo. Cada acción tiene el
+     suyo, pero todos comparten el mismo tratamiento visual (ver .icon-btn
+     en Result.svelte): así se distinguen por color sin parecer botones
+     distintos. El de índice temático lo pone el propio tema, inline. */
+  --color-marked-favorite: #a16207; /* ámbar; más oscuro que #ca8a04, que se quedaba en 2.94:1 sobre blanco */
+  --color-marked-note: var(--green-500);
+
+  --color-link: #0064c8;
+  --color-link-visited: #0050a0;
+  --color-on-primary: #ffffff;
+  --color-sidebar: var(--grey-600);
+  --color-on-sidebar: #ffffff;
+
+  --shadow-tint: rgb(71 84 92 / 12%);
+  --shadow-tint-strong: rgb(71 84 92 / 16%);
+  --color-scrim: rgb(7 24 31 / 48%);
+  --glass-tint: rgb(255 255 255 / 72%);
+  --glass-line: rgb(255 255 255 / 55%);
+}
+
+/* ── NOAPTE — noche azulada, poco deslumbramiento ──────────────────────────
+   Ni negro puro ni blanco puro a propósito: el contraste máximo sobre una
+   pantalla a oscuras cansa la vista y deja estela al hacer scroll. */
+html[data-theme='noapte'] {
   color-scheme: dark;
 
-  /* En oscuro las escalas se invierten: la "tinta" pasa a ser clara y el fondo
-     al extremo oscuro. Los alias semánticos no cambian de nombre, solo apuntan
-     a otro sitio, así que ningún componente necesita reglas propias. */
   --color-page: var(--grey-900);
   --color-surface: #17212b;
+  --color-surface-raised: #1a2733;
   --color-surface-sunken: #121b23;
+  --color-field: #243442;
+
   --color-ink: #d8e6ee;
   --color-ink-soft: var(--grey-300);
+  --color-ink-strong: #ffffff;
+
   --color-accent: var(--blue-400);
   --color-accent-hover: var(--blue-300);
+  --color-accent-ink: var(--blue-300);
+  /* Relleno de botón: el acento oscurecido lo justo para que el texto de
+     encima llegue a 4.5:1. El acento normal se queda para bordes e iconos. */
+  --color-accent-solid: var(--blue-400);
+  --color-accent-solid-hover: var(--blue-300);
   --color-accent-soft: var(--blue-300);
+
   --color-success: var(--green-400);
+  --color-danger: #ff8b95;
+  /* Relleno de botón verde: mismo caso que --color-accent-solid, el verde
+     normal se queda en 3.13:1 bajo texto. */
+  --color-success-solid: #5dde86;
+  --color-danger-ink: #ff8b95; /* rojo legible como texto */
+  --color-success-ink: #7ee79a; /* verde legible como texto */
+  /* Lavado del versículo en lectura: ajustado a la luminosidad de esta paleta. */
+  --wash-reading: color-mix(in srgb, var(--color-success) 18%, transparent);
 
   --color-marked-favorite: #fbbf24; /* ámbar más claro para fondo oscuro */
   --color-marked-note: var(--green-400);
 
-  --color-text-dark: #edf3f7;
   --color-link: #79c8ff;
   --color-link-visited: #b7c5ff;
-  --color-on-primary: #ffffff;
+  --color-on-primary: var(--grey-900); /* el acento es claro: texto oscuro encima */
   --color-sidebar: var(--grey-800);
+  --color-on-sidebar: #ffffff;
 
-  --color-line: rgb(216 230 238 / 14%);
-  --color-line-soft: rgb(216 230 238 / 7%);
-  --border-gray: solid rgb(216 230 238 / 20%);
-  --box-shadow-up: 0 0.2rem 0.8rem rgb(0 0 0 / 32%);
-  --box-shadow-down: 0 0.35rem 1rem rgb(0 0 0 / 38%);
-  --box-shadow-lg: 0 0.2rem 0.8rem rgb(0 0 0 / 32%), 0 1.5rem 3.75rem rgb(0 0 0 / 26%);
+  --shadow-tint: rgb(0 0 0 / 32%);
+  --shadow-tint-strong: rgb(0 0 0 / 40%);
+  --color-scrim: rgb(0 0 0 / 58%);
+  --glass-tint: rgb(23 33 43 / 68%);
+  --glass-line: rgb(255 255 255 / 12%);
 }
+
+/* ── SEPIA — papel cálido, tinta marrón ────────────────────────────────────
+   El acento pasa a teja: un azul sobre papel crema se ve como una mancha fría
+   y rompe la ilusión. El verde de lectura se apaga por lo mismo. */
+html[data-theme='sepia'] {
+  color-scheme: light;
+
+  --color-page: #f4ecd8;
+  --color-surface: #fbf6e9;
+  --color-surface-raised: #fffcf3;
+  --color-surface-sunken: #eadfc4;
+  --color-field: #fffcf3;
+
+  --color-ink: #5b4636;
+  --color-ink-soft: #7d6552;
+  --color-ink-strong: #3b2b1e;
+
+  --color-accent: #a8552b;
+  --color-accent-hover: #8a4322;
+  --color-accent-ink: #8a4322;
+  /* Relleno de botón: el acento oscurecido lo justo para que el texto de
+     encima llegue a 4.5:1. El acento normal se queda para bordes e iconos. */
+  --color-accent-solid: #a8552b;
+  --color-accent-solid-hover: #8a4322;
+  --color-accent-soft: #e0b088; /* claro a propósito: va sobre el sidebar oscuro */
+
+  --color-success: #4a7c3f;
+  --color-danger: #a33327;
+  /* Relleno de botón verde: mismo caso que --color-accent-solid, el verde
+     normal se queda en 3.13:1 bajo texto. */
+  --color-success-solid: #3d6634;
+  --color-danger-ink: #8a2b20; /* rojo legible como texto */
+  --color-success-ink: #3d6634; /* verde legible como texto */
+  /* Lavado del versículo en lectura: ajustado a la luminosidad de esta paleta. */
+  --wash-reading: color-mix(in srgb, var(--color-success) 14%, transparent);
+
+  --color-marked-favorite: #b45309;
+  --color-marked-note: #4a7c3f;
+
+  --color-link: #8a4322;
+  --color-link-visited: #6b3a2c;
+  --color-on-primary: #fffcf3;
+  --color-sidebar: #5b4636;
+  --color-on-sidebar: #fdf8ee;
+
+  --shadow-tint: rgb(91 70 54 / 14%);
+  --shadow-tint-strong: rgb(91 70 54 / 18%);
+  --color-scrim: rgb(59 43 30 / 45%);
+  --glass-tint: rgb(251 246 233 / 74%);
+  --glass-line: rgb(255 255 255 / 50%);
+}
+
+/* ── CALD — crema y cobre, los tonos con los que nació la landing ──────────
+   Sustituye a una paleta monocroma que se probó y se retiró: sobre casi-negro
+   la tinta fuerte y el chrome quedaban a un paso el uno del otro, y además ya
+   había dos paletas oscuras (Noapte y Nocturn).
+
+   Los valores vienen del primer diseño de la landing: crema #F5F0E6, papel
+   #FAF6EE y cobre #B8763E. Se recuperan aquí para que la aplicación pueda
+   verse como la puerta de entrada por la que llega la gente.
+
+   Se diferencia de SEPIA en la temperatura y en el aire: sepia es papel
+   envejecido —fondo y tarjeta igual de tostados—, y ésta es crema con la
+   tarjeta casi blanca, así que las superficies se separan solas. */
+html[data-theme='cald'] {
+  color-scheme: light;
+
+  --color-page: #f5f0e6; /* crema */
+  --color-surface: #faf6ee; /* papel */
+  --color-surface-raised: #ffffff;
+  --color-surface-sunken: #e8e0d0;
+  --color-field: #ffffff;
+
+  /* Tinta cálida: un gris azulado sobre crema se ve como una mancha fría. */
+  --color-ink: #4f463c;
+  --color-ink-soft: #736658;
+  --color-ink-strong: #2e2721;
+
+  --color-accent: #b8763e; /* cobre */
+  --color-accent-hover: #965c2c;
+  --color-accent-ink: #965c2c;
+  /* Relleno de botón: el acento oscurecido lo justo para que el texto de
+     encima llegue a 4.5:1. El acento normal se queda para bordes e iconos. */
+  --color-accent-solid: #965c2c;
+  --color-accent-solid-hover: #7a4a22;
+  --color-accent-soft: #d49b6a;
+
+  /* Verde apagado y rojo terroso: los tonos vivos cantan sobre crema. */
+  --color-success: #4a7c3f;
+  --color-danger: #b3261e;
+  /* Relleno de botón verde: mismo caso que --color-accent-solid, el verde
+     normal se queda en 3.13:1 bajo texto. */
+  --color-success-solid: #3d6634;
+  --color-danger-ink: #8f1e17; /* rojo legible como texto */
+  --color-success-ink: #3d6634; /* verde legible como texto */
+  /* Lavado del versículo en lectura: ajustado a la luminosidad de esta paleta. */
+  --wash-reading: color-mix(in srgb, var(--color-success) 13%, transparent);
+
+  --color-marked-favorite: #b45309;
+  --color-marked-note: #4a7c3f;
+
+  --color-link: #965c2c;
+  --color-link-visited: #7a4a22;
+  --color-on-primary: #fffcf6;
+  --color-sidebar: #4f463c;
+  --color-on-sidebar: #faf6ee;
+
+  --shadow-tint: rgb(79 70 60 / 14%);
+  --shadow-tint-strong: rgb(79 70 60 / 18%);
+  --color-scrim: rgb(46 39 33 / 45%);
+  --glass-tint: rgb(250 246 238 / 74%);
+  --glass-line: rgb(255 255 255 / 55%);
+}
+
+/* ── NOCTURN — negro real para OLED ────────────────────────────────────────
+   El negro puro apaga el píxel en pantallas OLED, así que ahorra batería de
+   verdad. A cambio necesita un acento vivo: sobre #000 un azul apagado se
+   hunde y los botones dejan de leerse como botones. */
+html[data-theme='nocturn'] {
+  color-scheme: dark;
+
+  --color-page: #000000;
+  --color-surface: #0a0a0a;
+  --color-surface-raised: #141414;
+  --color-surface-sunken: #050505;
+  --color-field: #1a1a1a;
+
+  --color-ink: #e4e4e7;
+  --color-ink-soft: #a1a1aa;
+  --color-ink-strong: #fafafa;
+
+  --color-accent: #38bdf8;
+  --color-accent-hover: #7dd3fc;
+  --color-accent-ink: #7dd3fc;
+  /* Relleno de botón: el acento oscurecido lo justo para que el texto de
+     encima llegue a 4.5:1. El acento normal se queda para bordes e iconos. */
+  --color-accent-solid: #38bdf8;
+  --color-accent-solid-hover: #7dd3fc;
+  --color-accent-soft: #7dd3fc;
+
+  --color-success: #4ade80;
+  --color-danger: #f87171;
+  /* Relleno de botón verde: mismo caso que --color-accent-solid, el verde
+     normal se queda en 3.13:1 bajo texto. */
+  --color-success-solid: #4ade80;
+  --color-danger-ink: #f87171; /* rojo legible como texto */
+  --color-success-ink: #4ade80; /* verde legible como texto */
+  /* Lavado del versículo en lectura: ajustado a la luminosidad de esta paleta. */
+  --wash-reading: color-mix(in srgb, var(--color-success) 20%, transparent);
+
+  --color-marked-favorite: #fbbf24;
+  --color-marked-note: #4ade80;
+
+  --color-link: #38bdf8;
+  --color-link-visited: #c4b5fd;
+  --color-on-primary: #000000;
+  --color-sidebar: #0a0a0a;
+  --color-on-sidebar: #ffffff;
+
+  --shadow-tint: rgb(0 0 0 / 60%);
+  --shadow-tint-strong: rgb(0 0 0 / 72%);
+  --color-scrim: rgb(0 0 0 / 70%);
+  --glass-tint: rgb(10 10 10 / 66%);
+  --glass-line: rgb(255 255 255 / 10%);
+}
+
+:root {
+  /* ── 4. Alias heredados (compatibilidad, no usar en código nuevo) ───────── */
+  /* Sobreviven porque hay ~500 usos repartidos por los componentes. Todos
+     apuntan a la paleta activa, así que no hay que tocarlos al añadir una. */
+  --color-bg-light: var(--color-page);
+  --color-bg-dark: var(--color-ink);
+  --color-text-dark: var(--color-ink-strong);
+  --color-white: var(--color-surface);
+  --color-blue: var(--color-accent);
+  --color-blue-hover: var(--color-accent-hover);
+}
+
 
 @font-face {
   font-family: 'Open Sans';
@@ -294,6 +578,86 @@ body.drawer-open {
   overflow: hidden;
 }
 
+/* === DESLIZADORES ========================================================
+   `accent-color` parecía la solución elegante —una línea y el control nativo
+   toma el color de la paleta— y no lo es: Chromium, al fijarlo, pinta la parte
+   sin rellenar de la pista **casi negra**. Sobre fondo claro se ve una franja
+   negra a la derecha del pulgar. Se comprobó comparando un `range` sin estilos
+   (correcto) con otro que sólo lleva `accent-color` (negro).
+
+   Así que la pista y el pulgar se dibujan a mano. Todo sale de los tokens, así
+   que sirve para las cinco paletas.
+
+   El relleno de la izquierda se pasa en `--range-fill` (un porcentaje) desde
+   quien conoce el valor; sin él, la pista sale entera neutra y el pulgar sigue
+   indicando la posición.
+   ======================================================================== */
+input[type='range'] {
+  --range-fill: 0%;
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  height: 1.25rem; /* zona táctil; la pista se dibuja más fina */
+  background: transparent;
+  cursor: pointer;
+}
+
+input[type='range']::-webkit-slider-runnable-track {
+  height: 0.3rem;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(
+    to right,
+    var(--color-accent) 0 var(--range-fill),
+    var(--wash-hover) var(--range-fill) 100%
+  );
+}
+
+input[type='range']::-moz-range-track {
+  height: 0.3rem;
+  border-radius: var(--radius-pill);
+  background: var(--wash-hover);
+}
+
+/* Firefox sí tiene pseudo-elemento para la parte rellenada. */
+input[type='range']::-moz-range-progress {
+  height: 0.3rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+}
+
+input[type='range']::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 0.9rem;
+  height: 0.9rem;
+  margin-top: -0.3rem; /* centra el pulgar sobre una pista de 0.3rem */
+  border: 2px solid var(--color-surface);
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+  box-shadow: var(--box-shadow-up);
+}
+
+input[type='range']::-moz-range-thumb {
+  width: 0.9rem;
+  height: 0.9rem;
+  border: 2px solid var(--color-surface);
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+  box-shadow: var(--box-shadow-up);
+}
+
+input[type='range']:focus-visible {
+  outline: none;
+}
+
+input[type='range']:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 3px var(--wash-accent-strong);
+}
+
+input[type='range']:focus-visible::-moz-range-thumb {
+  box-shadow: 0 0 0 3px var(--wash-accent-strong);
+}
+
 button:disabled,
 select:disabled {
   cursor: not-allowed;
@@ -324,16 +688,12 @@ select:disabled {
    referencia. El verde es el único uso de ese color en la app: identifica "la
    lectura en curso" y no debe emplearse para otra cosa. === */
 .highlight-verse {
-  background: color-mix(in srgb, var(--color-success) 12%, transparent);
+  background: var(--wash-reading);
   border-left: 3px solid var(--color-success);
   padding-left: 0.6rem;
   border-radius: var(--radius-sm);
   transition: background 0.3s ease, border-color 0.3s ease;
   scroll-margin-top: 6rem;
-}
-
-html[data-theme='dark'] .highlight-verse {
-  background: color-mix(in srgb, var(--color-success) 18%, transparent);
 }
 
 img,
@@ -376,6 +736,79 @@ svg {
   padding-left: 1rem;
   font-size: 1.25rem;
   line-height: 1.7;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SUPERFICIES DE CRISTAL
+   ───────────────────────────────────────────────────────────────────────────
+   Sólo para lo que está FIJO en pantalla: navbar, player, menú, modales,
+   botones flotantes. Nunca para versículos ni tarjetas de lista.
+
+   El motivo es de rendimiento, no de gusto: cada capa con `backdrop-filter` se
+   recompone en cada fotograma del scroll. En una barra fija eso ocurre una vez;
+   en un capítulo largo serían 40-80 capas y la lectura —que es lo único que
+   esta aplicación hace todo el rato— pierde fluidez en cualquier Android que
+   no sea de gama alta.
+
+   El fondo opaco va **fuera** del `@supports` a propósito: es la base. Si el
+   navegador no desenfoca, el texto se lee igual sobre el color sólido en vez
+   de sobre el contenido de la página.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.glass {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+}
+
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .glass {
+    background: var(--glass-tint);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    border-color: var(--glass-line);
+  }
+}
+
+/* Filo superior: la línea clara de un píxel que llevan las barras de iOS. Es lo
+   que separa el cristal del fondo cuando ambos tienen luminosidad parecida —sin
+   ella, una barra translúcida sobre contenido claro se deshace en el borde. */
+.glass--edge {
+  box-shadow: inset 0 1px 0 var(--glass-line), var(--box-shadow-up);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOVIMIENTO
+   ───────────────────────────────────────────────────────────────────────────
+   Sólo `transform` y `opacity`: son las dos propiedades que el compositor
+   resuelve sin recalcular el layout. Animar `height`, `top` o `margin` obliga
+   a rehacer la página en cada fotograma y se nota en cuanto hay texto.
+   ═══════════════════════════════════════════════════════════════════════════ */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Para paneles y menús que aparecen: llegan desde abajo y frenan. */
+.animate-rise {
+  animation: rise-in var(--motion-slow) var(--ease-out) both;
+}
+
+.animate-fade {
+  animation: fade-in var(--motion-base) ease both;
 }
 
 @media (max-width: 38rem) {

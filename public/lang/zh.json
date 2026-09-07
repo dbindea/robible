@@ -26,8 +26,6 @@
       "about_title": "在线圣经，阅读方便",
       "about_text": "RoBible 是一个免费的阅读和搜索圣经经文的应用程序。项目在 GitHub 上开放改进。",
       "close_about": "关闭信息",
-      "theme_dark": "开启夜间模式",
-      "theme_light": "开启日间模式",
       "version_app": "应用版本",
       "version_sw": "服务工版本"
     },
@@ -225,6 +223,22 @@
         "go_home": "打开圣经",
         "cta": "打开 RoBible",
         "cta_hint": "阅读圣经，创建属于你的主题。"
+      },
+      "icons": {
+        "cross": "十字架",
+        "heart": "爱心",
+        "bookmark": "书签",
+        "sun": "太阳",
+        "moon": "月亮",
+        "shield": "盾牌",
+        "crown": "冠冕",
+        "dove": "鸽子",
+        "hands": "祷告的手",
+        "flame": "火焰",
+        "water": "水",
+        "home": "家",
+        "light": "光",
+        "peace": "平安"
       }
     },
     "notes": {
@@ -483,6 +497,21 @@
       "reference_unavailable": "该经文无法离线查看。",
       "ready_offline": "讲道已准备就绪，可离线使用。",
       "ready_no_offline": "讲道已就绪，但无法保存为离线内容。请清理设备空间。"
+    },
+    "palette": {
+      "open": "更换配色",
+      "title": "配色方案",
+      "eyebrow": "外观",
+      "lumina": "明亮",
+      "lumina_hint": "明亮均衡，一贯的配色。",
+      "noapte": "夜间",
+      "noapte_hint": "深蓝底色，不用纯白，护眼。",
+      "sepia": "泛黄纸",
+      "sepia_hint": "暖色纸张，褐色字迹。",
+      "nocturn": "纯黑",
+      "nocturn_hint": "纯黑底色，OLED 屏幕更省电。",
+      "cald": "暖色",
+      "cald_hint": "米色与铜色，RoBible 最初的配色。"
     }
   },
   "auth": {

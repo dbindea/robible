@@ -1,4 +1,5 @@
 <script>
+  import Icon from '../../components/Icon.svelte';
   import { onDestroy } from 'svelte';
   import { _ } from '../../services/i18n.service';
   import { appMenuOpen, closeAppMenu } from '../../store/appMenuStore';
@@ -106,45 +107,20 @@
           >
             <span class="app-menu__icon" aria-hidden="true">
               {#if item.icon === 'home'}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
-                  <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-                </svg>
+                <Icon name="book-open" />
               {:else if item.icon === 'compare'}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="3" y="3" width="7" height="18" rx="1"/>
-                  <rect x="14" y="3" width="7" height="18" rx="1"/>
-                  <path d="M10 12h4M10 8l-2 4 2 4M14 8l2 4-2 4"/>
-                </svg>
+                <Icon name="compare" />
               {:else if item.icon === 'bookmark'}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/>
-                </svg>
+                <Icon name="bookmark" />
               {:else if item.icon === 'star'}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                </svg>
+                <Icon name="star" />
               {:else if item.icon === 'notes'}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                  <polyline points="14 2 14 8 20 8"/>
-                  <line x1="16" y1="13" x2="8" y2="13"/>
-                  <line x1="16" y1="17" x2="8" y2="17"/>
-                  <polyline points="10 9 9 9 8 9"/>
-                </svg>
+                <Icon name="file-text" />
               {:else if item.icon === 'sermons'}
                 <!-- Atril: la imagen del púlpito, que es donde acaba una predicación -->
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M4 4h16l-2 4H6z"/>
-                  <path d="M12 8v9"/>
-                  <path d="M8 21h8"/>
-                  <path d="M9 17h6l1 4H8z"/>
-                </svg>
+                <Icon name="lectern" />
               {:else if item.icon === 'user'}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                  <circle cx="12" cy="7" r="4"/>
-                </svg>
+                <Icon name="user" />
               {/if}
             </span>
             <span class="app-menu__text">
@@ -169,16 +145,12 @@
           aria-label={$isAuthenticated ? $_('auth.signed_in') : $_('app.app_menu.items.auth.label')}
         >
           <span class="app-menu__icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              {#if $isAuthenticated}
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                <circle cx="12" cy="7" r="4"/>
-              {:else}
-                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
-                <polyline points="10 17 15 12 10 7"/>
-                <line x1="15" y1="12" x2="3" y2="12"/>
-              {/if}
-            </svg>
+            <!-- Con sesión, la silueta; sin ella, la flecha de entrar. -->
+            {#if $isAuthenticated}
+              <Icon name="user" />
+            {:else}
+              <Icon name="sign-in" />
+            {/if}
             {#if $isAuthenticated}
               <span class="online-dot online-dot--absolute" aria-hidden="true"></span>
             {/if}
@@ -214,7 +186,7 @@
     position: fixed;
     inset: 0;
     z-index: 40;
-    background-color: rgb(7 24 31 / 48%);
+    background-color: var(--color-scrim);
     backdrop-filter: blur(2px);
   }
 
@@ -225,10 +197,10 @@
     display: flex;
     flex-direction: column;
     width: min(22rem, calc(100vw - 1.5rem));
-    background-color: var(--color-white);
-    box-shadow: 1rem 0 2rem rgb(24 47 61 / 24%);
+    background-color: var(--color-surface-raised);
+    box-shadow: 1rem 0 2rem var(--shadow-tint-strong);
     transform: translateX(-104%);
-    transition: transform 0.24s ease;
+    transition: transform var(--motion-slow) var(--ease-out);
     will-change: transform;
   }
 
@@ -242,7 +214,7 @@
     justify-content: space-between;
     gap: 1rem;
     padding: 1.25rem;
-    border-bottom: 1px solid rgb(63 88 103 / 14%);
+    border-bottom: 1px solid var(--color-line);
     flex-shrink: 0;
 
     p,
@@ -251,14 +223,14 @@
     }
 
     p {
-      color: var(--color-blue);
+      color: var(--color-accent-ink);
       font-size: 0.82rem;
       font-weight: 700;
       text-transform: uppercase;
     }
 
     h2 {
-      color: var(--color-bg-dark);
+      color: var(--color-ink-strong);
       font-size: 1.4rem;
       line-height: 1.2;
     }
@@ -269,10 +241,10 @@
     place-items: center;
     width: 2.5rem;
     height: 2.5rem;
-    border: 1px solid rgb(63 88 103 / 18%);
+    border: 1px solid var(--color-line-strong);
     border-radius: 0.35rem;
-    background: var(--color-white);
-    color: var(--color-bg-dark);
+    background: var(--color-field);
+    color: var(--color-ink);
     transition: var(--transition);
     flex-shrink: 0;
 
@@ -313,7 +285,7 @@
     border: 1px solid transparent;
     border-radius: 0.5rem;
     background: transparent;
-    color: var(--color-bg-dark);
+    color: var(--color-ink-strong);
     text-align: left;
     cursor: pointer;
     transition: var(--transition);
@@ -327,8 +299,8 @@
       height: 2.25rem;
       flex-shrink: 0;
       border-radius: 0.5rem;
-      background: color-mix(in srgb, var(--color-blue) 12%, var(--color-white));
-      color: var(--color-blue);
+      background: var(--wash-accent);
+      color: var(--color-accent-ink);
 
       svg {
         width: 1.15rem;
@@ -354,7 +326,7 @@
 
     .app-menu__hint {
       font-size: 0.78rem;
-      color: color-mix(in srgb, var(--color-bg-dark) 60%, transparent);
+      color: var(--color-ink-soft);
       line-height: 1.2;
     }
 
@@ -363,8 +335,8 @@
       font-weight: 700;
       padding: 0.15rem 0.5rem;
       border-radius: 999px;
-      background: color-mix(in srgb, var(--color-blue) 12%, var(--color-white));
-      color: var(--color-blue);
+      background: var(--wash-accent);
+      color: var(--color-accent-ink);
       text-transform: uppercase;
       letter-spacing: 0.04em;
       flex-shrink: 0;
@@ -373,7 +345,7 @@
     &:hover:not(:disabled),
     &:focus-visible:not(:disabled) {
       border-color: var(--color-blue);
-      background: color-mix(in srgb, var(--color-blue) 8%, var(--color-white));
+      background: var(--wash-accent);
     }
 
     &--disabled {
@@ -384,13 +356,13 @@
 
   .app-menu__footer {
     padding: 1rem 1.25rem;
-    border-top: 1px solid rgb(63 88 103 / 14%);
+    border-top: 1px solid var(--color-line);
     flex-shrink: 0;
 
     p {
       margin: 0;
       font-size: 0.78rem;
-      color: color-mix(in srgb, var(--color-bg-dark) 60%, transparent);
+      color: var(--color-ink-soft);
     }
   }
 
@@ -406,53 +378,21 @@
     }
   }
 
-  // Dark mode
-  :global(html[data-theme='dark']) .app-menu {
-    background: #1a2733;
-    color: #e5edf3;
-  }
 
-  :global(html[data-theme='dark']) .app-menu__header {
-    border-bottom-color: rgb(255 255 255 / 8%);
 
-    h2 { color: #ffffff; }
-  }
 
-  :global(html[data-theme='dark']) .app-menu__close {
-    background: #243442;
-    border-color: rgb(255 255 255 / 12%);
-    color: #ffffff;
-  }
 
-  :global(html[data-theme='dark']) .app-menu__item {
-    color: #ffffff;
-
-    .app-menu__icon {
-      background: color-mix(in srgb, var(--color-accent) 18%, transparent);
-      color: var(--color-accent-soft);
+  // ── Cristal ───────────────────────────────────────────────────────────
+  // El fondo opaco de la regla de arriba es la base y se queda: si el
+  // navegador no desenfoca, el texto se lee sobre color sólido en vez de
+  // sobre el contenido de la página. La transparencia sólo entra donde hay
+  // desenfoque real.
+  @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+    .app-menu {
+      background: var(--glass-tint);
+      -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+      backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+      border-color: var(--glass-line);
     }
-
-    // .online-dot (clase global) ya no necesita overrides en dark mode
-
-    .app-menu__hint {
-      color: rgb(255 255 255 / 50%);
-    }
-
-    .app-menu__soon {
-      background: color-mix(in srgb, var(--color-accent) 18%, transparent);
-      color: var(--color-accent-soft);
-    }
-
-    &:hover:not(:disabled),
-    &:focus-visible:not(:disabled) {
-      background: color-mix(in srgb, var(--color-accent) 14%, transparent);
-      border-color: var(--color-accent-soft);
-    }
-  }
-
-  :global(html[data-theme='dark']) .app-menu__footer {
-    border-top-color: rgb(255 255 255 / 8%);
-
-    p { color: rgb(255 255 255 / 50%); }
   }
 </style>

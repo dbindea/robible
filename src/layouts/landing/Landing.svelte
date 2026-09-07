@@ -1,4 +1,5 @@
 <script>
+  import Icon from '../../components/Icon.svelte';
   import { onMount } from 'svelte';
   import { _ } from '../../services/i18n.service';
   import { searchReferences } from '../../services/referenceSearch.service';
@@ -286,9 +287,7 @@
         <div class="hero__cta">
           <a class="btn btn--primary" href="/biblia">
             {$_('landing.hero.cta_primary')}
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M5 12h14M13 5l7 7-7 7"/>
-            </svg>
+            <Icon name="arrow-right" size="18" />
           </a>
           <a class="btn btn--ghost" href="#demo">{$_('landing.hero.cta_secondary')}</a>
         </div>
@@ -603,9 +602,7 @@
       <p class="final-cta__text">{$_('landing.final.text')}</p>
       <a class="btn btn--primary btn--large" href="/biblia">
         {$_('landing.final.cta')}
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M5 12h14M13 5l7 7-7 7"/>
-        </svg>
+        <Icon name="arrow-right" size="18" />
       </a>
     </div>
   </section>
@@ -684,7 +681,7 @@
     border-radius: 0.2rem;
     font-family: var(--font-family-base);
     font-size: 0.875rem;
-    transition: top 0.15s ease;
+    transition: top var(--motion-fast) ease;
   }
   .skip-link:focus {
     top: 0.5rem;
@@ -702,7 +699,7 @@
     letter-spacing: 0.005em;
     text-decoration: none;
     border-radius: 0.2rem;
-    transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+    transition: background var(--motion-base) ease, color var(--motion-base) ease, transform var(--motion-fast) ease, box-shadow var(--motion-base) ease;
     cursor: pointer;
     border: 1px solid transparent;
   }
@@ -727,7 +724,7 @@
   .btn--ghost:hover,
   .btn--ghost:focus-visible {
     border-color: var(--color-ink);
-    background: rgba(26, 35, 50, 0.04);
+    background: var(--wash-subtle);
   }
   .btn--large {
     padding: 1rem 1.75rem;
@@ -921,7 +918,7 @@
     font-weight: 600;
     letter-spacing: 0.04em;
     cursor: pointer;
-    transition: border-color 0.15s, color 0.15s, background 0.15s;
+    transition: border-color var(--motion-fast), color var(--motion-fast), background var(--motion-fast);
   }
   .hero__lang-btn:hover {
     border-color: var(--color-ink);
@@ -942,7 +939,7 @@
     height: 3rem;
     background: var(--color-line);
     display: block;
-    transition: opacity 0.3s;
+    transition: opacity var(--motion-slow);
   }
   .hero__scroll-hint::before {
     content: '';
@@ -1008,7 +1005,7 @@
     background: var(--color-surface);
     border: 1px solid var(--color-line);
     border-radius: 0.2rem;
-    transition: border-color 0.15s, background 0.15s;
+    transition: border-color var(--motion-fast), background var(--motion-fast);
   }
   .demo__input:focus {
     outline: none;
@@ -1025,7 +1022,7 @@
     font-size: 0.85rem;
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.15s;
+    transition: background var(--motion-fast);
   }
   .demo__btn:hover:not(:disabled) {
     background: var(--color-accent);
@@ -1037,7 +1034,7 @@
   .demo__error {
     font-family: var(--font-family-base);
     font-size: 0.85rem;
-    color: #b3261e;
+    color: var(--color-danger-ink);
     margin: 0.75rem 0 0;
   }
   .demo__result,
@@ -1052,10 +1049,10 @@
     justify-content: space-between;
     gap: 0.75rem;
     padding: 0.75rem 0.9rem;
-    background: color-mix(in srgb, #28a745 8%, var(--color-surface));
-    border: 1px solid color-mix(in srgb, #28a745 25%, transparent);
+    background: color-mix(in srgb, var(--color-success) 8%, var(--color-surface));
+    border: 1px solid color-mix(in srgb, var(--color-success) 25%, transparent);
     border-radius: 0.2rem;
-    border-left: 3px solid #28a745;
+    border-left: 3px solid var(--color-success);
   }
   .demo__result-ref {
     font-family: var(--font-family-base);
@@ -1072,11 +1069,11 @@
     font-size: 0.75rem;
     font-weight: 600;
     cursor: pointer;
-    transition: border-color 0.15s, background 0.15s;
+    transition: border-color var(--motion-fast), background var(--motion-fast);
   }
   .demo__result-link:hover {
     border-color: var(--color-ink);
-    background: rgba(26, 35, 50, 0.04);
+    background: var(--wash-subtle);
   }
   .demo__list {
     display: flex;
@@ -1094,7 +1091,7 @@
     border-radius: 0.2rem;
     font-family: var(--font-family-base);
     cursor: pointer;
-    transition: background 0.15s, border-color 0.15s;
+    transition: background var(--motion-fast), border-color var(--motion-fast);
     text-align: left;
   }
   .demo__list-item:hover {
@@ -1301,7 +1298,7 @@
     padding: 1.5rem;
     border-radius: 0.2rem;
     background: var(--color-surface);
-    transition: border-color 0.2s, transform 0.2s;
+    transition: border-color var(--motion-base), transform var(--motion-base);
   }
   .audience__card:hover {
     border-color: var(--color-accent);
@@ -1335,7 +1332,7 @@
     width: 0;
     height: 1px;
     background: currentColor;
-    transition: width 0.25s cubic-bezier(0.6, 0, 0.2, 1);
+    transition: width var(--motion-slow) cubic-bezier(0.6, 0, 0.2, 1);
   }
   .audience__card-link:hover::after {
     width: calc(100% - 1em);
@@ -1380,14 +1377,14 @@
     color: var(--color-accent) !important;
   }
   .compare__yes {
-    color: #28a745;
+    color: var(--color-success);
     font-weight: 600;
   }
   .compare__no {
-    color: #b3261e;
+    color: var(--color-danger-ink);
   }
   .compare__mixed {
-    color: #b8763e;
+    color: var(--color-marked-favorite);
     font-style: italic;
   }
 
@@ -1499,13 +1496,13 @@
     margin: 0 0 2rem;
   }
   .final-cta .btn--primary {
-    background: var(--color-accent);
-    color: #ffffff;
+    background: var(--color-accent-solid);
+    color: var(--color-on-primary);
     box-shadow: var(--box-shadow-lg);
   }
   .final-cta .btn--primary:hover {
-    background: var(--color-accent-hover);
-    color: #ffffff;
+    background: var(--color-accent-solid-hover);
+    color: var(--color-on-primary);
   }
 
   /* ── FOOTER ──────────────────────────────────────────────── */
@@ -1562,7 +1559,7 @@
     color: var(--color-ink-soft);
     text-decoration: none;
     position: relative;
-    transition: color 0.15s;
+    transition: color var(--motion-fast);
   }
   .footer__nav a::after {
     content: '';
@@ -1572,7 +1569,7 @@
     width: 0;
     height: 1px;
     background: var(--color-accent);
-    transition: width 0.25s cubic-bezier(0.6, 0, 0.2, 1);
+    transition: width var(--motion-slow) cubic-bezier(0.6, 0, 0.2, 1);
   }
   .footer__nav a:hover {
     color: var(--color-accent);
@@ -1618,8 +1615,8 @@
   .features__item[data-reveal],
   .audience__card[data-reveal] {
     &:nth-child(2) { transition-delay: 0.08s; }
-    &:nth-child(3) { transition-delay: 0.16s; }
-    &:nth-child(4) { transition-delay: 0.24s; }
+    &:nth-child(3) { transition-delay: var(--motion-fast); }
+    &:nth-child(4) { transition-delay: var(--motion-slow); }
     &:nth-child(5) { transition-delay: 0.32s; }
     &:nth-child(6) { transition-delay: 0.4s; }
   }
@@ -1639,13 +1636,9 @@
     }
   }
 
-  /* ── Modo oscuro ──────────────────────────────────────────
-     Ya no hay paleta oscura propia: los `--landing-*` son alias de los tokens
-     globales, que cambian solos con html[data-theme='dark']. Antes esto forzaba
-     un azul marino (#1A2332) que no pegaba con el marrón cálido del resto. */
-  :global(html[data-theme='dark']) .demo__input {
-    background: var(--color-surface-sunken);
-    color: var(--color-ink);
-    border-color: var(--color-line);
-  }
+  /* ── Paletas ──────────────────────────────────────────────
+     La landing no tiene paleta propia: los `--landing-*` son alias de los
+     tokens globales, así que sigue a la que el usuario tenga puesta —las cinco—
+     sin una sola regla aquí. Antes forzaba un azul marino (#1A2332) que no
+     pegaba con el marrón cálido del resto. */
 </style>

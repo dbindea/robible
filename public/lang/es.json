@@ -26,8 +26,6 @@
       "about_title": "Biblia online, fácil de leer",
       "about_text": "RoBible es una app gratuita para leer y buscar en la Biblia en línea.",
       "close_about": "Cerrar información",
-      "theme_dark": "Activar modo noche",
-      "theme_light": "Activar modo día",
       "version_app": "Versión de la app",
       "version_sw": "Versión del service worker"
     },
@@ -225,6 +223,22 @@
         "go_home": "Abrir la Biblia",
         "cta": "Abrir RoBible",
         "cta_hint": "Lee la Biblia y crea tus propios temas."
+      },
+      "icons": {
+        "cross": "Cruz",
+        "heart": "Corazón",
+        "bookmark": "Marcador",
+        "sun": "Sol",
+        "moon": "Luna",
+        "shield": "Escudo",
+        "crown": "Corona",
+        "dove": "Paloma",
+        "hands": "Manos en oración",
+        "flame": "Llama",
+        "water": "Agua",
+        "home": "Casa",
+        "light": "Luz",
+        "peace": "Paz"
       }
     },
     "notes": {
@@ -483,6 +497,21 @@
       "reference_unavailable": "El texto no está disponible sin conexión.",
       "ready_offline": "La predicación está lista y disponible sin conexión.",
       "ready_no_offline": "La predicación está lista, pero no se ha podido guardar para usarse sin conexión. Libera espacio en el dispositivo."
+    },
+    "palette": {
+      "open": "Cambiar paleta",
+      "title": "Paleta de colores",
+      "eyebrow": "Apariencia",
+      "lumina": "Luz",
+      "lumina_hint": "Claro y equilibrado. El de siempre.",
+      "noapte": "Noche",
+      "noapte_hint": "Azul profundo, sin blanco puro. Descansa la vista.",
+      "sepia": "Sepia",
+      "sepia_hint": "Papel cálido, tinta marrón.",
+      "nocturn": "Nocturno",
+      "nocturn_hint": "Negro puro. Ahorra batería en pantallas OLED.",
+      "cald": "Cálido",
+      "cald_hint": "Crema y cobre. Los colores con los que nació RoBible."
     }
   },
   "auth": {

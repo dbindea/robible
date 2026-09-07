@@ -26,8 +26,6 @@
       "about_title": "Online Bible, easy to read",
       "about_text": "RoBible is a free app for reading and searching Bible verses. The project is open for improvements on GitHub.",
       "close_about": "Close information",
-      "theme_dark": "Activate night mode",
-      "theme_light": "Activate day mode",
       "version_app": "App version",
       "version_sw": "Service worker version"
     },
@@ -225,6 +223,22 @@
         "go_home": "Open the Bible",
         "cta": "Open RoBible",
         "cta_hint": "Read the Bible and build your own topics."
+      },
+      "icons": {
+        "cross": "Cross",
+        "heart": "Heart",
+        "bookmark": "Bookmark",
+        "sun": "Sun",
+        "moon": "Moon",
+        "shield": "Shield",
+        "crown": "Crown",
+        "dove": "Dove",
+        "hands": "Praying hands",
+        "flame": "Flame",
+        "water": "Water",
+        "home": "Home",
+        "light": "Light",
+        "peace": "Peace"
       }
     },
     "notes": {
@@ -483,6 +497,21 @@
       "reference_unavailable": "This text is not available offline.",
       "ready_offline": "The sermon is ready and available offline.",
       "ready_no_offline": "The sermon is ready, but it could not be saved for offline use. Free up space on your device."
+    },
+    "palette": {
+      "open": "Change palette",
+      "title": "Colour palette",
+      "eyebrow": "Appearance",
+      "lumina": "Light",
+      "lumina_hint": "Bright and balanced. The original one.",
+      "noapte": "Night",
+      "noapte_hint": "Deep blue, no pure white. Easy on the eyes.",
+      "sepia": "Sepia",
+      "sepia_hint": "Warm paper, brown ink.",
+      "nocturn": "Nocturne",
+      "nocturn_hint": "True black. Saves battery on OLED screens.",
+      "cald": "Warm",
+      "cald_hint": "Cream and copper. The colours RoBible was born with."
     }
   },
   "auth": {

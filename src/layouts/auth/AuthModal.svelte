@@ -422,7 +422,7 @@
     justify-content: center;
     padding: 1rem;
     min-height: 100dvh;
-    background: rgb(0 0 0 / 50%);
+    background: var(--color-scrim);
     backdrop-filter: blur(3px);
     overflow-y: auto;
   }
@@ -435,11 +435,11 @@
     max-height: calc(100dvh - 2rem);
     overflow-y: auto;
     padding: 1.5rem 1.4rem;
-    background: var(--color-white);
-    border: 1px solid color-mix(in srgb, var(--color-bg-dark) 10%, transparent);
+    background: var(--color-surface-raised);
+    border: 1px solid var(--color-line);
     border-radius: 0.6rem;
     box-shadow: var(--box-shadow-down);
-    color: var(--color-bg-dark);
+    color: var(--color-ink);
   }
 
   .auth-modal__close {
@@ -450,7 +450,7 @@
     place-items: center;
     width: 2rem;
     height: 2rem;
-    border: 1px solid color-mix(in srgb, var(--color-bg-dark) 18%, transparent);
+    border: 1px solid var(--color-line-strong);
     border-radius: 0.25rem;
     background: transparent;
     cursor: pointer;
@@ -473,7 +473,7 @@
 
     &:hover, &:focus-visible {
       border-color: var(--color-blue);
-      background: color-mix(in srgb, var(--color-blue) 10%, var(--color-white));
+      background: var(--wash-accent);
     }
   }
 
@@ -495,7 +495,7 @@
   .auth-modal__lead {
     margin: 0;
     font-size: 0.85rem;
-    color: color-mix(in srgb, var(--color-bg-dark) 65%, transparent);
+    color: var(--color-ink-soft);
   }
 
   .auth-modal__meta {
@@ -503,16 +503,16 @@
     gap: 0.4rem;
     margin: 0;
     padding: 0.5rem 0.65rem;
-    border: 1px solid color-mix(in srgb, var(--color-bg-dark) 10%, transparent);
+    border: 1px solid var(--color-line);
     border-radius: 0.3rem;
-    background: color-mix(in srgb, var(--color-bg-dark) 4%, var(--color-white));
+    background: var(--wash-subtle);
     list-style: none;
 
     div { display: grid; gap: 0.1rem; }
     dt {
       font-size: 0.7rem;
       font-weight: 600;
-      color: color-mix(in srgb, var(--color-bg-dark) 60%, transparent);
+      color: var(--color-ink-soft);
       text-transform: uppercase;
       letter-spacing: 0.04em;
     }
@@ -524,13 +524,13 @@
     font-size: 0.78rem;
     font-weight: 700;
     text-transform: uppercase;
-    color: color-mix(in srgb, var(--color-bg-dark) 65%, transparent);
+    color: var(--color-ink-soft);
     letter-spacing: 0.04em;
   }
   .auth-modal__question-text {
     margin: 0 0 0.25rem;
     padding: 0.5rem 0.65rem;
-    background: color-mix(in srgb, var(--color-blue) 10%, var(--color-white));
+    background: var(--wash-accent);
     border-radius: 0.3rem;
     font-weight: 600;
   }
@@ -623,10 +623,10 @@
     input {
       min-height: 2.5rem;
       padding: 0.45rem 0.65rem;
-      border: 1px solid color-mix(in srgb, var(--color-bg-dark) 18%, transparent);
+      border: 1px solid var(--color-line-strong);
       border-radius: 0.3rem;
-      background: var(--color-white);
-      color: var(--color-bg-dark);
+      background: var(--color-field);
+      color: var(--color-ink);
       font: inherit;
       font-size: 0.95rem;
       transition: var(--transition);
@@ -641,14 +641,14 @@
 
   .auth-field__hint {
     font-size: 0.75rem;
-    color: color-mix(in srgb, var(--color-bg-dark) 60%, transparent);
+    color: var(--color-ink-soft);
   }
 
   .auth-modal__primary {
     min-height: 2.6rem;
     border: 0;
     border-radius: 0.3rem;
-    background: var(--color-blue);
+    background: var(--color-accent-solid);
     color: var(--color-on-primary);
     font-weight: 700;
     font-size: 0.95rem;
@@ -702,70 +702,27 @@
     font-weight: 600;
 
     &--ok {
-      background: rgb(40 167 69 / 14%);
-      color: rgb(20 110 45);
+      background: var(--color-success-wash);
+      color: var(--color-success-ink);
     }
     &--err {
-      background: rgb(220 53 69 / 14%);
-      color: rgb(150 25 40);
+      background: var(--color-danger-wash);
+      color: var(--color-danger-ink);
     }
   }
 
-  // Dark mode
-  :global(html[data-theme='dark']) .auth-modal__panel {
-    background: #1a2733;
-    color: #e5edf3;
-    border-color: rgb(255 255 255 / 8%);
-  }
-  :global(html[data-theme='dark']) .auth-modal__close {
-    border-color: rgb(255 255 255 / 18%);
-    color: #ffffff;
-  }
-  :global(html[data-theme='dark']) .auth-modal__meta {
-    background: rgb(255 255 255 / 4%);
-    border-color: rgb(255 255 255 / 8%);
-    dt { color: rgb(255 255 255 / 55%); }
-    dd { color: #ffffff; }
-  }
-  :global(html[data-theme='dark']) .auth-modal__question-text {
-    background: color-mix(in srgb, var(--color-accent) 16%, transparent);
-    color: #ffffff;
-  }
-  :global(html[data-theme='dark']) .auth-modal__lead {
-    color: rgb(255 255 255 / 60%);
-  }
-  :global(html[data-theme='dark']) .auth-usertype {
-    legend { color: #ffffff; }
 
-    .auth-usertype__name { color: #ffffff; }
-
-    .auth-usertype__option {
-      border-color: rgb(255 255 255 / 18%);
+  // ── Cristal ───────────────────────────────────────────────────────────
+  // El fondo opaco de la regla de arriba es la base y se queda: si el
+  // navegador no desenfoca, el texto se lee sobre color sólido en vez de
+  // sobre el contenido de la página. La transparencia sólo entra donde hay
+  // desenfoque real.
+  @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+    .auth-modal__panel {
+      background: var(--glass-tint);
+      -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+      backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+      border-color: var(--glass-line);
     }
-
-    .auth-usertype__option--active {
-      border-color: var(--color-accent);
-      background: color-mix(in srgb, var(--color-accent) 16%, transparent);
-    }
-  }
-
-  :global(html[data-theme='dark']) .auth-field {
-    > span { color: #ffffff; }
-    input {
-      background: #243442;
-      border-color: rgb(255 255 255 / 12%);
-      color: #ffffff;
-    }
-  }
-  :global(html[data-theme='dark']) .auth-field__hint {
-    color: rgb(255 255 255 / 50%);
-  }
-  :global(html[data-theme='dark']) .auth-modal__message--ok {
-    background: rgb(40 167 69 / 18%);
-    color: #7ee79a;
-  }
-  :global(html[data-theme='dark']) .auth-modal__message--err {
-    background: rgb(220 53 69 / 18%);
-    color: #ff8b95;
   }
 </style>

@@ -83,3 +83,31 @@ siendo navegables en la aplicación y aparecen en el sitemap de su capítulo.
 `public/sw.js` precachea solo `vdc` y `rvl`. Las otras dos se cachean la primera
 vez que se abren, no en la instalación: precachear cuatro Biblias dejaría la
 instalación de la PWA en unos 17 MB para leer una sola.
+
+---
+
+## Iconos
+
+Los iconos de la interfaz son **Phosphor Icons**, licencia MIT
+(© 2023 Phosphor Icons — https://phosphoricons.com).
+
+No hay dependencia en tiempo de ejecución: los trazos están copiados al árbol,
+en `src/components/Icon.svelte`, por `scripts/build-icons.mjs`. Es una decisión
+deliberada y consistente con el resto del proyecto (sin librerías, música
+procedural, tests sin framework): un icono que no cambia no necesita un paquete
+que actualizar.
+
+**Para añadir un icono:**
+
+```bash
+mkdir -p .tmp-icons && cd .tmp-icons
+npm pack @phosphor-icons/core && tar -xzf phosphor-icons-core-*.tgz
+cd .. && node scripts/build-icons.mjs   # tras añadir el nombre a ICONOS
+rm -rf .tmp-icons
+```
+
+Los catorce iconos del índice temático (`cross`, `heart`, `bookmark`, `sun`,
+`moon`, `shield`, `crown`, `dove`, `hands`, `flame`, `water`, `home`, `light`,
+`peace`) están listados en `src/config/topic-icons.js`. **Sus claves están
+guardadas en la columna `icon` de la tabla `topics` en D1**: se pueden añadir,
+pero no renombrar ni quitar, o los temas existentes se quedan sin icono.

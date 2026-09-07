@@ -1,4 +1,5 @@
 <script>
+  import Icon from './Icon.svelte';
   import { onDestroy } from 'svelte';
   import { AMBIENCES, musicService } from '../services/music.service.js';
   import { _ } from '../services/i18n.service';
@@ -48,9 +49,43 @@
     { value: 'none', labelKey: 'app.tts.ambient_none' },
   ];
 
+  // ── Sitio para los botones flotantes ──────────────────────────────────────
+  //
+  // El player es una barra fija abajo con z-index 60, y ahí abajo también viven
+  // el botón de subir y el de salir del modo lectura (z-index 8 y 50). Mientras
+  // suena la música quedaban tapados: se veía asomar media pastilla por detrás.
+  //
+  // En vez de subirles el z-index —que sólo cambiaría quién tapa a quién— el
+  // player publica cuánto ocupa y ellos se apartan. Es una variable global
+  // porque los tres viven en componentes distintos.
+  //
+  // Se mide en lugar de escribir un número: la barra cambia de alto al abrir
+  // el panel, y con la altura mínima puesta a mano los botones seguían medio
+  // tapados. `ResizeObserver` lo recalcula sin que haya que acordarse.
+  const publicarAltura = (px) => {
+    if (typeof document === 'undefined') return;
+    document.documentElement.style.setProperty('--player-offset', px ? `${Math.round(px)}px` : '0px');
+  };
+
+  let observador;
+  $: if (barRef) {
+    observador?.disconnect();
+    observador = new ResizeObserver(() => {
+      // La guarda no sobra: al parar la música el componente se desmonta y
+      // `barRef` queda a null, pero el observador todavía dispara una vez más.
+      if (!barRef) return;
+      // Lo que ocupa de verdad: su alto más lo que la separa del borde.
+      publicarAltura(window.innerHeight - barRef.getBoundingClientRect().top);
+    });
+    observador.observe(barRef);
+  }
+  $: if (!isActive) publicarAltura(0);
+
   onDestroy(() => {
     clearTimers();
     musicService.stop();
+    observador?.disconnect();
+    publicarAltura(0);
   });
 
   function togglePanel() {
@@ -218,15 +253,15 @@
     <div class="tts-bar__controls">
       {#if isPlaying}
         <button type="button" class="tts-bar__btn tts-bar__btn--pause" on:click={pausePlayback} title={$_('app.tts.pause')} aria-label={$_('app.tts.pause')}>
-          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+          <Icon name="pause" weight="fill" />
         </button>
       {:else}
         <button type="button" class="tts-bar__btn tts-bar__btn--play" on:click={resumePlayback} title={$_('app.tts.resume')} aria-label={$_('app.tts.resume')}>
-          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <Icon name="play" weight="fill" />
         </button>
       {/if}
       <button type="button" class="tts-bar__btn tts-bar__btn--stop" on:click={stopPlayback} title={$_('app.tts.stop')} aria-label={$_('app.tts.stop')}>
-        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
+        <Icon name="stop" weight="fill" />
       </button>
     </div>
 
@@ -245,9 +280,11 @@
 
     <!-- Right: expand indicator -->
     <button type="button" class="tts-bar__expand" on:click={togglePanel} aria-label={isOpen ? $_('app.tts.minimize') : $_('app.tts.open_player')} aria-expanded={isOpen}>
-      <svg class:tts-bar__chevron--up={!isOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
-        <polyline points="18 15 12 9 6 15"/>
-      </svg>
+      <!-- La clase va en el envoltorio: `class:` es una directiva de elemento y
+           no se puede poner sobre un componente. -->
+      <span class="tts-bar__chevron" class:tts-bar__chevron--up={!isOpen}>
+        <Icon name="chevron-up" />
+      </span>
     </button>
   </div>
 
@@ -285,7 +322,16 @@
       {#if $ttsAmbient !== 'none'}
         <div class="tts-panel__row">
           <span class="tts-panel__label">{$_('app.tts.volume_music')}</span>
-          <input type="range" class="tts-range" min="0" max="1" step="0.05" value={$musicVolume} on:input={handleMusicVolumeChange} />
+          <input
+            type="range"
+            class="tts-range"
+            min="0"
+            max="1"
+            step="0.05"
+            value={$musicVolume}
+            on:input={handleMusicVolumeChange}
+            style="--range-fill: {Math.round($musicVolume * 100)}%"
+          />
         </div>
       {/if}
     </div>
@@ -303,11 +349,7 @@
   aria-label={$_('app.tts.start')}
   title={$_('app.tts.start_hint')}
 >
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-    <path d="M9 18V5l12-2v13"/>
-    <circle cx="6" cy="18" r="3"/>
-    <circle cx="18" cy="16" r="3"/>
-  </svg>
+  <Icon name="music" />
   <span>{$_('app.tts.start')}</span>
 </button>
 {/if}
@@ -334,25 +376,34 @@
     z-index: 60;
     margin-inline: auto;
     max-width: 42rem;
-    border: 1px solid color-mix(in srgb, var(--color-ink) 12%, transparent);
+    border: 1px solid var(--color-line);
     border-radius: var(--radius-xl);
     // Base opaca: es lo que se ve si el navegador no soporta backdrop-filter.
     // Sin ella, el texto quedaría sobre el contenido de la página, ilegible.
     background: var(--color-surface);
     box-shadow:
-      0 0.5rem 1.5rem rgb(0 0 0 / 12%),
-      0 0.125rem 0.375rem rgb(0 0 0 / 8%);
+      0 0.5rem 1.5rem var(--shadow-tint),
+      0 0.125rem 0.375rem var(--shadow-tint);
     overflow: hidden;
-    transition: box-shadow 0.2s ease, transform 0.2s ease;
+    transition: box-shadow var(--motion-base) ease, transform var(--motion-base) ease;
   }
 
   // La transparencia sólo donde hay desenfoque real. Sin el desenfoque, un
   // fondo translúcido deja leer el texto de la página a través del player.
   @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
     .tts-bar {
-      background: color-mix(in srgb, var(--color-surface) 82%, transparent);
-      backdrop-filter: blur(18px) saturate(160%);
-      -webkit-backdrop-filter: blur(18px) saturate(160%);
+      // Mismos tokens que el resto de superficies de cristal: así el player no
+      // se queda con su propio desenfoque cuando se ajuste el del sistema.
+      background: var(--glass-tint);
+      backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+      -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+      // Filo superior de un píxel: sin él, sobre contenido claro el borde
+      // superior del player se deshace contra la página.
+      border-color: var(--glass-line);
+      box-shadow:
+        inset 0 1px 0 var(--glass-line),
+        0 0.5rem 1.5rem var(--shadow-tint),
+        0 0.125rem 0.375rem var(--shadow-tint);
     }
   }
 
@@ -374,9 +425,9 @@
     width: 2.5rem;
     height: 0.25rem;
     border-radius: 1rem;
-    background: var(--color-text-secondary, var(--color-ink-soft));
+    background: var(--color-ink-soft);
     opacity: 0.6;
-    transition: opacity 0.15s;
+    transition: opacity var(--motion-fast);
 
     .tts-bar__handle:hover & { opacity: 1; }
   }
@@ -404,25 +455,25 @@
     border-radius: 50%;
     border: none;
     cursor: pointer;
-    transition: transform 0.15s;
+    transition: transform var(--motion-fast);
 
     svg { width: 0.9rem; height: 0.9rem; }
 
     &:active { transform: scale(0.9); }
 
     &--play {
-      background: var(--color-accent);
-      color: #fff;
+      background: var(--color-accent-solid);
+      color: var(--color-on-primary);
     }
     &--pause {
-      background: var(--color-accent);
-      color: #fff;
+      background: var(--color-accent-solid);
+      color: var(--color-on-primary);
     }
     &--stop {
-      background: var(--color-page);
-      color: var(--color-text, var(--color-ink-soft));
-      @media (prefers-color-scheme: dark) { background: var(--color-ink); color: var(--color-ink-soft); }
-      &:hover { background: var(--color-line); @media (prefers-color-scheme: dark) { background: var(--color-ink-soft); } }
+      background: var(--wash-soft);
+      color: var(--color-ink);
+
+      &:hover { background: var(--wash-hover); }
     }
   }
 
@@ -440,13 +491,13 @@
     border-radius: 0.3rem;
     min-width: 0;
 
-    &:hover { background: var(--color-page); @media (prefers-color-scheme: dark) { background: var(--color-ink); } }
+    &:hover { background: var(--wash-soft); }
   }
 
   .tts-bar__ref {
     font-size: 0.78rem;
     font-weight: 600;
-    color: var(--color-link, var(--color-accent));
+    color: var(--color-accent-ink);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -455,17 +506,16 @@
 
   .tts-bar__progress {
     height: 0.2rem;
-    background: var(--color-page);
+    background: var(--wash-hover);
     border-radius: 1rem;
     overflow: hidden;
-    @media (prefers-color-scheme: dark) { background: var(--color-ink); }
   }
 
   .tts-bar__progress-fill {
     height: 100%;
     background: var(--color-accent);
     border-radius: 1rem;
-    transition: width 0.3s linear;
+    transition: width var(--motion-slow) linear;
   }
 
   // ── Expand chevron ─────────────────────────────────────────────────────────
@@ -478,29 +528,33 @@
     border: none;
     cursor: pointer;
     border-radius: 0.3rem;
-    color: var(--color-text-secondary, var(--color-ink-soft));
+    color: var(--color-ink-soft);
     flex-shrink: 0;
 
-    svg {
-      width: 1rem;
-      height: 1rem;
-      transition: transform 0.2s;
+    .tts-bar__chevron {
+      display: grid;
+      place-items: center;
+      // El icono es ahora un componente, así que el giro va en el envoltorio.
+      transition: transform var(--motion-base) var(--ease-out);
+
+      :global(svg) {
+        width: 1rem;
+        height: 1rem;
+      }
     }
 
     .tts-bar__chevron--up {
       transform: rotate(180deg);
     }
 
-    &:hover { background: var(--color-page); @media (prefers-color-scheme: dark) { background: var(--color-ink); } }
+    &:hover { background: var(--wash-soft); }
   }
 
   // ── Expanded panel ─────────────────────────────────────────────────────────
   .tts-panel {
     border-top: 1px solid var(--color-line);
     padding: 0.75rem 0.875rem 1rem;
-    animation: panel-slide-up 0.2s ease-out;
-
-    @media (prefers-color-scheme: dark) { border-color: var(--border-color-dark, var(--color-ink)); }
+    animation: panel-slide-up var(--motion-base) var(--ease-out);
   }
 
   @keyframes panel-slide-up {
@@ -520,7 +574,7 @@
   .tts-panel__label {
     font-size: 0.7rem;
     font-weight: 600;
-    color: var(--color-text-secondary, var(--color-ink-soft));
+    color: var(--color-ink-soft);
     text-transform: uppercase;
     letter-spacing: 0.04em;
     flex-shrink: 0;
@@ -538,43 +592,64 @@
     padding: 0.3rem 0.2rem;
     border: 1px solid var(--color-line);
     border-radius: 0.3rem;
-    background: var(--color-page);
-    color: var(--color-text-secondary, var(--color-ink-soft));
+    background: var(--wash-soft);
+    color: var(--color-ink);
     font-size: 0.72rem;
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.15s, border-color 0.15s;
+    transition: background var(--motion-fast), border-color var(--motion-fast);
 
-    @media (prefers-color-scheme: dark) { background: var(--color-ink); border-color: var(--color-ink); color: var(--color-ink-soft); }
-
-    &:hover { background: var(--color-line); @media (prefers-color-scheme: dark) { background: var(--color-ink); } }
+    &:hover { background: var(--wash-hover); }
 
     &--active {
-      background: var(--color-accent);
-      border-color: var(--color-accent);
-      color: #fff;
+      background: var(--color-accent-solid);
+      border-color: var(--color-accent-solid);
+      color: var(--color-on-primary);
     }
   }
 
   .tts-select {
     flex: 1;
-    padding: 0.3rem 0.5rem;
-    border: 1px solid var(--color-line);
-    border-radius: 0.3rem;
-    background: var(--color-page);
-    color: var(--color-text, var(--color-ink));
+    min-width: 0;
+    padding: 0.35rem 1.9rem 0.35rem 0.55rem;
+    border: 1px solid var(--color-line-strong);
+    border-radius: var(--radius-sm);
+    background-color: var(--color-field);
+    color: var(--color-ink);
     font-size: 0.78rem;
+    font-weight: 600;
     cursor: pointer;
 
-    @media (prefers-color-scheme: dark) { background: var(--color-ink); border-color: var(--color-ink); color: var(--color-line); }
-    &:focus { outline: 2px solid var(--color-accent); }
+    // La flecha, dibujada aparte: con `appearance: none` desaparece la nativa.
+    appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, currentcolor 50%),
+      linear-gradient(135deg, currentcolor 50%, transparent 50%);
+    background-position: right 0.85rem center, right 0.6rem center;
+    background-size: 0.3rem 0.3rem;
+    background-repeat: no-repeat;
+
+    &:hover { border-color: var(--color-accent); }
+
+    &:focus-visible {
+      outline: none;
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 3px var(--wash-accent);
+    }
+
+    // La lista desplegada la pinta el sistema operativo, no el navegador: sin
+    // esto hereda su tema y puede salir texto claro sobre fondo claro.
+    option {
+      background: var(--color-surface);
+      color: var(--color-ink);
+    }
   }
 
+  // La pista y el pulgar los pinta `global.css` para las cinco paletas; aquí
+  // sólo se le dice cuánto lleva relleno. Ver la nota de allí sobre por qué no
+  // se usa `accent-color`.
   .tts-range {
     flex: 1;
-    accent-color: var(--color-accent);
-    cursor: pointer;
-    height: 0.3rem;
+    min-width: 0;
   }
 
   // ── START BUTTONS (idle state) ─────────────────────────────────────────────
@@ -583,31 +658,31 @@
     align-items: center;
     gap: 0.4rem;
     padding: 0.5rem 0.9rem 0.5rem 0.65rem;
-    background: var(--color-accent);
-    color: #fff;
+    background: var(--color-accent-solid);
+    color: var(--color-on-primary);
     border: none;
     border-radius: 2rem;
     cursor: pointer;
     font-size: 0.8rem;
     font-weight: 600;
-    box-shadow: 0 4px 16px rgb(45 150 205 / 35%);
-    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 16px color-mix(in srgb, var(--color-accent) 35%, transparent);
+    transition: transform var(--motion-base), box-shadow var(--motion-base);
 
     svg { width: 1rem; height: 1rem; }
 
     &:hover {
       transform: scale(1.05);
-      box-shadow: 0 6px 20px rgb(45 150 205 / 45%);
+      box-shadow: 0 6px 20px color-mix(in srgb, var(--color-accent) 45%, transparent);
     }
     &:active { transform: scale(0.96); }
   }
 
   .tts-start-btn--music {
-    background: #28a745;
-    box-shadow: 0 4px 16px rgb(40 167 69 / 35%);
+    background: var(--color-success-solid);
+    box-shadow: 0 4px 16px color-mix(in srgb, var(--color-success) 35%, transparent);
 
     &:hover {
-      box-shadow: 0 6px 20px rgb(40 167 69 / 45%);
+      box-shadow: 0 6px 20px color-mix(in srgb, var(--color-success) 45%, transparent);
     }
   }
 
@@ -620,14 +695,14 @@
     z-index: 60;
     padding: 0.75rem 1.5rem 0.75rem 1.2rem;
     font-size: 0.9rem;
-    box-shadow: 0 6px 24px rgb(40 167 69 / 40%);
+    box-shadow: 0 6px 24px color-mix(in srgb, var(--color-success) 40%, transparent);
     border-radius: 2rem;
 
     svg { width: 1.2rem; height: 1.2rem; }
 
     &:hover {
       transform: translateX(-50%) scale(1.05);
-      box-shadow: 0 8px 32px rgb(40 167 69 / 50%);
+      box-shadow: 0 8px 32px color-mix(in srgb, var(--color-success) 50%, transparent);
     }
     &:active { transform: translateX(-50%) scale(0.96); }
 

@@ -1,5 +1,6 @@
 <script>
   import { onMount, onDestroy, tick } from 'svelte';
+  import Icon from '../../components/Icon.svelte';
   import { _ } from '../../services/i18n.service';
   import {
     selectedBibleVersion,
@@ -317,9 +318,7 @@
         title={$_('app.compare.exit_compare')}
         aria-label={$_('app.compare.exit_compare')}
       >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M18 6L6 18M6 6l12 12"/>
-        </svg>
+        <Icon name="close" />
         <span>{$_('app.compare.exit_compare')}</span>
       </button>
     </div>
@@ -379,9 +378,7 @@
             aria-expanded={isVersionMenuOpen}
           >
             <span class="compare-version-btn__icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M17 3l4 4-4 4M21 7H8M7 21l-4-4 4-4M3 17h13"/>
-              </svg>
+              <Icon name="swap" />
             </span>
             <span class="compare-version-btn__label">{otherBibleName}</span>
             <span class="compare-version-btn__chevron" aria-hidden="true"></span>
@@ -435,10 +432,7 @@
     <!-- Empty state -->
     <div class="compare-empty">
       <div class="compare-empty__icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="3" width="7" height="18" rx="1"/>
-          <rect x="14" y="3" width="7" height="18" rx="1"/>
-        </svg>
+        <Icon name="compare" />
       </div>
       <h2>{$_('app.compare.title')}</h2>
       <p>{$_('app.compare.subtitle')}</p>
@@ -483,10 +477,7 @@
                     aria-label={copyVerseLabel}
                     on:click={() => copyVerse(v1, `${selectedBookName} ${selectedChapterLabel}:${i + 1}`)}
                   >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                      <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
-                    </svg>
+                    <Icon name="copy" />
                   </button>
                 {/if}
               {/if}
@@ -507,10 +498,7 @@
                     aria-label={copyVerseLabel}
                     on:click={() => copyVerse(v2, `${compareBookName} ${selectedChapterLabel}:${i + 1}`)}
                   >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                      <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
-                    </svg>
+                    <Icon name="copy" />
                   </button>
                 {/if}
               {/if}
@@ -545,10 +533,7 @@
                       aria-label={copyVerseLabel}
                       on:click={() => copyVerse(v1, `${selectedBookName} ${selectedChapterLabel}:${i + 1}`)}
                     >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                        <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
-                      </svg>
+                      <Icon name="copy" />
                     </button>
                   {/if}
                 {/if}
@@ -582,10 +567,7 @@
                       aria-label={copyVerseLabel}
                       on:click={() => copyVerse(v2, `${compareBookName} ${selectedChapterLabel}:${i + 1}`)}
                     >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                        <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
-                      </svg>
+                      <Icon name="copy" />
                     </button>
                   {/if}
                 {/if}
@@ -644,7 +626,7 @@
     position: sticky;
     top: 0;
     z-index: 10;
-    box-shadow: 0 2px 12px rgb(0 0 0 / 10%);
+    box-shadow: 0 2px 12px var(--shadow-tint);
 
     &__inner {
       max-width: 96rem;
@@ -702,8 +684,8 @@
     padding: 0.4rem 0.75rem;
     border: 1px solid color-mix(in srgb, var(--color-accent) 42%, transparent);
     border-radius: 999px;
-    background: color-mix(in srgb, var(--color-blue) 11%, var(--color-white));
-    color: var(--color-bg-dark);
+    background: var(--wash-accent);
+    color: var(--color-ink-strong);
     font-size: 0.78rem;
     font-weight: 700;
     cursor: pointer;
@@ -758,9 +740,9 @@
     width: max(14rem, 100%);
     max-width: calc(100vw - 2rem);
     padding: 0.35rem;
-    border: 1px solid rgb(63 88 103 / 18%);
+    border: 1px solid var(--color-line-strong);
     border-radius: 0.35rem;
-    background: var(--color-white);
+    background: var(--color-surface-raised);
     box-shadow: var(--box-shadow-down);
   }
 
@@ -789,7 +771,7 @@
 
     &--selected {
       border-color: var(--color-blue);
-      background: var(--color-blue);
+      background: var(--color-accent-solid);
       color: var(--color-on-primary);
       font-weight: 700;
     }
@@ -812,8 +794,8 @@
     padding: 0.4rem 0.75rem;
     border: 1px solid var(--color-blue);
     border-radius: 999px;
-    background: var(--color-blue);
-    color: var(--color-white);
+    background: var(--color-accent-solid);
+    color: var(--color-on-primary);
     font-size: 0.78rem;
     font-weight: 700;
     cursor: pointer;
@@ -847,7 +829,7 @@
     padding: 0.4rem 0.85rem;
     border: 1px solid color-mix(in srgb, var(--color-accent) 42%, transparent);
     border-radius: 0.3rem;
-    background: var(--color-white);
+    background: var(--wash-accent);
     cursor: pointer;
     transition: var(--transition);
     min-width: 12rem;
@@ -878,7 +860,7 @@
       line-height: 1.25;
 
       &--placeholder {
-        color: color-mix(in srgb, var(--color-bg-dark) 55%, transparent);
+        color: var(--color-ink-soft);
         font-weight: 400;
       }
     }
@@ -901,8 +883,8 @@
     padding: 0.2rem 0.35rem;
     border: 1px solid color-mix(in srgb, var(--color-accent) 32%, transparent);
     border-radius: 0.22rem;
-    background: var(--color-white);
-    color: var(--color-bg-dark);
+    background: var(--wash-accent);
+    color: var(--color-ink-strong);
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
@@ -917,7 +899,7 @@
 
     &--active {
       border-color: var(--color-blue-hover);
-      background: var(--color-blue);
+      background: var(--color-accent-solid);
       color: var(--color-on-primary);
       box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 18%, transparent);
     }
@@ -935,8 +917,8 @@
     padding: 0.4rem 0.75rem;
     border: 1px solid var(--color-blue);
     border-radius: 999px;
-    background: var(--color-white);
-    color: var(--color-bg-dark);
+    background: var(--wash-accent);
+    color: var(--color-ink-strong);
     font-size: 0.78rem;
     font-weight: 700;
     cursor: pointer;
@@ -945,8 +927,8 @@
 
     &:hover,
     &:focus-visible {
-      background: var(--color-blue);
-      color: var(--color-white);
+      background: var(--color-accent-solid);
+      color: var(--color-on-primary);
       box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 25%, transparent);
     }
 
@@ -1013,7 +995,7 @@
       padding: 0.75rem 1rem 0.5rem;
       background: var(--color-bg-light);
       border-bottom: 1px solid color-mix(in srgb, var(--color-accent) 20%, transparent);
-      box-shadow: 0 2px 6px rgb(0 0 0 / 8%);
+      box-shadow: 0 2px 6px var(--shadow-tint);
     }
 
     &__name {
@@ -1072,7 +1054,7 @@
     p {
       font-size: 1rem;
       margin: 0;
-      color: color-mix(in srgb, var(--color-bg-dark) 62%, transparent);
+      color: var(--color-ink-soft);
       max-width: 30rem;
     }
 
@@ -1130,7 +1112,7 @@
   .compare-body {
     display: flex;
     flex-direction: column;
-    transition: transform 0.15s ease, opacity 0.15s ease;
+    transition: transform var(--motion-fast) ease, opacity var(--motion-fast) ease;
   }
 
   .compare-row {
@@ -1139,7 +1121,7 @@
     gap: 0;
     min-height: 2.8rem;
     align-items: stretch;
-    transition: background-color 0.15s ease;
+    transition: background-color var(--motion-fast) ease;
 
     &--alt {
       background: color-mix(in srgb, var(--color-blue) 5%, transparent);
@@ -1231,7 +1213,7 @@
   .compare-footer-count {
     text-align: center;
     font-size: 0.8rem;
-    color: color-mix(in srgb, var(--color-bg-dark) 50%, transparent);
+    color: var(--color-ink-soft);
     margin: 1.5rem 0 0;
     font-style: italic;
   }
@@ -1246,7 +1228,7 @@
     padding: 0.75rem 1rem;
     border-left: 0.3rem solid var(--color-blue);
     border-radius: 0.3rem;
-    background: var(--color-white);
+    background: var(--color-surface-raised);
     box-shadow: var(--box-shadow-down);
     color: var(--color-bg-dark);
     font-weight: 600;
@@ -1296,7 +1278,10 @@
   // === FLOATING CHAPTER NAV (desktop) ===
   .chapter-nav {
     position: fixed;
-    bottom: 2rem;
+    // A media altura y no abajo: pegados al pie se solapaban con el footer,
+    // que es fijo, y el botón quedaba debajo sin poder pulsarse.
+    top: 50%;
+    transform: translateY(-50%);
     z-index: 20;
     display: flex;
     align-items: center;
@@ -1304,8 +1289,8 @@
     padding: 0.5rem 0.85rem;
     border: 1px solid var(--color-blue);
     border-radius: 999px;
-    background: var(--color-white);
-    color: var(--color-bg-dark);
+    background: var(--color-surface-raised);
+    color: var(--color-ink-strong);
     font-size: 0.78rem;
     font-weight: 700;
     cursor: pointer;
@@ -1314,8 +1299,8 @@
 
     &:hover,
     &:focus-visible {
-      background: var(--color-blue);
-      color: var(--color-white);
+      background: var(--color-accent-solid);
+      color: var(--color-on-primary);
       box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 25%, transparent);
     }
 
@@ -1426,186 +1411,23 @@
   }
 
   // === DARK MODE ===
-  :global(html[data-theme='dark']) {
-    .compare-header {
-      background: var(--color-page);
-      border-bottom-color: var(--color-blue);
-    }
-
-    .compare-book-btn {
-      background: rgb(255 255 255 / 10%);
-      border-color: rgb(255 255 255 / 25%);
-
-      &:hover,
-      &:focus-visible {
-        border-color: var(--color-blue);
-        background: color-mix(in srgb, var(--color-accent) 18%, transparent);
-      }
-
-      &__label { color: var(--color-blue); }
-      &__book { color: #ffffff; }
-      &__book--placeholder { color: rgb(255 255 255 / 50%); }
-    }
-
-    .compare-chapter-btn {
-      background: rgb(255 255 255 / 10%);
-      border-color: rgb(255 255 255 / 25%);
-      color: #ffffff;
-
-      &:hover,
-      &:focus-visible {
-        border-color: var(--color-blue);
-        background: color-mix(in srgb, var(--color-accent) 18%, transparent);
-      }
-    }
-
-    .compare-nav-btn {
-      background: rgb(255 255 255 / 10%);
-      color: #ffffff;
-
-      &:hover,
-      &:focus-visible {
-        background: var(--color-blue);
-        color: var(--color-white);
-      }
-    }
-
-    .compare-version-btn {
-      background: rgb(255 255 255 / 8%);
-      color: #ffffff;
-      border-color: rgb(255 255 255 / 30%);
-
-      &:hover,
-      &:focus-visible {
-        background: color-mix(in srgb, var(--color-accent) 18%, transparent);
-        border-color: var(--color-blue);
-      }
-    }
-
-    .compare-version-menu {
-      background: var(--color-surface);
-      border-color: rgb(255 255 255 / 15%);
-    }
-
-    .compare-version-option {
-      color: #ffffff;
-
-      &:hover,
-      &:focus-visible {
-        background: color-mix(in srgb, var(--color-accent) 18%, transparent);
-        border-color: var(--color-blue);
-      }
-
-      &--selected {
-        background: var(--color-blue);
-        color: var(--color-white);
-      }
-    }
-
-    .compare-exit-btn {
-      background: var(--color-blue);
-      color: var(--color-white);
-      border-color: var(--color-blue);
-
-      &:hover,
-      &:focus-visible {
-        background: var(--color-blue-hover);
-      }
-    }
-
-    .compare-container {
-      background: var(--color-page);
-    }
-
-    .compare-empty {
-      color: #ffffff;
-
-      h2 { color: #ffffff; }
-      p { color: rgb(255 255 255 / 62%); }
-      &__hint { color: rgb(255 255 255 / 45%); }
-      &__icon { color: var(--color-blue); opacity: 0.6; }
-    }
-
-    .compare-columns-header {
-      border-bottom-color: var(--color-blue);
-    }
-
-    .compare-col-header {
-      &__ref { color: #ffffff; }
-    }
-
-    .compare-col-divider {
-      background: color-mix(in srgb, var(--color-accent) 30%, transparent);
-    }
-
-    .compare-row--alt {
-      background: color-mix(in srgb, var(--color-accent) 8%, transparent);
-    }
-
-    .compare-row:hover {
-      background: color-mix(in srgb, var(--color-accent) 15%, transparent);
-    }
-
-    .compare-row-divider {
-      background: color-mix(in srgb, var(--color-accent) 25%, transparent);
-    }
-
-    .compare-verse {
-      &__text { color: #ffffff; }
-      &__num { color: var(--color-accent-soft); }
-
-      &__copy {
-        background: color-mix(in srgb, var(--color-accent) 15%, transparent);
-        color: var(--color-accent-soft);
-      }
-    }
-
-    .compare-pane {
-      &__header {
-        background: var(--color-page);
-        border-bottom-color: color-mix(in srgb, var(--color-accent) 25%, transparent);
-      }
-
-      &__name { color: var(--color-blue); }
-      &__ref { color: #ffffff; }
-    }
-
-    .compare-pane--top {
-      border-bottom-color: var(--color-blue);
-    }
-
-    .compare-footer-count {
-      color: rgb(255 255 255 / 50%);
-    }
-
-    .toast {
-      background: var(--color-surface);
-      color: #ffffff;
-      border-left-color: var(--color-blue);
-    }
-
+  // ── Cristal ───────────────────────────────────────────────────────────
+  // El fondo opaco de la regla de arriba es la base y se queda: si el
+  // navegador no desenfoca, el texto se lee sobre color sólido en vez de
+  // sobre el contenido de la página. La transparencia sólo entra donde hay
+  // desenfoque real.
+  @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
     .chapter-nav {
-      background: rgb(255 255 255 / 10%);
-      color: #ffffff;
-      border-color: rgb(255 255 255 / 30%);
-
-      &:hover,
-      &:focus-visible {
-        background: var(--color-blue);
-        color: var(--color-white);
-      }
+      background: var(--glass-tint);
+      -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+      backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+      border-color: var(--glass-line);
     }
-
-    .swipe-indicator {
-      background: color-mix(in srgb, var(--color-accent) 20%, transparent);
-
-      .swipe-arrow {
-        border-color: var(--color-accent-soft);
-      }
-    }
-
-    .swipe-blocked {
-      color: color-mix(in srgb, var(--color-accent) 40%, transparent);
+    .toast {
+      background: var(--glass-tint);
+      -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+      backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+      border-color: var(--glass-line);
     }
   }
 </style>

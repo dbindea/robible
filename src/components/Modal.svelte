@@ -1,4 +1,5 @@
 <script>
+  import Icon from './Icon.svelte';
   /**
    * Modal reutilizable de la app.
    *
@@ -90,9 +91,7 @@
       on:click|stopPropagation
     >
       <button type="button" class="modal__close" aria-label={$_('auth.close')} on:click={close}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-          <path d="M18 6L6 18M6 6l12 12"/>
-        </svg>
+        <Icon name="close" />
       </button>
 
       {#if eyebrow}
@@ -125,10 +124,10 @@
     justify-content: center;
     padding: 1rem;
     min-height: 100dvh;
-    background: rgb(0 0 0 / 50%);
+    background: var(--color-scrim);
     backdrop-filter: blur(3px);
     overflow-y: auto;
-    animation: modal-fade 0.16s ease-out;
+    animation: modal-fade var(--motion-fast) var(--ease-out);
   }
 
   .modal__panel {
@@ -230,7 +229,7 @@
       border-radius: var(--radius-xl) var(--radius-xl) 0 0;
       border-bottom: none;
       padding: 1.5rem 1.1rem calc(1.1rem + env(safe-area-inset-bottom, 0px));
-      animation: modal-sheet 0.2s ease-out;
+      animation: modal-sheet var(--motion-base) var(--ease-out);
     }
 
     // Va después de .modal__panel a propósito: misma especificidad, gana la
@@ -259,6 +258,19 @@
     .modal,
     .modal__panel {
       animation: none;
+    }
+  }
+  // ── Cristal ───────────────────────────────────────────────────────────
+  // El fondo opaco de la regla de arriba es la base y se queda: si el
+  // navegador no desenfoca, el texto se lee sobre color sólido en vez de
+  // sobre el contenido de la página. La transparencia sólo entra donde hay
+  // desenfoque real.
+  @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+    .modal__panel {
+      background: var(--glass-tint);
+      -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+      backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+      border-color: var(--glass-line);
     }
   }
 </style>

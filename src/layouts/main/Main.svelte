@@ -1,4 +1,5 @@
 <script>
+  import Icon from '../../components/Icon.svelte';
   import { filter, immersiveMode, toggleImmersiveMode } from '../../store/stores';
   import { getFilterResult } from '../../services/filter.service';
   import { _ } from '../../services/i18n.service';
@@ -175,9 +176,7 @@
     title={$_('app.result.immersive.enter')}
     on:click={toggleImmersiveMode}
   >
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
-    </svg>
+    <Icon name="expand" />
   </button>
 {:else}
   <!-- Exit immersive mode button (appears when in immersive mode) -->
@@ -188,9 +187,7 @@
     title={$_('app.result.immersive.exit')}
     on:click={toggleImmersiveMode}
   >
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
-    </svg>
+    <Icon name="collapse" />
   </button>
 {/if}
 
@@ -215,6 +212,11 @@
 
   .sidebar {
     background-color: var(--color-sidebar);
+    // El sidebar es chrome oscuro y fija su fondo, pero no fijaba el color del
+    // texto: todo lo que no llevaba color propio heredaba la tinta del body,
+    // que es oscura. Los dos títulos de sección ("¿Cómo se hace la búsqueda?",
+    // "¿Dónde se hace la búsqueda?") salían casi negros sobre casi negro.
+    color: var(--color-on-sidebar);
     min-width: 0;
   }
 
@@ -251,7 +253,7 @@
     justify-content: center;
     width: 2.75rem;
     height: 2.75rem;
-    border: 1px solid rgb(45 150 205 / 34%);
+    border: 1px solid color-mix(in srgb, var(--color-accent) 34%, transparent);
     border-radius: 0.5rem;
     background: var(--color-white);
     color: var(--color-bg-dark);
@@ -268,7 +270,7 @@
     &:focus-visible {
       border-color: var(--color-blue);
       background: color-mix(in srgb, var(--color-blue) 13%, var(--color-white));
-      box-shadow: 0 0 0 3px rgb(45 150 205 / 14%);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 14%, transparent);
     }
 
     &:focus-visible {
@@ -280,24 +282,28 @@
   // Enter immersive: bottom-left, junto al exit (estilo outline)
   // Antes estaba en top-right pero se solapaba con el botón de cerrar
   // el AppMenu (que también vive en la zona superior derecha).
+  // `--player-offset` lo publica TtsPlayer: mientras suena la música su barra
+  // ocupa la parte de abajo y estos botones se quedaban detrás.
   .immersive-toggle {
-    bottom: 1rem;
+    bottom: calc(1rem + var(--player-offset, 0px));
     left: 1rem;
+    transition: bottom var(--motion-base) var(--ease-out);
   }
 
   // Exit immersive: bottom-left, siempre visible, alto contraste
   // (un pelín más arriba que el toggle para que se distingan si coincidieran
   // en el mismo punto, y un poco más pequeño).
   .immersive-exit {
-    bottom: 1rem;
+    bottom: calc(1rem + var(--player-offset, 0px));
     left: 1rem;
     top: auto;
+    transition: bottom var(--motion-base) var(--ease-out);
     width: 2.5rem;
     height: 2.5rem;
-    background: var(--color-blue);
-    color: var(--color-white);
+    background: var(--color-accent-solid);
+    color: var(--color-on-primary);
     border-color: var(--color-blue);
-    box-shadow: var(--box-shadow-down), 0 0 0 3px rgb(45 150 205 / 25%);
+    box-shadow: var(--box-shadow-down), 0 0 0 3px color-mix(in srgb, var(--color-accent) 25%, transparent);
 
     svg {
       width: 1.2rem;
@@ -308,14 +314,21 @@
     &:focus-visible {
       background: var(--color-blue-hover);
       border-color: var(--color-blue-hover);
-      box-shadow: var(--box-shadow-down), 0 0 0 3px rgb(45 150 205 / 35%);
+      box-shadow: var(--box-shadow-down), 0 0 0 3px color-mix(in srgb, var(--color-accent) 35%, transparent);
     }
   }
 
-  // Dark mode: exit button stays teal/blue for visibility
-  :global(html[data-theme='dark']) .immersive-exit {
-    background: var(--color-blue);
-    color: var(--color-white);
-    border-color: var(--color-blue);
+  // ── Cristal ───────────────────────────────────────────────────────────
+  // El fondo opaco de la regla de arriba es la base y se queda: si el
+  // navegador no desenfoca, el texto se lee sobre color sólido en vez de
+  // sobre el contenido de la página. La transparencia sólo entra donde hay
+  // desenfoque real.
+  @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+    .immersive-exit {
+      background: var(--glass-accent);
+      -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+      backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+      border-color: var(--glass-line);
+    }
   }
 </style>

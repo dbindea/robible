@@ -26,8 +26,6 @@
       "about_title": "Biblie online, ușor de citit",
       "about_text": "RoBible este o aplicație gratuită pentru citirea și căutarea versetelor Bibliei. Proiectul este deschis pentru îmbunătățiri pe GitHub.",
       "close_about": "Închide informația",
-      "theme_dark": "Activează modul noapte",
-      "theme_light": "Activează modul zi",
       "version_app": "Versiune aplicație",
       "version_sw": "Versiune service worker"
     },
@@ -225,6 +223,22 @@
         "go_home": "Deschide Biblia",
         "cta": "Deschide RoBible",
         "cta_hint": "Citește Biblia și creează-ți propriile teme."
+      },
+      "icons": {
+        "cross": "Cruce",
+        "heart": "Inimă",
+        "bookmark": "Semn de carte",
+        "sun": "Soare",
+        "moon": "Lună",
+        "shield": "Scut",
+        "crown": "Coroană",
+        "dove": "Porumbel",
+        "hands": "Mâini în rugăciune",
+        "flame": "Flacără",
+        "water": "Apă",
+        "home": "Casă",
+        "light": "Lumină",
+        "peace": "Pace"
       }
     },
     "notes": {
@@ -483,6 +497,21 @@
       "reference_unavailable": "Textul nu este disponibil offline.",
       "ready_offline": "Predica este pregătită și disponibilă offline.",
       "ready_no_offline": "Predica este pregătită, dar nu s-a putut salva pentru offline. Eliberează spațiu pe dispozitiv."
+    },
+    "palette": {
+      "open": "Schimbă paleta",
+      "title": "Paletă de culori",
+      "eyebrow": "Aspect",
+      "lumina": "Lumină",
+      "lumina_hint": "Clar, echilibrat. Cel de întotdeauna.",
+      "noapte": "Noapte",
+      "noapte_hint": "Albastru profund, fără alb pur. Odihnește ochii.",
+      "sepia": "Sepia",
+      "sepia_hint": "Hârtie caldă, cerneală brună.",
+      "nocturn": "Nocturn",
+      "nocturn_hint": "Negru pur. Economisește bateria pe ecrane OLED.",
+      "cald": "Cald",
+      "cald_hint": "Cremă și aramă. Culorile cu care s-a născut RoBible."
     }
   },
   "auth": {

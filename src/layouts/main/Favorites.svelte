@@ -1,4 +1,5 @@
 <script>
+  import Icon from '../../components/Icon.svelte';
   import { _ } from '../../services/i18n.service';
   import { favoritesStore } from '../../store/favoritesStore';
   import { isAuthenticated } from '../../store/authStore';
@@ -129,12 +130,7 @@
                   aria-label={$_('app.favorites.remove_reference', { reference: `${group.name} ${fav.chapter}:${fav.verse}` })}
                   on:click={() => removeFavorite(fav)}
                 >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <polyline points="3 6 5 6 21 6"/>
-                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                    <path d="M10 11v6M14 11v6"/>
-                    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-                  </svg>
+                  <Icon name="trash" />
                 </button>
               </div>
               {#if verseText}
@@ -167,12 +163,12 @@
       margin: 0 0 0.5rem;
       font-size: clamp(1.5rem, 3vw, 2rem);
       line-height: 1.2;
-      color: var(--color-bg-dark);
+      color: var(--color-ink-strong);
     }
 
     &__lead {
       margin: 0;
-      color: color-mix(in srgb, var(--color-bg-dark) 70%, transparent);
+      color: var(--color-ink-soft);
       font-size: 0.95rem;
     }
   }
@@ -180,9 +176,9 @@
   .favorites-empty {
     text-align: center;
     padding: 3rem 1.5rem;
-    border: 2px dashed color-mix(in srgb, var(--color-bg-dark) 14%, transparent);
+    border: 2px dashed var(--color-line-strong);
     border-radius: 0.75rem;
-    background: color-mix(in srgb, var(--color-bg-dark) 3%, var(--color-white));
+    background: var(--wash-subtle);
 
     &__icon {
       margin: 0 0 0.75rem;
@@ -194,13 +190,13 @@
       margin: 0 0 0.5rem;
       font-size: 1.05rem;
       font-weight: 600;
-      color: var(--color-bg-dark);
+      color: var(--color-ink-strong);
     }
 
     &__hint {
       margin: 0;
       font-size: 0.9rem;
-      color: color-mix(in srgb, var(--color-bg-dark) 60%, transparent);
+      color: var(--color-ink-soft);
     }
   }
 
@@ -214,8 +210,8 @@
       margin: 0 0 0.6rem;
       font-size: 1.1rem;
       font-weight: 700;
-      color: var(--color-blue);
-      border-bottom: 1px solid color-mix(in srgb, var(--color-blue) 22%, transparent);
+      color: var(--color-accent-ink);
+      border-bottom: 1px solid color-mix(in srgb, var(--color-accent) 22%, transparent);
       padding-bottom: 0.4rem;
     }
 
@@ -232,10 +228,10 @@
     display: grid;
     gap: 0.4rem;
     padding: 0.7rem 0.85rem;
-    border: 1px solid color-mix(in srgb, var(--color-bg-dark) 12%, transparent);
+    border: 1px solid var(--color-line);
     border-radius: 0.45rem;
-    background: var(--color-white);
-    transition: border-color 0.15s ease, background 0.15s ease;
+    background: var(--color-surface-raised);
+    transition: border-color var(--motion-fast) ease, background var(--motion-fast) ease;
 
     &:hover {
       border-color: color-mix(in srgb, var(--color-blue) 35%, transparent);
@@ -252,7 +248,7 @@
       background: none;
       border: 0;
       padding: 0;
-      color: var(--color-link);
+      color: var(--color-accent-ink);
       font-weight: 700;
       font-size: 0.92rem;
       cursor: pointer;
@@ -267,13 +263,13 @@
     &__date {
       margin-left: auto;
       font-size: 0.75rem;
-      color: color-mix(in srgb, var(--color-bg-dark) 50%, transparent);
+      color: var(--color-ink-soft);
     }
 
     &__remove {
       flex-shrink: 0;
       opacity: 0;
-      transition: opacity 0.15s;
+      transition: opacity var(--motion-fast);
     }
 
     &:hover &__remove,
@@ -313,21 +309,6 @@
     }
   }
 
-  :global(html[data-theme='dark']) .favorites-header__title { color: #ffffff; }
-  :global(html[data-theme='dark']) .favorite-item {
-    background: #1a2733;
-    border-color: rgb(255 255 255 / 8%);
-    color: #e5edf3;
-    &:hover { background: color-mix(in srgb, var(--color-accent) 14%, transparent); border-color: var(--color-accent-soft); }
-  }
-  :global(html[data-theme='dark']) .favorites-group__title { color: var(--color-accent-soft); border-bottom-color: rgb(126 200 227 / 22%); }
-  :global(html[data-theme='dark']) .favorites-empty {
-    background: rgb(255 255 255 / 3%);
-    border-color: rgb(255 255 255 / 14%);
-  }
-  :global(html[data-theme='dark']) .favorite-item__ref { color: var(--color-accent-soft); }
-  :global(html[data-theme='dark']) .favorite-item__text { color: #e5edf3; }
-  :global(html[data-theme='dark']) .favorite-item__date { color: rgb(255 255 255 / 50%); }
 
   // === Auth prompt ===
   .auth-prompt {
@@ -339,9 +320,9 @@
     min-height: 40vh;
     text-align: center;
     padding: 3rem 1.5rem;
-    border: 2px dashed color-mix(in srgb, var(--color-bg-dark) 14%, transparent);
+    border: 2px dashed var(--color-line-strong);
     border-radius: 0.75rem;
-    background: color-mix(in srgb, var(--color-bg-dark) 3%, var(--color-white));
+    background: var(--wash-subtle);
 
     &__icon {
       margin: 0;
@@ -353,13 +334,13 @@
       margin: 0;
       font-size: 1.05rem;
       font-weight: 600;
-      color: var(--color-bg-dark);
+      color: var(--color-ink-strong);
     }
 
     &__hint {
       margin: 0;
       font-size: 0.9rem;
-      color: color-mix(in srgb, var(--color-bg-dark) 60%, transparent);
+      color: var(--color-ink-soft);
     }
 
     &__btn {
@@ -367,8 +348,8 @@
       padding: 0.6rem 1.4rem;
       border: 1px solid var(--color-blue);
       border-radius: 0.4rem;
-      background: var(--color-blue);
-      color: var(--color-white);
+      background: var(--color-accent-solid);
+      color: var(--color-on-primary);
       font-size: 0.92rem;
       font-weight: 700;
       cursor: pointer;
@@ -381,11 +362,4 @@
     }
   }
 
-  :global(html[data-theme='dark']) .auth-prompt {
-    background: rgb(255 255 255 / 3%);
-    border-color: rgb(255 255 255 / 14%);
-
-    &__text { color: #ffffff; }
-    &__hint { color: rgb(255 255 255 / 55%); }
-  }
 </style>
