@@ -3,6 +3,7 @@ import {
   validators,
   nowIso,
   genId,
+  genPublicSlug,
   genShortId,
   json,
   error,
@@ -14,7 +15,8 @@ import {
 export async function listTopics(db, userId) {
   const topics = await db
     .prepare(
-      `SELECT id, name, icon, color, is_default, created_at
+      `SELECT id, name, icon, color, is_default, created_at,
+              is_public, public_slug, public_version, published_at
        FROM topics WHERE user_id = ? ORDER BY created_at ASC`,
     )
     .bind(userId)
@@ -49,6 +51,10 @@ export async function listTopics(db, userId) {
       color: t.color,
       isDefault: !!t.is_default,
       createdAt: t.created_at,
+      isPublic: !!t.is_public,
+      publicSlug: t.public_slug || null,
+      publicVersion: t.public_version || null,
+      publishedAt: t.published_at || null,
     })),
     verseRefs,
   };
@@ -87,13 +93,18 @@ export async function createTopic(request, db, userId, cors) {
 }
 
 // PATCH /api/topics/:id
+// Acepta además `isPublic` y `version` para publicar/despublicar el tema.
 export async function updateTopic(request, db, userId, topicId, cors) {
   let body;
   try { body = await request.json(); } catch { return error('invalid_json', 400, cors); }
-  const { name, icon, color } = body || {};
+  const { name, icon, color, isPublic, version } = body || {};
 
   const existing = await db
-    .prepare('SELECT id, name, icon, color, is_default FROM topics WHERE id = ? AND user_id = ?')
+    .prepare(
+      `SELECT id, name, icon, color, is_default, created_at,
+              is_public, public_slug, public_version, published_at
+       FROM topics WHERE id = ? AND user_id = ?`,
+    )
     .bind(topicId, userId)
     .first();
   if (!existing) return error('topic_not_found', 404, cors);
@@ -105,11 +116,50 @@ export async function updateTopic(request, db, userId, topicId, cors) {
   const newColor = color !== undefined ? (validators.color(color) ? color : null) : existing.color;
   if (newColor === null) return error('invalid_color', 400, cors);
 
+  // ── Publicación ────────────────────────────────────────
+  let nuevoPublico = existing.is_public;
+  let nuevoSlug = existing.public_slug;
+  let nuevaVersion = existing.public_version;
+  let nuevaFecha = existing.published_at;
+
+  if (isPublic !== undefined) {
+    if (typeof isPublic !== 'boolean') return error('invalid_is_public', 400, cors);
+
+    if (isPublic) {
+      if (version !== undefined && !validators.bibleVersion(version)) {
+        return error('invalid_bible_version', 400, cors);
+      }
+      // El slug se genera una sola vez y se conserva: si el usuario despublica
+      // y vuelve a publicar, los enlaces que ya repartió siguen valiendo.
+      if (!nuevoSlug) {
+        // Reintentar ante la colisión, astronómicamente improbable pero barata
+        // de cubrir: el índice único haría fallar el UPDATE entero.
+        for (let intento = 0; intento < 5; intento++) {
+          const candidato = genPublicSlug(newName);
+          const ocupado = await db
+            .prepare('SELECT id FROM topics WHERE public_slug = ?')
+            .bind(candidato)
+            .first();
+          if (!ocupado) { nuevoSlug = candidato; break; }
+        }
+        if (!nuevoSlug) return error('slug_generation_failed', 500, cors);
+      }
+      nuevoPublico = 1;
+      nuevaVersion = version || nuevaVersion || null;
+      nuevaFecha = nuevaFecha || nowIso();
+    } else {
+      nuevoPublico = 0;
+    }
+  }
+
   await db
     .prepare(
-      `UPDATE topics SET name = ?, icon = ?, color = ? WHERE id = ? AND user_id = ?`,
+      `UPDATE topics
+       SET name = ?, icon = ?, color = ?,
+           is_public = ?, public_slug = ?, public_version = ?, published_at = ?
+       WHERE id = ? AND user_id = ?`,
     )
-    .bind(newName, newIcon, newColor, topicId, userId)
+    .bind(newName, newIcon, newColor, nuevoPublico, nuevoSlug, nuevaVersion, nuevaFecha, topicId, userId)
     .run();
 
   return json({
@@ -121,6 +171,10 @@ export async function updateTopic(request, db, userId, topicId, cors) {
       color: newColor,
       isDefault: !!existing.is_default,
       createdAt: existing.created_at || null,
+      isPublic: !!nuevoPublico,
+      publicSlug: nuevoSlug || null,
+      publicVersion: nuevaVersion || null,
+      publishedAt: nuevaFecha || null,
     },
   }, 200, cors);
 }
@@ -203,6 +257,87 @@ export async function removeVerseRef(request, db, userId, topicId, cors) {
     return error('verse_not_found', 404, cors);
   }
   return json({ ok: true }, 200, cors);
+}
+
+// ── TEMAS PÚBLICOS (sin autenticación) ───────────────────
+//
+// Lo que se devuelve aquí lo ve cualquiera, así que la regla es simple: del
+// tema salen el nombre, el aspecto y las referencias, y **nada del usuario**.
+// Ni id, ni nickname, ni fechas de la cuenta. Un tema compartido no debe poder
+// usarse para averiguar quién lo escribió.
+
+// GET /api/public/topics/:slug
+export async function getPublicTopic(db, slug, cors) {
+  if (!validators.publicSlug(slug)) return error('topic_not_found', 404, cors);
+
+  const topic = await db
+    .prepare(
+      `SELECT id, name, icon, color, public_slug, public_version, published_at
+       FROM topics WHERE public_slug = ? AND is_public = 1`,
+    )
+    .bind(slug)
+    .first();
+  // Un tema despublicado responde 404 igual que uno inexistente: no interesa
+  // confirmar que el slug existió.
+  if (!topic) return error('topic_not_found', 404, cors);
+
+  const refs = await db
+    .prepare(
+      `SELECT book, chapter, verse, added_at
+       FROM verse_refs WHERE topic_id = ?
+       ORDER BY book ASC, chapter ASC, verse ASC`,
+    )
+    .bind(topic.id)
+    .all();
+
+  return json({
+    ok: true,
+    topic: {
+      name: topic.name,
+      icon: topic.icon,
+      color: topic.color,
+      slug: topic.public_slug,
+      version: topic.public_version || null,
+      publishedAt: topic.published_at || null,
+      verses: (refs.results || []).map((r) => ({
+        book: r.book,
+        chapter: r.chapter,
+        verse: r.verse,
+      })),
+    },
+  }, 200, cors);
+}
+
+// GET /api/public/topics — listado, para el sitemap y para descubrir temas.
+// Solo devuelve los que tienen al menos un versículo: un tema publicado vacío
+// sería una página en blanco, justo el contenido fino que no queremos indexar.
+export async function listPublicTopics(db, cors) {
+  const rows = await db
+    .prepare(
+      `SELECT t.name, t.icon, t.color, t.public_slug, t.public_version, t.published_at,
+              COUNT(v.id) AS total
+       FROM topics t
+       JOIN verse_refs v ON v.topic_id = t.id
+       WHERE t.is_public = 1 AND t.public_slug IS NOT NULL
+       GROUP BY t.id
+       HAVING total > 0
+       ORDER BY t.published_at DESC
+       LIMIT 500`,
+    )
+    .all();
+
+  return json({
+    ok: true,
+    topics: (rows.results || []).map((r) => ({
+      name: r.name,
+      icon: r.icon,
+      color: r.color,
+      slug: r.public_slug,
+      version: r.public_version || null,
+      publishedAt: r.published_at || null,
+      verseCount: r.total,
+    })),
+  }, 200, cors);
 }
 
 // ── FAVORITES ───────────────────────────────────────────

@@ -1,7 +1,7 @@
 # RoBible — Roadmap
 
 > Documento vivo. Actualizado en cada milestone.
-> Última actualización: **5 sep 2026** (Phase 6.1/6.2/6.3: subrayados, compartir como imagen, versículo del día)
+> Última actualización: **5 sep 2026** (Phase 6.4: temas compartibles · cierre del audio · arreglo de caché de idiomas)
 
 > Documentación de referencia: [CLAUDE.md](CLAUDE.md) · [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) · [docs/OPERACIONES.md](docs/OPERACIONES.md)
 > Deuda técnica detectada: [docs/AUDITORIA-2026-09-04.md](docs/AUDITORIA-2026-09-04.md)
@@ -10,11 +10,11 @@
 
 ## Resumen ejecutivo
 
-RoBible es una app web (PWA) de la Biblia con soporte offline, auth multi-device, índice temático, favoritos sincronizados y lectura con audio TTS. Dos Biblias con datos (rumano `vdc` y español `rvl`) e interfaz traducida a cuatro idiomas. Construida con Svelte 5 + Vite, SCSS, datos JSON estáticos, backend en Cloudflare Workers + D1.
+RoBible es una app web (PWA) de la Biblia con soporte offline, auth multi-device, índice temático (con temas compartibles), favoritos, notas y subrayados sincronizados, y lectura acompañada de música. **Cuatro** Biblias con datos (`vdc`, `rvl`, `en_kjv`, `zh_cuv`) e interfaz traducida a cuatro idiomas. Construida con Svelte 5 + Vite, SCSS, datos JSON estáticos, backend en Cloudflare Workers + D1.
 
 **Stack:**
 - Frontend: Svelte 5 (sintaxis legacy, no runes) + Vite 8, SCSS themeable (light/dark)
-- Data: JSON estáticos en `/public/data/{vdc,rvl}/bible.{map,json}` — 4,2 MB por Biblia
+- Data: JSON estáticos en `/public/data/{vdc,rvl,en_kjv,zh_cuv}/bible.{map,json}` — entre 3 y 4,3 MB por Biblia
 - i18n: propio, sin librería. JSON en `/public/lang/{ro,es,en,zh}.json`
 - PWA: manifest + service worker (cache-first, versiones) — hoy `robible-v25`
 - Rutas: path-based custom (parsea `window.location.pathname`)
@@ -137,11 +137,18 @@ RoBible es una app web (PWA) de la Biblia con soporte offline, auth multi-device
 - [ ] Frontend: al recibir `nickname_taken`, llamar a este endpoint y mostrar chips con sugerencias
 - [ ] i18n: "El nickname 'x' ya existe. Prueba con:" + chips clickables que rellenan el input
 
-### Phase 4.1 — Audio TTS con highlighting (Frontend — **punto fuerte innovative**) 🟡 PARCIAL (2026-08-31)
+### Phase 4.1 — Lectura acompañada de música ✅ CERRADA (2026-09-05)
 
-> Reemplaza el auto-advance timer. Lee el capítulo en voz alta, resaltando palabra por palabra.
+> **Ojo: esta fase ya no es "audio TTS".** Nació como lectura en voz alta con
+> Web Speech API y terminó siendo otra cosa: música de fondo + resaltado del
+> versículo que toca, sin voz. La decisión es de producto (la voz del navegador
+> no da la calidad que pide un texto bíblico), no una implementación a medias.
 >
-> **Estado revisado el 2026-09-04 contra el código.** Estaba marcada como completada con todas las casillas sin marcar; lo entregado cubre el núcleo, pero tres puntos del plan original no se implementaron.
+> Lo de abajo se conserva como historia de lo que se llegó a construir con voz.
+> **Nada de eso está hoy en el código**: `tts.service.js` se retiró el 5 sep 2026.
+> Lo que queda vivo es el FAB, el mini-player, la velocidad, el ambiente musical
+> y el modo inmersivo. El nombre `tts` sobrevive en el store, el componente y las
+> claves de i18n/localStorage por herencia; renombrarlo sería un cambio atómico.
 
 - [x] Web Speech API: `SpeechSynthesisUtterance` con `lang` según versión bíblica (ro-RO, es-ES)
       (Tenía un bug: `getBibleVersionConfigOrDefault()` sin argumento hacía que el idioma fuese siempre `ro`. Arreglado el 2026-09-04, hallazgo 1 de la auditoría.)
@@ -156,7 +163,7 @@ RoBible es una app web (PWA) de la Biblia con soporte offline, auth multi-device
 - [x] UI: FAB flotante en `Result.svelte` + panel expandible tipo mini-player en la parte inferior
 - [x] Modo inmersivo automático al arrancar la lectura, y salida al parar
 
-**Pendiente además**: los textos del mini-player están hardcodeados en `LABELS` dentro de `TtsPlayer.svelte` en lugar de usar `$_()`. Es la única excepción a la regla de i18n del proyecto.
+~~**Pendiente además**: los textos del mini-player están hardcodeados en `LABELS` dentro de `TtsPlayer.svelte`~~ — ya no: las 15 claves `app.tts.*` se usan todas desde la plantilla. Verificado el 5 sep 2026.
 
 ### Phase 4.2 — Sidebar hamburger ✅ COMPLETADA (2026-08-28)
 - [x] Reemplazado el logo de marca en Navbar por un botón hamburguesa
@@ -287,6 +294,24 @@ Cuándo revisar: cada release mayor (Phase 4.1, 4.6, etc.) + cada 3 meses como m
 - [x] "No volver a mostrar" persistente en `robible:dailyVerse:enabled`
 - [x] `Modal.svelte` gana `fitContent`: en móvil la hoja se ajusta al contenido en vez de ocupar 92dvh fijos
 
+### Phase 6.4 — Temas compartibles ✅ COMPLETADA (2026-09-05)
+
+- [x] `topics` gana `is_public` / `public_slug` / `public_version` / `published_at` — schema_version **7**
+- [x] `PATCH /api/topics/:id` acepta `isPublic` y `version`; el slug se genera una sola vez
+- [x] `GET /api/public/topics/:slug` y `GET /api/public/topics`, **sin autenticación** y con rate limit
+- [x] Ruta `/tema/:slug` + `PublicTopic.svelte`: se abre sin cuenta, con el texto resuelto desde la Biblia del cliente
+- [x] Panel de publicar/copiar/compartir en el detalle del tema, con `navigator.share` y respaldo a copiar
+- [x] `netlify/functions/topic-meta.mjs` para las etiquetas Open Graph al pegar el enlace en WhatsApp
+
+**Decisiones que conviene no deshacer:**
+- **La respuesta pública no lleva nada del usuario.** Ni id, ni nickname, ni fechas de cuenta. Un tema compartido no debe servir para averiguar quién lo escribió.
+- **`/tema/:slug` no se traduce por idioma**, a diferencia de `indexPath` y compañía. El enlace se reparte por fuera y tiene que abrir igual sea cual sea la versión de quien lo recibe; con un path por idioma el mismo tema tendría varias URLs y el enlace se rompería al cambiar de versión.
+- **Los temas de usuario van con `noindex, follow`.** Ver la nota sobre SEO más abajo.
+- **Despublicar conserva el slug**: si el usuario vuelve a publicar, los enlaces que ya repartió siguen valiendo.
+- **El listado público excluye los temas sin versículos**: publicar uno vacío daría una página en blanco.
+
+**Sobre el SEO — lo que NO se hizo y por qué.** La idea original era que los temas de usuario fuesen indexables. No se ha hecho: indexar contenido escrito por usuarios llenaría el sitemap de páginas tituladas "aaa" o "mis versículos", que es contenido fino y Google lo penaliza — exactamente lo que se evitó al quitar las 31.000 páginas por versículo (trampa 6 de CLAUDE.md). El tráfico de cola larga sigue viniendo de las páginas curadas `/versiculos/*` de `generate-seo.mjs`, que hoy son **8 y solo en español**. Llevarlas a los cuatro idiomas (8 → 32 páginas de calidad controlada) es la continuación natural y está en los próximos pasos.
+
 ---
 
 ## Deuda técnica
@@ -297,12 +322,13 @@ Levantada en la revisión de traspaso del **4 sep 2026**. Detalle, evidencia y v
 
 | # | Hallazgo | Prioridad | Estado |
 |---|---|---|---|
-| 13 | La "lectura con música" no lee: el play llama a `playMusicOnly()` y la ruta de TTS real está desconectada | Alta | ⏸️ Rediseño de la reproducción |
-| 8 | 16 MB de PNG/SVG del pipeline de logo versionados en `robible/` | Info | ⚠️ Falta `git rm -r --cached robible/` |
+| 8 | 17 MB de PNG/SVG del pipeline de logo versionados en `robible/` (16 ficheros) | Info | ⚠️ Falta `git rm -r --cached robible/` |
 
 Arreglados: idioma del TTS, `USE_BACKEND` en producción, idioma de las categorías por defecto, `SW_CACHE_VERSION` muerto, rutas fantasma del sitemap, configuración de ESLint (99 errores → 0), claves de traducción que faltaban en `es` y `zh`, rama muerta de `Landing`, adaptador D1 del dev-server, y el JSON-LD de FAQ que repetía la misma pregunta cinco veces.
 
-Sigue pendiente **fuera del repo**: verificar `VITE_API_BASE_URL` en el panel de Netlify (hallazgo 2 — el código ya avisa por consola si falta, pero la variable hay que confirmarla).
+**Hallazgo 13 cerrado el 5 sep 2026 — no era un bug.** La auditoría lo levantó como "la lectura con música no lee", pero CLAUDE.md ya lo describía como decisión de producto: la voz del navegador no da la calidad que pide un texto bíblico. Los dos documentos se contradecían. Resuelto a favor de la decisión de producto: se retiró `tts.service.js` (394 líneas huérfanas, no lo importaba nadie), se limpiaron los restos del store (`ttsVolume`, `ttsProgress`, `ttsDisplayState`, el ambiente `'hymn'` que nunca existió) y se renombró el botón, que era lo único que mentía — decía "Música + lectura" y ahora dice "Leer con música", con el usuario como sujeto. El `start_hint` ya era honesto ("los versículos se resaltan uno a uno").
+
+**Hallazgo 2 cerrado el 5 sep 2026**: `VITE_API_BASE_URL` **sí está** configurada en Netlify. Verificado sobre el bundle de producción, que contiene `robible-api.robible.workers.dev` y no el fallback `127.0.0.1:8787`.
 
 ---
 
@@ -327,16 +353,19 @@ Sigue pendiente **fuera del repo**: verificar `VITE_API_BASE_URL` en el panel de
 
 ## Próximos pasos inmediatos (orden sugerido)
 
-Reordenado el 2026-09-04. Lo completado se ha movido al historial de más abajo.
+Reordenado el 2026-09-05. Lo completado se ha movido al historial de más abajo.
 
-1. **Verificar `VITE_API_BASE_URL` en el panel de Netlify** — 30 segundos, y de ello depende toda la sincronización multi-dispositivo. Es lo único de la auditoría que no se puede cerrar desde el repo
-2. **Frontend — rediseñar la reproducción de audio** (deuda 13): hoy el botón de play no lee, solo pone música y finge el karaoke con timers. Hay que decidir el modelo (voz / voz+música / solo música) y reconectar `playChapter()`
-3. **Frontend — decidir si se traducen los paths por idioma** (`indexPath`/`favoritesPath`/`notesPath` son hoy iguales en ro y es). Si se hace, añadir las variantes al sitemap
-4. **Revisar los 14 avisos de lint que quedan** (`require-each-key`, `infinite-reactive-loop`, `no-reactive-reassign`): son señales reales que se dejaron como warning para no bloquear
-5. **Backend — Phase 3.5 Nickname hints + sugerencias** (única fase funcional pendiente del plan original)
-6. **Frontend — Phase 4.4 Mobile play overlap** — ya existe el FAB del TTS, así que ahora sí se puede coordinar z-index con `.scroll-top-button`
-7. **Frontend — completar Phase 4.1**: play desde un versículo concreto y lectura de resultados de búsqueda
-8. **Decisión de producto**: qué hacer con `en_kjv` / `zh_cuv` (conseguir datos o recortar el selector) y con `user_profiles` (implementar o retirar del schema)
+1. **Llevar las páginas `/versiculos/*` a los cuatro idiomas**: hoy son 8 y solo en español, con `rvl` cableado en `generate-seo.mjs`. Con cuatro Biblias servidas, pasar a 32 páginas curadas es el mayor tráfico de cola larga disponible sin riesgo de contenido fino. Es la continuación de la Phase 6.4
+2. **Arreglar el CSP de Clarity**: `script-src` permite `https://www.clarity.ms` pero el script se carga desde `https://scripts.clarity.ms`, así que Microsoft Clarity está **bloqueado en producción** y no recoge nada. Una línea en `netlify.toml`
+3. **Sacar `robible/` del control de versiones** (deuda 8): `git rm -r --cached robible/` — 17 MB en 16 ficheros
+4. **Frontend — decidir si se traducen los paths por idioma** (`indexPath`/`favoritesPath`/`notesPath` son hoy iguales en ro y es). Si se hace, añadir las variantes al sitemap
+5. **Revisar los 12 avisos de lint que quedan** (`require-each-key`, `infinite-reactive-loop`, `no-reactive-reassign`): son señales reales que se dejaron como warning para no bloquear
+6. **Backend — Phase 3.5 Nickname hints + sugerencias** (única fase funcional pendiente del plan original)
+7. **Frontend — Phase 4.4 Mobile play overlap** — coordinar el z-index del FAB con `.scroll-top-button`
+8. **Decisión de producto**: qué hacer con `user_profiles` (implementar o retirar del schema de la D1 desplegada)
+9. **Actualizar wrangler** (3.114 → 4.x): `d1 execute --file` falla con "fetch failed" en la versión actual; el DDL del 5 sep hubo que aplicarlo con `--command`
+
+**Cerrados el 5 sep 2026**: `VITE_API_BASE_URL` (sí estaba configurada), la reproducción de audio (era decisión de producto, no bug) y `en_kjv`/`zh_cuv` (las cuatro versiones están en `available: true` y se sirven en producción).
 
 ---
 
@@ -361,7 +390,7 @@ Reordenado el 2026-09-04. Lo completado se ha movido al historial de más abajo.
 - `workers/robible-api/src/auth.js` — register, login, recover, me, logout, change-password
 - `workers/robible-api/src/data.js` — topics, verse_refs, favorites, notes, highlights, searches, export, health
 - `workers/robible-api/src/utils.js` — hashing, tokens (HMAC), validators, rate limit
-- `workers/robible-api/schema.sql` — D1 schema (versión 6)
+- `workers/robible-api/schema.sql` — D1 schema (versión 7)
 - `workers/robible-api/wrangler.toml` — bindings + env vars
 - `workers/robible-api/dev-server.js` — emulador local con `node:sqlite`
 
@@ -371,7 +400,8 @@ Reordenado el 2026-09-04. Lo completado se ha movido al historial de más abajo.
 - `src/layouts/main/Main.svelte` — grid principal + detección de ruta
 - `src/layouts/main/Result.svelte` — vista lectura (swipe, nav, favs, notas, topics, TTS, SEO) — 2880 líneas
 - `src/layouts/main/Compare.svelte` — comparar versiones
-- `src/layouts/main/Index.svelte` — índice temático
+- `src/layouts/main/Index.svelte` — índice temático (con el panel de publicar)
+- `src/layouts/main/PublicTopic.svelte` — tema compartido, visible sin cuenta
 - `src/layouts/main/Favorites.svelte` — lista de favoritos
 - `src/layouts/main/Notes.svelte` — notas agrupadas por libro
 - `src/layouts/main/Sidebar.svelte` — filtros, búsqueda por texto y por referencia
@@ -396,7 +426,7 @@ Reordenado el 2026-09-04. Lo completado se ha movido al historial de más abajo.
 - `src/services/music.service.js` — drone armónico procedural con Web Audio API
 - `src/services/i18n.service.js` — traductor propio
 - `src/config.js` + `src/config/{bible-versions,seo}.js` — configuración
-- `netlify/functions/{og-image,verse-meta}.mjs` — OG dinámico y metadatos de ruta legacy
+- `netlify/functions/{og-image,verse-meta,topic-meta}.mjs` — OG dinámico, metadatos de ruta legacy y OG de tema compartido
 - `src/components/AutoRead.svelte` — ~~eliminado~~ (reemplazado por TTS karaoke en Phase 4.1)
 
 ### Comandos
@@ -405,7 +435,7 @@ Reordenado el 2026-09-04. Lo completado se ha movido al historial de más abajo.
 - `npm run lint` — ESLint (**debe salir en 0 errores**; quedan 14 avisos deliberados)
 - `node scripts/generate-seo.mjs` — genera SEO pages y sitemaps tras build
 - `node scripts/build-logo.js` — regenera todos los favicons
-- `npm test` — suite con el runner de Node (99 tests, sin dependencias)
+- `npm test` — suite con el runner de Node (105 tests, sin dependencias)
 - `node workers/robible-api/dev-server.js` — emulador backend
 
 ### Service Worker

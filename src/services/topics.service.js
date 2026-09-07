@@ -105,6 +105,10 @@ const normalizeFromApi = (apiData) => ({
     color: t.color || '#2E7D9B',
     isDefault: !!t.isDefault,
     createdAt: t.createdAt,
+    isPublic: !!t.isPublic,
+    publicSlug: t.publicSlug || null,
+    publicVersion: t.publicVersion || null,
+    publishedAt: t.publishedAt || null,
   })),
   verseRefs: apiData.verseRefs || {},
 });
@@ -202,6 +206,12 @@ export const updateTopic = async (id, patch) => {
             name: res.topic.name,
             icon: res.topic.icon,
             color: res.topic.color,
+            // Sin esto el toggle de publicar se quedaba en la cache con el
+            // valor anterior y la UI volvía atrás al recargar.
+            isPublic: !!res.topic.isPublic,
+            publicSlug: res.topic.publicSlug || null,
+            publicVersion: res.topic.publicVersion || null,
+            publishedAt: res.topic.publishedAt || null,
           };
           writeLS(state);
         }
@@ -231,6 +241,51 @@ export const updateTopic = async (id, patch) => {
   writeLS(state);
   return merged;
 };
+
+// ── Publicación de temas ────────────────────────────────
+//
+// Publicar da al tema una URL que cualquiera puede abrir sin cuenta. Requiere
+// backend: un enlace público servido desde el localStorage del propio usuario
+// no existiría para nadie más, así que aquí no hay fallback que valga.
+
+export const publishTopic = async (id, version) => {
+  if (!USE_BACKEND) return { ok: false, error: 'app.topics.share.needs_backend' };
+  try {
+    const topic = await updateTopic(id, { isPublic: true, version });
+    return { ok: true, topic };
+  } catch (e) {
+    return { ok: false, error: e.message || 'auth.errors.unknown' };
+  }
+};
+
+export const unpublishTopic = async (id) => {
+  if (!USE_BACKEND) return { ok: false, error: 'app.topics.share.needs_backend' };
+  try {
+    const topic = await updateTopic(id, { isPublic: false });
+    return { ok: true, topic };
+  } catch (e) {
+    return { ok: false, error: e.message || 'auth.errors.unknown' };
+  }
+};
+
+/**
+ * Lee un tema publicado. No lleva token a propósito: la gracia es que funcione
+ * para quien recibe el enlace y no tiene cuenta.
+ */
+export const fetchPublicTopic = async (slug) => {
+  if (!USE_BACKEND) return null;
+  try {
+    const res = await api.get(`/api/public/topics/${encodeURIComponent(slug)}`, { auth: false });
+    return res.topic || null;
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 404) return null;
+    console.warn('fetchPublicTopic falló:', e.message);
+    return null;
+  }
+};
+
+export const buildPublicTopicUrl = (slug) =>
+  typeof window === 'undefined' ? '' : `${window.location.origin}/tema/${encodeURIComponent(slug)}`;
 
 export const deleteTopic = async (id) => {
   if (USE_BACKEND) {

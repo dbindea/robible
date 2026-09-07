@@ -202,7 +202,29 @@
       "close": "关闭",
       "add_to_existing": "添加到现有分类",
       "or": "或",
-      "create_new_inline": "创建一个新的"
+      "create_new_inline": "创建一个新的",
+      "share": {
+        "publish": "公开这个主题",
+        "unpublish": "设为私密",
+        "copy_link": "复制链接",
+        "share": "分享",
+        "copied": "链接已复制",
+        "copy_failed": "无法复制链接",
+        "published": "主题已公开",
+        "unpublished": "主题已恢复私密",
+        "needs_verses": "发布前请至少添加一节经文",
+        "needs_backend": "发布需要网络连接",
+        "public_hint": "任何拿到链接的人都能查看，无需账号。不会显示你的名字。",
+        "private_hint": "这个主题目前是私密的。公开后会生成一个可以分享给任何人的链接。",
+        "eyebrow": "分享的主题",
+        "seo_title": "{topic} — 圣经经文 | RoBible",
+        "seo_description": "关于{topic}的 {count} 节经文，可直接阅读和分享。",
+        "not_found_title": "该主题不存在",
+        "not_found_hint": "链接可能有误，或者作者已将其设为私密。",
+        "go_home": "打开圣经",
+        "cta": "打开 RoBible",
+        "cta_hint": "阅读圣经，创建属于你的主题。"
+      }
     },
     "notes": {
       "add_note": "添加笔记",
@@ -267,7 +289,7 @@
       }
     },
     "tts": {
-      "start": "音乐 + 阅读",
+      "start": "配乐阅读",
       "start_hint": "播放音乐时逐节高亮经文",
       "player": "阅读播放器",
       "controls": "阅读控制",

@@ -15,7 +15,11 @@
     X-XSS-Protection = "1; mode=block"
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "camera=(), microphone=(), geolocation=()"
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.clarity.ms; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://www.googletagmanager.com https://*.clarity.ms; font-src 'self'; connect-src 'self' https://robible-api.robible.workers.dev https://www.google-analytics.com https://*.clarity.ms https://*.google-analytics.com; frame-ancestors 'none'"
+    # Ojo con Clarity: el tag se pide a www.clarity.ms pero el script real se
+    # carga desde scripts.clarity.ms. Con solo `www` en script-src, el navegador
+    # bloqueaba la carga y Clarity no recogía nada en producción. Por eso va el
+    # comodín, igual que ya estaba en img-src y connect-src.
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://*.clarity.ms; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://www.googletagmanager.com https://*.clarity.ms; font-src 'self'; connect-src 'self' https://robible-api.robible.workers.dev https://www.google-analytics.com https://*.clarity.ms https://*.google-analytics.com; frame-ancestors 'none'"
 
 # ── Rate limiting: bloquear exceso de peticiones por IP ───────────────────────
 # Netlify Plus: permite rate limiting por IP
@@ -92,6 +96,26 @@
 [[redirects]]
   from = "/biblia/:version/:book/:chapter/:verse"
   to = "/.netlify/functions/verse-meta?version=:version&book_slug=:book&chapter=:chapter&verse=:verse"
+  status = 200
+
+# ── Tema compartido ──────────────────────────────────────────────────────────
+# El orden importa y las dos reglas son necesarias.
+#
+# La primera sirve la SPA cuando la URL lleva `?app=1`. La segunda manda todo lo
+# demás a la función que genera las etiquetas Open Graph, para que al pegar el
+# enlace en WhatsApp se vea el nombre del tema y no el título genérico.
+#
+# Sin la regla del `?app=1` esto sería un bucle: la función redirige a la ruta
+# canónica, que es esta misma. Ver el comentario de netlify/functions/topic-meta.mjs.
+[[redirects]]
+  from = "/tema/:slug"
+  query = {app = "1"}
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/tema/:slug"
+  to = "/.netlify/functions/topic-meta?slug=:slug"
   status = 200
 
 [[redirects]]

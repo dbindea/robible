@@ -13,6 +13,7 @@ import {
   makeToken,
   readToken,
   genId,
+  genPublicSlug,
   genShortId,
   PBKDF2_ITERATIONS,
   SESSION_TTL_MS,
@@ -143,4 +144,50 @@ test('genId y genShortId generan identificadores únicos y con prefijo', () => {
   const corto = genShortId('topic', 'Mântuire şi Îndurare');
   assert.match(corto, /^topic_[a-z0-9-]+$/, 'el slug va sin diacríticos ni mayúsculas');
   assert.ok(genShortId('topic', '🙏').startsWith('topic_x-'), 'sin caracteres utilizables cae a "x"');
+});
+
+// ── Slug público de los temas ───────────────────────────────────────────────
+// Es la URL que el usuario reparte por ahí, así que conviene que no se rompa.
+
+test('genPublicSlug conserva la parte legible del nombre', () => {
+  assert.match(genPublicSlug('Ansiedad'), /^ansiedad-[0-9a-f]{4}$/);
+  assert.match(genPublicSlug('Peace & Hope'), /^peace-hope-[0-9a-f]{4}$/);
+});
+
+test('genPublicSlug quita los diacríticos', () => {
+  assert.match(genPublicSlug('Salvación'), /^salvacion-/);
+  assert.match(genPublicSlug('Mântuire şi Îndurare'), /^mantuire-si-indurare-/);
+});
+
+test('genPublicSlug no vacía los nombres en alfabetos no latinos', () => {
+  // La misma trampa que `slugifyBookName` (CLAUDE.md, trampa 6): filtrando con
+  // [a-z0-9] los nombres chinos se quedaban en nada y el slug era solo el
+  // sufijo aleatorio, ilegible e inútil para SEO.
+  const chino = genPublicSlug('平安与盼望');
+  assert.ok(chino.startsWith('平安与盼望-'), `se perdió el nombre: ${chino}`);
+
+  const ruso = genPublicSlug('Надежда');
+  assert.ok(ruso.startsWith('надежда-'), `se perdió el nombre: ${ruso}`);
+});
+
+test('genPublicSlug cae al sufijo aleatorio si no queda nada utilizable', () => {
+  assert.match(genPublicSlug('🔥🔥🔥'), /^[0-9a-f]{4}$/);
+  assert.match(genPublicSlug('---'), /^[0-9a-f]{4}$/);
+  assert.match(genPublicSlug(''), /^[0-9a-f]{4}$/);
+});
+
+test('genPublicSlug no genera nada que rompa la URL', () => {
+  for (const nombre of ['a/b', 'a?b', 'a#b', 'a b', 'a\\b', '../etc/passwd']) {
+    const slug = genPublicSlug(nombre);
+    assert.ok(validators.publicSlug(slug), `slug inválido para ${nombre}: ${slug}`);
+    assert.ok(!/[/?#\s\\]/.test(slug), `caracteres peligrosos en ${slug}`);
+  }
+});
+
+test('genPublicSlug acota la longitud y no colisiona', () => {
+  const largo = genPublicSlug('a'.repeat(200));
+  assert.ok(largo.length <= 53, `demasiado largo: ${largo.length}`);
+
+  const slugs = new Set(Array.from({ length: 300 }, () => genPublicSlug('Ansiedad')));
+  assert.ok(slugs.size > 290, `demasiadas colisiones: ${slugs.size}/300`);
 });

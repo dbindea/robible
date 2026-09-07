@@ -1,6 +1,6 @@
 // Cloudflare Worker entry: routing + CORS + error handling
 import { Hono } from 'hono';
-import { corsHeaders, requireAuth } from './utils.js';
+import { checkRateLimit, corsHeaders, requireAuth } from './utils.js';
 import * as auth from './auth.js';
 import * as data from './data.js';
 
@@ -80,6 +80,27 @@ app.post('/api/auth/logout', requireAuthMw, async (c) => {
 app.post('/api/auth/change-password', requireAuthMw, async (c) => {
   applyCors(c);
   return auth.changePassword(c.req.raw, c.env.DB, c.env, corsFor(c));
+});
+
+// ── Temas públicos (sin auth) ──────────────────────────
+// Van con rate limit porque son los únicos endpoints de datos abiertos: sin él
+// serían una invitación a barrer la base a base de peticiones.
+app.get('/api/public/topics', async (c) => {
+  applyCors(c);
+  const rl = await checkRateLimit(c.env.DB, c.req.raw, 'public_topics', c.env);
+  if (!rl.ok) {
+    return c.json({ ok: false, error: rl.error }, 429, { 'Retry-After': String(rl.retryAfter || 60) });
+  }
+  return data.listPublicTopics(c.env.DB, corsFor(c));
+});
+
+app.get('/api/public/topics/:slug', async (c) => {
+  applyCors(c);
+  const rl = await checkRateLimit(c.env.DB, c.req.raw, 'public_topics', c.env);
+  if (!rl.ok) {
+    return c.json({ ok: false, error: rl.error }, 429, { 'Retry-After': String(rl.retryAfter || 60) });
+  }
+  return data.getPublicTopic(c.env.DB, c.req.param('slug'), corsFor(c));
 });
 
 // ── Topics (auth required) ──────────────────────────────

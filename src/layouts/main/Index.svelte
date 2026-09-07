@@ -7,6 +7,7 @@
     getBibleVersionConfigOrDefault,
   } from '../../store/stores';
   import { getBookSlug } from '../../services/bible-route.service';
+  import { buildPublicTopicUrl } from '../../services/topics.service';
   import { isAuthenticated } from '../../store/authStore';
   import { openAuthMenu } from '../../store/authMenuStore';
   import IconPicker from '../../components/IconPicker.svelte';
@@ -57,6 +58,80 @@
 
   $: copyVerseLabel = $_('app.topics.delete_verse');
   $: createTopicLabel = $_('app.topics.create_topic');
+
+  // ── Publicar un tema ────────────────────────────────────
+  let publicando = false;
+  let avisoCompartir = '';
+  let avisoTimer;
+
+  const mostrarAviso = (mensaje) => {
+    avisoCompartir = mensaje;
+    window.clearTimeout(avisoTimer);
+    avisoTimer = window.setTimeout(() => { avisoCompartir = ''; }, 2600);
+  };
+
+  $: enlacePublico = selectedTopic?.isPublic && selectedTopic?.publicSlug
+    ? buildPublicTopicUrl(selectedTopic.publicSlug)
+    : '';
+
+  const alternarPublicacion = async () => {
+    if (!selectedTopic || publicando) return;
+    // Publicar un tema vacío daría una página en blanco a quien abra el enlace.
+    if (!selectedTopic.isPublic && selectedVerses.length === 0) {
+      mostrarAviso($_('app.topics.share.needs_verses'));
+      return;
+    }
+    publicando = true;
+    try {
+      const res = selectedTopic.isPublic
+        ? await topicsStore.unpublish(selectedTopic.id)
+        : await topicsStore.publish(selectedTopic.id, $selectedBibleVersion);
+      if (res.ok) {
+        mostrarAviso(res.topic?.isPublic ? $_('app.topics.share.published') : $_('app.topics.share.unpublished'));
+      } else {
+        mostrarAviso($_(res.error));
+      }
+    } finally {
+      publicando = false;
+    }
+  };
+
+  const copiarEnlace = async () => {
+    if (!enlacePublico) return;
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(enlacePublico);
+      } else {
+        const campo = document.createElement('textarea');
+        campo.value = enlacePublico;
+        campo.setAttribute('readonly', '');
+        campo.style.position = 'fixed';
+        campo.style.opacity = '0';
+        document.body.appendChild(campo);
+        campo.select();
+        document.execCommand('copy');
+        campo.remove();
+      }
+      mostrarAviso($_('app.topics.share.copied'));
+    } catch {
+      mostrarAviso($_('app.topics.share.copy_failed'));
+    }
+  };
+
+  const compartirEnlace = async () => {
+    if (!enlacePublico) return;
+    // En móvil abre la hoja del sistema; en escritorio casi nunca existe, así
+    // que se cae a copiar, que es lo que el usuario quería de todos modos.
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: selectedTopic.name, url: enlacePublico });
+        return;
+      } catch (e) {
+        if (e?.name === 'AbortError') return;
+      }
+    }
+    copiarEnlace();
+  };
 
   const openTopic = (id) => {
     selectedTopicId = id;
@@ -263,6 +338,57 @@
             </p>
           </div>
         </header>
+
+        <!-- Compartir el tema: publicar le da una URL que se abre sin cuenta -->
+        <div class="topic-share" class:topic-share--activo={selectedTopic.isPublic}>
+          <div class="topic-share__fila">
+            <button
+              type="button"
+              class="topic-share__toggle"
+              class:topic-share__toggle--activo={selectedTopic.isPublic}
+              aria-pressed={!!selectedTopic.isPublic}
+              disabled={publicando}
+              on:click={alternarPublicacion}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                {#if selectedTopic.isPublic}
+                  <path d="M12 2a10 10 0 100 20 10 10 0 000-20zM2 12h20M12 2a15 15 0 010 20 15 15 0 010-20z"/>
+                {:else}
+                  <rect x="4" y="11" width="16" height="10" rx="2"/>
+                  <path d="M8 11V7a4 4 0 118 0v4"/>
+                {/if}
+              </svg>
+              <span>
+                {selectedTopic.isPublic
+                  ? $_('app.topics.share.unpublish')
+                  : $_('app.topics.share.publish')}
+              </span>
+            </button>
+
+            {#if selectedTopic.isPublic && enlacePublico}
+              <button type="button" class="topic-share__accion" on:click={copiarEnlace}>
+                {$_('app.topics.share.copy_link')}
+              </button>
+              <button type="button" class="topic-share__accion topic-share__accion--principal" on:click={compartirEnlace}>
+                {$_('app.topics.share.share')}
+              </button>
+            {/if}
+          </div>
+
+          {#if selectedTopic.isPublic && enlacePublico}
+            <p class="topic-share__enlace"><code>{enlacePublico}</code></p>
+          {/if}
+
+          <p class="topic-share__nota">
+            {selectedTopic.isPublic
+              ? $_('app.topics.share.public_hint')
+              : $_('app.topics.share.private_hint')}
+          </p>
+
+          {#if avisoCompartir}
+            <p class="topic-share__aviso" role="status">{avisoCompartir}</p>
+          {/if}
+        </div>
 
         {#if selectedVerses.length === 0}
           <div class="index-empty">
@@ -619,6 +745,122 @@
     &:focus-within &__delete {
       opacity: 1;
     }
+  }
+
+  // === COMPARTIR TEMA ===
+  .topic-share {
+    display: grid;
+    gap: 0.6rem;
+    margin: 0 0 1.25rem;
+    padding: 0.9rem 1rem;
+    border: 1px dashed var(--color-line);
+    border-radius: var(--radius-md);
+    background: var(--color-surface-sunken);
+
+    // Publicado: el borde deja de ser punteado y toma el color del acento,
+    // para que se vea de un vistazo que el tema está fuera.
+    &--activo {
+      border-style: solid;
+      border-color: color-mix(in srgb, var(--color-accent) 45%, transparent);
+    }
+  }
+
+  .topic-share__fila {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .topic-share__toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.45rem 0.9rem;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-pill);
+    background: var(--color-surface);
+    color: var(--color-ink);
+    font-size: var(--font-size-small);
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+
+    svg { width: 0.95rem; height: 0.95rem; }
+
+    &:hover:not(:disabled) {
+      border-color: var(--color-accent);
+      color: var(--color-accent);
+    }
+
+    &:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    &--activo {
+      border-color: var(--color-accent);
+      background: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface));
+      color: var(--color-accent);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--color-accent);
+      outline-offset: 2px;
+    }
+  }
+
+  .topic-share__accion {
+    padding: 0.45rem 0.9rem;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-pill);
+    background: transparent;
+    color: var(--color-ink);
+    font-size: var(--font-size-small);
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+
+    &:hover {
+      border-color: var(--color-accent);
+      color: var(--color-accent);
+    }
+
+    &--principal {
+      border-color: var(--color-accent);
+      background: var(--color-accent);
+      color: var(--color-on-primary);
+
+      &:hover {
+        background: var(--color-accent-hover);
+        border-color: var(--color-accent-hover);
+        color: var(--color-on-primary);
+      }
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--color-accent);
+      outline-offset: 2px;
+    }
+  }
+
+  .topic-share__enlace {
+    margin: 0;
+    overflow-wrap: anywhere;
+
+    code {
+      font-size: var(--font-size-tiny);
+      color: var(--color-ink-soft);
+    }
+  }
+
+  .topic-share__nota,
+  .topic-share__aviso {
+    margin: 0;
+    font-size: var(--font-size-tiny);
+    color: var(--color-ink-soft);
+  }
+
+  .topic-share__aviso {
+    font-weight: 600;
+    color: var(--color-accent);
   }
 
   // === TOPIC DETAIL ===
