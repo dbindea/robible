@@ -14,12 +14,16 @@
    * Guardado automático: se escribe en el dispositivo al instante y se sube con
    * retardo. Sin botón de guardar; sólo un «Salvat» discreto.
    */
-  import { onDestroy, onMount } from 'svelte';
+  import { onDestroy, onMount, tick } from 'svelte';
   import { _ } from '../../services/i18n.service';
   import { sermonsStore } from '../../store/sermonsStore';
   import { buildSnapshot } from '../../services/sermon-pulpit.service';
+  import Icon from '../../components/Icon.svelte';
+  import Modal from '../../components/Modal.svelte';
+  import { searchReferences } from '../../services/referenceSearch.service';
   import {
     STEPS,
+    alternarMarca as envolverEnMarca,
     collectReferences,
     emptyContent,
     generateOutline,
@@ -48,6 +52,99 @@
   // Vista final y schiță
   let vista = 'prep'; // 'prep' | 'final' | 'outline'
   let outline = null;
+
+  // ── Marcado de palabras para la schiță ──────────────────────────────────
+  //
+  // Se guarda la referencia a cada textarea para poder leer qué hay
+  // seleccionado y devolver el cursor a su sitio después de marcar. Sin eso el
+  // cursor salta al final del campo en cada marca, que al escribir es
+  // insufrible.
+  let areas = {};
+  let seleccion = {}; // clave del campo → true si hay algo seleccionado
+
+  const refrescarSeleccion = (puntoId, campo) => {
+    const el = areas[`${puntoId}:${campo}`];
+    seleccion = { ...seleccion, [`${puntoId}:${campo}`]: !!el && el.selectionStart !== el.selectionEnd };
+  };
+
+  const marcarSeleccion = async (puntoId, campo) => {
+    const el = areas[`${puntoId}:${campo}`];
+    if (!el) return;
+    const d = desarrolloDe(puntoId);
+    const r = envolverEnMarca(d[campo] || '', el.selectionStart, el.selectionEnd);
+    d[campo] = r.texto;
+    content = content; // Svelte no ve la mutación dentro del objeto anidado.
+    guardarContenido();
+    // El valor no está en el DOM hasta que Svelte repinta; sin esperar, la
+    // selección se restauraría sobre el texto viejo.
+    await tick();
+    el.focus();
+    el.setSelectionRange(r.desde, r.hasta);
+    refrescarSeleccion(puntoId, campo);
+  };
+
+  // ── Referencias a otros pasajes ─────────────────────────────────────────
+  let buscadorAbierto = false;
+  let puntoDeLaRef = '';
+  let consultaRef = '';
+  let sugerenciasRef = [];
+
+  const abrirBuscadorRefs = (puntoId) => {
+    puntoDeLaRef = puntoId;
+    consultaRef = '';
+    sugerenciasRef = [];
+    buscadorAbierto = true;
+  };
+
+  const buscarRef = () => {
+    sugerenciasRef = consultaRef.trim() ? searchReferences(consultaRef, map, 5) : [];
+  };
+
+  /**
+   * Guarda la referencia **con su texto ya resuelto**.
+   *
+   * Es lo que permite que el Modo Amvon la abra sin conexión: allí no se
+   * resuelve nada contra la Biblia, se lee lo que quedó guardado (ver
+   * `sermon-pulpit.service.js`).
+   */
+  const añadirRef = (m) => {
+    if (!m || !Number.isInteger(m.book) || !m.chapter || !m.verse) return;
+    const d = desarrolloDe(puntoDeLaRef);
+    d.refs = d.refs || [];
+    const label = `${map[m.book] || ''} ${m.chapter}:${m.verse}`.trim();
+    if (!d.refs.some((r) => r.label === label)) {
+      d.refs = [...d.refs, {
+        book: m.book,
+        chapter: m.chapter,
+        verse: m.verse,
+        label,
+        text: bible?.[m.book]?.[m.chapter - 1]?.[m.verse - 1] || '',
+      }];
+    }
+    content = content;
+    guardarContenido();
+    buscadorAbierto = false;
+  };
+
+  // ── Impresión ───────────────────────────────────────────────────────────
+  //
+  // Por si el móvil falla delante de la congregación. La orientación la decide
+  // la vista: el documento en retrato, porque es texto seguido, y la schiță en
+  // apaisado a dos columnas, para doblarla por la mitad y llevarla en la Biblia.
+  //
+  // El navegador hace todo el trabajo: no hay generador de PDF ni librería. Se
+  // imprime desde el diálogo del sistema, que en cualquier navegador de hoy
+  // permite «Guardar como PDF».
+  const imprimir = () => {
+    if (typeof window !== 'undefined') window.print();
+  };
+
+  const quitarRef = (puntoId, ref) => {
+    const d = desarrolloDe(puntoId);
+    d.refs = (d.refs || []).filter((r) => r.label !== ref.label);
+    content = content;
+    guardarContenido();
+  };
 
   $: pasoIndex = STEPS.indexOf(paso);
   $: completado = stepCompletion(content);
@@ -359,7 +456,7 @@
           {#each ['repeats', 'contrasts', 'actions', 'tension', 'truth'] as clave (clave)}
             <label class="campo">
               <span>{$_(`app.sermons.obs_${clave}`)}</span>
-              <textarea rows="3" bind:value={content.observation[clave]} on:input={guardarContenido}></textarea>
+              <textarea rows="5" bind:value={content.observation[clave]} on:input={guardarContenido}></textarea>
             </label>
           {/each}
         </div>
@@ -389,7 +486,7 @@
           {#each ['before', 'after', 'historical'] as clave (clave)}
             <label class="campo">
               <span>{$_(`app.sermons.ctx_${clave}`)}</span>
-              <textarea rows="3" bind:value={content.context[clave]} on:input={guardarContenido}></textarea>
+              <textarea rows="5" bind:value={content.context[clave]} on:input={guardarContenido}></textarea>
             </label>
           {/each}
         </div>
@@ -406,7 +503,7 @@
           <label class="campo">
             <span>{$_('app.sermons.idea_purpose')}</span>
             <small class="campo__pista">{$_('app.sermons.idea_purpose_help')}</small>
-            <textarea rows="3" bind:value={content.idea.purpose} on:input={guardarContenido}></textarea>
+            <textarea rows="5" bind:value={content.idea.purpose} on:input={guardarContenido}></textarea>
           </label>
           <label class="campo">
             <span>{$_('app.sermons.idea_question')}</span>
@@ -473,18 +570,64 @@
               {@const d = desarrolloDe(punto.id)}
               <div class="punto">
                 <h3 class="punto__nombre">{i + 1}. {punto.title || $_('app.sermons.point_placeholder')}</h3>
-                <label class="campo">
-                  <span>{$_('app.sermons.dev_explain')}</span>
-                  <textarea rows="3" bind:value={d.explain} on:input={guardarContenido}></textarea>
-                </label>
-                <label class="campo">
-                  <span>{$_('app.sermons.dev_illustrate')}</span>
-                  <textarea rows="3" bind:value={d.illustrate} on:input={guardarContenido}></textarea>
-                </label>
-                <label class="campo">
-                  <span>{$_('app.sermons.dev_apply')}</span>
-                  <textarea rows="3" bind:value={d.apply} on:input={guardarContenido}></textarea>
-                </label>
+
+                {#each ['explain', 'illustrate', 'apply'] as campo (campo)}
+                  <div class="campo">
+                    <div class="campo__cabecera">
+                      <span>{$_(`app.sermons.dev_${campo}`)}</span>
+                      <!-- Marca lo seleccionado para que salga en la schiță. Se
+                           deshabilita si no hay nada seleccionado, que es la
+                           forma más corta de explicar que hay que elegir antes. -->
+                      <button
+                        type="button"
+                        class="campo__marcar"
+                        disabled={!seleccion[`${punto.id}:${campo}`]}
+                        on:click={() => marcarSeleccion(punto.id, campo)}
+                        title={$_('app.sermons.mark_help')}
+                      >
+                        <Icon name="highlight" size="0.85rem" />
+                        {$_('app.sermons.mark_keyword')}
+                      </button>
+                    </div>
+                    <textarea
+                      rows="6"
+                      bind:this={areas[`${punto.id}:${campo}`]}
+                      bind:value={d[campo]}
+                      on:input={guardarContenido}
+                      on:select={() => refrescarSeleccion(punto.id, campo)}
+                      on:keyup={() => refrescarSeleccion(punto.id, campo)}
+                      on:mouseup={() => refrescarSeleccion(punto.id, campo)}
+                    ></textarea>
+                  </div>
+                {/each}
+
+                <!-- Referencias a otros pasajes: en la schiță se ve sólo la
+                     cita; en el púlpito, el texto entero. -->
+                <div class="refs">
+                  <span class="refs__titulo">{$_('app.sermons.refs_title')}</span>
+                  {#if (d.refs || []).length}
+                    <ul class="refs__lista">
+                      {#each d.refs as ref (ref.label)}
+                        <li>
+                          <span class="refs__cita">{ref.label}</span>
+                          <button
+                            type="button"
+                            class="refs__quitar"
+                            aria-label={$_('app.sermons.refs_remove')}
+                            on:click={() => quitarRef(punto.id, ref)}
+                          >
+                            <Icon name="close" size="0.7rem" />
+                          </button>
+                        </li>
+                      {/each}
+                    </ul>
+                  {:else}
+                    <p class="refs__vacio">{$_('app.sermons.refs_empty')}</p>
+                  {/if}
+                  <button type="button" class="refs__añadir" on:click={() => abrirBuscadorRefs(punto.id)}>
+                    + {$_('app.sermons.refs_add')}
+                  </button>
+                </div>
               </div>
             {/each}
           {/if}
@@ -497,12 +640,12 @@
           <label class="campo">
             <span>{$_('app.sermons.intro')}</span>
             <small class="campo__pista">{$_('app.sermons.intro_help')}</small>
-            <textarea rows="5" bind:value={content.intro} on:input={guardarContenido}></textarea>
+            <textarea rows="8" bind:value={content.intro} on:input={guardarContenido}></textarea>
           </label>
           <label class="campo">
             <span>{$_('app.sermons.conclusion')}</span>
             <small class="campo__pista">{$_('app.sermons.conclusion_help')}</small>
-            <textarea rows="5" bind:value={content.conclusion} on:input={guardarContenido}></textarea>
+            <textarea rows="8" bind:value={content.conclusion} on:input={guardarContenido}></textarea>
           </label>
           <button type="button" class="prep__cta" on:click={verFinal}>
             {$_('app.sermons.finish')}
@@ -549,9 +692,10 @@
         {/if}
       </article>
 
-      <div class="prep__acciones">
+      <div class="prep__acciones no-imprimir">
         <button type="button" on:click={() => (vista = 'prep')}>{$_('app.sermons.edit')}</button>
         <button type="button" on:click={crearSchita}>{$_('app.sermons.create_outline')}</button>
+        <button type="button" on:click={imprimir}>{$_('app.sermons.print_sermon')}</button>
         <button type="button" class="prep__cta" on:click={marcarPreparada}>
           {$_('app.sermons.mark_ready')}
         </button>
@@ -601,19 +745,265 @@
         </label>
       </div>
 
-      <div class="prep__acciones">
+      <div class="prep__acciones no-imprimir">
         <button type="button" on:click={() => (vista = 'final')}>← {$_('app.sermons.back_to_sermon')}</button>
         <button type="button" on:click={regenerarSchita}>{$_('app.sermons.regenerate_outline')}</button>
+        <button type="button" on:click={imprimir}>{$_('app.sermons.print_outline')}</button>
       </div>
     {/if}
   {/if}
 </section>
 
+<!-- Buscador de referencias. Reutiliza `searchReferences`, el mismo que el
+     buscador de la Biblia: escribiendo «ioan 3 16» salen las sugerencias. -->
+<Modal
+  open={buscadorAbierto}
+  title={$_('app.sermons.refs_add')}
+  eyebrow={$_('app.sermons.refs_title')}
+  size="sm"
+  fitContent
+  onClose={() => (buscadorAbierto = false)}
+>
+  <label class="campo">
+    <span>{$_('app.sermons.refs_search')}</span>
+    <input
+      type="text"
+      bind:value={consultaRef}
+      on:input={buscarRef}
+      placeholder={$_('app.sidebar.form.reference_placeholder')}
+    />
+  </label>
+
+  {#if sugerenciasRef.length}
+    <ul class="sugerencias">
+      {#each sugerenciasRef as m (`${m.book}:${m.chapter}:${m.verse}`)}
+        <li>
+          <button type="button" on:click={() => añadirRef(m)}>
+            <span class="sugerencias__cita">{map[m.book]} {m.chapter}{m.verse ? `:${m.verse}` : ''}</span>
+            {#if m.verse}
+              <span class="sugerencias__texto">{bible?.[m.book]?.[m.chapter - 1]?.[m.verse - 1] || ''}</span>
+            {/if}
+          </button>
+        </li>
+      {/each}
+    </ul>
+  {:else if consultaRef.trim()}
+    <p class="bloque__ayuda">{$_('app.sermons.refs_none')}</p>
+  {/if}
+</Modal>
+
 <style lang="scss">
   .prep {
-    max-width: 46rem;
+    // 46rem → 69rem, un 50% más. Preparar una predicación es escribir mucho
+    // rato seguido, y con la columna estrecha el texto se siente ahogado entre
+    // los márgenes. En pantallas pequeñas manda el ancho disponible, así que el
+    // cambio sólo se nota donde hay sitio.
+    max-width: 69rem;
     margin: 0 auto;
     padding: clamp(0.5rem, 2vw, 1.5rem) 0 4rem;
+  }
+
+  // ── Impresión ───────────────────────────────────────────
+  //
+  // El documento en retrato y la schiță en apaisado a dos columnas. Las páginas
+  // con nombre (`@page retrato` / `@page apaisado`) están en global.css; aquí
+  // sólo se dice qué elemento va en cuál y cómo se compone cada uno.
+  @media print {
+    .prep {
+      max-width: none;
+      padding: 0;
+    }
+
+    .documento {
+      page: retrato;
+      font-size: 11.5pt;
+      line-height: 1.5;
+    }
+
+    // Un punto no debería empezar al final de una hoja y seguir en la siguiente.
+    .documento :global(h3) {
+      break-after: avoid;
+      break-inside: avoid;
+    }
+
+    .documento :global(p) {
+      orphans: 3;
+      widows: 3;
+    }
+
+    // La schiță: dos columnas sobre A4 apaisado. Cada columna es la mitad de la
+    // hoja, así que al doblar por el medio queda un cuadernillo A5 que cabe
+    // dentro de la Biblia.
+    .bloque {
+      page: apaisado;
+      columns: 2;
+      column-gap: 18mm;
+      // La línea del doblez, para saber por dónde va sin medir.
+      column-rule: 1px dashed #bbbbbb;
+    }
+
+    // Un punto entero no se parte entre columnas: en el atril, medio punto en
+    // cada mitad es peor que dejar hueco.
+    .bloque :global(.schita-punto),
+    .bloque :global(.campo) {
+      break-inside: avoid;
+    }
+  }
+
+  // ── Marcar palabras para la schiță ──────────────────────
+  .campo__cabecera {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  .campo__marcar {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem 0.55rem;
+    border: 1px solid var(--color-line-accent);
+    border-radius: var(--radius-pill);
+    background: var(--wash-accent);
+    color: var(--color-accent-ink);
+    font-size: 0.72rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: var(--transition);
+
+    &:hover:not(:disabled) {
+      border-color: var(--color-accent);
+      background: var(--wash-accent-strong);
+    }
+
+    // Sin selección no hay nada que marcar: apagado en vez de escondido, para
+    // que el botón enseñe que existe antes de hacer falta.
+    &:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+  }
+
+  // ── Referencias a otros pasajes ─────────────────────────
+  .refs {
+    margin-top: 0.75rem;
+    padding: 0.65rem 0.8rem;
+    border: 1px dashed var(--color-line-strong);
+    border-radius: var(--radius-md);
+    background: var(--wash-subtle);
+  }
+
+  .refs__titulo {
+    display: block;
+    margin-bottom: 0.4rem;
+    color: var(--color-ink-soft);
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: var(--letter-spacing-eyebrow);
+  }
+
+  .refs__vacio {
+    margin: 0 0 0.5rem;
+    color: var(--color-ink-soft);
+    font-size: 0.82rem;
+  }
+
+  .refs__lista {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin: 0 0 0.5rem;
+    padding: 0;
+    list-style: none;
+
+    li {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.2rem 0.3rem 0.2rem 0.6rem;
+      border: 1px solid var(--color-line-accent);
+      border-radius: var(--radius-pill);
+      background: var(--color-surface-raised);
+    }
+  }
+
+  .refs__cita {
+    color: var(--color-accent-ink);
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+
+  .refs__quitar {
+    display: grid;
+    place-items: center;
+    width: 1.15rem;
+    height: 1.15rem;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: transparent;
+    color: var(--color-ink-soft);
+    cursor: pointer;
+
+    &:hover { background: var(--wash-hover); color: var(--color-danger); }
+  }
+
+  .refs__añadir {
+    padding: 0.3rem 0.7rem;
+    border: 1px solid var(--color-line-accent);
+    border-radius: var(--radius-pill);
+    background: transparent;
+    color: var(--color-accent-ink);
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+
+    &:hover { background: var(--wash-accent); }
+  }
+
+  // ── Sugerencias del buscador ────────────────────────────
+  .sugerencias {
+    display: grid;
+    gap: 0.3rem;
+    margin: 0.6rem 0 0;
+    padding: 0;
+    list-style: none;
+
+    button {
+      display: grid;
+      gap: 0.15rem;
+      width: 100%;
+      padding: 0.5rem 0.65rem;
+      border: 1px solid var(--color-line);
+      border-radius: var(--radius-md);
+      background: var(--color-surface-raised);
+      text-align: left;
+      cursor: pointer;
+      transition: var(--transition);
+
+      &:hover, &:focus-visible {
+        border-color: var(--color-accent);
+        background: var(--wash-accent);
+      }
+    }
+  }
+
+  .sugerencias__cita {
+    color: var(--color-accent-ink);
+    font-size: 0.85rem;
+    font-weight: 700;
+  }
+
+  .sugerencias__texto {
+    color: var(--color-ink-soft);
+    font-size: 0.8rem;
+    line-height: 1.4;
+    // Dos líneas bastan para reconocer el versículo sin que la lista crezca.
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 
   .prep__estado {

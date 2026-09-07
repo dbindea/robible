@@ -474,7 +474,17 @@
       "back_to_sermon": "Volver a la predicación",
       "action_continue": "Continuar la preparación",
       "action_view": "Ver la predicación",
-      "action_preach_again": "Predicar de nuevo"
+      "action_preach_again": "Predicar de nuevo",
+      "mark_keyword": "Marcar",
+      "mark_help": "Selecciona una palabra o expresión y márcala: aparecerá en la schiță.",
+      "refs_title": "Referencias",
+      "refs_add": "Referencia",
+      "refs_remove": "Quitar la referencia",
+      "refs_empty": "Todavía no hay referencias.",
+      "refs_search": "Buscar la referencia",
+      "refs_none": "No se ha encontrado ninguna referencia.",
+      "print_sermon": "Imprimir la predicación",
+      "print_outline": "Imprimir la schiță"
     },
     "pulpit": {
       "mode": "Modo púlpito",

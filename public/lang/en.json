@@ -474,7 +474,17 @@
       "back_to_sermon": "Back to the sermon",
       "action_continue": "Continue preparing",
       "action_view": "View the sermon",
-      "action_preach_again": "Preach again"
+      "action_preach_again": "Preach again",
+      "mark_keyword": "Mark",
+      "mark_help": "Select a word or phrase and mark it: it will appear in the outline.",
+      "refs_title": "References",
+      "refs_add": "Reference",
+      "refs_remove": "Remove reference",
+      "refs_empty": "No references yet.",
+      "refs_search": "Search for the reference",
+      "refs_none": "No reference found.",
+      "print_sermon": "Print the sermon",
+      "print_outline": "Print the outline"
     },
     "pulpit": {
       "mode": "Pulpit mode",
