@@ -583,6 +583,34 @@ tamaño se pasa con `--icon-size` en el contenedor y `Icon.svelte` lleva
 cuadrados y al tamaño pedido. **Lo delató el aviso de "Unused CSS selector" del
 build**, que conviene no ignorar.
 
+### Fase 7.4 — Música y apilado de diálogos ✅ (2026-09-07)
+
+**El player no respondía a los mandos.** Diagnosticado midiendo la salida de audio
+real: se coló un `AnalyserNode` antes del `destination` y se comparó nivel y
+centroide espectral en cada transición. Dos fallos, ambos de diseño:
+
+- **Todo colgaba de un único nodo de ganancia**, el mismo que regula el volumen del usuario. `stop()` programaba un desvanecido de un segundo sobre él y el `play()` siguiente lo cancelaba para hacer su propio fundido de entrada: **la pista vieja seguía sonando, y subiendo de volumen, encima de la nueva**. Ahora cada reproducción tiene su `voiceGain` propio; apagar una no toca a la otra y `musicGain` queda sólo para el usuario — antes cada `play()` lo reescribía y borraba el nivel del deslizador.
+- **El apagado se remataba con `node.stop(cuando)`, sobre el reloj del contexto.** Al pausar se llama a `suspend()` y ese reloj se congela, así que un stop programado **no llega nunca**: la pista quedaba viva y volvía a sonar en cuanto algo reanudaba el contexto. Ahora se desconecta con `setTimeout`, que es reloj de pared.
+- **Los tres ambientes se sintetizaban sobre la misma tónica** (Do), así que sonaban a variaciones de lo mismo y el desplegable parecía no hacer nada. Cada uno tiene ya la suya: Re, La y Fa. Medido: los centroides pasan de 60/26/31 a 75/28/42.
+- De paso, `activeVoices` crecía sin límite — ninguna voz se retiraba al acabar sola.
+
+Verificado con el analizador: transición limpia (el nuevo ambiente domina ya a
+1,4 s, antes se mezclaban) y nivel **exactamente 0** tras el stop, incluido el
+caso de pausar antes de parar.
+
+⚠️ Honestidad sobre el método: **no conseguí reproducir los síntomas con
+secuencias simples** —ni rápidas, ni con el contexto suspendido—. Los arreglos
+salen de leer el código con las medidas delante, no de ver el fallo. Si algo
+sigue sin responder, hay que volver a mirar.
+
+**El selector de libros no se podía usar dentro del diálogo de predicación
+nueva.** Un solo fallo con tres síntomas: `BookDrawer` estaba en z-index 20/21 y
+el `Modal` en 110, así que el cajón se dibujaba **debajo** del velo — se veía
+desenfocado, los clics no le llegaban, y al pulsar un libro el clic caía en el
+velo, que cierra el diálogo. El cajón pasa a 120/121: por encima de cualquier
+modal y por debajo del Modo Amvon (200). Verificado en pantalla: se elige el
+libro, el cajón se cierra y la predicación sigue abierta.
+
 **Los botones flotantes tapaban el pie al llegar al final de la página.** El
 arreglo anterior los apartaba del player, pero no del pie: «Subir» y «pantalla
 completa» caían justo encima de «Autentificare» y del selector de paleta, que

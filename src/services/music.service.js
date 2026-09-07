@@ -26,12 +26,15 @@
 // `chordSeconds` cuánto dura cada acorde. Largo = ambiente; corto = canción.
 // `peak`         volumen de cada voz. El conjunto se regula aparte con setVolume.
 // `drone`        nota tenida bajo la progresión, para dar cuerpo.
+// `root`         tónica, en semitonos sobre Do. Cada ambiente tiene la suya: con
+//                los tres en Do sonaban a lo mismo y cambiar no se notaba.
 // `progression`  grados sobre la tónica, con el tipo de acorde.
 export const AMBIENCES = [
   {
     key: 'ebraica',
     url: '/assets/audio/ebraica.mp3',
     octave: 3,
+    root: 2, // Re
     chordSeconds: 10,
     peak: 0.045,
     drone: true,
@@ -49,6 +52,7 @@ export const AMBIENCES = [
   {
     key: 'rugaciune',
     url: '/assets/audio/rugaciune.mp3',
+    root: 9, // La, grave y oscuro
     // Dos octavas por debajo del ambiente neutro: es lo que pide "más grave,
     // más envolvente, menos aguda". Acordes muy largos y casi sin melodía, para
     // que se pueda orar o escuchar la Biblia sin que la música tire de la atención.
@@ -67,6 +71,7 @@ export const AMBIENCES = [
   {
     key: 'liniste',
     url: '/assets/audio/liniste.mp3',
+    root: 5, // Fa, más abierto
     // El más discreto de los tres: pads suaves, sin dramatismo, pensado para
     // dejarlo puesto de fondo mientras se lee.
     octave: 4,
@@ -112,7 +117,7 @@ const CHORD_INTERVALS = {
   sus4: [0, 5, 7],
 };
 
-const BASE_KEY = 0; // C
+
 
 let audioContext = null;
 let masterGain = null;
@@ -126,6 +131,18 @@ const trackBuffers = new Map();
 const trackMissing = new Set();
 const trackLoading = new Map();
 
+// ── Una reproducción, un nodo de ganancia ────────────────────────────────────
+//
+// Todo colgaba antes de `musicGain`, el mismo nodo que regula el volumen del
+// usuario. Eso hacía imposible parar bien: `stop()` programaba un desvanecido de
+// un segundo sobre ese nodo y el `play()` siguiente lo cancelaba de inmediato
+// para hacer su propio fundido de entrada, así que la pista vieja seguía sonando
+// —y subiendo de volumen— encima de la nueva. Al cambiar de ambiente se oían las
+// dos a la vez, que es justo lo que parece "no ha cambiado nada".
+//
+// Ahora cada reproducción cuelga de su propio `voiceGain`. Apagar una no toca a
+// la otra, el volumen del usuario vive aparte y no hay rampas que se pisen.
+let voiceGain = null;
 let sourceNode = null;
 
 // Estado de la síntesis
@@ -150,7 +167,11 @@ async function initContext() {
     masterGain.connect(audioContext.destination);
 
     musicGain = audioContext.createGain();
-    musicGain.gain.value = 0; // se sube con el fade-in
+    // `musicGain` es SÓLO el volumen del usuario y se queda donde él lo deje.
+    // Antes arrancaba en 0 porque hacía también de fundido de entrada, y por eso
+    // cada `play()` lo reescribía y borraba el nivel elegido con el deslizador.
+    // El fundido vive ahora en el nodo de cada reproducción.
+    musicGain.gain.value = desiredVolume;
     musicGain.connect(masterGain);
 
     _initialized = true;
@@ -229,11 +250,20 @@ function playChord(rootMidi, rootOffset, type, when, duration, ambience) {
     gain.gain.linearRampToValueAtTime(0, when + duration);
 
     osc.connect(gain);
-    gain.connect(musicGain);
+    gain.connect(voiceGain);
     osc.start(when);
     osc.stop(when + duration + 0.1);
 
-    activeVoices.push({ osc, gain });
+    const voz = { osc, gain };
+    activeVoices.push(voz);
+    // Sin esto la lista crecía sin parar: cada acorde añadía tres o cuatro voces
+    // y ninguna se retiraba al acabar sola. En una lectura larga acababa con
+    // cientos de osciladores muertos que `stop()` recorría uno a uno.
+    osc.addEventListener('ended', () => {
+      const i = activeVoices.indexOf(voz);
+      if (i >= 0) activeVoices.splice(i, 1);
+      try { gain.disconnect(); } catch { /* ya desconectado */ }
+    });
   }
 }
 
@@ -254,7 +284,7 @@ function startDrone(rootMidi, ambience) {
     gain.gain.linearRampToValueAtTime(peak, audioContext.currentTime + 3);
 
     osc.connect(gain);
-    gain.connect(musicGain);
+    gain.connect(voiceGain);
     osc.start();
 
     droneVoices.push({ osc, gain });
@@ -263,7 +293,7 @@ function startDrone(rootMidi, ambience) {
 
 function startProgression(ambience) {
   if (!audioContext) return;
-  const rootMidi = 12 * (ambience.octave + 1) + BASE_KEY;
+  const rootMidi = 12 * (ambience.octave + 1) + (ambience.root ?? 0);
 
   if (ambience.drone && !droneVoices.length) startDrone(rootMidi, ambience);
 
@@ -320,21 +350,28 @@ export async function play(track = 'liniste') {
   // stop() pudo haberse llamado mientras se descargaba
   if (currentTrack !== key) return;
 
+  // Nodo propio de esta reproducción. Nace en silencio y sube; el anterior se
+  // apaga por su cuenta en `stop()`, sin que ninguno pise la rampa del otro.
+  voiceGain = audioContext.createGain();
+  voiceGain.gain.value = 0;
+  voiceGain.connect(musicGain);
+
   if (buffer) {
     sourceNode = audioContext.createBufferSource();
     sourceNode.buffer = buffer;
     sourceNode.loop = true; // bucle infinito, sin hueco entre vueltas
-    sourceNode.connect(musicGain);
+    sourceNode.connect(voiceGain);
     sourceNode.start(0);
   } else {
     startProgression(ambience);
   }
 
-  // Fade-in
+  // Fundido de entrada sobre el nodo propio. `musicGain` queda para el volumen
+  // del usuario y no se toca aquí: antes se reescribía en cada play y borraba
+  // el nivel que el usuario acababa de elegir con el deslizador.
   const now = audioContext.currentTime;
-  musicGain.gain.cancelScheduledValues(now);
-  musicGain.gain.setValueAtTime(0, now);
-  musicGain.gain.linearRampToValueAtTime(desiredVolume, now + FADE_IN_SEC);
+  voiceGain.gain.setValueAtTime(0, now);
+  voiceGain.gain.linearRampToValueAtTime(1, now + FADE_IN_SEC);
 }
 
 /**
@@ -364,25 +401,36 @@ export async function resume() {
 }
 
 export function stop() {
+  // Se sueltan las referencias ANTES de apagar nada: si mientras se desvanece
+  // entra un `play()`, ya no puede tocar lo que está muriendo.
+  const nodo = sourceNode;
+  const salida = voiceGain;
+  sourceNode = null;
+  voiceGain = null;
+
   clearSynthVoices();
-
-  if (sourceNode) {
-    const node = sourceNode;
-    sourceNode = null;
-    // Fade-out corto y luego parar, para no cortar en seco.
-    if (audioContext && musicGain) {
-      const now = audioContext.currentTime;
-      musicGain.gain.cancelScheduledValues(now);
-      musicGain.gain.setValueAtTime(musicGain.gain.value, now);
-      musicGain.gain.linearRampToValueAtTime(0, now + FADE_OUT_SEC);
-      try { node.stop(now + FADE_OUT_SEC + 0.05); } catch { /* ya parado */ }
-    } else {
-      try { node.stop(); } catch { /* ya parado */ }
-    }
-  }
-
   currentTrack = 'none';
   progressionIndex = 0;
+
+  if (!salida) return;
+
+  if (audioContext) {
+    const now = audioContext.currentTime;
+    salida.gain.cancelScheduledValues(now);
+    salida.gain.setValueAtTime(salida.gain.value, now);
+    salida.gain.linearRampToValueAtTime(0, now + FADE_OUT_SEC);
+  }
+
+  // El desconectado va por temporizador de pared y no por `node.stop(cuando)`.
+  // El reloj del contexto se congela al pausar (`suspend()`), así que un stop
+  // programado sobre ese reloj **no llega nunca**: la pista se quedaba viva y
+  // volvía a sonar en cuanto algo reanudaba el contexto. Con `setTimeout` el
+  // apagado ocurre igual, esté el audio corriendo o suspendido.
+  setTimeout(() => {
+    try { nodo?.stop(); } catch { /* ya parado */ }
+    try { nodo?.disconnect(); } catch { /* ya desconectado */ }
+    try { salida.disconnect(); } catch { /* ya desconectado */ }
+  }, FADE_OUT_SEC * 1000 + 60);
 }
 
 export function setVolume(vol) {
