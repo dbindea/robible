@@ -405,6 +405,26 @@ Rugăciune (drone grave), Liniște. Sin ficheros nuevos: cero licencias y offlin
 
 **Verificado en el navegador**: los tres ambientes generan registros distintos (rugăciune 65-131 Hz, ebraică 131-262, liniște 262-494); la escala hebrea produce Do, Do#, Mi, Fa, Sol, Sol# — frigia dominante con la segunda aumentada característica; `rugaciune` reproduce desde fichero y los otros dos caen a síntesis.
 
+### Fase 5.A — «Predicile mele»: cimientos y lista ✅ COMPLETADA (2026-09-07, schema 9)
+
+- [x] Tabla `sermons` con `content_json` y `outline_json`
+- [x] `GET/POST/GET:id/PATCH/DELETE /api/sermons`, desplegado (versión `319fbad1`)
+- [x] `sermons.service.js` **local-first** + `sermonsStore.js`
+- [x] Item "Predicile mele" en el menú, sólo para `preacher`
+- [x] Ruta `/predici` con lista, filtros por estado, búsqueda y creación con vista previa de la perícopa
+
+**Decisiones que conviene no deshacer:**
+- **El servicio invierte el patrón del resto de la app.** Favoritos o notas son API-first con localStorage de respaldo; aquí manda lo local y el backend es la copia. El motivo es el Modo Amvon: un predicador en el púlpito no puede depender de la cobertura, y un guardado perdido por un wifi malo es trabajo tirado.
+- **`updateSermon` devuelve `ok: true` aunque la subida falle.** Para el usuario el trabajo está guardado —lo está, en su dispositivo— y decirle lo contrario le haría repetirlo. El campo `synced` distingue los dos casos.
+- **Los endpoints NO filtran por tipo de cuenta.** El tipo decide qué menús se ven, no de quién son los datos: si alguien vuelve a `user`, sus predicaciones siguen siendo suyas. Bloquear aquí las escondería sin borrarlas.
+- **La lista no devuelve `content_json` ni `outline_json`.** Con veinte predicaciones preparadas la diferencia son megabytes en cada carga de pantalla.
+- **Las fechas de preparada y predicada las pone el servidor**, derivadas del estado. Si las mandara el cliente podría afirmar que predicó algo el año pasado.
+- La ruta `/predici` no se traduce por idioma: es privada, va con `noindex` y no gana nada teniendo cuatro formas.
+
+**Verificado en el navegador**: el item aparece para el predicador y no para el usuario normal (escenario 4); crear desde la interfaz llega a pantalla, servidor y dispositivo; **cortando la red**, crear y editar siguen funcionando, quedan marcadas como pendientes, y la predicación creada sin conexión **sobrevive a la siguiente sincronización con su contenido intacto**.
+
+**Pendiente (5.B y 5.C)**: la preparación guiada en siete pasos, el documento final, la schiță y el Modo Amvon.
+
 ### Fase 5 — Módulo «Predicile mele» (schema 9)
 
 Sólo para `preacher`. Preparación guiada por pasos → predicación → schiță → **Modo Amvon

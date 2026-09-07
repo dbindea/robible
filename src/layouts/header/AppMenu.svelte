@@ -17,15 +17,22 @@
     { key: 'index', icon: 'bookmark', enabled: true, pathKey: 'indexPath', defaultHref: '/indice' },
     { key: 'favorites', icon: 'star', enabled: true, pathKey: 'favoritesPath', defaultHref: '/favorites' },
     { key: 'notes', icon: 'notes', enabled: true, pathKey: 'notesPath', defaultHref: '/notes' },
+    // Sólo para cuentas de tipo predicador. No se traduce por idioma: es una
+    // ruta privada, no indexable, y no gana nada teniendo cuatro formas.
+    { key: 'sermons', icon: 'sermons', enabled: true, defaultHref: '/predici', onlyPreacher: true },
     { key: 'user', icon: 'user', enabled: false },
   ];
 
-  $: staticItems = staticItemDefs.map((def) => {
-    if (def.key === 'home') return { ...def, href: '/' };
-    const config = getBibleVersionConfigOrDefault($selectedBibleVersion);
-    const href = config?.[def.pathKey] ? `/${config[def.pathKey]}` : def.defaultHref;
-    return { ...def, href };
-  });
+  // El menú se recalcula con el usuario: al pasar de usuario a predicador (o al
+  // revés) el item aparece o desaparece sin recargar.
+  $: staticItems = staticItemDefs
+    .filter((def) => !def.onlyPreacher || $currentUser?.userType === 'preacher')
+    .map((def) => {
+      if (def.key === 'home') return { ...def, href: '/' };
+      const config = getBibleVersionConfigOrDefault($selectedBibleVersion);
+      const href = def.pathKey && config?.[def.pathKey] ? `/${config[def.pathKey]}` : def.defaultHref;
+      return { ...def, href };
+    });
 
   $: if (typeof document !== 'undefined') {
     document.body.classList.toggle('app-menu-open', $appMenuOpen);
@@ -124,6 +131,14 @@
                   <line x1="16" y1="13" x2="8" y2="13"/>
                   <line x1="16" y1="17" x2="8" y2="17"/>
                   <polyline points="10 9 9 9 8 9"/>
+                </svg>
+              {:else if item.icon === 'sermons'}
+                <!-- Atril: la imagen del púlpito, que es donde acaba una predicación -->
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 4h16l-2 4H6z"/>
+                  <path d="M12 8v9"/>
+                  <path d="M8 21h8"/>
+                  <path d="M9 17h6l1 4H8z"/>
                 </svg>
               {:else if item.icon === 'user'}
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

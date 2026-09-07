@@ -286,6 +286,10 @@
           "label": "Autenticación",
           "hint": "Sincronización entre dispositivos",
           "signed_in_hint": "Conectado — toca para gestionar cuenta"
+        },
+        "sermons": {
+          "label": "Mis predicaciones",
+          "hint": "Prepara y presenta predicaciones"
         }
       }
     },
@@ -355,6 +359,47 @@
       "open": "Ver en contexto",
       "share": "Compartir",
       "never": "No volver a mostrar"
+    },
+    "sermons": {
+      "eyebrow": "Predicaciones",
+      "title": "Mis predicaciones",
+      "new": "Predicación nueva",
+      "start": "Empezar la preparación",
+      "search": "Busca por título o texto bíblico…",
+      "empty": "Todavía no tienes ninguna predicación",
+      "empty_hint": "Elige un texto bíblico y RoBible te guía paso a paso.",
+      "no_matches": "Ninguna predicación coincide",
+      "untitled": "Sin título",
+      "created": "Predicación creada",
+      "deleted": "Predicación eliminada",
+      "duplicated": "Copia creada",
+      "delete": "Eliminar",
+      "duplicate": "Crear una copia",
+      "filter_label": "Filtrar las predicaciones",
+      "filter_all": "Todas",
+      "filter_draft": "En curso",
+      "filter_ready": "Preparadas",
+      "filter_preached": "Predicadas",
+      "status_draft": "En curso",
+      "status_ready": "Preparada",
+      "status_preached": "Predicada",
+      "type_expositive": "Expositiva",
+      "type_expositive_hint": "Estudia y desarrolla el mensaje de un pasaje bíblico.",
+      "type_textual": "Textual",
+      "type_textual_hint": "Parte de un texto breve y lo desarrolla.",
+      "type_thematic": "Temática",
+      "type_thematic_hint": "Sigue un tema a través de varios pasajes.",
+      "field_title": "Título (opcional)",
+      "field_title_hint": "Ej.: La casa edificada sobre la roca",
+      "field_passage": "El texto bíblico",
+      "field_chapter": "Capítulo",
+      "field_verse_start": "Desde el versículo",
+      "field_verse_end": "Hasta",
+      "field_type": "Tipo de predicación",
+      "pick_book": "Elige el libro",
+      "login_required": "Inicia sesión para preparar tus predicaciones",
+      "only_preachers": "Esta sección es para las cuentas de tipo Predicador",
+      "only_preachers_hint": "Puedes cambiar el tipo de cuenta desde tu perfil."
     }
   },
   "auth": {
@@ -428,7 +473,9 @@
       "unknown": "Ha ocurrido un error. Inténtalo otra vez.",
       "highlight_not_found": "No se ha encontrado el subrayado",
       "invalid_user_type": "Tipo de cuenta no válido",
-      "invalid_email": "La dirección de email no parece correcta"
+      "invalid_email": "La dirección de email no parece correcta",
+      "sermon_not_found": "No se ha encontrado la predicación.",
+      "sermon_content_too_large": "La predicación es demasiado larga para guardarse."
     },
     "user_type": "Tipo de cuenta",
     "user_type_user": "Usuario",

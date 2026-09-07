@@ -286,6 +286,10 @@
           "label": "登录",
           "hint": "设备间同步",
           "signed_in_hint": "已登录 — 点击管理账户"
+        },
+        "sermons": {
+          "label": "我的讲道",
+          "hint": "准备并进行讲道"
         }
       }
     },
@@ -355,6 +359,47 @@
       "open": "查看上下文",
       "share": "分享",
       "never": "不再显示"
+    },
+    "sermons": {
+      "eyebrow": "讲道",
+      "title": "我的讲道",
+      "new": "新建讲道",
+      "start": "开始准备",
+      "search": "按标题或经文搜索…",
+      "empty": "你还没有任何讲道",
+      "empty_hint": "选择一段经文，RoBible 会一步步引导你。",
+      "no_matches": "没有符合的讲道",
+      "untitled": "无标题",
+      "created": "讲道已创建",
+      "deleted": "讲道已删除",
+      "duplicated": "副本已创建",
+      "delete": "删除",
+      "duplicate": "创建副本",
+      "filter_label": "筛选讲道",
+      "filter_all": "全部",
+      "filter_draft": "进行中",
+      "filter_ready": "已准备",
+      "filter_preached": "已讲过",
+      "status_draft": "进行中",
+      "status_ready": "已准备",
+      "status_preached": "已讲过",
+      "type_expositive": "解经式",
+      "type_expositive_hint": "研读并展开一段经文的信息。",
+      "type_textual": "经文式",
+      "type_textual_hint": "从一段短经文出发加以发挥。",
+      "type_thematic": "专题式",
+      "type_thematic_hint": "围绕一个主题贯穿多处经文。",
+      "field_title": "标题（可选）",
+      "field_title_hint": "例如：把房子盖在磐石上",
+      "field_passage": "经文",
+      "field_chapter": "章",
+      "field_verse_start": "起始节",
+      "field_verse_end": "结束节",
+      "field_type": "讲道类型",
+      "pick_book": "选择书卷",
+      "login_required": "登录后即可准备讲道",
+      "only_preachers": "此区域仅供「讲道者」账号使用",
+      "only_preachers_hint": "你可以在个人资料中更改账号类型。"
     }
   },
   "auth": {
@@ -428,7 +473,9 @@
       "unknown": "发生错误，请重试。",
       "highlight_not_found": "未找到标记",
       "invalid_user_type": "账号类型无效",
-      "invalid_email": "邮箱地址格式不正确"
+      "invalid_email": "邮箱地址格式不正确",
+      "sermon_not_found": "未找到该讲道。",
+      "sermon_content_too_large": "讲道内容过长，无法保存。"
     },
     "user_type": "账号类型",
     "user_type_user": "普通用户",

@@ -286,6 +286,10 @@
           "label": "Sign in",
           "hint": "Sync between devices",
           "signed_in_hint": "Signed in — tap to manage account"
+        },
+        "sermons": {
+          "label": "My sermons",
+          "hint": "Prepare and deliver sermons"
         }
       }
     },
@@ -355,6 +359,47 @@
       "open": "See in context",
       "share": "Share",
       "never": "Don't show again"
+    },
+    "sermons": {
+      "eyebrow": "Sermons",
+      "title": "My sermons",
+      "new": "New sermon",
+      "start": "Start preparing",
+      "search": "Search by title or Bible text…",
+      "empty": "You have no sermons yet",
+      "empty_hint": "Pick a Bible passage and RoBible guides you step by step.",
+      "no_matches": "No sermon matches",
+      "untitled": "Untitled",
+      "created": "Sermon created",
+      "deleted": "Sermon deleted",
+      "duplicated": "Copy created",
+      "delete": "Delete",
+      "duplicate": "Create a copy",
+      "filter_label": "Filter sermons",
+      "filter_all": "All",
+      "filter_draft": "In progress",
+      "filter_ready": "Ready",
+      "filter_preached": "Preached",
+      "status_draft": "In progress",
+      "status_ready": "Ready",
+      "status_preached": "Preached",
+      "type_expositive": "Expository",
+      "type_expositive_hint": "Study and unfold the message of a Bible passage.",
+      "type_textual": "Textual",
+      "type_textual_hint": "Start from a short text and develop it.",
+      "type_thematic": "Thematic",
+      "type_thematic_hint": "Follow one theme across several passages.",
+      "field_title": "Title (optional)",
+      "field_title_hint": "e.g.: The house built on the rock",
+      "field_passage": "The Bible text",
+      "field_chapter": "Chapter",
+      "field_verse_start": "From verse",
+      "field_verse_end": "To",
+      "field_type": "Sermon type",
+      "pick_book": "Pick the book",
+      "login_required": "Sign in to prepare your sermons",
+      "only_preachers": "This section is for Preacher accounts",
+      "only_preachers_hint": "You can change your account type from your profile."
     }
   },
   "auth": {
@@ -428,7 +473,9 @@
       "unknown": "An error occurred. Try again.",
       "highlight_not_found": "Highlight not found",
       "invalid_user_type": "Invalid account type",
-      "invalid_email": "That email address does not look right"
+      "invalid_email": "That email address does not look right",
+      "sermon_not_found": "Sermon not found.",
+      "sermon_content_too_large": "The sermon is too long to save."
     },
     "user_type": "Account type",
     "user_type_user": "User",

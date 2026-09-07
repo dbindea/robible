@@ -12,6 +12,12 @@ const VALID_PASSWORD = (p) => typeof p === 'string' && p.length >= 6 && p.length
 // añadidas: no se le retira nada, así que cambiar de tipo no toca ningún dato.
 export const USER_TYPES = ['user', 'preacher'];
 
+// Tipos de predicación. La expositiva es la principal; las otras dos existen
+// porque el predicador las pide, no porque cambien el flujo de preparación.
+export const SERMON_TYPES = ['expositive', 'textual', 'thematic'];
+// draft = en lucru · ready = pregătită · preached = predicată
+export const SERMON_STATUSES = ['draft', 'ready', 'preached'];
+
 // Comprobación de email deliberadamente laxa: algo@algo.algo sin espacios. El
 // email es opcional y sólo sirve para recuperar la cuenta; validarlo con una
 // expresión estricta rechaza direcciones perfectamente válidas y no aporta
@@ -150,6 +156,15 @@ export const validators = {
   bibleVersion: (v) => typeof v === 'string' && /^[a-z0-9_]{2,12}$/.test(v),
   email: VALID_EMAIL,
   userType: (t) => typeof t === 'string' && USER_TYPES.includes(t),
+  sermonType: (t) => typeof t === 'string' && SERMON_TYPES.includes(t),
+  sermonStatus: (s) => typeof s === 'string' && SERMON_STATUSES.includes(s),
+  sermonTitle: (t) => typeof t === 'string' && t.trim().length <= 120,
+  sermonSeries: (s) => typeof s === 'string' && s.trim().length <= 80,
+  // Tope al JSON de preparación. D1 limita el tamaño de fila y, sobre todo, una
+  // predicación con 200 KB de texto no es una predicación: es un accidente o un
+  // abuso. El límite es holgado — 2.500 palabras rondan los 20 KB.
+  sermonContent: (c) => c === null || c === undefined || (typeof c === 'string' && c.length <= 200_000),
+  sermonOutline: (o) => o === null || o === undefined || (typeof o === 'string' && o.length <= 50_000),
   // La pregunta la escribe el usuario: una línea, ni vacía ni un ensayo.
   securityQuestionText: (q) => typeof q === 'string' && q.trim().length >= 5 && q.trim().length <= 120,
   // La respuesta ya no tiene por qué ser un número. Se mide sobre el texto

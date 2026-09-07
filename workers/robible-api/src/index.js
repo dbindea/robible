@@ -3,6 +3,7 @@ import { Hono } from 'hono';
 import { checkRateLimit, corsHeaders, requireAuth } from './utils.js';
 import * as auth from './auth.js';
 import * as data from './data.js';
+import * as sermons from './sermons.js';
 
 const app = new Hono();
 
@@ -226,6 +227,40 @@ app.delete('/api/searches', requireAuthMw, async (c) => {
   const user = c.get('user');
   applyCors(c);
   return data.removeSearch(c.req.raw, c.env.DB, user.id, corsFor(c));
+});
+
+// ── Predicaciones (auth required) ──────────────────────
+// Ver la nota de sermons.js: NO se filtra por tipo de cuenta. El tipo decide
+// qué menús se ven; los datos siguen siendo del usuario aunque cambie de tipo.
+app.get('/api/sermons', requireAuthMw, async (c) => {
+  const user = c.get('user');
+  applyCors(c);
+  const result = await sermons.listSermons(c.env.DB, user.id);
+  return c.json({ ok: true, ...result }, 200);
+});
+
+app.post('/api/sermons', requireAuthMw, async (c) => {
+  const user = c.get('user');
+  applyCors(c);
+  return sermons.createSermon(c.req.raw, c.env.DB, user.id, corsFor(c));
+});
+
+app.get('/api/sermons/:id', requireAuthMw, async (c) => {
+  const user = c.get('user');
+  applyCors(c);
+  return sermons.getSermonResponse(c.env.DB, user.id, c.req.param('id'), corsFor(c));
+});
+
+app.patch('/api/sermons/:id', requireAuthMw, async (c) => {
+  const user = c.get('user');
+  applyCors(c);
+  return sermons.updateSermon(c.req.raw, c.env.DB, user.id, c.req.param('id'), corsFor(c));
+});
+
+app.delete('/api/sermons/:id', requireAuthMw, async (c) => {
+  const user = c.get('user');
+  applyCors(c);
+  return sermons.removeSermon(c.env.DB, user.id, c.req.param('id'), corsFor(c));
 });
 
 // ── Export (sync) ──────────────────────────────────────

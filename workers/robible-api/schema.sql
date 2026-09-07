@@ -219,6 +219,48 @@ CREATE TABLE IF NOT EXISTS highlights (
 CREATE INDEX IF NOT EXISTS idx_highlights_user ON highlights(user_id);
 CREATE INDEX IF NOT EXISTS idx_highlights_user_verse ON highlights(user_id, book, chapter, verse);
 
+-- ============== SERMONS / PREDICI (schema_version 9) ==============
+--
+-- Una sola tabla, y dos columnas JSON dentro. No es pereza: el proceso de
+-- preparación (observaciones, contexto, idea central, estructura de puntos y
+-- subpuntos, desarrollo de cada uno) es un árbol profundo y de forma variable
+-- que **nunca se consulta por dentro** — siempre se carga entero para pintar la
+-- pantalla y se guarda entero al escribir. Modelarlo en tablas relacionales
+-- daría seis tablas y un JOIN por pantalla sin ganar una sola consulta útil.
+--
+-- Las columnas escalares existen sólo para lo que sí se filtra y se ordena en
+-- la lista: título, pasaje, tipo, estado y fechas.
+--
+-- `outline_json` va aparte de `content_json` porque la schiță es un artefacto
+-- distinto y se edita por separado: la predicación ronda las 1.500-2.500
+-- palabras y la schiță las 150-250. Mezclarlas obligaría a reescribir la
+-- predicación entera cada vez que se retoca una palabra clave del púlpito.
+CREATE TABLE IF NOT EXISTS sermons (
+  id TEXT PRIMARY KEY,                              -- 'sermon_<uuid>'
+  user_id TEXT NOT NULL,
+  title TEXT,                                       -- opcional: se puede empezar sin título
+  -- Pasaje. Se guarda por referencia y no por texto: el texto sale de la Biblia
+  -- que el cliente ya tiene, y así la predicación no queda atada a una versión.
+  book INTEGER,                                     -- 0-65
+  chapter INTEGER,
+  verse_start INTEGER,
+  verse_end INTEGER,
+  version TEXT,                                     -- versión con la que se preparó
+  type TEXT NOT NULL DEFAULT 'expositive',          -- expositive | textual | thematic
+  status TEXT NOT NULL DEFAULT 'draft',             -- draft | ready | preached
+  series TEXT,                                      -- agrupación libre, sin carpetas
+  content_json TEXT,                                -- todo el proceso de preparación
+  outline_json TEXT,                                -- la schiță del púlpito
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  prepared_at TEXT,                                 -- cuándo se marcó lista para predicar
+  preached_at TEXT,                                 -- cuándo se predicó
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_sermons_user ON sermons(user_id, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_sermons_user_status ON sermons(user_id, status);
+
 -- ============== CLEANUP JOBS ==============
 -- Se ejecuta al inicio de cada request para limpiar sesiones/rate_limits expirados.
 -- (Cloudflare Workers no tiene cron, así que la limpieza es best-effort on-request.)
@@ -232,5 +274,6 @@ CREATE TABLE IF NOT EXISTS _meta (
 -- 6: se añade highlights (subrayados de color por versículo)
 -- 7: topics gana is_public / public_slug / public_version / published_at
 -- 8: users gana user_type y email; la pregunta de seguridad pasa a ser libre
-INSERT OR IGNORE INTO _meta (key, value) VALUES ('schema_version', '8');
-UPDATE _meta SET value = '8' WHERE key = 'schema_version' AND value < '8';
+-- 9: se añade sermons (módulo «Predicile mele»)
+INSERT OR IGNORE INTO _meta (key, value) VALUES ('schema_version', '9');
+UPDATE _meta SET value = '9' WHERE key = 'schema_version' AND value < '9';
