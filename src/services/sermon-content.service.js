@@ -167,7 +167,7 @@ export const emptyOutline = () => ({
  */
 const claves = (texto, maxLineas = 3, maxPalabras = 6) => {
   if (!texto || typeof texto !== 'string') return [];
-  return texto
+  return quitarMarcas(texto)
     .split(/[.;\n]+/)
     .map((frase) => frase.trim())
     .filter(Boolean)
@@ -176,6 +176,58 @@ const claves = (texto, maxLineas = 3, maxPalabras = 6) => {
       const palabras = frase.split(/\s+/);
       return palabras.length <= maxPalabras ? frase : `${palabras.slice(0, maxPalabras).join(' ')}…`;
     });
+};
+
+// ── Marcado manual ──────────────────────────────────────
+//
+// Lo que va entre asteriscos sale tal cual en la schiță. El corte automático de
+// arriba adivina, y adivinar sobre el texto de una predicación sale mal: se
+// queda con el principio de la frase, que casi nunca es lo que el predicador
+// quiere ver desde el atril.
+//
+// El asterisco se eligió porque ya es el gesto de "esto va destacado" en
+// WhatsApp, y porque sobrevive a copiar y pegar entre dispositivos. La interfaz
+// los pone por ti al seleccionar y pulsar el botón; escribirlos a mano funciona
+// igual.
+const MARCA = /\*([^*\n]+)\*/g;
+
+/** Las expresiones marcadas de un texto, en el orden en que aparecen. */
+export const marcadas = (texto) => {
+  if (!texto || typeof texto !== 'string') return [];
+  return [...texto.matchAll(MARCA)].map((m) => m[1].trim()).filter(Boolean);
+};
+
+/** El texto sin los asteriscos, para leerlo o contarlo. */
+export const quitarMarcas = (texto) =>
+  typeof texto === 'string' ? texto.replace(MARCA, '$1') : '';
+
+/**
+ * Envuelve entre asteriscos el trozo `[desde, hasta)` de un texto.
+ *
+ * Devuelve el texto nuevo y dónde queda la selección después, para que el
+ * cursor no salte al final del campo. Si el trozo ya estaba marcado, lo
+ * desmarca: el mismo botón pone y quita.
+ */
+export const alternarMarca = (texto, desde, hasta) => {
+  const t = typeof texto === 'string' ? texto : '';
+  if (desde === hasta) return { texto: t, desde, hasta };
+
+  const seleccion = t.slice(desde, hasta).trim();
+  if (!seleccion) return { texto: t, desde, hasta };
+
+  // Recorta los espacios que hayan entrado en la selección: marcar " palabra "
+  // dejaría los asteriscos separados y la marca no valdría.
+  const iniReal = desde + t.slice(desde, hasta).indexOf(seleccion);
+  const finReal = iniReal + seleccion.length;
+
+  const yaMarcado = t[iniReal - 1] === '*' && t[finReal] === '*';
+  if (yaMarcado) {
+    const nuevo = t.slice(0, iniReal - 1) + seleccion + t.slice(finReal + 1);
+    return { texto: nuevo, desde: iniReal - 1, hasta: finReal - 1 };
+  }
+
+  const nuevo = `${t.slice(0, iniReal)}*${seleccion}*${t.slice(finReal)}`;
+  return { texto: nuevo, desde: iniReal, hasta: finReal + 2 };
 };
 
 /**
@@ -194,15 +246,25 @@ export const generateOutline = (content) => {
     intro: claves(c.intro),
     points: c.structure.map((punto) => {
       const d = c.development[punto.id] || {};
+      const subpuntos = (punto.subpoints || []).map((s) => (s.title || '').trim()).filter(Boolean);
+
+      // Lo que el predicador ha marcado con asteriscos manda. El corte
+      // automático sólo entra cuando no ha marcado nada: adivinar es el peor
+      // resultado posible, pero es mejor que dejarle la schiță en blanco.
+      const suyas = [...marcadas(d.explain), ...marcadas(d.illustrate), ...marcadas(d.apply)];
+      const keywords = suyas.length
+        ? [...subpuntos, ...suyas]
+        : [...subpuntos, ...claves(d.explain, 2, 4), ...claves(d.illustrate, 1, 4)];
+
       return {
         id: punto.id,
         title: (punto.title || '').trim().toUpperCase(),
-        keywords: [
-          ...(punto.subpoints || []).map((s) => (s.title || '').trim()).filter(Boolean),
-          ...claves(d.explain, 2, 4),
-          ...claves(d.illustrate, 1, 4),
-        ].filter(Boolean),
-        refs: (punto.refs || []).map((r) => r.label).filter(Boolean),
+        keywords: keywords.filter(Boolean),
+        // Las del punto y las del desarrollo, en ese orden y sin repetir. En la
+        // schiță sólo se ve la cita; el texto entero es cosa del Modo Amvon.
+        refs: [...(punto.refs || []), ...(d.refs || [])]
+          .map((r) => (r?.label || '').trim())
+          .filter((label, i, todas) => label && todas.indexOf(label) === i),
       };
     }),
     // La aplicación sale del propósito, pero recortada como todo lo demás. El

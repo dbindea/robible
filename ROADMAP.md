@@ -583,6 +583,46 @@ tamaño se pasa con `--icon-size` en el contenedor y `Icon.svelte` lleva
 cuadrados y al tamaño pedido. **Lo delató el aviso de "Unused CSS selector" del
 build**, que conviene no ignorar.
 
+### Fase 8 — Referencias, marcado y papel ✅ (2026-09-08)
+
+Cuatro peticiones del predicador tras usar el módulo de verdad.
+
+**Referencias a otros pasajes dentro del desarrollo.** Hallazgo al empezar: `refs`
+**ya existía** en el modelo (en los puntos y en el desarrollo) y `collectReferences`
+ya las recogía para el púlpito — pero **no había ninguna interfaz para añadirlas**,
+así que siempre estaban vacías. La fontanería estaba puesta a medias. Ahora un
+botón «+ Referință» abre el buscador que ya usa la Biblia (`searchReferences`), y
+la referencia se guarda **con su texto bíblico resuelto**: en la schiță se ve sólo
+la cita, y en el Modo Amvon se abre entera sin tocar la red.
+
+**Marcado manual de palabras clave.** El corte automático adivinaba —se quedaba con
+el principio de la frase, que casi nunca es lo que se quiere ver desde el atril—.
+Ahora se selecciona el texto y se pulsa «Marchează»: la aplicación lo envuelve
+entre asteriscos y eso es lo que sale en la schiță. El mismo botón desmarca. Si no
+se marca nada, sigue funcionando el corte de antes, para que nadie se encuentre la
+schiță en blanco.
+
+**Impresión.** Sin librerías: `window.print()` y CSS de papel. El documento en
+retrato y la schiță en apaisado a dos columnas con línea de doblez, para plegarla
+por la mitad y llevarla en la Biblia. Se usan **páginas con nombre**
+(`@page retrato` / `@page apaisado` + `page:` en el elemento), que es la forma
+estándar de tener dos orientaciones en un mismo documento: `@page` no se puede
+condicionar con una clase. Se imprime siempre en negro sobre blanco, sea cual sea
+la paleta — en Nocturn una hoja negra se lleva el cartucho.
+
+**Más sitio para escribir.** El contenedor pasa de 46rem a 69rem (+50%) y los
+campos del desarrollo de 3 a 6 líneas; introducción y conclusión, a 8.
+
+**Y un fallo que me comí yo, documentado en las trampas de este mismo repo:** el
+botón de marcar no se activaba nunca porque la condición estaba envuelta en un
+helper (`disabled={!haySeleccion(...)}`) y **Svelte sólo reacciona a lo que ve
+escrito en la plantilla**. Es la trampa 23, tal cual. Comparando contra la variable
+directamente funciona.
+
+Verificado en pantalla el ciclo entero: seleccionar → marcar → desmarcar, buscar
+«iacov 1 22» → elegir la sugerencia → la cita aparece en la schiță y llega al
+púlpito con texto. 14 tests nuevos (203 en total).
+
 ### Fase 7.4 — Música y apilado de diálogos ✅ (2026-09-07)
 
 **El player no respondía a los mandos.** Diagnosticado midiendo la salida de audio

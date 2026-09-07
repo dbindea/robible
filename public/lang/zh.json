@@ -474,7 +474,17 @@
       "back_to_sermon": "返回讲道",
       "action_continue": "继续准备",
       "action_view": "查看讲道",
-      "action_preach_again": "再次讲道"
+      "action_preach_again": "再次讲道",
+      "mark_keyword": "标记",
+      "mark_help": "选中词语并标记，它会出现在讲章提纲中。",
+      "refs_title": "经文引用",
+      "refs_add": "引用",
+      "refs_remove": "删除引用",
+      "refs_empty": "尚无引用。",
+      "refs_search": "查找经文",
+      "refs_none": "未找到经文。",
+      "print_sermon": "打印讲章",
+      "print_outline": "打印提纲"
     },
     "pulpit": {
       "mode": "讲台模式",

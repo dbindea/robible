@@ -826,6 +826,73 @@ svg {
   }
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   IMPRESIÓN
+   ───────────────────────────────────────────────────────────────────────────
+   Para llevar la predicación en papel, por si el móvil falla.
+
+   Dos formatos en un mismo documento con **páginas con nombre**, que es la
+   forma estándar de hacerlo: `@page` no se puede condicionar con una clase
+   —es un contexto de página, no un selector—, pero un elemento sí puede
+   pedir una página concreta con `page: <nombre>`.
+
+   Se imprime siempre sobre la paleta clara pase lo que pase: en Nocturn, una
+   hoja con fondo negro se lleva el cartucho entero y no se lee.
+   ═══════════════════════════════════════════════════════════════════════════ */
+@page retrato {
+  size: A4 portrait;
+  margin: 18mm 16mm;
+}
+
+@page apaisado {
+  size: A4 landscape;
+  /* Márgenes cortos: el doblez ya come sitio y la schiță se mira de reojo. */
+  margin: 10mm;
+}
+
+@media print {
+  /* Tinta negra sobre papel blanco, sea cual sea la paleta en pantalla. */
+  html,
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  /* El chrome de la aplicación no se imprime. Se enumera en vez de usar un
+     `body > *:not(…)`: lo que se quiere imprimir está anidado hondo dentro de
+     la aplicación, así que esconder los hijos del body lo escondería también.
+     `.no-imprimir` es el escape para cualquier cosa que se añada luego. */
+  .header,
+  .footer,
+  .sidebar,
+  .app-menu,
+  .app-menu__overlay,
+  .tts-bar,
+  .tts-start-btn,
+  .scroll-top-button,
+  .immersive-toggle,
+  .immersive-exit,
+  .chapter-nav,
+  .book-drawer,
+  .book-drawer__overlay,
+  .modal,
+  .no-imprimir {
+    display: none !important;
+  }
+
+  /* Ni sombras ni cristal: en papel son manchas grises. */
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+    backdrop-filter: none !important;
+  }
+
+  a {
+    color: inherit !important;
+    text-decoration: none !important;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

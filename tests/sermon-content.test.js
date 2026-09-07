@@ -10,14 +10,17 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   STEPS,
+  alternarMarca,
   collectReferences,
   countWords,
   emptyContent,
   estimatedMinutes,
   generateOutline,
+  marcadas,
   movePoint,
   newPoint,
   newSubpoint,
+  quitarMarcas,
   normalizeContent,
   normalizeOutline,
   outlineWordCount,
@@ -257,4 +260,130 @@ test('collectReferences ignora referencias mal formadas', () => {
   const refs = collectReferences(c);
   assert.equal(refs.length, 1);
   assert.equal(refs[0].book, 0, 'Génesis es el libro 0: un índice falsy no debe descartarse');
+});
+
+// ── Palabras marcadas a mano para la schiță ─────────────
+//
+// El corte automático adivina, y adivinar sobre el texto de una predicación
+// sale mal: se queda con el principio de la frase, que casi nunca es lo que el
+// predicador quiere ver desde el atril. Lo que marca con asteriscos manda.
+
+test('marcadas saca las expresiones entre asteriscos, en orden', () => {
+  const t = 'Dumnezeu nu cere *o credință perfectă*, ci *o credință care ascultă*.';
+  assert.deepEqual(marcadas(t), ['o credință perfectă', 'o credință care ascultă']);
+});
+
+test('marcadas ignora asteriscos sueltos y marcas vacías', () => {
+  // Un asterisco sin pareja es texto normal, no una marca a medias.
+  assert.deepEqual(marcadas('esto * no marca nada'), []);
+  assert.deepEqual(marcadas('ni ** esto'), []);
+  assert.deepEqual(marcadas('ni *   * esto'), []);
+});
+
+test('una marca no cruza el salto de línea', () => {
+  // Si lo hiciera, un asterisco olvidado se tragaría el resto del documento.
+  assert.deepEqual(marcadas('empieza *aquí\ny sigue* abajo'), []);
+});
+
+test('quitarMarcas devuelve el texto limpio para leerlo', () => {
+  assert.equal(quitarMarcas('la *fe* que *obedece*'), 'la fe que obedece');
+  assert.equal(quitarMarcas(''), '');
+  assert.equal(quitarMarcas(null), '');
+});
+
+test('la schiță prefiere lo marcado antes que el corte automático', () => {
+  const c = emptyContent();
+  const p = newPoint('Omul înțelept');
+  c.structure.push(p);
+  c.development[p.id] = {
+    explain: 'Una primera frase larga que el corte automático cogería entera. Pero lo que importa es *la roca*.',
+    illustrate: '', apply: '', refs: [],
+  };
+
+  const o = generateOutline(c);
+  assert.deepEqual(o.points[0].keywords, ['la roca'], 'sólo debe salir lo marcado');
+});
+
+test('sin nada marcado, la schiță sigue cortando como antes', () => {
+  // El comportamiento anterior es la red de seguridad: quien no marque nada no
+  // se encuentra la schiță vacía.
+  const c = emptyContent();
+  const p = newPoint('Punct');
+  c.structure.push(p);
+  c.development[p.id] = { explain: 'Prima frază. A doua frază.', illustrate: '', apply: '', refs: [] };
+
+  const o = generateOutline(c);
+  assert.ok(o.points[0].keywords.length > 0, 'debería caer en el corte automático');
+});
+
+test('los subpuntos salen siempre, se marque o no', () => {
+  const c = emptyContent();
+  const p = newPoint('Punct');
+  p.subpoints = [newSubpoint('Ascultarea')];
+  c.structure.push(p);
+  c.development[p.id] = { explain: 'texto con *marca*', illustrate: '', apply: '', refs: [] };
+
+  const o = generateOutline(c);
+  assert.deepEqual(o.points[0].keywords, ['Ascultarea', 'marca']);
+});
+
+// ── El botón de marcar ──────────────────────────────────
+
+test('alternarMarca envuelve la selección y deja el cursor donde toca', () => {
+  const r = alternarMarca('la fe que obedece', 3, 5); // "fe"
+  assert.equal(r.texto, 'la *fe* que obedece');
+  assert.equal(r.texto.slice(r.desde, r.hasta), '*fe*', 'la selección debe abarcar la marca nueva');
+});
+
+test('el mismo botón desmarca lo que ya estaba marcado', () => {
+  const r = alternarMarca('la *fe* que obedece', 4, 6); // "fe", ya marcada
+  assert.equal(r.texto, 'la fe que obedece');
+});
+
+test('marcar y desmarcar deja el texto exactamente como estaba', () => {
+  const original = 'Dumnezeu ne cere ascultare';
+  const puesto = alternarMarca(original, 17, 26);
+  const quitado = alternarMarca(puesto.texto, puesto.desde + 1, puesto.hasta - 1);
+  assert.equal(quitado.texto, original);
+});
+
+test('los espacios de la selección quedan fuera de la marca', () => {
+  // Seleccionar arrastrando con el dedo casi siempre se lleva un espacio; con
+  // él dentro, `*palabra *` no sería una marca válida.
+  const r = alternarMarca('la fe que obedece', 2, 6); // " fe " con espacios
+  assert.equal(r.texto, 'la *fe* que obedece');
+});
+
+test('una selección vacía no toca el texto', () => {
+  const r = alternarMarca('sin cambios', 4, 4);
+  assert.equal(r.texto, 'sin cambios');
+});
+
+// ── Referencias del desarrollo ──────────────────────────
+
+test('la schiță muestra las referencias del punto y las del desarrollo', () => {
+  const c = emptyContent();
+  const p = newPoint('Punct');
+  p.refs = [{ book: 58, chapter: 1, verse: 22, label: 'Iacov 1:22' }];
+  c.structure.push(p);
+  c.development[p.id] = {
+    explain: '', illustrate: '', apply: '',
+    refs: [{ book: 42, chapter: 14, verse: 15, label: 'Ioan 14:15' }],
+  };
+
+  const o = generateOutline(c);
+  assert.deepEqual(o.points[0].refs, ['Iacov 1:22', 'Ioan 14:15']);
+});
+
+test('una referencia repetida no sale dos veces en la schiță', () => {
+  const c = emptyContent();
+  const p = newPoint('Punct');
+  p.refs = [{ book: 58, chapter: 1, verse: 22, label: 'Iacov 1:22' }];
+  c.structure.push(p);
+  c.development[p.id] = {
+    explain: '', illustrate: '', apply: '',
+    refs: [{ book: 58, chapter: 1, verse: 22, label: 'Iacov 1:22' }],
+  };
+
+  assert.deepEqual(generateOutline(c).points[0].refs, ['Iacov 1:22']);
 });

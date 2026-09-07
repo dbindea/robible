@@ -474,7 +474,17 @@
       "back_to_sermon": "Înapoi la predică",
       "action_continue": "Continuă pregătirea",
       "action_view": "Vezi predica",
-      "action_preach_again": "Predică din nou"
+      "action_preach_again": "Predică din nou",
+      "mark_keyword": "Marchează",
+      "mark_help": "Selectează un cuvânt sau o expresie și marcheaz-o: va apărea în schiță.",
+      "refs_title": "Referințe",
+      "refs_add": "Referință",
+      "refs_remove": "Șterge referința",
+      "refs_empty": "Nicio referință încă.",
+      "refs_search": "Caută referința",
+      "refs_none": "Nicio referință găsită.",
+      "print_sermon": "Tipărește predica",
+      "print_outline": "Tipărește schița"
     },
     "pulpit": {
       "mode": "Mod Amvon",
