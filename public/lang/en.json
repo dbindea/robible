@@ -27,7 +27,13 @@
       "about_text": "RoBible is a free app for reading and searching Bible verses. The project is open for improvements on GitHub.",
       "close_about": "Close information",
       "version_app": "App version",
-      "version_sw": "Service worker version"
+      "version_sw": "Service worker version",
+      "public_label": "Public pages",
+      "links": {
+        "landing": "About RoBible",
+        "sermons": "Sermons",
+        "topics": "Topics"
+      }
     },
     "pwa": {
       "install_title": "Install RoBible",
@@ -239,6 +245,16 @@
         "home": "Home",
         "light": "Light",
         "peace": "Peace"
+      },
+      "public": {
+        "eyebrow": "Published topics",
+        "title": "Topics",
+        "lead": "Collections of verses gathered and published by users. Open one to see the verses.",
+        "search_placeholder": "Search a topic…",
+        "no_results": "No topic matches.",
+        "empty": "No topic has been published yet.",
+        "seo_title": "Bible topics — RoBible",
+        "seo_description": "Collections of verses by topic, published by RoBible users."
       }
     },
     "notes": {
@@ -398,11 +414,11 @@
       "status_ready": "Ready",
       "status_preached": "Preached",
       "type_expositive": "Expository",
-      "type_expositive_hint": "Study and unfold the message of a Bible passage.",
+      "type_expositive_hint": "A single passage. The idea and the divisions come from it, in its order.",
       "type_textual": "Textual",
-      "type_textual_hint": "Start from a short text and develop it.",
+      "type_textual_hint": "A short text, a verse or two. The divisions come from its parts.",
       "type_thematic": "Thematic",
-      "type_thematic_hint": "Follow one theme across several passages.",
+      "type_thematic_hint": "A theme traced through several passages. Each division has its own text.",
       "field_title": "Title (optional)",
       "field_title_hint": "e.g.: The house built on the rock",
       "field_passage": "The Bible text",
@@ -437,12 +453,12 @@
       "ctx_before": "What matters before the passage?",
       "ctx_after": "What matters after the passage?",
       "ctx_historical": "Is there important historical or cultural context?",
-      "idea_central": "The central idea",
-      "idea_central_help": "What is the main message of this passage? Say it in one sentence.",
-      "idea_purpose": "The purpose of the sermon",
-      "idea_purpose_help": "What do you want the listener to understand, believe or do?",
-      "idea_question": "The sermon question",
-      "idea_question_help": "e.g.: Why must we build our life on the rock?",
+      "idea_central": "Homiletical idea",
+      "idea_central_help": "The exegetical idea restated for today’s hearers, in the light of the purpose. A single sentence.",
+      "idea_purpose": "Purpose of the sermon",
+      "idea_purpose_help": "What does God want to change in the hearers: their convictions, their character or their conduct?",
+      "idea_question": "Analytical question",
+      "idea_question_help": "The question you put to the homiletical idea, out of which the divisions come. E.g. WHAT does that power work?",
       "structure_help": "Two levels at most. Points can be reordered.",
       "point_placeholder": "Point title",
       "subpoint_placeholder": "Subpoint",
@@ -468,7 +484,7 @@
       "mark_ready": "Ready to preach",
       "outline": "The pulpit outline",
       "outline_help": "Titles and keywords, not a summary. You glance at it, you do not read it.",
-      "outline_keywords": "Keywords (separated by ·)",
+      "outline_keywords": "Ideas (one per line)",
       "outline_application": "Application",
       "regenerate_outline": "Regenerate from the structure",
       "back_to_sermon": "Back to the sermon",
@@ -504,7 +520,38 @@
         "share": "Share this sermon",
         "copied": "Link copied"
       },
-      "print_outline_hint": "Fold in half along the short edge. If the outline runs to four pages, print double-sided flipping on the short edge."
+      "print_outline_hint": "Fold in half along the short edge. If the outline runs to four pages, print double-sided flipping on the short edge.",
+      "idea_exegetical": "Exegetical idea",
+      "idea_exegetical_help": "What did the text say to its original recipients? The subject + what is said about it.",
+      "outline_intro": "Introduction (ideas)",
+      "outline_lines_help": "One idea per line. The app adds the dash.",
+      "outline_created": "The outline was generated from your structure.",
+      "outline_opened": "Previously saved outline.",
+      "outline_regenerated": "The outline was regenerated from the structure.",
+      "sermon_finished": "The sermon is ready. You can read, print or publish it.",
+      "view_prep": "Preparation",
+      "view_final": "Final sermon",
+      "view_outline": "Outline",
+      "step_of": "Step {current} of {total}",
+      "blog": {
+        "eyebrow": "Published sermons",
+        "title": "Sermons",
+        "lead": "Sermons prepared in RoBible and made available to everyone. Browse by theme, by biblical text or by date.",
+        "search_placeholder": "Search by title, idea or biblical text…",
+        "by_theme": "Theme",
+        "by_text": "Biblical text",
+        "by_date": "Year",
+        "all": "All",
+        "count": "{count} sermons",
+        "clear": "Clear filters",
+        "no_results": "No sermon matches the chosen filters.",
+        "empty": "No sermon has been published yet.",
+        "seo_title": "Sermons — RoBible",
+        "seo_description": "Expository sermons made available to everyone: browse by theme, by biblical text or by date.",
+        "count_one": "{count} sermon"
+      },
+      "series": "Series / theme",
+      "series_help": "The grouping this sermon appears under in the public list. Optional."
     },
     "pulpit": {
       "mode": "Pulpit mode",
@@ -542,6 +589,82 @@
       "nocturn_hint": "True black. Saves battery on OLED screens.",
       "cald": "Warm",
       "cald_hint": "Cream and copper. The colours RoBible was born with."
+    },
+    "homiletics": {
+      "open": "Homiletics guide",
+      "example": "Example — Titus 2:11-14",
+      "text": {
+        "why": "Expository preaching expounds the teaching of this text. Everything you say has to come from here, not from what you would like to say.",
+        "b1": "Read the passage several times, until you see it whole rather than in pieces.",
+        "b2": "Tap the key words: the ones that repeat, the ones the author explains himself, and the ones that carry the action or the argument forward.",
+        "b3": "For now you are only observing. The sermon idea comes later."
+      },
+      "observation": {
+        "why": "Key words are recognised by three signs: they repeat in the text, the biblical writer explains them himself, or they matter to how the action or the argument unfolds.",
+        "b1": "What repeats? Repetition is the surest sign (see 2 Corinthians 1:3-11 or Luke 2:25-27).",
+        "b2": "What contrasts or antitheses does the author set side by side?",
+        "b3": "Who does what? Which verbs drive the text forward?",
+        "b4": "Where is the tension of the text — the problem it resolves?"
+      },
+      "context": {
+        "why": "A text taken out of context becomes a pretext. Context shows you what the author meant, not what we would find convenient for him to mean.",
+        "b1": "Literary: which genre it is (narrative, poetry, epistle, prophecy, parable, proverb) and where the passage falls in the chapter and the book.",
+        "b2": "Cultural: the world the writer, the characters and the recipients came from.",
+        "b3": "Historical: the circumstances in which the action happens or the words are spoken.",
+        "b4": "Geographical: sometimes the terrain or the distance between cities explains the text (Exodus 14).",
+        "b5": "Theological: what the author, the characters and the recipients believed about God (Genesis 12:10-20)."
+      },
+      "idea": {
+        "why": "This is where the sermon is decided, and you get there in three steps: what the text said then, what God wants to change now, and how that is said today.",
+        "b1": "The exegetical idea sums up the teaching of the text for its original recipients. To be sound it must contain the subject (what is the text about?) and what is said about that subject.",
+        "b2": "The purpose answers a single question: what does God want to change in the hearers? It may touch their convictions, their character or their conduct.",
+        "b3": "The homiletical idea is the exegetical idea restated and brought up to date, in the light of the purpose.",
+        "b4": "The homiletical idea must be exegetically faithful, clearly worded, comprehensive, concise and relevant to the hearers.",
+        "quote": "\"When the idea appears in the preacher’s mind as clear as a cloudless moon, then he has the message he ought to preach.\" (Robinson)",
+        "e1": "Exegetical idea: the grace of God must change people’s lives because of the high price Christ paid to redeem his people.",
+        "e2": "Purpose: that people would want grace for a changed life, not for free favours.",
+        "e3": "Homiletical idea: the grace of God is a power at work, not merely a favour.",
+        "warn": "This is the hardest step of the whole preparation. Do not move on until you have it clear."
+      },
+      "structure": {
+        "why": "The divisions argue, explain or apply the homiletical idea. You obtain them by putting an analytical question to it: Why? How? When? On what conditions? What does it mean?",
+        "b1": "Word them concisely, but not vaguely.",
+        "b2": "Make them symmetrical: starting with the same group of words and sharing the same grammatical shape.",
+        "b3": "Order them progressively, so they carry the hearer towards a moment of decision.",
+        "b4": "Attach to each division the verse it comes from: the reference is the authority behind it.",
+        "b5": "Put a transition sentence between divisions, so the hearer knows you have moved on.",
+        "e1": "Analytical question: WHAT does that power work?",
+        "e2": "1. The grace of God transforms believers’ lives (v. 11-12)",
+        "e3": "2. The grace of God offers them hope (v. 13)",
+        "e4": "3. The grace of God gives their life meaning (v. 14)"
+      },
+      "development": {
+        "why": "Each division is developed through three sections: explaining and applying are required, illustrating is optional.",
+        "b1": "Explain the meaning of the concept as it appears in the preaching text, not across the whole of Scripture. Other verses come in only insofar as they help understand it here.",
+        "b2": "Apply: applications connect Scripture to the hearers and decide the relevance of the sermon. Answer two questions — what do the characters of the text and the hearers have in common, and when are they in that same situation?",
+        "b3": "Illustrate: a story that shows the stated truth in practice. Keep it tied to the division, original, believable, easy to follow and short.",
+        "b4": "You can also develop by subdivisions, putting analytical questions to the concept of the division: how? which? why? what does it involve? what are the consequences?"
+      },
+      "final": {
+        "why": "The introduction is written last, because only now do you know where the sermon is going.",
+        "b1": "The introduction has three parts: the opening sentence, the introductory applications and the transition to the text.",
+        "b2": "The opening sentence comes out of the homiletical idea or the subject, tied to the hearers’ everyday life.",
+        "b3": "The introductory applications bring the hearer’s need to the surface and create positive tension. Without it, the sermon is the answer to a question nobody asked.",
+        "b4": "Do not begin with technical detail about the book or about its recipients.",
+        "b5": "The conclusion also has three parts: restating the homiletical idea, recapping the divisions, and the vision — what will happen if the hearers apply the idea."
+      },
+      "types": {
+        "textual": {
+          "text": "The text is short — a verse or two. Mark its words: the divisions will come out of them.",
+          "idea": "The idea also comes from that short text, not from the subject it suggests to you. If you have arrived at an idea the text does not support, you have moved to a thematic sermon.",
+          "structure": "The divisions come from the parts of the short text — clauses, key words — not from other passages. Other verses belong in Development, as support."
+        },
+        "thematic": {
+          "text": "This is the base text. In a thematic sermon each division rests on a different passage: add them as references in the Development step.",
+          "idea": "The exegetical idea comes from the base text; the other passages support it, they do not change it. If the idea cannot be drawn from any text, it is yours and not Scripture’s.",
+          "structure": "Each division has its own passage. Check every verse in its context: if it does not say there what you are saying, drop it rather than force it."
+        }
+      }
     }
   },
   "auth": {
@@ -774,7 +897,8 @@
       "title": "Sermons from our brothers",
       "lead": "Sermons prepared in RoBible and made available to everyone. Read them, use them, share them.",
       "point": "{count} point",
-      "points": "{count} points"
+      "points": "{count} points",
+      "see_all": "See all sermons"
     }
   }
 }

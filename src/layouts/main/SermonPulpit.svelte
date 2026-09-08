@@ -122,7 +122,7 @@
     detener();
     clearActive();
     if (contenedor) savePosition(sermonId, contenedor.scrollTop);
-    window.history.pushState(null, '', `/predici/${encodeURIComponent(sermonId)}`);
+    window.history.pushState(null, '', `/predicile-mele/${encodeURIComponent(sermonId)}`);
     // La errata `robibile` es la del resto del proyecto (CLAUDE.md, trampa 1).
     window.dispatchEvent(new CustomEvent('robibile:navigate'));
     window.dispatchEvent(new PopStateEvent('popstate'));
@@ -554,17 +554,32 @@
 
   // Las palabras clave van sueltas y muy espaciadas: son anclas para la vista,
   // no frases que se lean seguidas.
+  //
+  // El guion lo pone el CSS y no el texto: en el atril hace que la columna se
+  // lea como lista de un vistazo, pero el dato guardado sigue siendo la idea
+  // limpia. La sangría negativa lo saca al margen para que las ideas queden
+  // alineadas entre sí aunque una ocupe dos líneas.
   .amvon__clave {
     margin: 0 0 0.75rem;
+    padding-left: 1.1em;
+    text-indent: -1.1em;
     font-size: var(--amvon-clave);
     font-weight: 600;
     line-height: 1.3;
+
+    &::before {
+      content: '– ';
+      color: var(--color-accent);
+    }
   }
 
   .amvon__linea {
     margin: 0 0 0.75rem;
     font-size: var(--amvon-linea);
     line-height: 1.5;
+    // La aplicación y la conclusión se escriben a mano en la schiță y pueden
+    // llevar saltos de línea. Sin esto se pegan en un párrafo corrido.
+    white-space: pre-line;
   }
 
   .amvon__referencia {

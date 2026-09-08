@@ -685,6 +685,10 @@ async function main() {
     { loc: absoluteUrl('/indice'), lastmod: TODAY, changefreq: 'monthly', priority: '0.8' },
     { loc: absoluteUrl('/favorites'), lastmod: TODAY, changefreq: 'weekly', priority: '0.7' },
     { loc: absoluteUrl('/notes'), lastmod: TODAY, changefreq: 'weekly', priority: '0.7' },
+    // El índice del blog de predicaciones. Las predicaciones sueltas van en
+    // sitemaps/sermons.xml, que sirve una función porque se publican entre
+    // despliegues; esta portada, en cambio, existe siempre.
+    { loc: absoluteUrl('/predici'), lastmod: TODAY, changefreq: 'weekly', priority: '0.8' },
   ];
   await writeSitemap('sitemaps/static.xml', staticRoutes);
   await writeSitemap('sitemaps/books.xml', bookUrls);

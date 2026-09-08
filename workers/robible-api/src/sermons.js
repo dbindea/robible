@@ -281,6 +281,10 @@ const paraElPublico = (r) => {
     verseEnd: r.verse_end,
     version: r.version || null,
     type: r.type,
+    // La serie es el eje "por tema" del blog público. Va aquí y no en el
+    // cuaderno privado porque es lo único parecido a una categoría que tiene
+    // una predicación, y el autor la escribe pensando en quien la va a leer.
+    series: r.series || null,
     publishedAt: r.published_at || null,
     idea: contenido?.idea?.central || '',
     intro: contenido?.intro || '',
@@ -296,7 +300,7 @@ export async function getPublicSermon(db, slug, cors) {
   const r = await db
     .prepare(
       `SELECT public_slug, title, book, chapter, verse_start, verse_end, version,
-              type, published_at, content_json
+              type, series, published_at, content_json
        FROM sermons WHERE public_slug = ? AND is_public = 1`,
     )
     .bind(slug)
@@ -322,7 +326,7 @@ export async function listPublicSermons(db, cors, limite = 60) {
   const rows = await db
     .prepare(
       `SELECT public_slug, title, book, chapter, verse_start, verse_end, version,
-              type, published_at, content_json
+              type, series, published_at, content_json
        FROM sermons
        WHERE is_public = 1 AND public_slug IS NOT NULL
        ORDER BY published_at DESC
@@ -343,6 +347,7 @@ export async function listPublicSermons(db, cors, limite = 60) {
         verseEnd: s.verseEnd,
         version: s.version,
         type: s.type,
+        series: s.series,
         publishedAt: s.publishedAt,
         idea: s.idea,
         points: s.points.length,

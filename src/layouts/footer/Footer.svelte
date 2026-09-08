@@ -15,6 +15,39 @@
   let isPaletteOpen = false;
   $: paletaActiva = getPalette($themeMode);
 
+  /**
+   * Accesos rápidos a las páginas públicas.
+   *
+   * Van aquí y no en el menú lateral porque el menú es la navegación de la
+   * aplicación —lo tuyo: favoritos, notas, tus predicaciones— y esto es lo
+   * público: lo que existe aunque no tengas cuenta. Sin estos enlaces no había
+   * forma de descubrir que hay predicaciones y temas publicados; se llegaba
+   * sólo si alguien te pasaba el enlace.
+   *
+   * Para añadir otra sección basta con una línea más: la clave de traducción se
+   * resuelve sola y el marcado no cambia.
+   */
+  const ENLACES_PUBLICOS = [
+    { href: '/landing', clave: 'landing' },
+    { href: '/predici', clave: 'sermons' },
+    { href: '/teme', clave: 'topics' },
+  ];
+
+  // Navegación del lado del cliente: son rutas que resuelve la propia SPA, así
+  // que recargar la página entera sería tirar la Biblia de memoria y volverla a
+  // pedir. `/landing` es la excepción, porque la resuelve App.svelte antes de
+  // montar Main y necesita la recarga.
+  const irA = (href) => {
+    if (href === '/landing') {
+      window.location.href = href;
+      return;
+    }
+    window.history.pushState(null, '', href);
+    // La errata `robibile` es la del resto del proyecto (CLAUDE.md, trampa 1).
+    window.dispatchEvent(new CustomEvent('robibile:navigate'));
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  };
+
   // Botón auth del footer: muestra nickname o "Login" según estado
   const handleAuthClick = () => {
     if ($isAuthenticated) {
@@ -59,6 +92,13 @@
 
 <div class="footer">
   <div class="footer__content">
+    <nav class="footer__enlaces" aria-label={$_('app.footer.public_label')}>
+      {#each ENLACES_PUBLICOS as e (e.href)}
+        <a href={e.href} on:click|preventDefault={() => irA(e.href)}>
+          {$_(`app.footer.links.${e.clave}`)}
+        </a>
+      {/each}
+    </nav>
     <p class="footer__meta">
       <span>{$_('app.footer.made_with_love')}</span>
       <span class="only-desktop">·</span>
@@ -196,6 +236,24 @@
     display: grid;
     gap: 0.25rem;
     min-width: 0;
+  }
+
+  /* Envuelven en vez de hacer scroll: en un móvil estrecho tres enlaces pasan
+     a dos líneas y siguen todos a la vista, que es de lo que se trata. */
+  .footer__enlaces {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.9rem;
+    margin-bottom: 0.35rem;
+
+    a {
+      color: var(--color-accent-ink);
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-decoration: none;
+
+      &:hover { text-decoration: underline; }
+    }
   }
 
   .footer__meta {

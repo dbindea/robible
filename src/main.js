@@ -28,7 +28,7 @@ if (typeof window !== 'undefined' && window.location.pathname === '/') {
   // que un Modo Amvon olvidado no secuestre el arranque meses después.
   const enElPulpito = getActivePulpit();
   if (enElPulpito) {
-    window.history.replaceState(null, '', `/predici/${encodeURIComponent(enElPulpito)}/amvon`);
+    window.history.replaceState(null, '', `/predicile-mele/${encodeURIComponent(enElPulpito)}/amvon`);
   } else {
     const user = tokenStore.getUser();
     if (!user) {

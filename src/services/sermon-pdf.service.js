@@ -215,15 +215,18 @@ export const definirSchita = (sermon, esquema, etiquetas = {}) => {
   if (o.idea) trozos.push({ text: o.idea, fontSize: T.schitaClave, italics: true, color: GRIS, margin: [0, 4, 0, 6] });
 
   for (const linea of o.intro || []) {
-    trozos.push({ text: `· ${linea}`, fontSize: T.schitaClave, color: GRIS, margin: [0, 0, 0, 2] });
+    trozos.push({ text: `- ${linea}`, fontSize: T.schitaClave, color: GRIS, margin: [0, 0, 0, 2] });
   }
 
   o.points.forEach((p, i) => {
     const grupo = [
       { text: `${i + 1}. ${quitarMarcas(p.title)}`, fontSize: T.schitaPunto, bold: true, margin: [0, 8, 0, 3] },
     ];
+    // Guion y sin sangría: las ideas quedan alineadas a la izquierda, en
+    // columna. Con el punto medio y 8 pt de sangría se leían como una
+    // continuación del título en vez de como una lista.
     for (const k of p.keywords || []) {
-      grupo.push({ text: `· ${k}`, fontSize: T.schitaClave, margin: [8, 0, 0, 2], lineHeight: 1.25 });
+      grupo.push({ text: `- ${k}`, fontSize: T.schitaClave, margin: [0, 0, 0, 2], lineHeight: 1.25 });
     }
     if ((p.refs || []).length) {
       grupo.push({ text: (p.refs || []).join('  ·  '), fontSize: T.nota, color: ACENTO, bold: true, margin: [8, 2, 0, 0] });

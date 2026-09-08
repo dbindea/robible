@@ -20,6 +20,7 @@
   import { setSermonPublic, buildPublicSermonUrl } from '../../services/sermons.service';
   import { buildSnapshot } from '../../services/sermon-pulpit.service';
   import Icon from '../../components/Icon.svelte';
+  import Ajutor from '../../components/Ajutor.svelte';
   import Modal from '../../components/Modal.svelte';
   import { searchReferences } from '../../services/referenceSearch.service';
   import {
@@ -33,6 +34,8 @@
     newSubpoint,
     normalizeContent,
     normalizeOutline,
+    clavesATexto,
+    textoAClaves,
     quitarMarcas,
     sermonWordCount,
     estimatedMinutes,
@@ -351,25 +354,71 @@
   const verFinal = async () => {
     await guardarYa();
     vista = 'final';
+    avisar($_('app.sermons.sermon_finished'));
     window.scrollTo({ top: 0 });
+  };
+
+  // ── La schiță, editada como listas de texto ─────────────────────────────
+  //
+  // El array de claves de cada punto se edita en un `textarea`, una idea por
+  // línea. El texto es estado propio y se vuelca al array en cada pulsación,
+  // pero **no al revés**: derivar el texto del array mientras se escribe
+  // reordenaría el valor bajo el cursor —una línea vacía a media frase
+  // desaparece al parsear— y el cursor saltaría al final en cada tecla.
+  // Sólo se sincroniza al abrir o al regenerar, que es cuando el array cambia
+  // por debajo.
+  let textoClaves = {}; // id de punto → texto del textarea
+  let textoIntro = '';
+
+  const sincronizarTextos = () => {
+    const nuevos = {};
+    (outline?.points || []).forEach((p, i) => {
+      nuevos[p.id || i] = clavesATexto(p.keywords);
+    });
+    textoClaves = nuevos;
+    textoIntro = clavesATexto(outline?.intro);
   };
 
   const crearSchita = async () => {
     // Se genera una sola vez desde la estructura ya escrita. No se regenera
     // sola después: pisaría los retoques que el predicador haga a mano.
-    outline = normalizeOutline(sermon?.outline) ;
+    outline = normalizeOutline(sermon?.outline);
     const vacia = !outline.points.length && !outline.idea;
     if (vacia) {
       outline = generateOutline(content);
       await sermonsStore.update(sermonId, { outline: JSON.stringify(outline) });
     }
+    sincronizarTextos();
     vista = 'outline';
+    avisar($_(vacia ? 'app.sermons.outline_created' : 'app.sermons.outline_opened'));
     window.scrollTo({ top: 0 });
   };
 
   const regenerarSchita = async () => {
     outline = generateOutline(content);
+    sincronizarTextos();
     await sermonsStore.update(sermonId, { outline: JSON.stringify(outline) });
+    avisar($_('app.sermons.outline_regenerated'));
+  };
+
+  // ── Serie / tema ────────────────────────────────────────────────────────
+  //
+  // Timer propio y no el de `guardarContenido`: son dos peticiones distintas
+  // —una escribe `content_json`, la otra la columna `series`— y compartiendo
+  // temporizador cada tecla en un campo cancelaría el guardado pendiente del
+  // otro.
+  let serie = '';
+  let serieTimer;
+
+  const guardarSerie = () => {
+    estadoGuardado = 'guardando';
+    clearTimeout(serieTimer);
+    serieTimer = setTimeout(async () => {
+      await sermonsStore.update(sermonId, { series: serie.trim() || null });
+      estadoGuardado = 'guardado';
+      clearTimeout(etiquetaTimer);
+      etiquetaTimer = setTimeout(() => { estadoGuardado = ''; }, 2000);
+    }, RETARDO_MS);
   };
 
   const guardarSchita = () => {
@@ -419,13 +468,13 @@
   let avisoPreparada = '';
 
   const irAlPulpito = () => {
-    window.history.pushState(null, '', `/predici/${encodeURIComponent(sermonId)}/amvon`);
+    window.history.pushState(null, '', `/predicile-mele/${encodeURIComponent(sermonId)}/amvon`);
     window.dispatchEvent(new CustomEvent('robibile:navigate'));
     window.dispatchEvent(new PopStateEvent('popstate'));
   };
 
   const volverALista = () => {
-    window.history.pushState(null, '', '/predici');
+    window.history.pushState(null, '', '/predicile-mele');
     // La errata `robibile` es la del resto del proyecto (CLAUDE.md, trampa 1).
     window.dispatchEvent(new CustomEvent('robibile:navigate'));
     window.dispatchEvent(new PopStateEvent('popstate'));
@@ -435,12 +484,15 @@
     sermon = await sermonsStore.load(sermonId);
     content = normalizeContent(sermon?.content);
     outline = normalizeOutline(sermon?.outline);
+    serie = sermon?.series || '';
+    sincronizarTextos();
     cargando = false;
   });
 
   onDestroy(() => {
     clearTimeout(guardadoTimer);
     clearTimeout(etiquetaTimer);
+    clearTimeout(serieTimer);
     // Al salir se guarda sin esperar: el usuario puede estar navegando fuera
     // justo después de teclear.
     if (sermonId && !cargando) {
@@ -474,7 +526,33 @@
     </header>
 
     <h1 class="prep__titulo">{sermon.title || $_('app.sermons.untitled')}</h1>
-    <p class="prep__ref">{referencia}</p>
+    <!-- El tipo al lado del pasaje: la guía y los avisos cambian según cuál
+         sea, y hasta ahora sólo se veía en la lista, antes de entrar. -->
+    <p class="prep__ref">
+      {referencia}
+      {#if sermon.type}
+        <span aria-hidden="true">·</span>
+        <span class="prep__tipo">{$_(`app.sermons.type_${sermon.type}`)}</span>
+      {/if}
+    </p>
+
+    <!-- Dónde estoy. Las tres vistas se parecen bastante —título, referencia y
+         bloques— y sin esto, después de pulsar «Creează schița», no había forma
+         de saber si lo que se veía era la predicación o la schiță. -->
+    <p class="prep__vista">
+      {vista === 'prep'
+        ? $_('app.sermons.view_prep')
+        : vista === 'final'
+          ? $_('app.sermons.view_final')
+          : $_('app.sermons.view_outline')}
+    </p>
+
+    <!-- Un solo aviso para las tres vistas. Antes vivía dentro del bloque de la
+         predicación final, así que publicar o regenerar desde la schiță no
+         decía nada y parecía que el botón no hacía nada. -->
+    {#if avisoPublicar}
+      <p class="prep__aviso no-imprimir" role="status">{avisoPublicar}</p>
+    {/if}
 
     {#if vista === 'prep'}
       <!-- ── Línea de progreso ────────────────────────────────────────── -->
@@ -486,6 +564,7 @@
             class:pasos__paso--activo={paso === s}
             class:pasos__paso--hecho={completado[s]}
             aria-current={paso === s ? 'step' : undefined}
+            title={$_(`app.sermons.step_${s}`)}
             on:click={() => irAPaso(s)}
           >
             <span class="pasos__num">{i + 1}</span>
@@ -493,11 +572,17 @@
           </button>
         {/each}
       </nav>
+      <!-- En móvil los pasos son sólo números —siete nombres no caben sin
+           scroll horizontal— así que el nombre del paso actual va debajo. -->
+      <p class="pasos__actual">
+        {$_('app.sermons.step_of', { current: pasoIndex + 1, total: STEPS.length })} · {$_(`app.sermons.step_${paso}`)}
+      </p>
 
       <!-- ── TEXT ─────────────────────────────────────────────────────── -->
       {#if paso === 'text'}
         <div class="bloque">
           <h2>{$_('app.sermons.step_text')}</h2>
+          <Ajutor paso="text" tip={sermon?.type} />
           <p class="bloque__ayuda">{$_('app.sermons.text_help')}</p>
           <div class="texto">
             {#each pericopa as v (v.numero)}
@@ -525,6 +610,7 @@
       {:else if paso === 'observation'}
         <div class="bloque">
           <h2>{$_('app.sermons.step_observation')}</h2>
+          <Ajutor paso="observation" tip={sermon?.type} />
           <p class="bloque__ayuda">{$_('app.sermons.optional_help')}</p>
           {#each ['repeats', 'contrasts', 'actions', 'tension', 'truth'] as clave (clave)}
             <label class="campo">
@@ -538,6 +624,7 @@
       {:else if paso === 'context'}
         <div class="bloque">
           <h2>{$_('app.sermons.step_context')}</h2>
+          <Ajutor paso="context" tip={sermon?.type} />
 
           {#if contextoAntes.length}
             <details class="contexto">
@@ -564,19 +651,29 @@
           {/each}
         </div>
 
-      <!-- ── IDEEA CENTRALĂ ───────────────────────────────────────────── -->
+      <!-- ── IDEE ─────────────────────────────────────────────────────────
+           El orden de los campos es el del curso: primero lo que el texto dijo
+           entonces, después lo que Dios quiere cambiar hoy, y sólo con esos dos
+           delante se formula la idea homilética. Invertirlo lleva a escribir
+           primero la frase bonita y buscarle el respaldo bíblico después. -->
       {:else if paso === 'idea'}
         <div class="bloque">
           <h2>{$_('app.sermons.step_idea')}</h2>
+          <Ajutor paso="idea" tip={sermon?.type} />
           <label class="campo">
-            <span>{$_('app.sermons.idea_central')}</span>
-            <small class="campo__pista">{$_('app.sermons.idea_central_help')}</small>
-            <textarea rows="2" bind:value={content.idea.central} on:input={guardarContenido}></textarea>
+            <span>{$_('app.sermons.idea_exegetical')}</span>
+            <small class="campo__pista">{$_('app.sermons.idea_exegetical_help')}</small>
+            <textarea rows="3" bind:value={content.idea.exegetical} on:input={guardarContenido}></textarea>
           </label>
           <label class="campo">
             <span>{$_('app.sermons.idea_purpose')}</span>
             <small class="campo__pista">{$_('app.sermons.idea_purpose_help')}</small>
             <textarea rows="5" bind:value={content.idea.purpose} on:input={guardarContenido}></textarea>
+          </label>
+          <label class="campo">
+            <span>{$_('app.sermons.idea_central')}</span>
+            <small class="campo__pista">{$_('app.sermons.idea_central_help')}</small>
+            <textarea rows="3" bind:value={content.idea.central} on:input={guardarContenido}></textarea>
           </label>
           <label class="campo">
             <span>{$_('app.sermons.idea_question')}</span>
@@ -589,6 +686,7 @@
       {:else if paso === 'structure'}
         <div class="bloque">
           <h2>{$_('app.sermons.step_structure')}</h2>
+          <Ajutor paso="structure" tip={sermon?.type} />
           <p class="bloque__ayuda">{$_('app.sermons.structure_help')}</p>
 
           {#each content.structure as punto, i (punto.id)}
@@ -633,6 +731,7 @@
       {:else if paso === 'development'}
         <div class="bloque">
           <h2>{$_('app.sermons.step_development')}</h2>
+          <Ajutor paso="development" tip={sermon?.type} />
           {#if !content.structure.length}
             <p class="bloque__ayuda">{$_('app.sermons.development_needs_structure')}</p>
             <button type="button" class="bloque__añadir" on:click={() => irAPaso('structure')}>
@@ -714,6 +813,7 @@
       {:else if paso === 'final'}
         <div class="bloque">
           <h2>{$_('app.sermons.step_final')}</h2>
+          <Ajutor paso="final" tip={sermon?.type} />
           <label class="campo">
             <span>{$_('app.sermons.intro')}</span>
             <small class="campo__pista">{$_('app.sermons.intro_help')}</small>
@@ -723,6 +823,15 @@
             <span>{$_('app.sermons.conclusion')}</span>
             <small class="campo__pista">{$_('app.sermons.conclusion_help')}</small>
             <textarea rows="8" bind:value={content.conclusion} on:input={guardarContenido}></textarea>
+          </label>
+
+          <!-- La serie NO va en `content_json`: es una columna de la tabla,
+               porque el listado público filtra por ella y filtrar por dentro de
+               un JSON obligaría a cargar todas las predicaciones enteras. -->
+          <label class="campo">
+            <span>{$_('app.sermons.series')}</span>
+            <small class="campo__pista">{$_('app.sermons.series_help')}</small>
+            <input type="text" bind:value={serie} on:input={guardarSerie} />
           </label>
           <button type="button" class="prep__cta" on:click={verFinal}>
             {$_('app.sermons.finish')}
@@ -796,10 +905,6 @@
         </div>
       {/if}
 
-      {#if avisoPublicar}
-        <p class="publicada__aviso no-imprimir" role="status">{avisoPublicar}</p>
-      {/if}
-
       {#if avisoPreparada}
         <div class="prep__listo" role="status">
           <p>{avisoPreparada}</p>
@@ -817,30 +922,46 @@
 
         <label class="campo">
           <span>{$_('app.sermons.idea_central')}</span>
-          <input type="text" bind:value={outline.idea} on:input={guardarSchita} />
+          <textarea rows="2" bind:value={outline.idea} on:input={guardarSchita}></textarea>
+        </label>
+
+        <label class="campo">
+          <span>{$_('app.sermons.outline_intro')}</span>
+          <small class="campo__pista">{$_('app.sermons.outline_lines_help')}</small>
+          <textarea
+            class="campo__lista"
+            rows="3"
+            bind:value={textoIntro}
+            on:input={() => { outline.intro = textoAClaves(textoIntro); guardarSchita(); }}
+          ></textarea>
         </label>
 
         {#each outline.points as p, i (p.id || i)}
           <div class="punto">
-            <input type="text" class="punto__titulo" bind:value={p.title} on:input={guardarSchita} />
+            <textarea class="punto__titulo-area" rows="2" bind:value={p.title} on:input={guardarSchita}></textarea>
             <label class="campo">
               <span>{$_('app.sermons.outline_keywords')}</span>
-              <input
-                type="text"
-                value={(p.keywords || []).join(' · ')}
-                on:input={(e) => { p.keywords = e.target.value.split('·').map((s) => s.trim()).filter(Boolean); guardarSchita(); }}
-              />
+              <!-- Una idea por línea. El texto del `textarea` es estado propio
+                   (`textoClaves`) y no se vuelve a derivar del array mientras se
+                   escribe: si se derivara, borrar un guion reordenaría el valor
+                   bajo el cursor y saltaría al final en cada tecla. -->
+              <textarea
+                class="campo__lista"
+                rows="4"
+                bind:value={textoClaves[p.id || i]}
+                on:input={() => { p.keywords = textoAClaves(textoClaves[p.id || i]); guardarSchita(); }}
+              ></textarea>
             </label>
           </div>
         {/each}
 
         <label class="campo">
           <span>{$_('app.sermons.outline_application')}</span>
-          <textarea rows="2" bind:value={outline.application} on:input={guardarSchita}></textarea>
+          <textarea rows="3" bind:value={outline.application} on:input={guardarSchita}></textarea>
         </label>
         <label class="campo">
           <span>{$_('app.sermons.conclusion')}</span>
-          <textarea rows="2" bind:value={outline.conclusion} on:input={guardarSchita}></textarea>
+          <textarea rows="3" bind:value={outline.conclusion} on:input={guardarSchita}></textarea>
         </label>
       </div>
 
@@ -1005,16 +1126,6 @@
     color: var(--color-ink-soft);
     font-size: 0.78rem;
     line-height: 1.4;
-  }
-
-  .publicada__aviso {
-    margin-top: 0.75rem;
-    padding: 0.5rem 0.8rem;
-    border-radius: var(--radius-sm);
-    background: var(--color-success-wash);
-    color: var(--color-success-ink);
-    font-size: 0.85rem;
-    font-weight: 600;
   }
 
   // ── Marcar palabras para la schiță ──────────────────────
@@ -1228,26 +1339,54 @@
     color: var(--color-link);
   }
 
+  .prep__tipo {
+    color: var(--color-ink-soft);
+    font-weight: 600;
+  }
+
   // ── Línea de pasos ────────────────────────────────────────────────────────
   // Se desliza en horizontal: con siete pasos, partirlos en varias filas en
   // móvil haría perder de vista dónde está uno.
+  /* Siete pasos sin scroll horizontal.
+     En móvil son siete casillas de un séptimo de ancho con el número dentro y
+     el nombre debajo, fuera de la fila. En pantalla ancha vuelven a ser
+     pastillas con nombre, pero con `wrap`: si no caben pasan a una segunda
+     línea en vez de esconderse detrás de un scroll que nadie descubre. */
   .pasos {
-    display: flex;
-    gap: 0.35rem;
-    overflow-x: auto;
-    padding-bottom: 0.5rem;
-    margin-bottom: 1rem;
-    scrollbar-width: none;
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.3rem;
+    margin-bottom: 0.4rem;
+  }
 
-    &::-webkit-scrollbar { display: none; }
+  .pasos__actual {
+    margin: 0 0 1rem;
+    color: var(--color-ink-soft);
+    font-size: var(--font-size-tiny);
+    font-weight: 600;
+  }
+
+  .pasos__nombre { display: none; }
+
+  @media (min-width: 48rem) {
+    .pasos {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      margin-bottom: 1rem;
+    }
+    .pasos__nombre { display: inline; }
+    .pasos__actual { display: none; }
   }
 
   .pasos__paso {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 0.35rem;
+    min-width: 0;
     flex: 0 0 auto;
-    padding: 0.35rem 0.7rem;
+    padding: 0.35rem 0.5rem;
     border: 1px solid var(--color-line);
     border-radius: var(--radius-pill);
     background: transparent;
@@ -1269,6 +1408,26 @@
     }
 
     &:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+  }
+
+  .prep__vista {
+    margin: 0 0 0.75rem;
+    color: var(--color-accent-ink);
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: var(--letter-spacing-eyebrow);
+  }
+
+  .prep__aviso {
+    margin: 0 0 0.9rem;
+    padding: 0.55rem 0.8rem;
+    border: 1px solid var(--color-line-accent);
+    border-radius: var(--radius-md);
+    background: var(--wash-accent);
+    color: var(--color-accent-ink);
+    font-size: var(--font-size-small);
+    font-weight: 600;
   }
 
   .pasos__num {
@@ -1347,6 +1506,37 @@
         border-color: var(--color-accent);
         box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 18%, transparent);
       }
+    }
+  }
+
+  /* Las listas de la schiță: una idea por línea, con su guion. Sin ajuste
+     automático de línea la lista se lee como lista y no como párrafo, que es
+     justo lo que hay que ver de reojo desde el atril. */
+  .campo__lista {
+    white-space: pre;
+    overflow-x: auto;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* El título del punto en la schiță es un textarea y no un input: en la
+     pantalla de un móvil un título de ocho palabras no cabe en una línea, y
+     con un input hay que ir moviendo el cursor a ciegas para releerlo. */
+  .punto__titulo-area {
+    width: 100%;
+    padding: 0.5rem 0.65rem;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+    color: var(--color-ink-strong);
+    font: inherit;
+    font-weight: 700;
+    line-height: 1.35;
+    resize: vertical;
+
+    &:focus-visible {
+      outline: none;
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 18%, transparent);
     }
   }
 

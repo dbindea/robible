@@ -694,6 +694,46 @@ píxeles para que no vuelva a fallar en silencio.
 - **Cinco tokens `--landing-*` que no existen.** `var()` de un token inexistente no falla: el fondo queda transparente y el borde cae a `currentColor`, así que la tarjeta se ve «casi bien». La landing no tiene tokens propios, usa los semánticos de `global.css`.
 - **`app.topics.share.copy` no existía** (se llama `copy_link`), así que el botón de copiar el enlace mostraba el identificador en crudo. El test de i18n sólo comparaba los cuatro idiomas **entre sí**, y una clave ausente en los cuatro cuadraba perfectamente. Hay ahora un test que recorre `src/` y comprueba que toda clave usada exista.
 
+### Fase 5.E — Guía de homilética, schiță editable y blog público ✅ COMPLETADA (2026-09-08)
+
+- [x] **Guía de homilética contextual** (`Ajutor.svelte` + `src/config/homiletics.js`): una nota al margen por paso, sacada del curso de predicación expositiva del Institutul Teologic Penticostal din București
+- [x] **Paso IDEE reordenado según el curso**: idea exegética → propósito → idea homilética → pregunta analítica, con el campo `idea.exegetical` nuevo
+- [x] **La schiță se edita como listas de texto**: una idea por línea con guion, en `textarea` que respeta los saltos
+- [x] **Siete pasos sin scroll horizontal** en móvil, y un indicador de en qué vista se está
+- [x] **Blog público de predicaciones** (`/predici`) con búsqueda y filtros por tema, texto bíblico y año
+- [x] La lista privada se muda a `/predicile-mele`
+
+**Decisiones que conviene no deshacer:**
+- **La guía va en línea, no en un modal ni en un tooltip.** Se lee mientras se escribe en el campo de al lado; un diálogo obligaría a cerrarlo para volver a mirar el texto, y en un globo flotante no caben cinco viñetas y un ejemplo.
+- **El ejemplo es siempre Tito 2:11-14.** El curso lo usa de hilo conductor y ver la misma predicación avanzar paso a paso enseña más que siete ejemplos sueltos.
+- **El orden del paso IDEE no es decorativo.** Primero lo que el texto dijo entonces, después lo que Dios quiere cambiar hoy, y sólo con esos dos delante la idea homilética. Invertirlo lleva a escribir la frase bonita y buscarle el respaldo bíblico después.
+- **`/predici` es el blog público y `/predicile-mele` el cuaderno privado.** El plural suelto describe mejor «todas las publicadas» que «las mías», y deja corta la URL que se comparte y se indexa. Encaja además con `/predica/<slug>`: singular una, plural todas.
+- **Los filtros del blog no van en la URL.** Serían mil variantes de la misma página para el buscador. Se resuelven en el navegador sobre la lista ya descargada, que son cabeceras y no predicaciones enteras.
+- **Los ejes de navegación se calculan de lo publicado**, no de una lista fija: un desplegable con los 66 libros donde sólo cuatro tienen predicaciones son sesenta y dos callejones sin salida.
+- **La serie es una columna, no parte de `content_json`.** El listado público filtra por ella, y filtrar por dentro de un JSON obligaría a cargar todas las predicaciones enteras.
+
+**Lo que costó más de lo que parecía:**
+- **El texto de las listas no puede derivarse del array mientras se escribe.** Al parsear, una línea vacía a media frase desaparece y el cursor salta al final en cada tecla. El `textarea` tiene estado propio y sólo se sincroniza al abrir o al regenerar.
+- **El botón flotante de modo lectura se plantaba encima del guía.** El modo inmersivo esconde el cromo para *leer la Biblia*; sobre un formulario de preparación no significa nada. Fuera del módulo entero.
+- **Los plurales rumanos.** «1 predici» y «1 puncte». El proyecto no tiene motor de plurales: el par singular/plural se elige en el punto de llamada, como en `app.topics.verse_count`.
+
+### Fase 5.F — Descubrimiento del contenido público y tipos de predicación ✅ COMPLETADA (2026-09-08)
+
+- [x] **Enlaces públicos en el pie**, tanto en la aplicación como en la landing: `/landing`, `/predici` y `/teme`. La lista es un array de tres líneas en `Footer.svelte`; añadir una sección más es una línea
+- [x] **Índice de temas publicados** (`/teme`), con buscador
+- [x] **El tipo de predicación deja de ser decorativo**: avisos propios para textual y temática en los tres pasos donde de verdad cambian, y el tipo visible en la cabecera de la preparación
+- [x] Las pistas del selector de tipo describen ahora la decisión, no el formato
+
+**Lo que había realmente:**
+- **`GET /api/public/topics` existía desde el principio y ninguna pantalla lo pedía.** Un tema publicado sólo existía para quien recibía el enlace — no había forma de saber que los había, ni siquiera para quien los publicaba. Sólo faltaba la pantalla y el `fetchPublicTopics` del cliente.
+- **El tipo de predicación no hacía absolutamente nada.** Se guardaba, se validaba en el worker y se pintaba en la lista; ni la preparación, ni la guía, ni el PDF lo miraban. El selector de tres opciones del diálogo de creación era decorativo.
+
+**Decisiones que conviene no deshacer:**
+- **`/teme` va con `noindex, follow`, igual que `/tema/<slug>`.** Un tema es una lista de versículos que ya tienen su propia página: indexarlo sería contenido duplicado y fino. `follow` sí, para que el rastreador llegue por ahí a los capítulos. Por eso tampoco está en el sitemap. Si algún día se decide indexarlos, hay que cambiarlo en los tres sitios: las dos vistas y `topic-meta.mjs`.
+- **Los avisos por tipo sólo salen para `textual` y `thematic`.** La guía entera está escrita para la expositiva, que es de lo que trata el curso; repetirlo en un recuadro sería ruido. El aviso aparece cuando lo que escribes NO es lo que la guía asume.
+- **Los tres pasos con aviso son `text`, `idea` y `structure`**, que son los tres momentos en los que se acaba predicando otra cosa sin darse cuenta: de dónde sale el material, qué pasaje manda cuando hay varios, y de dónde salen las divisiones.
+- **Los enlaces del pie van en el pie y no en el menú lateral.** El menú es la navegación de lo tuyo —favoritos, notas, tus predicaciones—; esto es lo público, lo que existe aunque no tengas cuenta.
+
 ### Fuera de alcance
 
 IA, chatbot, red social, marketplace, comentarios, seguidores, colaboración,

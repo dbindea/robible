@@ -156,14 +156,14 @@
   };
 
   const abrir = (s) => {
-    window.history.pushState(null, '', `/predici/${encodeURIComponent(s.id)}`);
+    window.history.pushState(null, '', `/predicile-mele/${encodeURIComponent(s.id)}`);
     // La errata `robibile` es la del resto del proyecto (CLAUDE.md, trampa 1).
     window.dispatchEvent(new CustomEvent('robibile:navigate'));
     window.dispatchEvent(new PopStateEvent('popstate'));
   };
 
   const alPulpito = (s) => {
-    window.history.pushState(null, '', `/predici/${encodeURIComponent(s.id)}/amvon`);
+    window.history.pushState(null, '', `/predicile-mele/${encodeURIComponent(s.id)}/amvon`);
     window.dispatchEvent(new CustomEvent('robibile:navigate'));
     window.dispatchEvent(new PopStateEvent('popstate'));
   };

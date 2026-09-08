@@ -681,6 +681,11 @@
           </li>
         {/each}
       </ul>
+
+      <!-- La portada enseña seis; el resto vive en el blog. -->
+      <p class="sermons__todas">
+        <a href="/predici">{$_('landing.sermons.see_all')} →</a>
+      </p>
     </section>
   {/if}
 
@@ -711,6 +716,12 @@
         <a href="/biblia">{$_('landing.footer.bible')}</a>
         <a href="/compara">{$_('landing.footer.compare')}</a>
         <a href="/indice">{$_('landing.footer.index')}</a>
+        <!-- Las dos secciones públicas. Reutilizan las claves del pie de la
+             aplicación porque son literalmente las mismas palabras; duplicarlas
+             en `landing.footer.*` sería tener que traducirlas dos veces y que
+             se desincronizaran. -->
+        <a href="/predici">{$_('app.footer.links.sermons')}</a>
+        <a href="/teme">{$_('app.footer.links.topics')}</a>
         <a href="/sitemap.xml">{$_('landing.footer.sitemap')}</a>
         <a href="https://github.com/dbindea/robible" rel="noopener">{$_('landing.footer.github')}</a>
       </nav>
@@ -1794,6 +1805,12 @@
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+  }
+
+  .sermons__todas {
+    margin: 1.25rem 0 0;
+    text-align: center;
+    font-weight: 700;
   }
 
   .sermons__meta {

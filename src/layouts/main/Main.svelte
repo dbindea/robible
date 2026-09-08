@@ -12,6 +12,8 @@
   import Notes from './Notes.svelte';
   import PublicTopic from './PublicTopic.svelte';
   import PublicSermon from './PublicSermon.svelte';
+  import PublicSermons from './PublicSermons.svelte';
+  import PublicTopics from './PublicTopics.svelte';
   import Sermons from './Sermons.svelte';
   import SermonPrep from './SermonPrep.svelte';
   import SermonPulpit from './SermonPulpit.svelte';
@@ -62,14 +64,30 @@
   const isPublicSermonPath = (path) => /^\/predica\/[^/]+\/?$/.test(path);
   let isPublicSermonMode = typeof window !== 'undefined' ? isPublicSermonPath(window.location.pathname) : false;
 
-  // «Predicile mele». Ruta privada y sin traducir por idioma: no se indexa y
-  // no gana nada teniendo cuatro formas distintas.
-  const isSermonsPath = (path) => path === '/predici' || path.startsWith('/predici/');
-  // /predici      → la lista
-  // /predici/<id> → la preparación de esa predicación
-  const sermonIdFromPath = (path) => (path.match(/^\/predici\/([^/]+)\/?$/) || [])[1] || '';
-  // /predici/<id>/amvon → el púlpito
-  const pulpitIdFromPath = (path) => (path.match(/^\/predici\/([^/]+)\/amvon\/?$/) || [])[1] || '';
+  // Blog de predicaciones publicadas. Es la portada del contenido público del
+  // módulo: /predici (todas) y /predica/<slug> (una). No se traduce por idioma
+  // por el mismo motivo que /predica: es una URL que se reparte y se indexa, y
+  // con una forma por idioma la misma página tendría cuatro direcciones.
+  const isPublicSermonsPath = (path) => path === '/predici' || path === '/predici/';
+  let isPublicSermonsMode = typeof window !== 'undefined' ? isPublicSermonsPath(window.location.pathname) : false;
+
+  // Índice de temas publicados. Mismo par que /predica–/predici: singular uno
+  // (/tema/<slug>), plural todos (/teme). Existe porque el endpoint público
+  // estaba en el worker desde el principio y ninguna pantalla lo pedía: un
+  // tema publicado sólo existía para quien recibía el enlace.
+  const isPublicTopicsPath = (path) => path === '/teme' || path === '/teme/';
+  let isPublicTopicsMode = typeof window !== 'undefined' ? isPublicTopicsPath(window.location.pathname) : false;
+
+  // «Predicile mele»: el cuaderno privado. Vive en /predicile-mele desde que
+  // /predici pasó a ser el blog público — el plural suelto describe mejor «todas
+  // las publicadas» que «las mías», y así la ruta pública queda corta, que es la
+  // que se comparte y se indexa.
+  const isSermonsPath = (path) => path === '/predicile-mele' || path.startsWith('/predicile-mele/');
+  // /predicile-mele      → la lista
+  // /predicile-mele/<id> → la preparación de esa predicación
+  const sermonIdFromPath = (path) => (path.match(/^\/predicile-mele\/([^/]+)\/?$/) || [])[1] || '';
+  // /predicile-mele/<id>/amvon → el púlpito
+  const pulpitIdFromPath = (path) => (path.match(/^\/predicile-mele\/([^/]+)\/amvon\/?$/) || [])[1] || '';
   let isSermonsMode = typeof window !== 'undefined' ? isSermonsPath(window.location.pathname) : false;
   let sermonId = typeof window !== 'undefined' ? sermonIdFromPath(window.location.pathname) : '';
   let pulpitId = typeof window !== 'undefined' ? pulpitIdFromPath(window.location.pathname) : '';
@@ -111,6 +129,8 @@
     isCompareMode = isComparePath(window.location.pathname);
     isPublicTopicMode = isPublicTopicPath(window.location.pathname);
     isPublicSermonMode = isPublicSermonPath(window.location.pathname);
+    isPublicSermonsMode = isPublicSermonsPath(window.location.pathname);
+    isPublicTopicsMode = isPublicTopicsPath(window.location.pathname);
     isSermonsMode = isSermonsPath(window.location.pathname);
     sermonId = sermonIdFromPath(window.location.pathname);
     pulpitId = pulpitIdFromPath(window.location.pathname);
@@ -143,8 +163,8 @@
 </script>
 
 <!-- La ruta /landing la resuelve App.svelte antes de montar Main. -->
-<div class="main" class:main--immersive={isImmersive} class:main--compare={isCompareMode} class:main--index={isIndexMode} class:main--favorites={isFavoritesMode} class:main--notes={isNotesMode || isPublicTopicMode || isPublicSermonMode || isSermonsMode}>
-  {#if !isImmersive && !isCompareMode && !isIndexMode && !isFavoritesMode && !isNotesMode && !isPublicTopicMode && !isPublicSermonMode && !isSermonsMode}
+<div class="main" class:main--immersive={isImmersive} class:main--compare={isCompareMode} class:main--index={isIndexMode} class:main--favorites={isFavoritesMode} class:main--notes={isNotesMode || isPublicTopicMode || isPublicSermonMode || isSermonsMode || isPublicSermonsMode || isPublicTopicsMode}>
+  {#if !isImmersive && !isCompareMode && !isIndexMode && !isFavoritesMode && !isNotesMode && !isPublicTopicMode && !isPublicSermonMode && !isSermonsMode && !isPublicSermonsMode && !isPublicTopicsMode}
     <div class="sidebar">
       <Sidebar {map} {result} {count} />
     </div>
@@ -159,6 +179,10 @@
         {:else}
           <Sermons {bible} {map} />
         {/if}
+      {:else if isPublicSermonsMode}
+        <PublicSermons {map} />
+      {:else if isPublicTopicsMode}
+        <PublicTopics />
       {:else if isPublicSermonMode}
         <PublicSermon {map} />
       {:else if isPublicTopicMode}
@@ -178,8 +202,13 @@
   </div>
 </div>
 
-<!-- Floating immersive mode button (hidden in compare mode to avoid competing with the version picker) -->
-{#if !isImmersive && !isCompareMode}
+<!-- Botón flotante de modo lectura.
+     Fuera de comparar, porque competiría con el selector de versión, y fuera
+     del módulo de predicación: el modo inmersivo esconde el cromo para LEER la
+     Biblia, y sobre un formulario de preparación no significa nada. Además se
+     plantaba encima del texto del guía de homilética, que es contenido que hay
+     que poder leer entero. El Modo Amvon tiene su propia pantalla completa. -->
+{#if !isImmersive && !isCompareMode && !isSermonsMode}
   <button
     type="button"
     class="immersive-toggle"
