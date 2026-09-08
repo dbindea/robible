@@ -685,13 +685,21 @@ async function main() {
     { loc: absoluteUrl('/indice'), lastmod: TODAY, changefreq: 'monthly', priority: '0.8' },
     { loc: absoluteUrl('/favorites'), lastmod: TODAY, changefreq: 'weekly', priority: '0.7' },
     { loc: absoluteUrl('/notes'), lastmod: TODAY, changefreq: 'weekly', priority: '0.7' },
+    // El índice del blog de predicaciones. Las predicaciones sueltas van en
+    // sitemaps/sermons.xml, que sirve una función porque se publican entre
+    // despliegues; esta portada, en cambio, existe siempre.
+    { loc: absoluteUrl('/predici'), lastmod: TODAY, changefreq: 'weekly', priority: '0.8' },
   ];
   await writeSitemap('sitemaps/static.xml', staticRoutes);
   await writeSitemap('sitemaps/books.xml', bookUrls);
   await writeSitemap('sitemaps/chapters.xml', chapterUrls);
   await writeSitemap('sitemaps/topics.xml', topicUrls);
 
-  await writeSitemapIndex(['/sitemaps/static.xml', '/sitemaps/books.xml', '/sitemaps/chapters.xml', '/sitemaps/topics.xml']);
+  // sitemaps/sermons.xml se referencia en el índice pero NO se escribe aquí: lo
+  // sirve una función de Netlify, porque las predicaciones se publican entre
+  // despliegues y un sitemap estático las dejaría fuera hasta el siguiente.
+  // Ver netlify/functions/sermons-sitemap.mjs y la redirección de netlify.toml.
+  await writeSitemapIndex(['/sitemaps/static.xml', '/sitemaps/books.xml', '/sitemaps/chapters.xml', '/sitemaps/topics.xml', '/sitemaps/sermons.xml']);
 
   console.log(
     `Generated SEO pages: ${bookUrls.length} books, ${chapterUrls.length} chapters, ${topicUrls.length} topics.`,

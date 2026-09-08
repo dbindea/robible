@@ -27,7 +27,13 @@
       "about_text": "RoBible este o aplicație gratuită pentru citirea și căutarea versetelor Bibliei. Proiectul este deschis pentru îmbunătățiri pe GitHub.",
       "close_about": "Închide informația",
       "version_app": "Versiune aplicație",
-      "version_sw": "Versiune service worker"
+      "version_sw": "Versiune service worker",
+      "public_label": "Pagini publice",
+      "links": {
+        "landing": "Despre RoBible",
+        "sermons": "Predici",
+        "topics": "Teme"
+      }
     },
     "pwa": {
       "install_title": "Instalează RoBible",
@@ -239,6 +245,16 @@
         "home": "Casă",
         "light": "Lumină",
         "peace": "Pace"
+      },
+      "public": {
+        "eyebrow": "Teme publicate",
+        "title": "Teme",
+        "lead": "Colecții de versete strânse și publicate de utilizatori. Deschide una ca să vezi versetele.",
+        "search_placeholder": "Caută o temă…",
+        "no_results": "Nicio temă nu se potrivește.",
+        "empty": "Încă nu a fost publicată nicio temă.",
+        "seo_title": "Teme biblice — RoBible",
+        "seo_description": "Colecții de versete pe teme, publicate de utilizatorii RoBible."
       }
     },
     "notes": {
@@ -398,11 +414,11 @@
       "status_ready": "Pregătită",
       "status_preached": "Predicată",
       "type_expositive": "Expozitivă",
-      "type_expositive_hint": "Studiază și dezvoltă mesajul unui pasaj biblic.",
+      "type_expositive_hint": "Un singur pasaj. Ideea și diviziunile ies din el, în ordinea lui.",
       "type_textual": "Textuală",
-      "type_textual_hint": "Pornește de la un text scurt și îl dezvoltă.",
+      "type_textual_hint": "Un text scurt, de un verset sau două. Diviziunile ies din părțile lui.",
       "type_thematic": "Tematică",
-      "type_thematic_hint": "Urmărește o temă prin mai multe pasaje.",
+      "type_thematic_hint": "O temă urmărită prin mai multe pasaje. Fiecare diviziune are textul ei.",
       "field_title": "Titlu (opțional)",
       "field_title_hint": "Ex: Casa zidită pe stâncă",
       "field_passage": "Textul biblic",
@@ -437,12 +453,12 @@
       "ctx_before": "Ce este important înainte de pasaj?",
       "ctx_after": "Ce este important după pasaj?",
       "ctx_historical": "Există un context istoric sau cultural important?",
-      "idea_central": "Ideea centrală",
-      "idea_central_help": "Care este mesajul principal al acestui pasaj? Spune-l într-o singură propoziție.",
+      "idea_central": "Ideea omiletică",
+      "idea_central_help": "Ideea exegetică reformulată pentru ascultătorii de azi, în lumina scopului. O singură propoziție.",
       "idea_purpose": "Scopul predicii",
-      "idea_purpose_help": "Ce vrei ca ascultătorul să înțeleagă, să creadă sau să facă?",
-      "idea_question": "Întrebarea predicii",
-      "idea_question_help": "Ex: De ce trebuie să ne zidim viața pe stâncă?",
+      "idea_purpose_help": "Ce vrea Dumnezeu să schimbe în ascultători: concepțiile, caracterul sau conduita lor?",
+      "idea_question": "Întrebarea analitică",
+      "idea_question_help": "Întrebarea pusă ideii omiletice, din care ies diviziunile. Ex: CE lucrează această putere?",
       "structure_help": "Maximum două niveluri. Punctele se pot reordona.",
       "point_placeholder": "Titlul punctului",
       "subpoint_placeholder": "Subpunct",
@@ -468,7 +484,7 @@
       "mark_ready": "Pregătită pentru predicare",
       "outline": "Schița pentru amvon",
       "outline_help": "Titluri și cuvinte cheie, nu un rezumat. O privește, nu o citește.",
-      "outline_keywords": "Cuvinte cheie (separate cu ·)",
+      "outline_keywords": "Idei (una pe rând)",
       "outline_application": "Aplicație",
       "regenerate_outline": "Regenerează din structură",
       "back_to_sermon": "Înapoi la predică",
@@ -484,7 +500,58 @@
       "refs_search": "Caută referința",
       "refs_none": "Nicio referință găsită.",
       "print_sermon": "Tipărește predica",
-      "print_outline": "Tipărește schița"
+      "print_outline": "Tipărește schița",
+      "pdf_working": "Se generează…",
+      "share": {
+        "publish": "Publică",
+        "unpublish": "Retrage din public",
+        "is_public": "Publicată — oricine cu linkul o poate citi",
+        "public_hint": "Se poate găsi și în căutări. Predica se vede în curat: observațiile și contextul rămân private.",
+        "needs_points": "Adaugă cel puțin un punct înainte de a publica.",
+        "needs_connection": "Publicarea are nevoie de conexiune.",
+        "published": "Predica este publicată.",
+        "unpublished": "Predica nu mai este publică.",
+        "seo_title": "{title} — {reference}",
+        "seo_fallback": "Predică din {reference}",
+        "not_found_title": "Predica nu a fost găsită",
+        "not_found_hint": "Poate a fost retrasă din public sau linkul este greșit.",
+        "go_home": "Deschide Biblia",
+        "eyebrow": "Predică",
+        "share": "Distribuie predica",
+        "copied": "Link copiat"
+      },
+      "print_outline_hint": "Se pliază pe jumătate, pe latura scurtă. Dacă schița are patru pagini, tipărește față-verso cu întoarcere pe latura scurtă.",
+      "idea_exegetical": "Ideea exegetică",
+      "idea_exegetical_help": "Ce a spus textul pentru destinatarii lui de atunci? Tema + ce se spune despre ea.",
+      "outline_intro": "Introducere (idei)",
+      "outline_lines_help": "O idee pe fiecare rând. Liniuța o pune aplicația.",
+      "outline_created": "Schița a fost generată din structura ta.",
+      "outline_opened": "Schița salvată anterior.",
+      "outline_regenerated": "Schița a fost regenerată din structură.",
+      "sermon_finished": "Predica este gata. O poți citi, tipări sau publica.",
+      "view_prep": "Pregătire",
+      "view_final": "Predica finală",
+      "view_outline": "Schița",
+      "step_of": "Pasul {current} din {total}",
+      "blog": {
+        "eyebrow": "Predici publicate",
+        "title": "Predici",
+        "lead": "Predici pregătite în RoBible și puse la dispoziția tuturor. Caută după temă, după textul biblic sau după dată.",
+        "search_placeholder": "Caută după titlu, idee sau text biblic…",
+        "by_theme": "Temă",
+        "by_text": "Text biblic",
+        "by_date": "An",
+        "all": "Toate",
+        "count": "{count} predici",
+        "clear": "Șterge filtrele",
+        "no_results": "Nicio predică nu se potrivește cu filtrele alese.",
+        "empty": "Încă nu a fost publicată nicio predică.",
+        "seo_title": "Predici — RoBible",
+        "seo_description": "Predici expozitive puse la dispoziția tuturor: caută după temă, după textul biblic sau după dată.",
+        "count_one": "{count} predică"
+      },
+      "series": "Serie / temă",
+      "series_help": "Gruparea sub care apare predica în lista publică. Opțional."
     },
     "pulpit": {
       "mode": "Mod Amvon",
@@ -522,6 +589,82 @@
       "nocturn_hint": "Negru pur. Economisește bateria pe ecrane OLED.",
       "cald": "Cald",
       "cald_hint": "Cremă și aramă. Culorile cu care s-a născut RoBible."
+    },
+    "homiletics": {
+      "open": "Ghid de omiletică",
+      "example": "Exemplu — Tit 2:11-14",
+      "text": {
+        "why": "Predica expozitivă expune învățătura acestui text. Tot ce vei spune trebuie să iasă de aici, nu din ce ai vrea tu să spui.",
+        "b1": "Citește pericopa de mai multe ori, până când o vezi întreagă, nu pe bucăți.",
+        "b2": "Atinge cuvintele cheie: cele care se repetă, cele pe care autorul le explică singur și cele care duc mai departe acțiunea sau argumentația.",
+        "b3": "Deocamdată doar observi. Ideea de predică vine mai târziu."
+      },
+      "observation": {
+        "why": "Cuvintele cheie se recunosc după trei semne: se repetă în text, sunt explicate chiar de scriitorul biblic, sau sunt importante în desfășurarea acțiunii ori a argumentației.",
+        "b1": "Ce se repetă? Repetiția este cel mai sigur semn (vezi 2 Corinteni 1:3-11 sau Luca 2:25-27).",
+        "b2": "Ce contraste sau antiteze pune autorul unul lângă altul?",
+        "b3": "Cine face ce? Ce verbe duc textul mai departe?",
+        "b4": "Unde este tensiunea textului — problema pe care o rezolvă?"
+      },
+      "context": {
+        "why": "Un text scos din context ajunge pretext. Contextul îți arată ce a vrut să spună autorul, nu ce ne-ar conveni nouă să spună.",
+        "b1": "Literar: ce gen este (istorisire, poezie, epistolă, profeție, pildă, proverb) și unde cade pericopa în capitol și în carte.",
+        "b2": "Cultural: din ce mediu vin scriitorul, personajele și destinatarii.",
+        "b3": "Istoric: în ce împrejurări se petrece acțiunea sau sunt rostite cuvintele.",
+        "b4": "Geografic: uneori relieful sau distanța dintre cetăți lămurește textul (Exodul 14).",
+        "b5": "Teologic: ce credeau despre Dumnezeu autorul, personajele și destinatarii (Geneza 12:10-20)."
+      },
+      "idea": {
+        "why": "Aici se decide predica, și se ajunge în trei pași: ce a spus textul atunci, ce vrea Dumnezeu să schimbe acum și cum se spune asta astăzi.",
+        "b1": "Ideea exegetică rezumă învățătura textului pentru destinatarii lui de atunci. Ca să fie corectă trebuie să conțină tema (despre ce este vorba în text?) și ce se spune despre temă.",
+        "b2": "Scopul răspunde la o singură întrebare: ce vrea Dumnezeu să schimbe în ascultători? Poate atinge concepțiile, caracterul sau conduita lor.",
+        "b3": "Ideea omiletică este ideea exegetică reformulată și actualizată, în lumina scopului.",
+        "b4": "Ideea omiletică trebuie să fie fidelă exegetic, clar formulată, cuprinzătoare, concisă și relevantă pentru ascultători.",
+        "quote": "„Când ideea apare în mintea predicatorului clară ca o lună fără nori, atunci el are mesajul pe care trebuie să-l predice.\" (Robinson)",
+        "e1": "Ideea exegetică: harul lui Dumnezeu trebuie să schimbe viețile oamenilor datorită prețului scump pe care Hristos l-a plătit pentru a-Și răscumpăra poporul.",
+        "e2": "Scopul: oamenii să-și dorească harul pentru schimbarea vieții, nu pentru favoruri gratuite.",
+        "e3": "Ideea omiletică: harul lui Dumnezeu este o putere lucrătoare, nu doar o favoare.",
+        "warn": "Este pasul cel mai greu din toată pregătirea. Nu trece mai departe până nu îl ai limpede."
+      },
+      "structure": {
+        "why": "Diviziunile argumentează, explică sau aplică ideea omiletică. Se obțin punând o întrebare analitică ideii omiletice: De ce? Cum? Când? Cu ce condiții? Ce înseamnă?",
+        "b1": "Formulează-le concis, dar nu vag.",
+        "b2": "Fă-le simetrice: să înceapă cu același grup de cuvinte și să aibă aceeași formă gramaticală.",
+        "b3": "Ordonează-le progresiv, ca să ducă ascultătorul spre un moment de decizie.",
+        "b4": "Însoțește fiecare diviziune de versetul din care provine: referința este autoritatea din spatele ei.",
+        "b5": "Între diviziuni pune o frază de tranziție, ca ascultătorul să știe că ai trecut mai departe.",
+        "e1": "Întrebarea analitică: CE lucrează această putere?",
+        "e2": "1. Harul lui Dumnezeu transformă viețile credincioșilor (v. 11-12)",
+        "e3": "2. Harul lui Dumnezeu le oferă speranță credincioșilor (v. 13)",
+        "e4": "3. Harul lui Dumnezeu dă sens vieții credincioșilor (v. 14)"
+      },
+      "development": {
+        "why": "Fiecare diviziune se dezvoltă prin trei secțiuni: explicarea și aplicarea sunt obligatorii, ilustrarea este opțională.",
+        "b1": "Explică sensul conceptului așa cum apare în textul de predică, nu în toată Scriptura. Alte versete intră doar dacă ajută la înțelegerea lui aici.",
+        "b2": "Aplică: aplicațiile leagă Scriptura de ascultători și decid relevanța predicii. Răspunde la două întrebări — ce au în comun personajele textului și ascultătorii, și când se găsesc ei în aceeași situație?",
+        "b3": "Ilustrează: o povestire care exemplifică practic adevărul enunțat. Să fie legată de diviziune, originală, credibilă, ușor de înțeles și scurtă.",
+        "b4": "Poți dezvolta și prin subdiviziuni, punând întrebări analitice conceptului diviziunii: cum? care? de ce? ce presupune? care sunt consecințele?"
+      },
+      "final": {
+        "why": "Introducerea se scrie la sfârșit, pentru că abia acum știi unde duci predica.",
+        "b1": "Introducerea are trei părți: fraza de început, aplicațiile introductive și tranziția către text.",
+        "b2": "Fraza de început iese din ideea omiletică sau din temă, legată de viața de zi cu zi a ascultătorilor.",
+        "b3": "Aplicațiile introductive scot la iveală nevoia ascultătorului și creează tensiunea pozitivă. Fără ea, predica este răspunsul la o întrebare pe care n-a pus-o nimeni.",
+        "b4": "Nu începe cu detalii tehnice despre carte sau despre destinatari.",
+        "b5": "Încheierea are tot trei părți: reluarea ideii omiletice, recapitularea diviziunilor și viziunea — ce se va întâmpla dacă ascultătorii aplică ideea."
+      },
+      "types": {
+        "textual": {
+          "text": "Textul este scurt — un verset sau două. Marchează cuvintele lui: din ele vor ieși diviziunile.",
+          "idea": "Ideea iese tot din acest text scurt, nu din tema pe care ți-o sugerează. Dacă ai ajuns la o idee pe care textul n-o susține, ai trecut la o predică tematică.",
+          "structure": "Diviziunile ies din părțile textului scurt — propoziții, cuvinte cheie —, nu din alte pasaje. Alte versete intră la Dezvoltare, ca sprijin."
+        },
+        "thematic": {
+          "text": "Acesta este textul de bază. Într-o predică tematică fiecare diviziune se sprijină pe alt pasaj: adaugă-le ca referințe la pasul Dezvoltare.",
+          "idea": "Ideea exegetică iese din textul de bază; celelalte pasaje o susțin, nu o schimbă. Dacă ideea nu se poate scoate din niciun text, este a ta, nu a Scripturii.",
+          "structure": "Fiecare diviziune are pasajul ei. Verifică fiecare verset în contextul lui: dacă acolo nu spune ce spui tu, scoate-l — nu-l forța."
+        }
+      }
     }
   },
   "auth": {
@@ -748,6 +891,14 @@
       "index": "Indice tematic",
       "sitemap": "Sitemap",
       "github": "GitHub"
+    },
+    "sermons": {
+      "eyebrow": "Predici publicate",
+      "title": "Predici de la frații noștri",
+      "lead": "Predici pregătite în RoBible și puse la dispoziția tuturor. Citește-le, folosește-le, împarte-le.",
+      "point": "{count} punct",
+      "points": "{count} puncte",
+      "see_all": "Vezi toate predicile"
     }
   }
 }

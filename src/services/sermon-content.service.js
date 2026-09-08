@@ -23,8 +23,16 @@ export const emptyContent = () => ({
   observation: { repeats: '', contrasts: '', actions: '', tension: '', truth: '' },
   // Paso CONTEXT.
   context: { before: '', after: '', historical: '' },
-  // Paso IDEEA CENTRALĂ.
-  idea: { central: '', purpose: '', question: '' },
+  // Paso IDEE. El orden de las claves es el del curso y no es decorativo: la
+  // idea exegética (lo que el texto dijo a SUS destinatarios) y el propósito
+  // (lo que Dios quiere cambiar hoy) son los dos insumos con los que se
+  // formula `central`, la idea homilética. Sin el primer paso se predica lo
+  // que a uno le apetece; sin el segundo, una clase de historia antigua.
+  //
+  // `exegetical` se añadió después: los documentos anteriores no la traen y
+  // `normalizeContent` la rellena en blanco. Por eso se mezcla con `base.idea`
+  // en vez de sustituirla.
+  idea: { exegetical: '', purpose: '', central: '', question: '' },
   // Paso STRUCTURA: puntos con subpuntos. Máximo dos niveles.
   structure: [],
   // Paso DEZVOLTARE: por id de punto.
@@ -242,11 +250,17 @@ export const generateOutline = (content) => {
 
   return {
     version: OUTLINE_VERSION,
-    idea: c.idea.central.trim(),
+    // La schiță se guarda ya limpia: los asteriscos son la sintaxis con la que
+    // se marca en la preparación, y a partir de aquí el texto sólo se lee —en
+    // el púlpito, en el PDF o en el enlace público—. Si se colaran, habría que
+    // acordarse de quitarlos en cada uno de esos sitios.
+    idea: quitarMarcas(c.idea.central).trim(),
     intro: claves(c.intro),
     points: c.structure.map((punto) => {
       const d = c.development[punto.id] || {};
-      const subpuntos = (punto.subpoints || []).map((s) => (s.title || '').trim()).filter(Boolean);
+      const subpuntos = (punto.subpoints || [])
+        .map((s) => quitarMarcas(s.title).trim())
+        .filter(Boolean);
 
       // Lo que el predicador ha marcado con asteriscos manda. El corte
       // automático sólo entra cuando no ha marcado nada: adivinar es el peor
@@ -258,7 +272,7 @@ export const generateOutline = (content) => {
 
       return {
         id: punto.id,
-        title: (punto.title || '').trim().toUpperCase(),
+        title: quitarMarcas(punto.title).trim().toUpperCase(),
         keywords: keywords.filter(Boolean),
         // Las del punto y las del desarrollo, en ese orden y sin repetir. En la
         // schiță sólo se ve la cita; el texto entero es cosa del Modo Amvon.
@@ -276,6 +290,30 @@ export const generateOutline = (content) => {
     conclusion: claves(c.conclusion, 2, 8).join(' · '),
   };
 };
+
+// ── La schiță se edita como texto ───────────────────────
+//
+// Las palabras clave son un array, pero editarlas como tal —un campo por
+// palabra, o uno solo separado por puntos medios— es incómodo justo cuando más
+// se toca: la schiță se retoca la noche antes de predicar, añadiendo, quitando
+// y reordenando líneas. En un `textarea` eso es escribir; en un `input` con
+// separadores, un rompecabezas.
+//
+// El guion delante lo pone la aplicación al mostrar y lo quita al leer, así que
+// el predicador ve una lista y el documento guarda palabras limpias. Se acepta
+// cualquier viñeta al leer (–, —, •, *, ·) porque el texto se pega desde otros
+// sitios, y también una línea sin viñeta ninguna.
+
+/** El array de claves, como texto para un `textarea`: una por línea, con guion. */
+export const clavesATexto = (claves) =>
+  (Array.isArray(claves) ? claves : []).map((k) => `- ${k}`).join('\n');
+
+/** Lo contrario: el texto del `textarea` de vuelta a array, sin viñetas. */
+export const textoAClaves = (texto) =>
+  String(texto ?? '')
+    .split('\n')
+    .map((linea) => linea.replace(/^\s*[-–—•*·]+\s*/, '').trim())
+    .filter(Boolean);
 
 export const normalizeOutline = (raw) => {
   const base = emptyOutline();

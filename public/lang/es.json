@@ -27,7 +27,13 @@
       "about_text": "RoBible es una app gratuita para leer y buscar en la Biblia en línea.",
       "close_about": "Cerrar información",
       "version_app": "Versión de la app",
-      "version_sw": "Versión del service worker"
+      "version_sw": "Versión del service worker",
+      "public_label": "Páginas públicas",
+      "links": {
+        "landing": "Sobre RoBible",
+        "sermons": "Predicaciones",
+        "topics": "Temas"
+      }
     },
     "pwa": {
       "install_title": "Instalar RoBible",
@@ -239,6 +245,16 @@
         "home": "Casa",
         "light": "Luz",
         "peace": "Paz"
+      },
+      "public": {
+        "eyebrow": "Temas publicados",
+        "title": "Temas",
+        "lead": "Colecciones de versículos reunidas y publicadas por los usuarios. Abre una para ver los versículos.",
+        "search_placeholder": "Busca un tema…",
+        "no_results": "Ningún tema coincide.",
+        "empty": "Todavía no se ha publicado ningún tema.",
+        "seo_title": "Temas bíblicos — RoBible",
+        "seo_description": "Colecciones de versículos por temas, publicadas por los usuarios de RoBible."
       }
     },
     "notes": {
@@ -398,11 +414,11 @@
       "status_ready": "Preparada",
       "status_preached": "Predicada",
       "type_expositive": "Expositiva",
-      "type_expositive_hint": "Estudia y desarrolla el mensaje de un pasaje bíblico.",
+      "type_expositive_hint": "Un solo pasaje. La idea y las divisiones salen de él, en su orden.",
       "type_textual": "Textual",
-      "type_textual_hint": "Parte de un texto breve y lo desarrolla.",
+      "type_textual_hint": "Un texto corto, de un versículo o dos. Las divisiones salen de sus partes.",
       "type_thematic": "Temática",
-      "type_thematic_hint": "Sigue un tema a través de varios pasajes.",
+      "type_thematic_hint": "Un tema seguido por varios pasajes. Cada división tiene su texto.",
       "field_title": "Título (opcional)",
       "field_title_hint": "Ej.: La casa edificada sobre la roca",
       "field_passage": "El texto bíblico",
@@ -437,12 +453,12 @@
       "ctx_before": "¿Qué es importante antes del pasaje?",
       "ctx_after": "¿Qué es importante después del pasaje?",
       "ctx_historical": "¿Hay un contexto histórico o cultural importante?",
-      "idea_central": "La idea central",
-      "idea_central_help": "¿Cuál es el mensaje principal de este pasaje? Dilo en una sola frase.",
-      "idea_purpose": "El propósito de la predicación",
-      "idea_purpose_help": "¿Qué quieres que el oyente entienda, crea o haga?",
-      "idea_question": "La pregunta de la predicación",
-      "idea_question_help": "Ej.: ¿Por qué debemos edificar la vida sobre la roca?",
+      "idea_central": "Idea homilética",
+      "idea_central_help": "La idea exegética reformulada para los oyentes de hoy, a la luz del propósito. Una sola frase.",
+      "idea_purpose": "Propósito de la predicación",
+      "idea_purpose_help": "¿Qué quiere Dios cambiar en los oyentes: sus conceptos, su carácter o su conducta?",
+      "idea_question": "Pregunta analítica",
+      "idea_question_help": "La pregunta que le haces a la idea homilética y de la que salen las divisiones. Ej: ¿QUÉ obra ese poder?",
       "structure_help": "Máximo dos niveles. Los puntos se pueden reordenar.",
       "point_placeholder": "Título del punto",
       "subpoint_placeholder": "Subpunto",
@@ -468,7 +484,7 @@
       "mark_ready": "Preparada para predicar",
       "outline": "La guía del púlpito",
       "outline_help": "Títulos y palabras clave, no un resumen. Se mira, no se lee.",
-      "outline_keywords": "Palabras clave (separadas con ·)",
+      "outline_keywords": "Ideas (una por línea)",
       "outline_application": "Aplicación",
       "regenerate_outline": "Regenerar desde la estructura",
       "back_to_sermon": "Volver a la predicación",
@@ -484,7 +500,58 @@
       "refs_search": "Buscar la referencia",
       "refs_none": "No se ha encontrado ninguna referencia.",
       "print_sermon": "Imprimir la predicación",
-      "print_outline": "Imprimir la schiță"
+      "print_outline": "Imprimir la schiță",
+      "pdf_working": "Generando…",
+      "share": {
+        "publish": "Publicar",
+        "unpublish": "Quitar de público",
+        "is_public": "Publicada — cualquiera con el enlace puede leerla",
+        "public_hint": "También puede aparecer en buscadores. Se ve la predicación en limpio: la observación y el contexto siguen siendo privados.",
+        "needs_points": "Añade al menos un punto antes de publicar.",
+        "needs_connection": "Publicar necesita conexión.",
+        "published": "La predicación está publicada.",
+        "unpublished": "La predicación ya no es pública.",
+        "seo_title": "{title} — {reference}",
+        "seo_fallback": "Predicación de {reference}",
+        "not_found_title": "No se ha encontrado la predicación",
+        "not_found_hint": "Puede que se haya retirado o que el enlace esté mal.",
+        "go_home": "Abrir la Biblia",
+        "eyebrow": "Predicación",
+        "share": "Compartir la predicación",
+        "copied": "Enlace copiado"
+      },
+      "print_outline_hint": "Se dobla por la mitad, por el lado corto. Si el esquema ocupa cuatro páginas, imprime a doble cara volteando por el borde corto.",
+      "idea_exegetical": "Idea exegética",
+      "idea_exegetical_help": "¿Qué dijo el texto a sus destinatarios de entonces? El tema + qué se dice sobre él.",
+      "outline_intro": "Introducción (ideas)",
+      "outline_lines_help": "Una idea en cada línea. El guion lo pone la aplicación.",
+      "outline_created": "El esquema se ha generado desde tu estructura.",
+      "outline_opened": "Esquema guardado anteriormente.",
+      "outline_regenerated": "El esquema se ha regenerado desde la estructura.",
+      "sermon_finished": "La predicación está lista. Puedes leerla, imprimirla o publicarla.",
+      "view_prep": "Preparación",
+      "view_final": "Predicación final",
+      "view_outline": "Esquema",
+      "step_of": "Paso {current} de {total}",
+      "blog": {
+        "eyebrow": "Predicaciones publicadas",
+        "title": "Predicaciones",
+        "lead": "Predicaciones preparadas en RoBible y puestas a disposición de todos. Busca por tema, por texto bíblico o por fecha.",
+        "search_placeholder": "Busca por título, idea o texto bíblico…",
+        "by_theme": "Tema",
+        "by_text": "Texto bíblico",
+        "by_date": "Año",
+        "all": "Todas",
+        "count": "{count} predicaciones",
+        "clear": "Quitar filtros",
+        "no_results": "Ninguna predicación coincide con los filtros elegidos.",
+        "empty": "Todavía no se ha publicado ninguna predicación.",
+        "seo_title": "Predicaciones — RoBible",
+        "seo_description": "Predicaciones expositivas a disposición de todos: busca por tema, por texto bíblico o por fecha.",
+        "count_one": "{count} predicación"
+      },
+      "series": "Serie / tema",
+      "series_help": "La agrupación bajo la que aparece la predicación en la lista pública. Opcional."
     },
     "pulpit": {
       "mode": "Modo púlpito",
@@ -522,6 +589,82 @@
       "nocturn_hint": "Negro puro. Ahorra batería en pantallas OLED.",
       "cald": "Cálido",
       "cald_hint": "Crema y cobre. Los colores con los que nació RoBible."
+    },
+    "homiletics": {
+      "open": "Guía de homilética",
+      "example": "Ejemplo — Tito 2:11-14",
+      "text": {
+        "why": "La predicación expositiva expone la enseñanza de este texto. Todo lo que digas tiene que salir de aquí, no de lo que a ti te gustaría decir.",
+        "b1": "Lee la perícopa varias veces, hasta verla entera y no a trozos.",
+        "b2": "Toca las palabras clave: las que se repiten, las que el autor explica él mismo y las que hacen avanzar la acción o el argumento.",
+        "b3": "De momento sólo observas. La idea de la predicación viene después."
+      },
+      "observation": {
+        "why": "Las palabras clave se reconocen por tres señales: se repiten en el texto, las explica el propio escritor bíblico, o son importantes en el desarrollo de la acción o de la argumentación.",
+        "b1": "¿Qué se repite? La repetición es la señal más segura (ver 2 Corintios 1:3-11 o Lucas 2:25-27).",
+        "b2": "¿Qué contrastes o antítesis pone el autor uno junto a otro?",
+        "b3": "¿Quién hace qué? ¿Qué verbos llevan el texto adelante?",
+        "b4": "¿Dónde está la tensión del texto, el problema que resuelve?"
+      },
+      "context": {
+        "why": "Un texto sacado de contexto acaba siendo pretexto. El contexto te enseña lo que quiso decir el autor, no lo que nos convendría que dijera.",
+        "b1": "Literario: qué género es (relato, poesía, epístola, profecía, parábola, proverbio) y dónde cae la perícopa en el capítulo y en el libro.",
+        "b2": "Cultural: de qué medio vienen el escritor, los personajes y los destinatarios.",
+        "b3": "Histórico: en qué circunstancias ocurre la acción o se pronuncian las palabras.",
+        "b4": "Geográfico: a veces el relieve o la distancia entre ciudades aclara el texto (Éxodo 14).",
+        "b5": "Teológico: qué creían sobre Dios el autor, los personajes y los destinatarios (Génesis 12:10-20)."
+      },
+      "idea": {
+        "why": "Aquí se decide la predicación, y se llega en tres pasos: qué dijo el texto entonces, qué quiere Dios cambiar ahora y cómo se dice eso hoy.",
+        "b1": "La idea exegética resume la enseñanza del texto para sus destinatarios de entonces. Para estar bien formulada tiene que contener el tema (¿de qué trata el texto?) y qué se dice sobre ese tema.",
+        "b2": "El propósito responde a una sola pregunta: ¿qué quiere Dios cambiar en los oyentes? Puede tocar sus conceptos, su carácter o su conducta.",
+        "b3": "La idea homilética es la idea exegética reformulada y actualizada, a la luz del propósito.",
+        "b4": "La idea homilética debe ser fiel a la exégesis, formulada con claridad, abarcadora, concisa y relevante para los oyentes.",
+        "quote": "«Cuando la idea aparece en la mente del predicador clara como una luna sin nubes, entonces tiene el mensaje que debe predicar.» (Robinson)",
+        "e1": "Idea exegética: la gracia de Dios debe cambiar la vida de las personas por el precio tan alto que Cristo pagó para redimir a su pueblo.",
+        "e2": "Propósito: que la gente desee la gracia para cambiar de vida, no para recibir favores gratuitos.",
+        "e3": "Idea homilética: la gracia de Dios es un poder que obra, no sólo un favor.",
+        "warn": "Es el paso más difícil de toda la preparación. No sigas adelante hasta tenerlo claro."
+      },
+      "structure": {
+        "why": "Las divisiones argumentan, explican o aplican la idea homilética. Se obtienen haciéndole una pregunta analítica: ¿Por qué? ¿Cómo? ¿Cuándo? ¿Con qué condiciones? ¿Qué significa?",
+        "b1": "Formúlalas concisas, pero no vagas.",
+        "b2": "Hazlas simétricas: que empiecen con el mismo grupo de palabras y tengan la misma forma gramatical.",
+        "b3": "Ordénalas progresivamente, para llevar al oyente hacia un momento de decisión.",
+        "b4": "Acompaña cada división del versículo del que proviene: la referencia es la autoridad que hay detrás.",
+        "b5": "Entre divisiones pon una frase de transición, para que el oyente sepa que has pasado al punto siguiente.",
+        "e1": "Pregunta analítica: ¿QUÉ obra ese poder?",
+        "e2": "1. La gracia de Dios transforma la vida de los creyentes (v. 11-12)",
+        "e3": "2. La gracia de Dios les ofrece esperanza (v. 13)",
+        "e4": "3. La gracia de Dios da sentido a su vida (v. 14)"
+      },
+      "development": {
+        "why": "Cada división se desarrolla en tres secciones: explicar y aplicar son obligatorias, ilustrar es opcional.",
+        "b1": "Explica el sentido del concepto tal como aparece en el texto de la predicación, no en toda la Escritura. Otros versículos entran sólo si ayudan a entenderlo aquí.",
+        "b2": "Aplica: las aplicaciones enlazan la Escritura con los oyentes y deciden la relevancia de la predicación. Responde a dos preguntas: ¿qué tienen en común los personajes del texto y los oyentes?, ¿cuándo se encuentran ellos en esa misma situación?",
+        "b3": "Ilustra: un relato que ejemplifique en la práctica la verdad enunciada. Que esté ligado a la división, sea original, creíble, fácil de entender y breve.",
+        "b4": "También puedes desarrollar por subdivisiones, haciéndole preguntas analíticas al concepto de la división: ¿cómo?, ¿cuál?, ¿por qué?, ¿qué supone?, ¿cuáles son las consecuencias?"
+      },
+      "final": {
+        "why": "La introducción se escribe al final, porque sólo ahora sabes adónde llevas la predicación.",
+        "b1": "La introducción tiene tres partes: la frase de inicio, las aplicaciones introductorias y la transición al texto.",
+        "b2": "La frase de inicio sale de la idea homilética o del tema, ligada a la vida diaria de los oyentes.",
+        "b3": "Las aplicaciones introductorias sacan a la luz la necesidad del oyente y crean la tensión positiva. Sin ella, la predicación es la respuesta a una pregunta que nadie ha hecho.",
+        "b4": "No empieces con detalles técnicos sobre el libro o sobre los destinatarios.",
+        "b5": "La conclusión tiene también tres partes: retomar la idea homilética, recapitular las divisiones y la visión: qué pasará si los oyentes aplican la idea."
+      },
+      "types": {
+        "textual": {
+          "text": "El texto es corto: un versículo o dos. Marca sus palabras, porque de ellas saldrán las divisiones.",
+          "idea": "La idea sale también de ese texto corto, no del tema que te sugiere. Si has llegado a una idea que el texto no sostiene, has pasado a una predicación temática.",
+          "structure": "Las divisiones salen de las partes del texto corto —oraciones, palabras clave—, no de otros pasajes. Los demás versículos entran en Desarrollo, como apoyo."
+        },
+        "thematic": {
+          "text": "Éste es el texto base. En una predicación temática cada división se apoya en otro pasaje: añádelos como referencias en el paso Desarrollo.",
+          "idea": "La idea exegética sale del texto base; los demás pasajes la sostienen, no la cambian. Si la idea no se puede sacar de ningún texto, es tuya y no de la Escritura.",
+          "structure": "Cada división tiene su pasaje. Comprueba cada versículo en su contexto: si allí no dice lo que tú dices, quítalo en vez de forzarlo."
+        }
+      }
     }
   },
   "auth": {
@@ -748,6 +891,14 @@
       "index": "Índice temático",
       "sitemap": "Mapa del sitio",
       "github": "GitHub"
+    },
+    "sermons": {
+      "eyebrow": "Predicaciones publicadas",
+      "title": "Predicaciones de nuestros hermanos",
+      "lead": "Predicaciones preparadas en RoBible y puestas a disposición de todos. Léelas, úsalas, compártelas.",
+      "point": "{count} punto",
+      "points": "{count} puntos",
+      "see_all": "Ver todas las predicaciones"
     }
   }
 }

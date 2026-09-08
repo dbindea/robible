@@ -286,3 +286,57 @@ export const resetAll = () => {
   localStorage.removeItem(storageKey());
   localStorage.removeItem(pendingKey());
 };
+
+// ── Publicación ───────────────────────────────────────────────────────────
+//
+// A diferencia del resto del módulo, esto **no** es local-first: publicar es
+// dar de alta una URL que va a leer gente de fuera, y eso sólo tiene sentido si
+// el servidor lo confirma. Sin conexión no se puede publicar, y decir lo
+// contrario sería mentir: el enlace no existiría.
+
+/** Publica o retira de internet. Devuelve la predicación con su slug. */
+export const setSermonPublic = async (id, isPublic) => {
+  if (!USE_BACKEND) return { ok: false, error: 'app.sermons.share.needs_connection' };
+  try {
+    const res = await api.patch(`/api/sermons/${encodeURIComponent(id)}`, { isPublic });
+    if (res?.sermon) {
+      // Sin esto, el interruptor de publicar se quedaba con el valor viejo en
+      // la copia local hasta la siguiente sincronización.
+      upsertLocal(res.sermon);
+    }
+    return { ok: true, sermon: res?.sermon || null };
+  } catch (e) {
+    return { ok: false, error: translateApiError(e?.code) };
+  }
+};
+
+/**
+ * Lee una predicación publicada. Sin token a propósito: la gracia es que
+ * funcione para quien recibe el enlace y no tiene cuenta.
+ */
+export const fetchPublicSermon = async (slug) => {
+  if (!USE_BACKEND) return null;
+  try {
+    const res = await api.get(`/api/public/sermons/${encodeURIComponent(slug)}`, { auth: false });
+    return res.sermon || null;
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 404) return null;
+    console.warn('fetchPublicSermon falló:', e.message);
+    return null;
+  }
+};
+
+/** Las últimas publicadas. Alimenta la sección de la landing. */
+export const fetchPublicSermons = async () => {
+  if (!USE_BACKEND) return [];
+  try {
+    const res = await api.get('/api/public/sermons', { auth: false });
+    return res.sermons || [];
+  } catch (e) {
+    console.warn('fetchPublicSermons falló:', e.message);
+    return [];
+  }
+};
+
+export const buildPublicSermonUrl = (slug) =>
+  typeof window === 'undefined' ? '' : `${window.location.origin}/predica/${encodeURIComponent(slug)}`;

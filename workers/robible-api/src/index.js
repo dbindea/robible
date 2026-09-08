@@ -111,6 +111,27 @@ app.get('/api/public/topics/:slug', async (c) => {
   return data.getPublicTopic(c.env.DB, c.req.param('slug'), corsFor(c));
 });
 
+// Predicaciones públicas. Mismo rate limit que los temas y por el mismo
+// motivo: son endpoints de datos abiertos.
+app.get('/api/public/sermons', async (c) => {
+  applyCors(c);
+  const rl = await checkRateLimit(c.env.DB, c.req.raw, 'public_topics', c.env);
+  if (!rl.ok) {
+    return c.json({ ok: false, error: rl.error }, 429, { 'Retry-After': String(rl.retryAfter || 60) });
+  }
+  return sermons.listPublicSermons(c.env.DB, corsFor(c));
+});
+
+app.get('/api/public/sermons/:slug', async (c) => {
+  applyCors(c);
+  const rl = await checkRateLimit(c.env.DB, c.req.raw, 'public_topics', c.env);
+  if (!rl.ok) {
+    return c.json({ ok: false, error: rl.error }, 429, { 'Retry-After': String(rl.retryAfter || 60) });
+  }
+  return sermons.getPublicSermon(c.env.DB, c.req.param('slug'), corsFor(c));
+});
+
+
 // ── Topics (auth required) ──────────────────────────────
 app.get('/api/topics', requireAuthMw, async (c) => {
   const user = c.get('user');

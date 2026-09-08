@@ -1,0 +1,68 @@
+/**
+ * Guía de homilética: qué se explica en cada paso de la preparación.
+ *
+ * El contenido sale del curso de predicación expositiva del Institutul Teologic
+ * Penticostal din București. Aquí sólo está el **esqueleto** —qué bloques tiene
+ * la ayuda de cada paso—; el texto vive en `public/lang/*.json` bajo
+ * `app.homiletics.*`, como todo lo demás.
+ *
+ * Por qué existe: el módulo lo va a abrir gente que nunca ha oído hablar de
+ * "idea exegética" ni de "diviziuni simetrice". Sin una explicación al lado del
+ * campo, el formulario se rellena a ojo y sale un comentario versículo a
+ * versículo, que es justo lo que la predicación expositiva NO es.
+ *
+ * Regla de contención: esto son notas al margen, no el curso entero. Cada paso
+ * tiene como mucho cinco viñetas y un ejemplo. Si hace falta más, es que el
+ * paso está mal partido.
+ */
+
+/**
+ * `bullets` es el número de viñetas (`b1`…`bN`) que tiene el paso.
+ * `quote` / `warn` / `example` indican si además existen esas claves.
+ *
+ * El ejemplo es siempre el mismo pasaje —Tit 2:11-14— a propósito: el curso lo
+ * usa de hilo conductor y ver la MISMA predicación avanzar paso a paso enseña
+ * más que siete ejemplos sueltos.
+ */
+export const GUIA = {
+  text: { bullets: 3 },
+  observation: { bullets: 4 },
+  context: { bullets: 5 },
+  idea: { bullets: 4, quote: true, warn: true, example: 3 },
+  structure: { bullets: 5, example: 4 },
+  development: { bullets: 4 },
+  final: { bullets: 5 },
+};
+
+/**
+ * Avisos por tipo de predicación.
+ *
+ * El curso —y por tanto toda la guía de arriba— es de predicación
+ * **expositiva**. Las otras dos formas comparten el recorrido pero cambian en
+ * tres momentos, y son justo los tres en los que es fácil acabar predicando
+ * otra cosa sin darse cuenta:
+ *
+ *   - `text`: de dónde sale el material.
+ *   - `idea`: qué pasaje manda cuando hay varios.
+ *   - `structure`: de dónde salen las divisiones.
+ *
+ * `expositive` no aparece a propósito: la guía entera ya está escrita para ese
+ * caso, y repetirlo en un recuadro aparte sería ruido. El aviso sale sólo
+ * cuando lo que estás escribiendo NO es lo que la guía asume.
+ */
+const PASOS_CON_NOTA = ['text', 'idea', 'structure'];
+export const TIPOS_CON_NOTA = ['textual', 'thematic'];
+
+export const tieneNotaDeTipo = (tipo, paso) =>
+  TIPOS_CON_NOTA.includes(tipo) && PASOS_CON_NOTA.includes(paso);
+
+/** Los pasos que tienen guía. Los demás no muestran el botón. */
+export const tieneGuia = (paso) => Object.prototype.hasOwnProperty.call(GUIA, paso);
+
+/** `['b1','b2',…]` para el paso pedido. */
+export const vinetasDe = (paso) =>
+  Array.from({ length: GUIA[paso]?.bullets || 0 }, (_, i) => `b${i + 1}`);
+
+/** `['e1','e2',…]` — las líneas del ejemplo, si las hay. */
+export const ejemploDe = (paso) =>
+  Array.from({ length: GUIA[paso]?.example || 0 }, (_, i) => `e${i + 1}`);

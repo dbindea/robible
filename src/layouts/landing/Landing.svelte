@@ -1,6 +1,6 @@
 <script>
   import Icon from '../../components/Icon.svelte';
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import { _ } from '../../services/i18n.service';
   import { searchReferences } from '../../services/referenceSearch.service';
   import { getBibleVersionConfigOrDefault, selectedBibleVersion } from '../../store/stores';
@@ -193,8 +193,65 @@
       });
   }
 
+  // ── Predicaciones publicadas ────────────────────────────────────────────
+  //
+  // Se piden al montar y **no bloquean nada**: si el worker no responde, la
+  // sección simplemente no se pinta. La landing es la puerta de entrada del
+  // sitio y no puede depender de que la API esté viva.
+  let predicas = [];
+
+  const cargarPredicas = async () => {
+    try {
+      const { fetchPublicSermons } = await import('../../services/sermons.service');
+      const lista = await fetchPublicSermons();
+      // Seis: las suficientes para que se vea que hay contenido vivo, sin
+      // convertir la portada en un listado.
+      predicas = (lista || []).slice(0, 6);
+      // Las tarjetas nacen con `data-reveal`, y el observador ya se había
+      // creado antes de que existieran: hay que darlas de alta a mano.
+      await tick();
+      revelar();
+    } catch {
+      predicas = [];
+    }
+  };
+
+  const fechaCorta = (iso) => {
+    if (!iso) return '';
+    try {
+      return new Date(iso).toLocaleDateString(activeLang === 'ro' ? 'ro-RO' : activeLang, {
+        year: 'numeric',
+        month: 'short',
+      });
+    } catch {
+      return '';
+    }
+  };
+
   // ── Animación scroll-triggered ──────────────────────────────────────────
   let observer;
+
+  /**
+   * Da de alta los `[data-reveal]` que aún no se han revelado.
+   *
+   * Se llama dos veces y las dos hacen falta: al montar, para el marcado
+   * estático, y otra vez cuando llegan las predicaciones, porque esas tarjetas
+   * **no existen** cuando se crea el observador. Sin la segunda pasada nadie
+   * las observaba y se quedaban en `opacity: 0` para siempre: la sección
+   * mostraba el título y debajo un hueco en blanco.
+   *
+   * Volver a observar un elemento ya observado no hace nada, así que el barrido
+   * completo es seguro.
+   */
+  const revelar = () => {
+    const nuevos = document.querySelectorAll('[data-reveal]:not(.is-visible)');
+    if (!observer) {
+      nuevos.forEach((el) => el.classList.add('is-visible'));
+      return;
+    }
+    nuevos.forEach((el) => observer.observe(el));
+  };
+
   onMount(() => {
     if ('IntersectionObserver' in window) {
       observer = new IntersectionObserver(
@@ -208,10 +265,11 @@
         },
         { threshold: 0.15, rootMargin: '0px 0px -10% 0px' }
       );
-      document.querySelectorAll('[data-reveal]').forEach((el) => observer.observe(el));
-    } else {
-      document.querySelectorAll('[data-reveal]').forEach((el) => el.classList.add('is-visible'));
     }
+    revelar();
+    // Después de crear el observador: así la segunda pasada de `revelar()` ya
+    // lo encuentra listo.
+    cargarPredicas();
     return () => observer && observer.disconnect();
   });
 </script>
@@ -589,6 +647,48 @@
     </ul>
   </section>
 
+  <!-- ─── PREDICACIONES PUBLICADAS ───────────────────────────── -->
+  {#if predicas.length}
+    <section class="sermons" aria-labelledby="sermons-title">
+      <header class="section-header" data-reveal>
+        <p class="section-eyebrow">{$_('landing.sermons.eyebrow')}</p>
+        <h2 id="sermons-title" class="section-title">{$_('landing.sermons.title')}</h2>
+        <p class="sermons__lead">{$_('landing.sermons.lead')}</p>
+      </header>
+
+      <ul class="sermons__grid">
+        {#each predicas as p (p.slug)}
+          <li class="sermons__card" data-reveal>
+            <a class="sermons__link" href={'/predica/' + encodeURIComponent(p.slug)}>
+              <span class="sermons__title">{p.title}</span>
+              {#if p.idea}<span class="sermons__idea">{p.idea}</span>{/if}
+              <!-- Los trozos van en spans propios con `gap` en vez de separados
+                   por espacios en el marcado: el compilador colapsa el espacio
+                   suelto pegado a una etiqueta y el punto medio acababa comido
+                   por la fecha ("1 punct ·sept. 2026"). -->
+              <span class="sermons__meta">
+                <span>
+                  {p.points === 1
+                    ? $_('landing.sermons.point', { count: p.points })
+                    : $_('landing.sermons.points', { count: p.points })}
+                </span>
+                {#if p.publishedAt}
+                  <span aria-hidden="true">·</span>
+                  <span>{fechaCorta(p.publishedAt)}</span>
+                {/if}
+              </span>
+            </a>
+          </li>
+        {/each}
+      </ul>
+
+      <!-- La portada enseña seis; el resto vive en el blog. -->
+      <p class="sermons__todas">
+        <a href="/predici">{$_('landing.sermons.see_all')} →</a>
+      </p>
+    </section>
+  {/if}
+
   <!-- ─── FINAL CTA ──────────────────────────────────────────── -->
   <section class="final-cta" aria-labelledby="final-cta-title">
     <!-- Fondo fotográfico (cruz de madera contra el cielo). Decorativo: el
@@ -616,6 +716,12 @@
         <a href="/biblia">{$_('landing.footer.bible')}</a>
         <a href="/compara">{$_('landing.footer.compare')}</a>
         <a href="/indice">{$_('landing.footer.index')}</a>
+        <!-- Las dos secciones públicas. Reutilizan las claves del pie de la
+             aplicación porque son literalmente las mismas palabras; duplicarlas
+             en `landing.footer.*` sería tener que traducirlas dos veces y que
+             se desincronizaran. -->
+        <a href="/predici">{$_('app.footer.links.sermons')}</a>
+        <a href="/teme">{$_('app.footer.links.topics')}</a>
         <a href="/sitemap.xml">{$_('landing.footer.sitemap')}</a>
         <a href="https://github.com/dbindea/robible" rel="noopener">{$_('landing.footer.github')}</a>
       </nav>
@@ -1612,7 +1718,6 @@
   /* Escalonado dentro de una lista: los elementos entran uno detrás de otro
      en vez de todos a la vez. */
   .why__item[data-reveal],
-  .features__item[data-reveal],
   .audience__card[data-reveal] {
     &:nth-child(2) { transition-delay: 0.08s; }
     &:nth-child(3) { transition-delay: var(--motion-fast); }
@@ -1636,9 +1741,98 @@
     }
   }
 
+  /* ── Predicaciones publicadas ─────────────────────────────
+     Mismos tokens y mismo patrón de sección que .audience: la landing no tiene
+     paleta propia, consume los semánticos de global.css y así sigue a la que el
+     usuario tenga puesta, las cinco, sin una regla de tema aquí. */
+  .sermons {
+    padding: clamp(4rem, 8vw, 6rem) clamp(1.25rem, 5vw, 4rem);
+    max-width: 78rem;
+    margin: 0 auto;
+  }
+
+  .sermons__lead {
+    margin: 0.75rem 0 0;
+    color: var(--color-ink-soft);
+    font-size: var(--font-size-lead);
+    line-height: var(--line-height-body);
+  }
+
+  .sermons__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+    gap: 1rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .sermons__link {
+    display: grid;
+    gap: 0.35rem;
+    height: 100%;
+    padding: 1.25rem;
+    border: 1px solid var(--color-line);
+    border-radius: 0.2rem;
+    background: var(--color-surface);
+    color: inherit;
+    text-decoration: none;
+    transition: border-color var(--motion-base), transform var(--motion-base);
+  }
+
+  .sermons__link:hover {
+    border-color: var(--color-accent);
+    /* Un desplazamiento corto, igual que .audience__card: la tarjeta responde
+       sin saltar. */
+    transform: translateY(-2px);
+    text-decoration: none;
+  }
+
+  .sermons__title {
+    color: var(--color-ink-strong);
+    font-family: var(--font-family-base);
+    font-size: 1.05rem;
+    font-weight: 700;
+    line-height: 1.25;
+  }
+
+  .sermons__idea {
+    color: var(--color-ink-soft);
+    font-size: 0.9rem;
+    line-height: 1.45;
+    /* Dos líneas: lo justo para saber de qué va sin descuadrar la rejilla. */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .sermons__todas {
+    margin: 1.25rem 0 0;
+    text-align: center;
+    font-weight: 700;
+  }
+
+  .sermons__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.4rem;
+    margin-top: 0.2rem;
+    color: var(--color-accent);
+    font-size: 0.78rem;
+    font-weight: 600;
+  }
+
   /* ── Paletas ──────────────────────────────────────────────
-     La landing no tiene paleta propia: los `--landing-*` son alias de los
-     tokens globales, así que sigue a la que el usuario tenga puesta —las cinco—
-     sin una sola regla aquí. Antes forzaba un azul marino (#1A2332) que no
-     pegaba con el marrón cálido del resto. */
+     La landing no tiene paleta propia ni tokens propios: consume directamente
+     los semánticos de global.css (--color-surface, --color-line, --color-ink…),
+     así que sigue a la que el usuario tenga puesta —las cinco— sin una sola
+     regla de tema aquí. Antes forzaba un azul marino (#1A2332) que no pegaba
+     con el marrón cálido del resto.
+
+     No existe ningún `--landing-*`. Si escribes uno, `var()` no falla: el fondo
+     se queda transparente y el borde cae a `currentColor`, así que la tarjeta
+     se ve «casi bien» y el fallo pasa desapercibido. Copia las reglas de
+     .audience__card, que es el patrón de tarjeta de esta página. */
 </style>

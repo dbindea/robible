@@ -255,10 +255,23 @@ CREATE TABLE IF NOT EXISTS sermons (
   updated_at TEXT NOT NULL,
   prepared_at TEXT,                                 -- cuándo se marcó lista para predicar
   preached_at TEXT,                                 -- cuándo se predicó
+
+  -- Publicación (schema_version 10). Misma mecánica que los temas: una
+  -- predicación publicada se lee sin cuenta en /predica/<public_slug>, y el
+  -- slug se conserva al despublicar para que los enlaces ya repartidos sigan
+  -- valiendo si vuelve a publicarse.
+  is_public INTEGER NOT NULL DEFAULT 0,             -- 0/1
+  public_slug TEXT,                                 -- 'casa-zidita-pe-stanca-a3f2', único
+  published_at TEXT,
+
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_sermons_user ON sermons(user_id, updated_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_sermons_public_slug ON sermons(public_slug)
+  WHERE public_slug IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_sermons_public ON sermons(is_public, published_at DESC)
+  WHERE is_public = 1;
 CREATE INDEX IF NOT EXISTS idx_sermons_user_status ON sermons(user_id, status);
 
 -- ============== CLEANUP JOBS ==============
@@ -277,3 +290,10 @@ CREATE TABLE IF NOT EXISTS _meta (
 -- 9: se añade sermons (módulo «Predicile mele»)
 INSERT OR IGNORE INTO _meta (key, value) VALUES ('schema_version', '9');
 UPDATE _meta SET value = '9' WHERE key = 'schema_version' AND value < '9';
+
+-- 10: sermons gana is_public / public_slug / published_at
+--   ALTER TABLE sermons ADD COLUMN is_public INTEGER NOT NULL DEFAULT 0;
+--   ALTER TABLE sermons ADD COLUMN public_slug TEXT;
+--   ALTER TABLE sermons ADD COLUMN published_at TEXT;
+--   CREATE UNIQUE INDEX IF NOT EXISTS idx_sermons_public_slug ON sermons(public_slug) WHERE public_slug IS NOT NULL;
+--   CREATE INDEX IF NOT EXISTS idx_sermons_public ON sermons(is_public, published_at DESC) WHERE is_public = 1;

@@ -284,6 +284,24 @@ export const fetchPublicTopic = async (slug) => {
   }
 };
 
+/**
+ * Los temas publicados por la gente. Alimenta el índice de `/teme`.
+ *
+ * Sin esta lista, un tema publicado sólo existe para quien recibió el enlace:
+ * el endpoint estaba en el worker desde el principio, pero no había ninguna
+ * pantalla que lo pidiera, así que no había forma de saber que existían.
+ */
+export const fetchPublicTopics = async () => {
+  if (!USE_BACKEND) return [];
+  try {
+    const res = await api.get('/api/public/topics', { auth: false });
+    return res.topics || [];
+  } catch (e) {
+    console.warn('fetchPublicTopics falló:', e.message);
+    return [];
+  }
+};
+
 export const buildPublicTopicUrl = (slug) =>
   typeof window === 'undefined' ? '' : `${window.location.origin}/tema/${encodeURIComponent(slug)}`;
 

@@ -118,6 +118,28 @@
   to = "/.netlify/functions/topic-meta?slug=:slug"
   status = 200
 
+# El sitemap de predicaciones se genera al vuelo: se publican entre despliegues.
+[[redirects]]
+  from = "/sitemaps/sermons.xml"
+  to = "/.netlify/functions/sermons-sitemap"
+  status = 200
+
+# ── Predicación compartida ────────────────────────────────────────────────────
+# Mismo par de reglas que /tema y por el mismo motivo (ver arriba). La
+# diferencia está en la función: sermon-meta emite `index, follow` y datos
+# estructurados de artículo, porque una predicación publicada se pone en
+# internet para que se encuentre, mientras que un tema va con `noindex`.
+[[redirects]]
+  from = "/predica/:slug"
+  query = {app = "1"}
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/predica/:slug"
+  to = "/.netlify/functions/sermon-meta?slug=:slug"
+  status = 200
+
 [[redirects]]
   from = "/*"
   to = "/index.html"

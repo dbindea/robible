@@ -20,7 +20,7 @@
     { key: 'notes', icon: 'notes', enabled: true, pathKey: 'notesPath', defaultHref: '/notes' },
     // Sólo para cuentas de tipo predicador. No se traduce por idioma: es una
     // ruta privada, no indexable, y no gana nada teniendo cuatro formas.
-    { key: 'sermons', icon: 'sermons', enabled: true, defaultHref: '/predici', onlyPreacher: true },
+    { key: 'sermons', icon: 'sermons', enabled: true, defaultHref: '/predicile-mele', onlyPreacher: true },
     { key: 'user', icon: 'user', enabled: false },
   ];
 

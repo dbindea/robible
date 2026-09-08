@@ -18,7 +18,7 @@
   import { onDestroy, onMount } from 'svelte';
   import { _ } from '../../services/i18n.service';
   import { sermonsStore } from '../../store/sermonsStore';
-  import { normalizeOutline } from '../../services/sermon-content.service';
+  import { normalizeOutline, quitarMarcas } from '../../services/sermon-content.service';
   import {
     FONT_SIZES,
     clearActive,
@@ -63,7 +63,24 @@
   $: puntos = outline?.points || [];
   $: minutosTranscurridos = Math.floor(transcurrido / 60000);
 
+  // ── Ni una petición mientras se predica ─────────────────────────────────
+  //
+  // La analítica manda una vista de página en cada cambio de ruta, así que al
+  // entrar aquí salía una petición. Falla en silencio sin conexión, pero rompe
+  // la promesa del modo: en el púlpito no se toca la red.
+  //
+  // `ga-disable-<ID>` es el interruptor oficial de Google: mientras vale `true`,
+  // la librería no envía nada. Se apaga al entrar y se restablece al salir, para
+  // no dejar la analítica muerta en el resto de la aplicación.
+  const MEDIDOR = 'ga-disable-G-MX8YYQ3DRY';
+
+  const silenciarAnalitica = (silencio) => {
+    if (typeof window === 'undefined') return;
+    window[MEDIDOR] = silencio;
+  };
+
   onMount(() => {
+    silenciarAnalitica(true);
     snapshot = getSnapshot(sermonId);
     sermon = sermonsStore.get(sermonId);
     // La schiță sale de la instantánea; si por lo que sea no está, se cae a la
@@ -76,6 +93,7 @@
 
   onDestroy(() => {
     detener();
+    silenciarAnalitica(false);
   });
 
   const empezar = async () => {
@@ -104,7 +122,7 @@
     detener();
     clearActive();
     if (contenedor) savePosition(sermonId, contenedor.scrollTop);
-    window.history.pushState(null, '', `/predici/${encodeURIComponent(sermonId)}`);
+    window.history.pushState(null, '', `/predicile-mele/${encodeURIComponent(sermonId)}`);
     // La errata `robibile` es la del resto del proyecto (CLAUDE.md, trampa 1).
     window.dispatchEvent(new CustomEvent('robibile:navigate'));
     window.dispatchEvent(new PopStateEvent('popstate'));
@@ -252,7 +270,9 @@
              vistazo dónde empieza cada uno. -->
         <hr class="amvon__separador" />
         <div class="amvon__bloque">
-          <h2 class="amvon__punto">{i + 1}. {punto.title}</h2>
+          <!-- Sin los asteriscos del marcado manual: son sintaxis de
+               preparación y aquí el predicador está delante de la iglesia. -->
+          <h2 class="amvon__punto">{i + 1}. {quitarMarcas(punto.title)}</h2>
           {#each punto.keywords || [] as clave, k (k)}
             <p class="amvon__clave">{clave}</p>
           {/each}
@@ -534,17 +554,32 @@
 
   // Las palabras clave van sueltas y muy espaciadas: son anclas para la vista,
   // no frases que se lean seguidas.
+  //
+  // El guion lo pone el CSS y no el texto: en el atril hace que la columna se
+  // lea como lista de un vistazo, pero el dato guardado sigue siendo la idea
+  // limpia. La sangría negativa lo saca al margen para que las ideas queden
+  // alineadas entre sí aunque una ocupe dos líneas.
   .amvon__clave {
     margin: 0 0 0.75rem;
+    padding-left: 1.1em;
+    text-indent: -1.1em;
     font-size: var(--amvon-clave);
     font-weight: 600;
     line-height: 1.3;
+
+    &::before {
+      content: '– ';
+      color: var(--color-accent);
+    }
   }
 
   .amvon__linea {
     margin: 0 0 0.75rem;
     font-size: var(--amvon-linea);
     line-height: 1.5;
+    // La aplicación y la conclusión se escriben a mano en la schiță y pueden
+    // llevar saltos de línea. Sin esto se pegan en un párrafo corrido.
+    white-space: pre-line;
   }
 
   .amvon__referencia {
