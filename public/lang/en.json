@@ -554,14 +554,20 @@
         "count_one": "{count} sermon"
       },
       "series": "Series / theme",
-      "series_help": "The grouping this sermon appears under in the public list. Optional.",
+      "series_help": "The grouping this sermon appears under in the public list. Pick one or create a new one.",
       "merge_new": "new points",
       "merge_kept": "your changes kept",
       "merge_updated": "refreshed from the structure",
       "merge_removed": "points removed",
       "merge_none": "The outline was already up to date.",
       "outline_reverted": "The regeneration was undone.",
-      "undo_regenerate": "Undo the regeneration"
+      "undo_regenerate": "Undo the regeneration",
+      "recap_open": "What I have answered so far",
+      "recap_marked": "Words marked in the text",
+      "series_new": "New theme",
+      "series_first": "Add a theme",
+      "series_add": "Add",
+      "series_new_placeholder": "Theme name…"
     },
     "pulpit": {
       "mode": "Pulpit mode",

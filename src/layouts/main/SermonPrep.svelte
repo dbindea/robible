@@ -21,6 +21,8 @@
   import { buildSnapshot } from '../../services/sermon-pulpit.service';
   import Icon from '../../components/Icon.svelte';
   import Ajutor from '../../components/Ajutor.svelte';
+  import Recapitulare from '../../components/Recapitulare.svelte';
+  import SeriesPicker from '../../components/SeriesPicker.svelte';
   import Modal from '../../components/Modal.svelte';
   import { searchReferences } from '../../services/referenceSearch.service';
   import {
@@ -450,22 +452,18 @@
 
   // ── Serie / tema ────────────────────────────────────────────────────────
   //
-  // Timer propio y no el de `guardarContenido`: son dos peticiones distintas
-  // —una escribe `content_json`, la otra la columna `series`— y compartiendo
-  // temporizador cada tecla en un campo cancelaría el guardado pendiente del
-  // otro.
+  // Se guarda al instante y no con retardo: ahora se elige una etiqueta de una
+  // lista, que es un gesto único, no una tecla detrás de otra. El debounce
+  // existía para no mandar una petición por letra mientras se escribía.
   let serie = '';
-  let serieTimer;
 
-  const guardarSerie = () => {
+  const elegirSerie = async (nuevo) => {
+    serie = nuevo;
     estadoGuardado = 'guardando';
-    clearTimeout(serieTimer);
-    serieTimer = setTimeout(async () => {
-      await sermonsStore.update(sermonId, { series: serie.trim() || null });
-      estadoGuardado = 'guardado';
-      clearTimeout(etiquetaTimer);
-      etiquetaTimer = setTimeout(() => { estadoGuardado = ''; }, 2000);
-    }, RETARDO_MS);
+    await sermonsStore.update(sermonId, { series: serie.trim() || null });
+    estadoGuardado = 'guardado';
+    clearTimeout(etiquetaTimer);
+    etiquetaTimer = setTimeout(() => { estadoGuardado = ''; }, 2000);
   };
 
   const guardarSchita = () => {
@@ -539,7 +537,6 @@
   onDestroy(() => {
     clearTimeout(guardadoTimer);
     clearTimeout(etiquetaTimer);
-    clearTimeout(serieTimer);
     // Al salir se guarda sin esperar: el usuario puede estar navegando fuera
     // justo después de teclear.
     if (sermonId && !cargando) {
@@ -734,6 +731,7 @@
         <div class="bloque">
           <h2>{$_('app.sermons.step_structure')}</h2>
           <Ajutor paso="structure" tip={sermon?.type} />
+          <Recapitulare {content} paso="structure" {referencia} />
           <p class="bloque__ayuda">{$_('app.sermons.structure_help')}</p>
 
           {#each content.structure as punto, i (punto.id)}
@@ -779,6 +777,7 @@
         <div class="bloque">
           <h2>{$_('app.sermons.step_development')}</h2>
           <Ajutor paso="development" tip={sermon?.type} />
+          <Recapitulare {content} paso="development" {referencia} />
           {#if !content.structure.length}
             <p class="bloque__ayuda">{$_('app.sermons.development_needs_structure')}</p>
             <button type="button" class="bloque__añadir" on:click={() => irAPaso('structure')}>
@@ -861,6 +860,7 @@
         <div class="bloque">
           <h2>{$_('app.sermons.step_final')}</h2>
           <Ajutor paso="final" tip={sermon?.type} />
+          <Recapitulare {content} paso="final" {referencia} />
           <label class="campo">
             <span>{$_('app.sermons.intro')}</span>
             <small class="campo__pista">{$_('app.sermons.intro_help')}</small>
@@ -874,12 +874,15 @@
 
           <!-- La serie NO va en `content_json`: es una columna de la tabla,
                porque el listado público filtra por ella y filtrar por dentro de
-               un JSON obligaría a cargar todas las predicaciones enteras. -->
-          <label class="campo">
+               un JSON obligaría a cargar todas las predicaciones enteras.
+               No es un <label> porque no envuelve un solo campo: el selector
+               son etiquetas y un botón, y un `for` implícito no sabría a cuál
+               apuntar. -->
+          <div class="campo">
             <span>{$_('app.sermons.series')}</span>
             <small class="campo__pista">{$_('app.sermons.series_help')}</small>
-            <input type="text" bind:value={serie} on:input={guardarSerie} />
-          </label>
+            <SeriesPicker value={serie} onChange={elegirSerie} />
+          </div>
           <button type="button" class="prep__cta" on:click={verFinal}>
             {$_('app.sermons.finish')}
           </button>

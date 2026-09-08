@@ -554,14 +554,20 @@
         "count_one": "{count} 篇讲章"
       },
       "series": "系列／主题",
-      "series_help": "这篇讲章在公开列表中所归属的分组。可选填。",
+      "series_help": "这篇讲章在公开列表中所归属的分组。可选择已有的，或新建一个。",
       "merge_new": "新增大点",
       "merge_kept": "保留你的修改",
       "merge_updated": "依结构更新",
       "merge_removed": "移除大点",
       "merge_none": "纲要已经是最新的。",
       "outline_reverted": "已撤销本次重新生成。",
-      "undo_regenerate": "撤销重新生成"
+      "undo_regenerate": "撤销重新生成",
+      "recap_open": "我到目前为止的回答",
+      "recap_marked": "经文中标记的词语",
+      "series_new": "新建主题",
+      "series_first": "添加主题",
+      "series_add": "添加",
+      "series_new_placeholder": "主题名称…"
     },
     "pulpit": {
       "mode": "讲台模式",
