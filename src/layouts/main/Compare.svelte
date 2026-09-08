@@ -334,7 +334,7 @@
             title={$_('app.compare.chapter_nav.previous')}
             aria-label={$_('app.compare.chapter_nav.previous')}
           >
-            <span aria-hidden="true">&#8592;</span>
+            <Icon name="arrow-left" />
           </button>
         {/if}
 
@@ -359,7 +359,7 @@
             title={$_('app.compare.chapter_nav.next')}
             aria-label={$_('app.compare.chapter_nav.next')}
           >
-            <span aria-hidden="true">&#8594;</span>
+            <Icon name="arrow-right" />
           </button>
         {/if}
       </div>

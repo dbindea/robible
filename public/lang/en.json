@@ -551,7 +551,14 @@
         "count_one": "{count} sermon"
       },
       "series": "Series / theme",
-      "series_help": "The grouping this sermon appears under in the public list. Optional."
+      "series_help": "The grouping this sermon appears under in the public list. Optional.",
+      "merge_new": "new points",
+      "merge_kept": "your changes kept",
+      "merge_updated": "refreshed from the structure",
+      "merge_removed": "points removed",
+      "merge_none": "The outline was already up to date.",
+      "outline_reverted": "The regeneration was undone.",
+      "undo_regenerate": "Undo the regeneration"
     },
     "pulpit": {
       "mode": "Pulpit mode",

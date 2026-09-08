@@ -34,6 +34,7 @@
     newSubpoint,
     normalizeContent,
     normalizeOutline,
+    mergeOutline,
     clavesATexto,
     textoAClaves,
     quitarMarcas,
@@ -382,23 +383,69 @@
   const crearSchita = async () => {
     // Se genera una sola vez desde la estructura ya escrita. No se regenera
     // sola después: pisaría los retoques que el predicador haga a mano.
-    outline = normalizeOutline(sermon?.outline);
-    const vacia = !outline.points.length && !outline.idea;
+    //
+    // Se mira `outline`, la schiță que tiene el componente, y NO
+    // `sermon.outline`. `sermon` se carga una vez en onMount y no se vuelve a
+    // refrescar, así que su schiță es la del momento de abrir la pantalla:
+    // leyéndola aquí, entrar a la schiță, editarla, volver a la predicación y
+    // pulsar «Creează schița» otra vez tiraba en silencio todo lo escrito en
+    // esta sesión. Es el mismo fallo que tenía el botón de regenerar.
+    const vacia = !outline?.points?.length && !outline?.idea;
     if (vacia) {
       outline = generateOutline(content);
       await sermonsStore.update(sermonId, { outline: JSON.stringify(outline) });
+      // Sólo al generar: los textos de las listas ya están sincronizados desde
+      // onMount, y volver a derivarlos reformatearía lo que se esté escribiendo.
+      sincronizarTextos();
     }
-    sincronizarTextos();
     vista = 'outline';
     avisar($_(vacia ? 'app.sermons.outline_created' : 'app.sermons.outline_opened'));
     window.scrollTo({ top: 0 });
   };
 
+  // ── Regenerar sin perder lo escrito a mano ──────────────────────────────
+  //
+  // La schiță generada es un punto de partida: se reescribe a mano casi
+  // siempre. Antes este botón la rehacía entera, así que pulsarlo sin querer
+  // —está al lado de «Tipărește schița»— costaba el trabajo de una tarde.
+  //
+  // Ahora funde: respeta lo que ha escrito el predicador, refresca lo que no
+  // tocó y trae los puntos nuevos de la estructura. Ver `mergeOutline`.
+  //
+  // `schitaAnterior` no caduca con el aviso a propósito: el aviso dura tres
+  // segundos y darse cuenta de que la fusión no era lo que uno quería lleva
+  // más. Se queda hasta que se deshace o se sale de la schiță.
+  let schitaAnterior = null;
+
+  const resumenDeFusion = (r) => {
+    // «etiqueta: N» en vez de frases: el rumano necesitaría singular y plural
+    // para cada una de las cuatro, y ese par ya se ha escrito mal dos veces.
+    const partes = [];
+    const añadir = (clave, n) => { if (n) partes.push(`${$_(`app.sermons.${clave}`)}: ${n}`); };
+    añadir('merge_new', r.nuevos);
+    añadir('merge_kept', r.conservados);
+    añadir('merge_updated', r.actualizados);
+    añadir('merge_removed', r.eliminados);
+    return partes.length ? partes.join(' · ') : $_('app.sermons.merge_none');
+  };
+
   const regenerarSchita = async () => {
-    outline = generateOutline(content);
+    const previa = JSON.parse(JSON.stringify(outline));
+    const { outline: fundida, resumen } = mergeOutline(outline, generateOutline(content));
+    outline = fundida;
     sincronizarTextos();
     await sermonsStore.update(sermonId, { outline: JSON.stringify(outline) });
-    avisar($_('app.sermons.outline_regenerated'));
+    schitaAnterior = previa;
+    avisar(resumenDeFusion(resumen));
+  };
+
+  const deshacerRegeneracion = async () => {
+    if (!schitaAnterior) return;
+    outline = normalizeOutline(schitaAnterior);
+    schitaAnterior = null;
+    sincronizarTextos();
+    await sermonsStore.update(sermonId, { outline: JSON.stringify(outline) });
+    avisar($_('app.sermons.outline_reverted'));
   };
 
   // ── Serie / tema ────────────────────────────────────────────────────────
@@ -513,7 +560,7 @@
     <!-- Cabecera común a las tres vistas -->
     <header class="prep__cabecera">
       <button type="button" class="prep__volver" on:click={volverALista}>
-        <span aria-hidden="true">←</span>
+        <Icon name="arrow-left" />
         <span>{$_('app.sermons.title')}</span>
       </button>
       <div class="prep__guardado" aria-live="polite">
@@ -968,6 +1015,14 @@
       <div class="prep__acciones no-imprimir">
         <button type="button" on:click={() => (vista = 'final')}>← {$_('app.sermons.back_to_sermon')}</button>
         <button type="button" on:click={regenerarSchita}>{$_('app.sermons.regenerate_outline')}</button>
+        <!-- Sólo aparece después de regenerar, y se queda hasta que se usa o
+             se sale: darse cuenta de que la fusión no era lo que uno quería
+             lleva más de los tres segundos que dura el aviso. -->
+        {#if schitaAnterior}
+          <button type="button" class="prep__deshacer" on:click={deshacerRegeneracion}>
+            {$_('app.sermons.undo_regenerate')}
+          </button>
+        {/if}
         <button type="button" disabled={generandoPdf} on:click={() => descargarPdf('schita')}>
           {generandoPdf ? $_('app.sermons.pdf_working') : $_('app.sermons.print_outline')}
         </button>
@@ -1697,7 +1752,13 @@
   }
 
   // ── Navegación y acciones ─────────────────────────────────────────────────
-  .prep__nav,
+  //
+  // OJO: `.prep__nav` y `.prep__acciones` comparten regla, y esa coma es fácil
+  // de romper. Al insertar una regla nueva justo antes de `.prep__acciones {`
+  // se cuela entre las dos y se lleva el `.prep__nav,` consigo: la barra de
+  // «Înapoi / Continuă» se queda entonces sin ningún estilo y sus botones
+  // salen con la pinta que trae el navegador de fábrica. Ya pasó una vez. Si
+  // añades algo aquí, ponlo DESPUÉS del bloque, no antes.
   .prep__pista-impresion {
     margin: 0.6rem 0 0;
     color: var(--color-ink-soft);
@@ -1706,6 +1767,7 @@
     text-align: right;
   }
 
+  .prep__nav,
   .prep__acciones {
     display: flex;
     flex-wrap: wrap;
@@ -1730,6 +1792,16 @@
   }
 
   .prep__acciones { justify-content: flex-end; }
+
+  /* Después del bloque de arriba y anidado bajo `.prep__acciones`, para ganarle
+     en especificidad a su regla `button` sin recurrir a !important: tres clases
+     contra dos clases y un elemento. */
+  .prep__acciones .prep__deshacer {
+    border-color: var(--color-line-accent);
+    background: var(--wash-accent);
+    color: var(--color-accent-ink);
+    font-weight: 700;
+  }
 
   .prep__listo {
     display: grid;

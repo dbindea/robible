@@ -163,6 +163,9 @@ export const emptyOutline = () => ({
   points: [],
   application: '',
   conclusion: '',
+  // Instantánea de la última generación, para poder distinguir después lo que
+  // ha escrito el predicador de lo que puso la aplicación. Ver `mergeOutline`.
+  base: null,
 });
 
 /**
@@ -248,7 +251,7 @@ export const alternarMarca = (texto, desde, hasta) => {
 export const generateOutline = (content) => {
   const c = normalizeContent(content);
 
-  return {
+  const generada = {
     version: OUTLINE_VERSION,
     // La schiță se guarda ya limpia: los asteriscos son la sintaxis con la que
     // se marca en la preparación, y a partir de aquí el texto sólo se lee —en
@@ -289,6 +292,12 @@ export const generateOutline = (content) => {
     application: claves(c.idea.purpose, 1, 8).join(' '),
     conclusion: claves(c.conclusion, 2, 8).join(' · '),
   };
+
+  // Recién generada, todo lo que hay lo puso la aplicación: la referencia para
+  // la próxima fusión es ella misma. Sin esto, la primera schiță nacería sin
+  // base y `mergeOutline` no podría distinguir nada la primera vez que se
+  // regenerase.
+  return { ...generada, base: contenidoDeSchita(generada) };
 };
 
 // ── La schiță se edita como texto ───────────────────────
@@ -330,7 +339,132 @@ export const normalizeOutline = (raw) => {
     points: Array.isArray(obj.points) ? obj.points : [],
     application: typeof obj.application === 'string' ? obj.application : '',
     conclusion: typeof obj.conclusion === 'string' ? obj.conclusion : '',
+    // Las schițe guardadas antes de que existiera la fusión no la traen. Sin
+    // ella no se puede saber qué tocó el predicador, y `mergeOutline` se pone
+    // en el lado prudente: no pisa nada.
+    base: obj.base && typeof obj.base === 'object' ? obj.base : null,
   };
+};
+
+// ── Fusión de la schiță ─────────────────────────────────
+//
+// El problema: «Regenerează din structură» rehacía la schiță entera. Si el
+// predicador había reescrito un punto a mano —que es lo normal, la generada es
+// un punto de partida— lo perdía, y bastaba con pulsar el botón sin querer.
+//
+// La solución es la misma que usa git al hacer merge: comparar TRES estados.
+//
+//   base   → lo que la aplicación generó la última vez
+//   actual → lo que hay ahora en pantalla (base + lo que haya escrito él)
+//   nueva  → lo que se generaría hoy desde la estructura
+//
+// Campo a campo: si `actual` sigue igual que `base`, nadie lo tocó y se puede
+// refrescar con `nueva` sin perder nada. Si difiere, lo escribió él y se
+// respeta. Así el botón deja de ser destructivo: pulsado por error, lo peor que
+// hace es actualizar lo que al predicador le daba igual.
+//
+// Sin `base` (schițe anteriores a esto) no hay forma de distinguir, así que se
+// asume que todo es suyo y sólo se rellenan los huecos vacíos.
+
+/** Los campos que se comparan. Deja fuera `version` y la propia `base`. */
+const contenidoDeSchita = (o) => ({
+  idea: o.idea,
+  intro: o.intro,
+  points: o.points,
+  application: o.application,
+  conclusion: o.conclusion,
+});
+
+const mismo = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+
+const estaVacio = (v) =>
+  v === '' || v === null || v === undefined || (Array.isArray(v) && v.length === 0);
+
+/**
+ * Decide un campo. Devuelve el valor y qué se hizo, para poder contarlo.
+ *  - `igual`: no había nada que decidir.
+ *  - `actualizado`: se coge lo nuevo (nadie lo había tocado, o estaba vacío).
+ *  - `conservado`: se respeta lo que escribió el predicador.
+ */
+const elegirCampo = (actual, valorBase, nueva, hayBase) => {
+  if (mismo(actual, nueva)) return { valor: nueva, estado: 'igual' };
+  if (estaVacio(actual)) return { valor: nueva, estado: 'actualizado' };
+  if (!hayBase) return { valor: actual, estado: 'conservado' };
+  if (mismo(actual, valorBase)) return { valor: nueva, estado: 'actualizado' };
+  return { valor: actual, estado: 'conservado' };
+};
+
+/**
+ * Funde la schiță que hay con la que se generaría ahora.
+ *
+ * Devuelve la schiță fundida y un resumen para poder decirle al predicador qué
+ * ha pasado: un botón que cambia cosas en silencio no es de fiar.
+ */
+export const mergeOutline = (actual, nueva) => {
+  const a = normalizeOutline(actual);
+  const n = normalizeOutline(nueva);
+  const hayBase = !!a.base;
+  const base = a.base || {};
+
+  const resumen = { nuevos: 0, conservados: 0, actualizados: 0, eliminados: 0 };
+  const contar = (estado) => {
+    if (estado === 'conservado') resumen.conservados += 1;
+    if (estado === 'actualizado') resumen.actualizados += 1;
+  };
+
+  const campo = (clave) => {
+    const r = elegirCampo(a[clave], base[clave], n[clave], hayBase);
+    contar(r.estado);
+    return r.valor;
+  };
+
+  // Los puntos se emparejan por `id`, que viene de `content.structure`: es
+  // estable aunque se reordenen o se renombren.
+  const porId = (lista) => new Map((lista || []).filter((p) => p?.id).map((p) => [p.id, p]));
+  const actualesPorId = porId(a.points);
+  const basePorId = porId(base.points);
+
+  const puntos = (n.points || []).map((puntoNuevo) => {
+    const puntoActual = actualesPorId.get(puntoNuevo.id);
+    if (!puntoActual) {
+      // Punto que ha aparecido en la estructura desde la última generación.
+      resumen.nuevos += 1;
+      return puntoNuevo;
+    }
+    const puntoBase = basePorId.get(puntoNuevo.id) || {};
+    const fundido = { ...puntoNuevo };
+    for (const clave of ['title', 'keywords', 'refs']) {
+      const r = elegirCampo(puntoActual[clave], puntoBase[clave], puntoNuevo[clave], hayBase);
+      contar(r.estado);
+      fundido[clave] = r.valor;
+    }
+    return fundido;
+  });
+
+  // El orden lo manda la estructura, no la schiță: si el predicador movió un
+  // punto en STRUCTURĂ, es que quiere predicarlo en ese orden.
+  //
+  // Un punto que ya no está en la estructura se va, aunque tuviera texto suyo:
+  // ha dejado de formar parte de la predicación, y una schiță con puntos que no
+  // se van a predicar es peor en el púlpito que una a la que le falte algo. Se
+  // cuenta para poder avisar, y «Anulează» lo devuelve.
+  const idsNuevos = new Set((n.points || []).map((p) => p.id));
+  resumen.eliminados = (a.points || []).filter((p) => p?.id && !idsNuevos.has(p.id)).length;
+
+  const fundida = {
+    version: OUTLINE_VERSION,
+    idea: campo('idea'),
+    intro: campo('intro'),
+    points: puntos,
+    application: campo('application'),
+    conclusion: campo('conclusion'),
+    // La referencia para la próxima vez es SIEMPRE lo recién generado, se haya
+    // aplicado o no: es lo que la aplicación «propuso» esta vez, y contra eso
+    // hay que comparar la próxima.
+    base: contenidoDeSchita(n),
+  };
+
+  return { outline: fundida, resumen };
 };
 
 /** Palabras de la schiță. Sirve para avisar si se está alargando de más. */

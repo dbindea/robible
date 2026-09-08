@@ -60,6 +60,7 @@ const ICONOS = {
   palette: 'palette',
   highlight: 'highlighter-circle',
   'arrow-right': 'arrow-right',
+  'arrow-left': 'arrow-left',
   'chevron-up': 'caret-up',
   expand: 'corners-out',
   collapse: 'corners-in',

@@ -228,7 +228,7 @@
           title={$_('app.topics.back_to_topics')}
           aria-label={$_('app.topics.back_to_topics')}
         >
-          <span aria-hidden="true">&#8592;</span>
+          <Icon name="arrow-left" />
           <span>{$_('app.topics.back_to_topics')}</span>
         </button>
       {:else}

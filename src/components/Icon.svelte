@@ -15,9 +15,17 @@
    * `getFilledTopicIconSvg`, que quitaba `fill="none"` de una cadena a mano.
    * Sólo los iconos con estado tienen relleno; el resto cae en `regular`.
    *
-   * El viewBox es 0 0 256 256 —el de Phosphor— y no 0 0 24 24. Los tamaños se
-   * siguen fijando desde CSS con `width`/`height`, así que ningún estilo
-   * existente cambia por esto.
+   * El viewBox es 0 0 256 256 —el de Phosphor— y no 0 0 24 24. Eso da igual
+   * para el tamaño, que se fija desde fuera de dos maneras:
+   *
+   *   <Icon name="x" size="1.2rem" />     ← una instancia concreta
+   *   .mi-boton { --icon-size: 1.2rem; }  ← todos los iconos de un contenedor
+   *
+   * La variable existe porque el scoping de Svelte rompe la forma obvia: una
+   * regla `.mi-boton svg { width: … }` del componente padre **no** alcanza al
+   * `<svg>` de aquí, que lleva otra clase de scope. Al migrar los 94 SVG
+   * sueltos, catorce reglas así se quedaron muertas y los iconos volvieron al
+   * tamaño por defecto sin que nada fallara.
    */
   export let name;
   /** 'regular' | 'fill' */
@@ -136,6 +144,9 @@
   'arrow-right': {
     regular: `<path d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69L138.34,61.66a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z"/>`,
   },
+  'arrow-left': {
+    regular: `<path d="M224,128a8,8,0,0,1-8,8H59.31l58.35,58.34a8,8,0,0,1-11.32,11.32l-72-72a8,8,0,0,1,0-11.32l72-72a8,8,0,0,1,11.32,11.32L59.31,120H216A8,8,0,0,1,224,128Z"/>`,
+  },
   'chevron-up': {
     regular: `<path d="M213.66,165.66a8,8,0,0,1-11.32,0L128,91.31,53.66,165.66a8,8,0,0,1-11.32-11.32l80-80a8,8,0,0,1,11.32,0l80,80A8,8,0,0,1,213.66,165.66Z"/>`,
   },
@@ -209,12 +220,12 @@
   svg {
     display: block;
     flex-shrink: 0;
-    /* El contenedor manda si define --icon-size; si no, el prop size. */
+    /* El contenedor manda si define `--icon-size`; si no, el prop `size`. */
     width: var(--icon-size, var(--icon-fallback));
     height: var(--icon-size, var(--icon-fallback));
-    /* global.css pone max-width: 100% a todo svg, pensando en imágenes. En un
-       icono con tamaño propio eso sólo recorta el ancho —no el alto— y lo deja
-       aplastado: dentro de un botón estrecho salía a 13x16 px. */
+    /* `global.css` pone `max-width: 100%` a todo svg, pensando en imágenes. En
+       un icono con tamaño propio eso sólo recorta el ancho —no el alto— y lo
+       deja aplastado: dentro de un botón estrecho salía a 13×16 px. */
     max-width: none;
   }
 </style>
