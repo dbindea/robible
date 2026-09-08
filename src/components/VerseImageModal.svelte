@@ -108,10 +108,15 @@
     }
   };
 
-  // Muestra de cada fondo en el selector: el mismo degradado que usa el canvas.
+  // Muestra de cada fondo en el selector.
+  //
+  // Los fondos que sólo son un degradado se dibujan con sus `stops`. Los que
+  // tienen dibujo propio traen su `swatch` en CSS: con los `stops` a secas,
+  // «aurora» y «rays» saldrían como dos rectángulos oscuros idénticos y no se
+  // podría elegir entre ellos sin abrir la vista previa uno a uno.
   const swatchStyle = (key) => {
     const bg = getBackground(key);
-    return `background: linear-gradient(140deg, ${bg.stops.join(', ')});`;
+    return `background: ${bg.swatch || `linear-gradient(140deg, ${bg.stops.join(', ')})`};`;
   };
 </script>
 

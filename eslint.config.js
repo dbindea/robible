@@ -4,7 +4,12 @@ import globals from 'globals';
 
 export default [
   {
-    ignores: ['dist/**', 'node_modules/**', 'public/build/**', 'workers/*/node_modules/**'],
+    // `.tmp-icons/` es el paquete de Phosphor que `scripts/build-icons.mjs`
+    // manda descargar para añadir un icono. Es código de terceros y de usar y
+    // tirar, pero mientras está en el árbol su bundle UMD daba tres errores de
+    // `no-undef` — es decir, seguir las instrucciones del script rompía la
+    // regla de «lint en 0 errores» hasta acordarse de borrar el directorio.
+    ignores: ['dist/**', 'node_modules/**', 'public/build/**', 'workers/*/node_modules/**', '.tmp-icons/**'],
   },
   js.configs.recommended,
   ...svelte.configs['flat/recommended'],
