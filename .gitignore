@@ -25,9 +25,14 @@ workers/*/.wrangler/
 dev.log
 *.log
 
+# Capturas y trazas que deja el MCP de Playwright al verificar en el navegador
+.playwright-mcp/
+
 # Salida del pipeline de logo (scripts/build-logo.js). Los iconos que usa la app
 # viven en public/. Estos son intermedios y pesan ~16 MB.
-# Ya estaban versionados: para sacarlos del repo hace falta además
-#   git rm -r --cached robible/
+# Sacados del índice el 8 sep 2026 con `git rm -r --cached robible/`. Los
+# ficheros siguen en disco; en un clon nuevo hay que regenerarlos con
+# `node scripts/build-logo.js` antes de usar `scripts/resize-logo.js`.
+# El histórico los conserva: recuperar el tamaño del repo exigiría reescribirlo.
 robible/
 

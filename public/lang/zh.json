@@ -484,7 +484,27 @@
       "refs_search": "查找经文",
       "refs_none": "未找到经文。",
       "print_sermon": "打印讲章",
-      "print_outline": "打印提纲"
+      "print_outline": "打印提纲",
+      "pdf_working": "生成中…",
+      "share": {
+        "publish": "发布",
+        "unpublish": "取消发布",
+        "is_public": "已发布 — 有链接的人都能阅读",
+        "public_hint": "也可能出现在搜索结果中。只显示成稿的讲章，观察与背景笔记仍是私密的。",
+        "needs_points": "发布前请至少添加一个要点。",
+        "needs_connection": "发布需要联网。",
+        "published": "讲章已发布。",
+        "unpublished": "讲章已不再公开。",
+        "seo_title": "{title} — {reference}",
+        "seo_fallback": "{reference} 讲章",
+        "not_found_title": "未找到讲章",
+        "not_found_hint": "可能已取消发布，或链接有误。",
+        "go_home": "打开圣经",
+        "eyebrow": "讲章",
+        "share": "分享这篇讲章",
+        "copied": "链接已复制"
+      },
+      "print_outline_hint": "沿短边对折。若纲要有四页，请双面打印并沿短边翻页。"
     },
     "pulpit": {
       "mode": "讲台模式",
@@ -748,6 +768,13 @@
       "index": "主题索引",
       "sitemap": "网站地图",
       "github": "GitHub"
+    },
+    "sermons": {
+      "eyebrow": "已发布的讲章",
+      "title": "弟兄们的讲章",
+      "lead": "在 RoBible 中预备并公开分享的讲章。阅读、使用、传扬。",
+      "point": "{count} 个要点",
+      "points": "{count} 个要点"
     }
   }
 }

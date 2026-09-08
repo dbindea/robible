@@ -484,7 +484,27 @@
       "refs_search": "Buscar la referencia",
       "refs_none": "No se ha encontrado ninguna referencia.",
       "print_sermon": "Imprimir la predicación",
-      "print_outline": "Imprimir la schiță"
+      "print_outline": "Imprimir la schiță",
+      "pdf_working": "Generando…",
+      "share": {
+        "publish": "Publicar",
+        "unpublish": "Quitar de público",
+        "is_public": "Publicada — cualquiera con el enlace puede leerla",
+        "public_hint": "También puede aparecer en buscadores. Se ve la predicación en limpio: la observación y el contexto siguen siendo privados.",
+        "needs_points": "Añade al menos un punto antes de publicar.",
+        "needs_connection": "Publicar necesita conexión.",
+        "published": "La predicación está publicada.",
+        "unpublished": "La predicación ya no es pública.",
+        "seo_title": "{title} — {reference}",
+        "seo_fallback": "Predicación de {reference}",
+        "not_found_title": "No se ha encontrado la predicación",
+        "not_found_hint": "Puede que se haya retirado o que el enlace esté mal.",
+        "go_home": "Abrir la Biblia",
+        "eyebrow": "Predicación",
+        "share": "Compartir la predicación",
+        "copied": "Enlace copiado"
+      },
+      "print_outline_hint": "Se dobla por la mitad, por el lado corto. Si el esquema ocupa cuatro páginas, imprime a doble cara volteando por el borde corto."
     },
     "pulpit": {
       "mode": "Modo púlpito",
@@ -748,6 +768,13 @@
       "index": "Índice temático",
       "sitemap": "Mapa del sitio",
       "github": "GitHub"
+    },
+    "sermons": {
+      "eyebrow": "Predicaciones publicadas",
+      "title": "Predicaciones de nuestros hermanos",
+      "lead": "Predicaciones preparadas en RoBible y puestas a disposición de todos. Léelas, úsalas, compártelas.",
+      "point": "{count} punto",
+      "points": "{count} puntos"
     }
   }
 }

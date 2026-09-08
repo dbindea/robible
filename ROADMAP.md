@@ -16,7 +16,7 @@ RoBible es una app web (PWA) de la Biblia con soporte offline, auth multi-device
 - Frontend: Svelte 5 (sintaxis legacy, no runes) + Vite 8, SCSS themeable (light/dark)
 - Data: JSON estáticos en `/public/data/{vdc,rvl,en_kjv,zh_cuv}/bible.{map,json}` — entre 3 y 4,3 MB por Biblia
 - i18n: propio, sin librería. JSON en `/public/lang/{ro,es,en,zh}.json`
-- PWA: manifest + service worker (cache-first, versiones) — hoy `robible-v27`
+- PWA: manifest + service worker (cache-first, versiones) — hoy `robible-v28`
 - Rutas: path-based custom (parsea `window.location.pathname`)
 - Backend: Cloudflare Workers (`robible-api`) + D1 (`robible-db`), router Hono
 - Auth: PBKDF2 + HMAC tokens persistidos en D1 (revocables), TTL 30 días
@@ -415,7 +415,8 @@ El objetivo es doble: **limpiar el UX en móvil** y **abrir el producto a los pr
 
 **Verificado en el navegador**: el item aparece para el predicador y no para el usuario normal (escenario 4); crear desde la interfaz llega a pantalla, servidor y dispositivo; **cortando la red**, crear y editar siguen funcionando, quedan marcadas como pendientes, y la predicación creada sin conexión **sobrevive a la siguiente sincronización con su contenido intacto**.
 
-**Pendiente (5.B y 5.C)**: la preparación guiada en siete pasos, el documento final, la schiță y el Modo Amvon.
+Seguían aquí 5.B y 5.C —la preparación guiada, el documento final, la schiță y el
+Modo Amvon—, hechas más abajo el mismo día.
 
 ### Fase 5.B — Preparación guiada, documento final y schiță ✅ COMPLETADA (2026-09-07)
 
@@ -495,7 +496,9 @@ componente**.
 
 **Efecto en el bundle**: CSS 183 kB → **170 kB** (−13 kB, al desaparecer las reglas por tema); JS 369 kB → 371 kB (+2 kB netos: entran los trazos de 45 iconos y salen 94 SVG inline).
 
-⚠️ **Sin verificación en navegador**: el servidor de Playwright no conectó. Verificado con `npm run lint` (0 errores), `npm test` (183/183) y `npm run build`, más el test de paridad de paletas. Falta pasar las cinco paletas por la pantalla.
+Se entregó **sin verificación en navegador** —Playwright no conectaba entonces—,
+sólo con lint, tests y build. Las cinco paletas se pasaron por pantalla después,
+en la fase 7.3, que es donde salieron los fallos que faltaban.
 
 ### Fase 7.1 — Correcciones tras la primera revisión visual ✅ (2026-09-07)
 
@@ -668,10 +671,39 @@ y el icono se dibuja a su tamaño intrínseco: empujaba el texto a **una letra p
 línea**. Corregidas las siete, y `Icon.svelte` convierte ahora un número suelto a
 píxeles para que no vuelva a fallar en silencio.
 
+### Fase 5.D — Predicación compartida, PDF y portada ✅ COMPLETADA (2026-09-08, schema 10)
+
+- [x] **PDF con librería, sin servidor**: `sermon-pdf.service.js` sobre pdfmake, cargado con `import()` dinámico para que no engorde el bundle de quien nunca imprime. Predicación en vertical; schiță apaisada a dos columnas con línea de plegado
+- [x] **Cuadernillo de cuatro caras** cuando la schiță no cabe en dos, con la imposición correcta (`4|1` delante, `2|3` detrás) para que al doblar por el lado corto se lea seguida. Con poco contenido se queda en una hoja a una cara, para no sacar dos caras en blanco. Cubierto en `tests/sermon-pdf.test.js`, que además falla si alguien vuelve al orden natural
+- [x] **Publicar una predicación**: `is_public` + `public_slug` + `published_at` (schema 10), con el mismo mecanismo de slug irrepetible que los temas
+- [x] **Vista pública de sólo lectura** (`/predica/<slug>`) sin cuenta, con botón de compartir el enlace
+- [x] **Indexada a propósito**: `netlify/functions/sermon-meta.mjs` emite `index, follow`, JSON-LD de artículo y el texto real en el `<body>` para el rastreador sin JavaScript
+- [x] **Sitemap dinámico** (`/sitemaps/sermons.xml`) servido por función, no generado en el build
+- [x] **Sección en la landing** con las últimas publicadas
+- [x] Marcado manual de palabras clave (`*palabra*`) y referencias a otros pasajes dentro del desarrollo
+
+**Decisiones que conviene no deshacer:**
+- **Una predicación publicada se indexa; un tema compartido no.** Son cosas distintas y por eso las funciones de Netlify difieren: `topic-meta` va con `noindex` porque un tema es un enlace que se pasa a alguien concreto, mientras que quien publica una predicación quiere que se encuentre.
+- **El sitemap de predicaciones se sirve al vuelo.** Se publican entre despliegues; uno estático las dejaría fuera hasta la siguiente subida, que es justo lo que no puede pasar en algo que quiere funcionar como blog.
+- **El endpoint público no devuelve el cuaderno de preparación.** `paraElPublico()` deja fuera observación y contexto: son apuntes personales, a menudo con dudas del propio predicador.
+- **La lista de la landing no bloquea nada.** Si el worker no responde, la sección simplemente no se pinta: la portada es la puerta de entrada y no puede depender de que la API esté viva.
+
+**Lo que costó más de lo que parecía:**
+- **Los asteriscos del marcado manual se veían en la predicación publicada** («1. Pastorul care poarta de *grija*»). Se escapaban por seis sitios a la vez: vista pública, Modo Amvon, documento final, los dos PDF y el HTML del rastreador. Se corta ahora en origen, en `generateOutline`, y se limpia además en cada punto de presentación. `tests/sermon-content.test.js` lo vigila.
+- **La sección de la landing salía en blanco.** Las tarjetas nacen con `data-reveal` y el `IntersectionObserver` se crea al montar, cuando aún no existen: nadie las observaba y se quedaban en `opacity: 0`. Se vuelve a barrer tras cargarlas.
+- **Cinco tokens `--landing-*` que no existen.** `var()` de un token inexistente no falla: el fondo queda transparente y el borde cae a `currentColor`, así que la tarjeta se ve «casi bien». La landing no tiene tokens propios, usa los semánticos de `global.css`.
+- **`app.topics.share.copy` no existía** (se llama `copy_link`), así que el botón de copiar el enlace mostraba el identificador en crudo. El test de i18n sólo comparaba los cuatro idiomas **entre sí**, y una clave ausente en los cuatro cuadraba perfectamente. Hay ahora un test que recorre `src/` y comprueba que toda clave usada exista.
+
 ### Fuera de alcance
 
-IA, chatbot, red social, predicaciones públicas, marketplace, comentarios, seguidores,
-colaboración, editor tipo Word, ni roles más allá de Utilizator/Predicator.
+IA, chatbot, red social, marketplace, comentarios, seguidores, colaboración,
+editor tipo Word, ni roles más allá de Utilizator/Predicator.
+
+> **Las predicaciones públicas salieron de esta lista el 8 sep 2026.** Estaban
+> descartadas en el plan original y el propietario pidió lo contrario: poder
+> compartir una predicación en sólo lectura y que se encuentre en los buscadores.
+> Lo que sigue fuera es todo lo *social* —comentarios, seguidores, «me gusta»—:
+> se publica un texto, no se abre un foro.
 
 ---
 
@@ -734,7 +766,7 @@ colaboración, editor tipo Word, ni roles más allá de Utilizator/Predicator.
 - `node workers/robible-api/dev-server.js` — emulador backend
 
 ### Service Worker
-- Cache version: **`robible-v25`** (a bumpar a mano en `public/sw.js` con cada release)
+- Cache version: **`robible-v28`** (a bumpar a mano en `public/sw.js` con cada release)
 - `public/sw.js` es la **única** fuente de verdad de la versión de cache (la constante duplicada de `config.js` se eliminó el 2026-09-04)
 - Pre-cachea: ambas Biblias, todos los assets, lang files
 - Network-first para navegación · cache-first para assets y data · stale-while-revalidate para `/lang/`

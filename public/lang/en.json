@@ -484,7 +484,27 @@
       "refs_search": "Search for the reference",
       "refs_none": "No reference found.",
       "print_sermon": "Print the sermon",
-      "print_outline": "Print the outline"
+      "print_outline": "Print the outline",
+      "pdf_working": "Generating…",
+      "share": {
+        "publish": "Publish",
+        "unpublish": "Make private",
+        "is_public": "Published — anyone with the link can read it",
+        "public_hint": "It can also show up in searches. Only the finished sermon is shown: your observations and context stay private.",
+        "needs_points": "Add at least one point before publishing.",
+        "needs_connection": "Publishing needs a connection.",
+        "published": "The sermon is published.",
+        "unpublished": "The sermon is no longer public.",
+        "seo_title": "{title} — {reference}",
+        "seo_fallback": "Sermon on {reference}",
+        "not_found_title": "Sermon not found",
+        "not_found_hint": "It may have been unpublished, or the link is wrong.",
+        "go_home": "Open the Bible",
+        "eyebrow": "Sermon",
+        "share": "Share this sermon",
+        "copied": "Link copied"
+      },
+      "print_outline_hint": "Fold in half along the short edge. If the outline runs to four pages, print double-sided flipping on the short edge."
     },
     "pulpit": {
       "mode": "Pulpit mode",
@@ -748,6 +768,13 @@
       "index": "Topic index",
       "sitemap": "Sitemap",
       "github": "GitHub"
+    },
+    "sermons": {
+      "eyebrow": "Published sermons",
+      "title": "Sermons from our brothers",
+      "lead": "Sermons prepared in RoBible and made available to everyone. Read them, use them, share them.",
+      "point": "{count} point",
+      "points": "{count} points"
     }
   }
 }

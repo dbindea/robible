@@ -18,7 +18,7 @@
   import { onDestroy, onMount } from 'svelte';
   import { _ } from '../../services/i18n.service';
   import { sermonsStore } from '../../store/sermonsStore';
-  import { normalizeOutline } from '../../services/sermon-content.service';
+  import { normalizeOutline, quitarMarcas } from '../../services/sermon-content.service';
   import {
     FONT_SIZES,
     clearActive,
@@ -63,7 +63,24 @@
   $: puntos = outline?.points || [];
   $: minutosTranscurridos = Math.floor(transcurrido / 60000);
 
+  // ── Ni una petición mientras se predica ─────────────────────────────────
+  //
+  // La analítica manda una vista de página en cada cambio de ruta, así que al
+  // entrar aquí salía una petición. Falla en silencio sin conexión, pero rompe
+  // la promesa del modo: en el púlpito no se toca la red.
+  //
+  // `ga-disable-<ID>` es el interruptor oficial de Google: mientras vale `true`,
+  // la librería no envía nada. Se apaga al entrar y se restablece al salir, para
+  // no dejar la analítica muerta en el resto de la aplicación.
+  const MEDIDOR = 'ga-disable-G-MX8YYQ3DRY';
+
+  const silenciarAnalitica = (silencio) => {
+    if (typeof window === 'undefined') return;
+    window[MEDIDOR] = silencio;
+  };
+
   onMount(() => {
+    silenciarAnalitica(true);
     snapshot = getSnapshot(sermonId);
     sermon = sermonsStore.get(sermonId);
     // La schiță sale de la instantánea; si por lo que sea no está, se cae a la
@@ -76,6 +93,7 @@
 
   onDestroy(() => {
     detener();
+    silenciarAnalitica(false);
   });
 
   const empezar = async () => {
@@ -252,7 +270,9 @@
              vistazo dónde empieza cada uno. -->
         <hr class="amvon__separador" />
         <div class="amvon__bloque">
-          <h2 class="amvon__punto">{i + 1}. {punto.title}</h2>
+          <!-- Sin los asteriscos del marcado manual: son sintaxis de
+               preparación y aquí el predicador está delante de la iglesia. -->
+          <h2 class="amvon__punto">{i + 1}. {quitarMarcas(punto.title)}</h2>
           {#each punto.keywords || [] as clave, k (k)}
             <p class="amvon__clave">{clave}</p>
           {/each}

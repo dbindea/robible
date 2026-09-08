@@ -17,6 +17,7 @@
   import { onDestroy, onMount, tick } from 'svelte';
   import { _ } from '../../services/i18n.service';
   import { sermonsStore } from '../../store/sermonsStore';
+  import { setSermonPublic, buildPublicSermonUrl } from '../../services/sermons.service';
   import { buildSnapshot } from '../../services/sermon-pulpit.service';
   import Icon from '../../components/Icon.svelte';
   import Modal from '../../components/Modal.svelte';
@@ -32,6 +33,7 @@
     newSubpoint,
     normalizeContent,
     normalizeOutline,
+    quitarMarcas,
     sermonWordCount,
     estimatedMinutes,
     stepCompletion,
@@ -135,8 +137,79 @@
   // El navegador hace todo el trabajo: no hay generador de PDF ni librería. Se
   // imprime desde el diálogo del sistema, que en cualquier navegador de hoy
   // permite «Guardar como PDF».
-  const imprimir = () => {
-    if (typeof window !== 'undefined') window.print();
+  let generandoPdf = false;
+
+  const etiquetasPdf = () => ({
+    explain: $_('app.sermons.dev_explain').toUpperCase(),
+    illustrate: $_('app.sermons.dev_illustrate').toUpperCase(),
+    apply: $_('app.sermons.dev_apply').toUpperCase(),
+    intro: $_('app.sermons.intro').toUpperCase(),
+    conclusion: $_('app.sermons.conclusion').toUpperCase(),
+    refs: $_('app.sermons.refs_title').toUpperCase(),
+    idea: $_('app.sermons.idea_central').toUpperCase(),
+    application: $_('app.sermons.outline_application').toUpperCase(),
+  });
+
+  const descargarPdf = async (cual) => {
+    generandoPdf = true;
+    try {
+      const datos = { title: sermon?.title || '', reference: referencia };
+      const { descargarPredica, descargarSchita } = await import('../../services/sermon-pdf.service.js');
+      if (cual === 'schita') await descargarSchita(datos, outline, etiquetasPdf());
+      else await descargarPredica(datos, content, etiquetasPdf());
+    } finally {
+      generandoPdf = false;
+    }
+  };
+
+  // ── Publicar en internet ────────────────────────────────────────────────
+  //
+  // A diferencia del resto del módulo, esto NO es local-first: publicar es dar
+  // de alta una URL que va a leer gente de fuera, y eso sólo tiene sentido si el
+  // servidor lo confirma. Sin conexión no se puede, y decirlo es más honesto que
+  // dejar al predicador con un enlace que no existe.
+  let publicando = false;
+  let avisoPublicar = '';
+  let avisoPublicarTimer;
+
+  const avisar = (mensaje) => {
+    avisoPublicar = mensaje;
+    clearTimeout(avisoPublicarTimer);
+    avisoPublicarTimer = setTimeout(() => { avisoPublicar = ''; }, 2800);
+  };
+
+  $: enlacePublico = sermon?.isPublic && sermon?.publicSlug ? buildPublicSermonUrl(sermon.publicSlug) : '';
+
+  const alternarPublicacion = async () => {
+    if (!sermon || publicando) return;
+    // Publicar una predicación sin puntos daría una página en blanco a quien
+    // abra el enlace, que es justo el contenido fino que no conviene indexar.
+    if (!sermon.isPublic && !content.structure.length) {
+      avisar($_('app.sermons.share.needs_points'));
+      return;
+    }
+    publicando = true;
+    try {
+      const res = await setSermonPublic(sermonId, !sermon.isPublic);
+      if (res.ok) {
+        sermon = res.sermon || sermon;
+        avisar(sermon.isPublic ? $_('app.sermons.share.published') : $_('app.sermons.share.unpublished'));
+      } else {
+        avisar($_(res.error));
+      }
+    } finally {
+      publicando = false;
+    }
+  };
+
+  const copiarEnlace = async () => {
+    if (!enlacePublico) return;
+    try {
+      await navigator.clipboard.writeText(enlacePublico);
+      avisar($_('app.topics.share.copied'));
+    } catch {
+      avisar($_('app.topics.share.copy_failed'));
+    }
   };
 
   const quitarRef = (puntoId, ref) => {
@@ -569,7 +642,11 @@
             {#each content.structure as punto, i (punto.id)}
               {@const d = desarrolloDe(punto.id)}
               <div class="punto">
-                <h3 class="punto__nombre">{i + 1}. {punto.title || $_('app.sermons.point_placeholder')}</h3>
+                <!-- Cabecera de sólo lectura: sin asteriscos. El campo donde
+                     se marcan sigue siendo el input del paso Structură. -->
+                <h3 class="punto__nombre">
+                  {i + 1}. {quitarMarcas(punto.title) || $_('app.sermons.point_placeholder')}
+                </h3>
 
                 {#each ['explain', 'illustrate', 'apply'] as campo (campo)}
                   <div class="campo">
@@ -672,34 +749,56 @@
 
         {#if content.intro.trim()}
           <h2>{$_('app.sermons.intro')}</h2>
-          <p class="documento__parrafo">{content.intro}</p>
+          <p class="documento__parrafo">{quitarMarcas(content.intro)}</p>
         {/if}
 
         {#each content.structure as punto, i (punto.id)}
           {@const d = content.development[punto.id] || {}}
-          <h2>{i + 1}. {punto.title || $_('app.sermons.point_placeholder')}</h2>
+          <!-- El documento es la predicación en limpio: se lee y se imprime,
+               así que va sin la sintaxis de marcado. -->
+          <h2>{i + 1}. {quitarMarcas(punto.title) || $_('app.sermons.point_placeholder')}</h2>
           {#each punto.subpoints || [] as sub, j (sub.id)}
-            <h3>{i + 1}.{j + 1} {sub.title}</h3>
+            <h3>{i + 1}.{j + 1} {quitarMarcas(sub.title)}</h3>
           {/each}
-          {#if d.explain}<p class="documento__parrafo">{d.explain}</p>{/if}
-          {#if d.illustrate}<p class="documento__parrafo documento__parrafo--ilustra">{d.illustrate}</p>{/if}
-          {#if d.apply}<p class="documento__parrafo">{d.apply}</p>{/if}
+          {#if d.explain}<p class="documento__parrafo">{quitarMarcas(d.explain)}</p>{/if}
+          {#if d.illustrate}<p class="documento__parrafo documento__parrafo--ilustra">{quitarMarcas(d.illustrate)}</p>{/if}
+          {#if d.apply}<p class="documento__parrafo">{quitarMarcas(d.apply)}</p>{/if}
         {/each}
 
         {#if content.conclusion.trim()}
           <h2>{$_('app.sermons.conclusion')}</h2>
-          <p class="documento__parrafo">{content.conclusion}</p>
+          <p class="documento__parrafo">{quitarMarcas(content.conclusion)}</p>
         {/if}
       </article>
 
       <div class="prep__acciones no-imprimir">
         <button type="button" on:click={() => (vista = 'prep')}>{$_('app.sermons.edit')}</button>
         <button type="button" on:click={crearSchita}>{$_('app.sermons.create_outline')}</button>
-        <button type="button" on:click={imprimir}>{$_('app.sermons.print_sermon')}</button>
+        <button type="button" disabled={generandoPdf} on:click={() => descargarPdf('predica')}>
+          {generandoPdf ? $_('app.sermons.pdf_working') : $_('app.sermons.print_sermon')}
+        </button>
+        <button type="button" disabled={publicando} on:click={alternarPublicacion}>
+          {sermon?.isPublic ? $_('app.sermons.share.unpublish') : $_('app.sermons.share.publish')}
+        </button>
         <button type="button" class="prep__cta" on:click={marcarPreparada}>
           {$_('app.sermons.mark_ready')}
         </button>
       </div>
+
+      {#if enlacePublico}
+        <div class="publicada no-imprimir">
+          <p class="publicada__titulo">{$_('app.sermons.share.is_public')}</p>
+          <div class="publicada__fila">
+            <input type="text" readonly value={enlacePublico} on:focus={(e) => e.target.select()} />
+            <button type="button" on:click={copiarEnlace}>{$_('app.topics.share.copy_link')}</button>
+          </div>
+          <p class="publicada__pista">{$_('app.sermons.share.public_hint')}</p>
+        </div>
+      {/if}
+
+      {#if avisoPublicar}
+        <p class="publicada__aviso no-imprimir" role="status">{avisoPublicar}</p>
+      {/if}
 
       {#if avisoPreparada}
         <div class="prep__listo" role="status">
@@ -748,8 +847,14 @@
       <div class="prep__acciones no-imprimir">
         <button type="button" on:click={() => (vista = 'final')}>← {$_('app.sermons.back_to_sermon')}</button>
         <button type="button" on:click={regenerarSchita}>{$_('app.sermons.regenerate_outline')}</button>
-        <button type="button" on:click={imprimir}>{$_('app.sermons.print_outline')}</button>
+        <button type="button" disabled={generandoPdf} on:click={() => descargarPdf('schita')}>
+          {generandoPdf ? $_('app.sermons.pdf_working') : $_('app.sermons.print_outline')}
+        </button>
       </div>
+
+      <!-- Cómo imprimirla. Sin esto, una schiță larga sale a doble cara en el
+           orden equivocado y el cuadernillo queda desordenado al doblarlo. -->
+      <p class="prep__pista-impresion no-imprimir">{$_('app.sermons.print_outline_hint')}</p>
     {/if}
   {/if}
 </section>
@@ -848,6 +953,68 @@
     .bloque :global(.campo) {
       break-inside: avoid;
     }
+  }
+
+  // ── Publicación ─────────────────────────────────────────
+  .publicada {
+    margin-top: 1rem;
+    padding: 0.85rem 1rem;
+    border: 1px solid var(--color-line-accent);
+    border-radius: var(--radius-md);
+    background: var(--wash-accent);
+  }
+
+  .publicada__titulo {
+    margin: 0 0 0.5rem;
+    color: var(--color-accent-ink);
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: var(--letter-spacing-eyebrow);
+  }
+
+  .publicada__fila {
+    display: flex;
+    gap: 0.5rem;
+
+    input {
+      flex: 1;
+      min-width: 0;
+      padding: 0.45rem 0.6rem;
+      border: 1px solid var(--color-line);
+      border-radius: var(--radius-sm);
+      background: var(--color-field);
+      color: var(--color-ink);
+      font-size: 0.85rem;
+    }
+
+    button {
+      flex: 0 0 auto;
+      padding: 0.45rem 0.9rem;
+      border: 1px solid var(--color-accent-solid);
+      border-radius: var(--radius-sm);
+      background: var(--color-accent-solid);
+      color: var(--color-on-primary);
+      font-weight: 700;
+      cursor: pointer;
+    }
+  }
+
+  .publicada__pista {
+    margin: 0.5rem 0 0;
+    color: var(--color-ink-soft);
+    font-size: 0.78rem;
+    line-height: 1.4;
+  }
+
+  .publicada__aviso {
+    margin-top: 0.75rem;
+    padding: 0.5rem 0.8rem;
+    border-radius: var(--radius-sm);
+    background: var(--color-success-wash);
+    color: var(--color-success-ink);
+    font-size: 0.85rem;
+    font-weight: 600;
   }
 
   // ── Marcar palabras para la schiță ──────────────────────
@@ -1341,6 +1508,14 @@
 
   // ── Navegación y acciones ─────────────────────────────────────────────────
   .prep__nav,
+  .prep__pista-impresion {
+    margin: 0.6rem 0 0;
+    color: var(--color-ink-soft);
+    font-size: 0.78rem;
+    line-height: 1.4;
+    text-align: right;
+  }
+
   .prep__acciones {
     display: flex;
     flex-wrap: wrap;

@@ -387,3 +387,37 @@ test('una referencia repetida no sale dos veces en la schiță', () => {
 
   assert.deepEqual(generateOutline(c).points[0].refs, ['Iacov 1:22']);
 });
+
+// ── La schiță nunca lleva la sintaxis de marcado ────────────────────────────
+//
+// Los asteriscos son cómo el predicador señala en la preparación qué palabras
+// quiere en la schiță. A partir de generateOutline el texto sólo se lee: en el
+// púlpito, en el PDF y en el enlace público. Si se colaran, habría que quitarlos
+// en cada uno de esos sitios y bastaría con olvidarse de uno.
+//
+// El 8 sep 2026 salían literalmente ("1. Pastorul care poarta de *grija*") en la
+// predicación publicada.
+test('generateOutline deja fuera los asteriscos de títulos, subpuntos e idea', () => {
+  const outline = generateOutline({
+    idea: { central: 'Cine tiene al Señor por *pastor* no carece de nada' },
+    structure: [
+      {
+        id: 'p1',
+        title: 'El Pastor que *cuida*',
+        subpoints: [{ title: 'No me *faltará* nada' }],
+        refs: [],
+      },
+    ],
+    development: { p1: { explain: 'David escribe como *pastor*.', illustrate: '', apply: '' } },
+  });
+
+  const punto = outline.points[0];
+  assert.equal(punto.title, 'EL PASTOR QUE CUIDA');
+  assert.ok(!outline.idea.includes('*'), `la idea conserva asteriscos: ${outline.idea}`);
+  assert.ok(
+    !punto.keywords.some((k) => k.includes('*')),
+    `hay palabras clave con asteriscos: ${JSON.stringify(punto.keywords)}`,
+  );
+  // Lo marcado sí manda: "pastor" viene de la marca del desarrollo.
+  assert.ok(punto.keywords.includes('pastor'), JSON.stringify(punto.keywords));
+});

@@ -11,7 +11,7 @@
 // de las dos opciones. La especificación es explícita: cambiar de tipo no debe
 // perder información.
 
-import { validators, nowIso, genId, json, error } from './utils.js';
+import { validators, nowIso, genId, genPublicSlug, json, error } from './utils.js';
 
 const normalizeRow = (r) => ({
   id: r.id,
@@ -28,6 +28,9 @@ const normalizeRow = (r) => ({
   updatedAt: r.updated_at,
   preparedAt: r.prepared_at || null,
   preachedAt: r.preached_at || null,
+  isPublic: !!r.is_public,
+  publicSlug: r.public_slug || null,
+  publishedAt: r.published_at || null,
 });
 
 /**
@@ -42,7 +45,8 @@ export async function listSermons(db, userId) {
   const rows = await db
     .prepare(
       `SELECT id, title, book, chapter, verse_start, verse_end, version,
-              type, status, series, created_at, updated_at, prepared_at, preached_at
+              type, status, series, created_at, updated_at, prepared_at, preached_at,
+              is_public, public_slug, published_at
        FROM sermons WHERE user_id = ? ORDER BY updated_at DESC`,
     )
     .bind(userId)
@@ -131,7 +135,7 @@ export async function updateSermon(request, db, userId, sermonId, cors) {
   try { body = await request.json(); } catch { return error('invalid_json', 400, cors); }
 
   const existing = await db
-    .prepare('SELECT id FROM sermons WHERE id = ? AND user_id = ?')
+    .prepare('SELECT id, title, is_public, public_slug FROM sermons WHERE id = ? AND user_id = ?')
     .bind(sermonId, userId)
     .first();
   if (!existing) return error('sermon_not_found', 404, cors);
@@ -185,6 +189,35 @@ export async function updateSermon(request, db, userId, sermonId, cors) {
     if (b.status === 'preached') asignar('preached_at', now);
   }
 
+  // ── Publicar / despublicar ──────────────────────────────────────────────
+  //
+  // Misma mecánica que los temas: el slug se genera **una sola vez** y se
+  // conserva al despublicar. Si el predicador quita la predicación de internet
+  // y luego se arrepiente, el enlace que ya repartió por WhatsApp sigue
+  // valiendo; generar uno nuevo rompería todos los que están por ahí fuera.
+  if (b.isPublic !== undefined) {
+    if (typeof b.isPublic !== 'boolean') return error('invalid_is_public', 400, cors);
+
+    let slug = existing.public_slug;
+    if (b.isPublic && !slug) {
+      for (let intento = 0; intento < 5 && !slug; intento += 1) {
+        const candidato = genPublicSlug(existing.title || 'predica');
+        const chocado = await db
+          .prepare('SELECT id FROM sermons WHERE public_slug = ?')
+          .bind(candidato)
+          .first();
+        if (!chocado) slug = candidato;
+      }
+      if (!slug) return error('slug_generation_failed', 500, cors);
+    }
+
+    asignar('is_public', b.isPublic ? 1 : 0);
+    asignar('public_slug', slug || null);
+    // La fecha de publicación se pone la primera vez y no se toca después: es
+    // la que ordena el listado público y la que ve un buscador.
+    if (b.isPublic && !existing.is_public) asignar('published_at', nowIso());
+  }
+
   if (!campos.length) return error('missing_fields', 400, cors);
 
   asignar('updated_at', now);
@@ -206,4 +239,116 @@ export async function removeSermon(db, userId, sermonId, cors) {
     .run();
   if (!result.meta || result.meta.changes === 0) return error('sermon_not_found', 404, cors);
   return json({ ok: true }, 200, cors);
+}
+
+// ── Predicaciones públicas (sin auth) ─────────────────────────────────────
+//
+// De una predicación publicada salen el título, el pasaje, la schiță y el
+// desarrollo, y **nada del usuario**: ni id, ni nickname, ni fechas de la
+// cuenta. Compartir una predicación no debe permitir averiguar quién la
+// escribió ni cuántas tiene.
+//
+// Lo que se publica es la predicación **en limpio**, no el cuaderno de
+// preparación: fuera observación, contexto y notas de estudio. Son apuntes
+// personales, a menudo con dudas del propio predicador, y no lo que quiso
+// compartir.
+
+/** Lo que ve un lector cualquiera. */
+const paraElPublico = (r) => {
+  let contenido = null;
+  try { contenido = r.content_json ? JSON.parse(r.content_json) : null; } catch { contenido = null; }
+
+  const puntos = (contenido?.structure || []).map((punto) => {
+    const d = contenido?.development?.[punto.id] || {};
+    return {
+      title: punto.title || '',
+      subpoints: (punto.subpoints || []).map((s) => s.title || '').filter(Boolean),
+      explain: d.explain || '',
+      illustrate: d.illustrate || '',
+      apply: d.apply || '',
+      refs: [...(punto.refs || []), ...(d.refs || [])]
+        .filter((x) => x?.label)
+        .map((x) => ({ label: x.label, text: x.text || '' })),
+    };
+  });
+
+  return {
+    slug: r.public_slug,
+    title: r.title || '',
+    book: r.book,
+    chapter: r.chapter,
+    verseStart: r.verse_start,
+    verseEnd: r.verse_end,
+    version: r.version || null,
+    type: r.type,
+    publishedAt: r.published_at || null,
+    idea: contenido?.idea?.central || '',
+    intro: contenido?.intro || '',
+    conclusion: contenido?.conclusion || '',
+    points: puntos,
+  };
+};
+
+// GET /api/public/sermons/:slug
+export async function getPublicSermon(db, slug, cors) {
+  if (!validators.publicSlug(slug)) return error('sermon_not_found', 404, cors);
+
+  const r = await db
+    .prepare(
+      `SELECT public_slug, title, book, chapter, verse_start, verse_end, version,
+              type, published_at, content_json
+       FROM sermons WHERE public_slug = ? AND is_public = 1`,
+    )
+    .bind(slug)
+    .first();
+  // Una despublicada responde 404 igual que una inexistente: no interesa
+  // confirmar que el slug existió.
+  if (!r) return error('sermon_not_found', 404, cors);
+
+  return json({ ok: true, sermon: paraElPublico(r) }, 200, cors);
+}
+
+/**
+ * GET /api/public/sermons — las últimas publicadas.
+ *
+ * Alimenta la sección de la landing y el sitemap. Sólo devuelve cabeceras: la
+ * lista no necesita el desarrollo entero y mandarlo serían megabytes por
+ * visita a la portada.
+ *
+ * Se excluyen las que no tienen ni un punto: una predicación publicada vacía
+ * sería una página en blanco, justo el contenido fino que no conviene indexar.
+ */
+export async function listPublicSermons(db, cors, limite = 60) {
+  const rows = await db
+    .prepare(
+      `SELECT public_slug, title, book, chapter, verse_start, verse_end, version,
+              type, published_at, content_json
+       FROM sermons
+       WHERE is_public = 1 AND public_slug IS NOT NULL
+       ORDER BY published_at DESC
+       LIMIT ?`,
+    )
+    .bind(Math.min(Math.max(1, limite), 200))
+    .all();
+
+  const sermons = (rows.results || [])
+    .map((r) => {
+      const s = paraElPublico(r);
+      return {
+        slug: s.slug,
+        title: s.title,
+        book: s.book,
+        chapter: s.chapter,
+        verseStart: s.verseStart,
+        verseEnd: s.verseEnd,
+        version: s.version,
+        type: s.type,
+        publishedAt: s.publishedAt,
+        idea: s.idea,
+        points: s.points.length,
+      };
+    })
+    .filter((s) => s.points > 0 && s.title);
+
+  return json({ ok: true, sermons }, 200, cors);
 }

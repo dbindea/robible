@@ -11,6 +11,7 @@
   import Favorites from './Favorites.svelte';
   import Notes from './Notes.svelte';
   import PublicTopic from './PublicTopic.svelte';
+  import PublicSermon from './PublicSermon.svelte';
   import Sermons from './Sermons.svelte';
   import SermonPrep from './SermonPrep.svelte';
   import SermonPulpit from './SermonPulpit.svelte';
@@ -53,6 +54,13 @@
   // enlace se rompería al cambiar de versión.
   const isPublicTopicPath = (path) => /^\/tema\/[^/]+\/?$/.test(path);
   let isPublicTopicMode = typeof window !== 'undefined' ? isPublicTopicPath(window.location.pathname) : false;
+
+  // Predicación compartida. Mismo criterio que /tema —no se traduce por
+  // idioma, porque el enlace se reparte por fuera y tiene que abrir igual para
+  // quien lo reciba— pero, a diferencia de aquélla, **sí se indexa**: el autor
+  // la publica para que se encuentre, no sólo para pasar el enlace a alguien.
+  const isPublicSermonPath = (path) => /^\/predica\/[^/]+\/?$/.test(path);
+  let isPublicSermonMode = typeof window !== 'undefined' ? isPublicSermonPath(window.location.pathname) : false;
 
   // «Predicile mele». Ruta privada y sin traducir por idioma: no se indexa y
   // no gana nada teniendo cuatro formas distintas.
@@ -102,6 +110,7 @@
     if (typeof window === 'undefined') return;
     isCompareMode = isComparePath(window.location.pathname);
     isPublicTopicMode = isPublicTopicPath(window.location.pathname);
+    isPublicSermonMode = isPublicSermonPath(window.location.pathname);
     isSermonsMode = isSermonsPath(window.location.pathname);
     sermonId = sermonIdFromPath(window.location.pathname);
     pulpitId = pulpitIdFromPath(window.location.pathname);
@@ -134,8 +143,8 @@
 </script>
 
 <!-- La ruta /landing la resuelve App.svelte antes de montar Main. -->
-<div class="main" class:main--immersive={isImmersive} class:main--compare={isCompareMode} class:main--index={isIndexMode} class:main--favorites={isFavoritesMode} class:main--notes={isNotesMode || isPublicTopicMode || isSermonsMode}>
-  {#if !isImmersive && !isCompareMode && !isIndexMode && !isFavoritesMode && !isNotesMode && !isPublicTopicMode && !isSermonsMode}
+<div class="main" class:main--immersive={isImmersive} class:main--compare={isCompareMode} class:main--index={isIndexMode} class:main--favorites={isFavoritesMode} class:main--notes={isNotesMode || isPublicTopicMode || isPublicSermonMode || isSermonsMode}>
+  {#if !isImmersive && !isCompareMode && !isIndexMode && !isFavoritesMode && !isNotesMode && !isPublicTopicMode && !isPublicSermonMode && !isSermonsMode}
     <div class="sidebar">
       <Sidebar {map} {result} {count} />
     </div>
@@ -150,6 +159,8 @@
         {:else}
           <Sermons {bible} {map} />
         {/if}
+      {:else if isPublicSermonMode}
+        <PublicSermon {map} />
       {:else if isPublicTopicMode}
         <PublicTopic {bible} {map} />
       {:else if isCompareMode}

@@ -484,7 +484,27 @@
       "refs_search": "Caută referința",
       "refs_none": "Nicio referință găsită.",
       "print_sermon": "Tipărește predica",
-      "print_outline": "Tipărește schița"
+      "print_outline": "Tipărește schița",
+      "pdf_working": "Se generează…",
+      "share": {
+        "publish": "Publică",
+        "unpublish": "Retrage din public",
+        "is_public": "Publicată — oricine cu linkul o poate citi",
+        "public_hint": "Se poate găsi și în căutări. Predica se vede în curat: observațiile și contextul rămân private.",
+        "needs_points": "Adaugă cel puțin un punct înainte de a publica.",
+        "needs_connection": "Publicarea are nevoie de conexiune.",
+        "published": "Predica este publicată.",
+        "unpublished": "Predica nu mai este publică.",
+        "seo_title": "{title} — {reference}",
+        "seo_fallback": "Predică din {reference}",
+        "not_found_title": "Predica nu a fost găsită",
+        "not_found_hint": "Poate a fost retrasă din public sau linkul este greșit.",
+        "go_home": "Deschide Biblia",
+        "eyebrow": "Predică",
+        "share": "Distribuie predica",
+        "copied": "Link copiat"
+      },
+      "print_outline_hint": "Se pliază pe jumătate, pe latura scurtă. Dacă schița are patru pagini, tipărește față-verso cu întoarcere pe latura scurtă."
     },
     "pulpit": {
       "mode": "Mod Amvon",
@@ -748,6 +768,13 @@
       "index": "Indice tematic",
       "sitemap": "Sitemap",
       "github": "GitHub"
+    },
+    "sermons": {
+      "eyebrow": "Predici publicate",
+      "title": "Predici de la frații noștri",
+      "lead": "Predici pregătite în RoBible și puse la dispoziția tuturor. Citește-le, folosește-le, împarte-le.",
+      "point": "{count} punct",
+      "points": "{count} puncte"
     }
   }
 }

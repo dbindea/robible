@@ -691,7 +691,11 @@ async function main() {
   await writeSitemap('sitemaps/chapters.xml', chapterUrls);
   await writeSitemap('sitemaps/topics.xml', topicUrls);
 
-  await writeSitemapIndex(['/sitemaps/static.xml', '/sitemaps/books.xml', '/sitemaps/chapters.xml', '/sitemaps/topics.xml']);
+  // sitemaps/sermons.xml se referencia en el índice pero NO se escribe aquí: lo
+  // sirve una función de Netlify, porque las predicaciones se publican entre
+  // despliegues y un sitemap estático las dejaría fuera hasta el siguiente.
+  // Ver netlify/functions/sermons-sitemap.mjs y la redirección de netlify.toml.
+  await writeSitemapIndex(['/sitemaps/static.xml', '/sitemaps/books.xml', '/sitemaps/chapters.xml', '/sitemaps/topics.xml', '/sitemaps/sermons.xml']);
 
   console.log(
     `Generated SEO pages: ${bookUrls.length} books, ${chapterUrls.length} chapters, ${topicUrls.length} topics.`,
