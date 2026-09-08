@@ -218,8 +218,11 @@
   >
     <Icon name="expand" />
   </button>
-{:else}
-  <!-- Exit immersive mode button (appears when in immersive mode) -->
+{:else if isImmersive}
+  <!-- Salir del modo inmersivo. La condición es `isImmersive` y no un `{:else}`
+       suelto: con el else, cualquier pantalla excluida arriba —comparar, el
+       módulo de predicación— caía aquí y enseñaba el botón de SALIR de un modo
+       en el que no se estaba. Pasó al excluir las predicaciones. -->
   <button
     type="button"
     class="immersive-exit"

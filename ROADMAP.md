@@ -755,6 +755,26 @@ píxeles para que no vuelva a fallar en silencio.
 
 **Un segundo fallo del mismo tipo, encontrado al verificar:** `crearSchita` releía `sermon.outline`, y `sermon` se carga una vez en `onMount` y no se refresca — era la schiță del momento de abrir la pantalla. Entrar a la schiță, editarla, volver a la predicación y pulsar «Creează schița» otra vez tiraba en silencio todo lo escrito en esa sesión. Ahora mira `outline`, que es el estado vivo del componente.
 
+### Fase 5.H — Recapitulación y temas como etiquetas ✅ COMPLETADA (2026-09-08)
+
+- [x] **Bloque «Ce am răspuns până acum»** (`Recapitulare.svelte`) en STRUCTURĂ, DEZVOLTARE y FINALIZARE: lo respondido en los pasos anteriores, plegable como el guía
+- [x] **El tema se elige de una lista de etiquetas** (`SeriesPicker.svelte`) en vez de escribirse a mano
+- [x] `GET /api/public/sermon-series`: las series ya usadas en predicaciones publicadas, con su recuento
+
+**Por qué la recapitulación:** en STRUCTURĂ hay que hacerle preguntas analíticas a la idea omiletică, y la idea se escribió en el paso anterior. Había que retroceder a IDEE, leerla y volver — una vez por cada división que se formulaba. Lo mismo en FINALIZARE, donde la frase de inicio sale también de la idea.
+
+**Por qué las etiquetas:** el campo de tema era texto libre, así que «Predica de pe munte», «predica de pe munte» y «Pe munte» acababan siendo tres series para lo mismo y el filtro del blog repartido entre las tres. Enseñando las que ya existen, reutilizar pasa a ser lo cómodo y crear lo deliberado.
+
+**Decisiones que conviene no deshacer:**
+- **La idea omiletică y la pregunta analítica van destacadas** dentro de la recapitulación, y el resto plano: de esas dos cuelga todo lo que se hace a partir de ahí.
+- **Sólo se listan campos con algo escrito.** Un recordatorio con quince apartados vacíos no es un recordatorio.
+- **Guía y recapitulación tienen preferencia de plegado separada.** Enseñar y recordar son dos cosas distintas: quien ya sabe homilética cierra la primera y deja abierta la segunda.
+- **Las series propias salen del store local**, no de la red: así el selector funciona desde la primera predicación, aunque no se haya publicado nada.
+- **El endpoint público sólo devuelve series de predicaciones publicadas.** Es una lista pública y no puede filtrar los borradores de nadie.
+- **Crear no alterna.** Tocar una etiqueta activa la quita, pero escribir un nombre y darle a añadir la selecciona siempre; cuando compartían función, teclear el nombre de la serie ya puesta la desactivaba.
+
+**Un fallo propio encontrado al verificar:** el botón flotante de modo lectura de `Main.svelte` era un `{#if …}{:else}`, así que al excluir el módulo de predicación esas pantallas cayeron en el `else` y enseñaban el botón de **salir** del modo inmersivo sin estar en él. La rama de salida comprueba ahora `isImmersive` explícitamente.
+
 ### Fuera de alcance
 
 IA, chatbot, red social, marketplace, comentarios, seguidores, colaboración,

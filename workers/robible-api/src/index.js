@@ -122,6 +122,18 @@ app.get('/api/public/sermons', async (c) => {
   return sermons.listPublicSermons(c.env.DB, corsFor(c));
 });
 
+// Las series ya usadas, para que el selector de tema proponga en vez de dejar
+// escribir a mano. Va antes de `/api/public/sermons/:slug` no haría falta —no
+// choca, porque el segmento es distinto— pero se deja junto a su hermano.
+app.get('/api/public/sermon-series', async (c) => {
+  applyCors(c);
+  const rl = await checkRateLimit(c.env.DB, c.req.raw, 'public_topics', c.env);
+  if (!rl.ok) {
+    return c.json({ ok: false, error: rl.error }, 429, { 'Retry-After': String(rl.retryAfter || 60) });
+  }
+  return sermons.listPublicSeries(c.env.DB, corsFor(c));
+});
+
 app.get('/api/public/sermons/:slug', async (c) => {
   applyCors(c);
   const rl = await checkRateLimit(c.env.DB, c.req.raw, 'public_topics', c.env);

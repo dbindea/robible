@@ -554,14 +554,20 @@
         "count_one": "{count} predică"
       },
       "series": "Serie / temă",
-      "series_help": "Gruparea sub care apare predica în lista publică. Opțional.",
+      "series_help": "Gruparea sub care apare predica în lista publică. Alege una sau creează-ți una nouă.",
       "merge_new": "puncte noi",
       "merge_kept": "modificările tale păstrate",
       "merge_updated": "actualizate din structură",
       "merge_removed": "puncte scoase",
       "merge_none": "Schița era deja la zi.",
       "outline_reverted": "Regenerarea a fost anulată.",
-      "undo_regenerate": "Anulează regenerarea"
+      "undo_regenerate": "Anulează regenerarea",
+      "recap_open": "Ce am răspuns până acum",
+      "recap_marked": "Cuvinte marcate în text",
+      "series_new": "Temă nouă",
+      "series_first": "Adaugă o temă",
+      "series_add": "Adaugă",
+      "series_new_placeholder": "Numele temei…"
     },
     "pulpit": {
       "mode": "Mod Amvon",

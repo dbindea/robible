@@ -338,5 +338,23 @@ export const fetchPublicSermons = async () => {
   }
 };
 
+/**
+ * Las series ya usadas en predicaciones publicadas.
+ *
+ * Se combinan en el selector con las del propio predicador, que salen de su
+ * lista local: las suyas cuentan aunque no haya publicado nada, y así el
+ * selector sirve desde la primera predicación.
+ */
+export const fetchPublicSeries = async () => {
+  if (!USE_BACKEND) return [];
+  try {
+    const res = await api.get('/api/public/sermon-series', { auth: false });
+    return res.series || [];
+  } catch (e) {
+    console.warn('fetchPublicSeries falló:', e.message);
+    return [];
+  }
+};
+
 export const buildPublicSermonUrl = (slug) =>
   typeof window === 'undefined' ? '' : `${window.location.origin}/predica/${encodeURIComponent(slug)}`;

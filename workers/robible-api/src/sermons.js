@@ -293,6 +293,38 @@ const paraElPublico = (r) => {
   };
 };
 
+/**
+ * GET /api/public/sermon-series — las series que ya existen, con su recuento.
+ *
+ * Alimenta el selector de tema de la preparación. Antes ese campo era texto
+ * libre y cada predicador escribía la suya: «Predica de pe munte», «predica de
+ * pe munte», «Pe munte»… tres series para lo mismo, y el filtro del blog
+ * repartido entre las tres. Enseñando las que ya hay, lo normal pasa a ser
+ * reutilizar una.
+ *
+ * Devuelve sólo las de predicaciones **publicadas**: es una lista pública y no
+ * puede filtrar los borradores de nadie. Las series propias, publicadas o no,
+ * las añade el cliente desde su propia lista.
+ */
+export async function listPublicSeries(db, cors) {
+  const rows = await db
+    .prepare(
+      `SELECT series AS name, COUNT(*) AS total
+       FROM sermons
+       WHERE is_public = 1 AND public_slug IS NOT NULL
+             AND series IS NOT NULL AND TRIM(series) <> ''
+       GROUP BY series
+       ORDER BY total DESC, series ASC
+       LIMIT 200`,
+    )
+    .all();
+
+  return json({
+    ok: true,
+    series: (rows.results || []).map((r) => ({ name: r.name, count: r.total })),
+  }, 200, cors);
+}
+
 // GET /api/public/sermons/:slug
 export async function getPublicSermon(db, slug, cors) {
   if (!validators.publicSlug(slug)) return error('sermon_not_found', 404, cors);

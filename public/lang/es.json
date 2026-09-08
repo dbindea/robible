@@ -554,14 +554,20 @@
         "count_one": "{count} predicación"
       },
       "series": "Serie / tema",
-      "series_help": "La agrupación bajo la que aparece la predicación en la lista pública. Opcional.",
+      "series_help": "La agrupación bajo la que aparece la predicación en la lista pública. Elige una o crea una nueva.",
       "merge_new": "puntos nuevos",
       "merge_kept": "cambios tuyos conservados",
       "merge_updated": "actualizados desde la estructura",
       "merge_removed": "puntos quitados",
       "merge_none": "El esquema ya estaba al día.",
       "outline_reverted": "Se ha deshecho la regeneración.",
-      "undo_regenerate": "Deshacer la regeneración"
+      "undo_regenerate": "Deshacer la regeneración",
+      "recap_open": "Lo que he respondido hasta ahora",
+      "recap_marked": "Palabras marcadas en el texto",
+      "series_new": "Tema nuevo",
+      "series_first": "Añadir un tema",
+      "series_add": "Añadir",
+      "series_new_placeholder": "Nombre del tema…"
     },
     "pulpit": {
       "mode": "Modo púlpito",
