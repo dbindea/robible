@@ -65,12 +65,119 @@ export const IMAGE_BACKGROUNDS = [
     ink: '#4A3623',
     accent: 'rgba(74, 54, 35, 0.7)',
   },
+
+  // ── Los tres siguientes no son otro degradado en diagonal ──────────────
+  // Cambian el DIBUJO, no sólo la paleta: cada uno tiene su propio pintor en
+  // `PINTORES`. Los seis de arriba comparten el de `gradient`.
+
+  {
+    // Malla de manchas de color, sin forma reconocible. Es el más abstracto.
+    key: 'aurora',
+    style: 'aurora',
+    stops: ['#161B3D', '#0B0E22'],
+    blobs: ['#38D6C0', '#7A5CE0', '#E2588F', '#2F7BD8'],
+    glow: 'rgba(140, 200, 255, 0.12)',
+    ink: '#FFFFFF',
+    accent: 'rgba(255, 255, 255, 0.86)',
+    swatch:
+      'radial-gradient(circle at 22% 24%, #38D6C0 0%, transparent 58%),' +
+      'radial-gradient(circle at 78% 34%, #7A5CE0 0%, transparent 58%),' +
+      'radial-gradient(circle at 46% 84%, #E2588F 0%, transparent 62%),' +
+      'linear-gradient(140deg, #161B3D, #0B0E22)',
+  },
+  {
+    // Haces de luz abriéndose desde una esquina, como por una claraboya.
+    key: 'rays',
+    style: 'rays',
+    stops: ['#123049', '#08131E'],
+    beam: '#FFD98C',
+    glow: 'rgba(255, 217, 140, 0.16)',
+    ink: '#F5FAFD',
+    accent: 'rgba(255, 217, 140, 0.92)',
+    swatch:
+      'repeating-conic-gradient(from 200deg at 82% -6%,' +
+      'rgba(255,217,140,0.30) 0deg 5deg, rgba(255,217,140,0) 5deg 13deg),' +
+      'linear-gradient(160deg, #123049, #08131E)',
+  },
+  {
+    // Anillos concéntricos finos, tipo curva de nivel. Claro y muy sobrio.
+    key: 'arcs',
+    style: 'arcs',
+    stops: ['#FAF7F1', '#EBE3D6'],
+    line: '#5A4A3A',
+    glow: 'rgba(255, 255, 255, 0.5)',
+    ink: '#3A2E22',
+    accent: 'rgba(58, 46, 34, 0.75)',
+    swatch:
+      'repeating-radial-gradient(circle at 18% 108%,' +
+      'rgba(90,74,58,0.22) 0 1px, rgba(90,74,58,0) 1px 9px),' +
+      'linear-gradient(150deg, #FAF7F1, #EBE3D6)',
+  },
 ];
 
 export const getBackground = (key) =>
   IMAGE_BACKGROUNDS.find((b) => b.key === key) || IMAGE_BACKGROUNDS[0];
 
 // ── Maquetación del texto (pura, sin canvas) ────────────
+
+// ── Dónde se puede cortar una línea ─────────────────────
+//
+// Partir por espacios funciona en las cuatro lenguas latinas del proyecto y NO
+// funciona en chino, que no los usa: el versículo entero salía como una sola
+// «palabra» y por tanto como una sola línea, con el principio y el final fuera
+// de la imagen. En chino el corte se puede hacer entre casi cualquier par de
+// caracteres, así que cada ideograma es una oportunidad de corte propia.
+
+const RE_CJK = /[぀-ヿ㐀-䶿一-鿿豈-﫿ｦ-ﾟ]/;
+
+/** Puntuación china y japonesa: también corta, y además manda en el kinsoku. */
+const RE_PUNTUACION_CJK = /[、-〿！-＠［-｀｛-･]/;
+
+/**
+ * Kinsoku shori: reglas de qué no puede quedar al borde de una línea.
+ * Una coma o un punto abriendo línea es el error que más se nota.
+ */
+const NO_ABREN_LINEA = '、。，．・：；！？）〕］｝〉》」』】〙〗〟’”｠»ーぁぃぅぇぉっゃゅょァィゥェォッャュョー';
+const NO_CIERRAN_LINEA = '（〔［｛〈《「『【〘〖〝‘“｟«';
+
+/**
+ * Trocea el texto en piezas con su separador delante.
+ *
+ * Una pieza es una palabra latina o un único carácter CJK. El separador es el
+ * espacio que hay que reponer al volver a unirlas: entre palabras latinas sí,
+ * entre ideogramas no. Así el mismo algoritmo de ajuste sirve para las cinco
+ * lenguas sin ramas por idioma.
+ */
+const trocear = (texto) => {
+  const piezas = [];
+  let palabra = '';
+  let separador = '';
+
+  const cerrarPalabra = () => {
+    if (!palabra) return;
+    piezas.push({ texto: palabra, sep: piezas.length ? separador : '' });
+    palabra = '';
+    separador = '';
+  };
+
+  for (const ch of String(texto ?? '')) {
+    if (/\s/.test(ch)) {
+      cerrarPalabra();
+      // Varios espacios seguidos o un salto de línea cuentan como uno solo.
+      separador = ' ';
+      continue;
+    }
+    if (RE_CJK.test(ch) || RE_PUNTUACION_CJK.test(ch)) {
+      cerrarPalabra();
+      piezas.push({ texto: ch, sep: piezas.length ? separador : '' });
+      separador = '';
+      continue;
+    }
+    palabra += ch;
+  }
+  cerrarPalabra();
+  return piezas;
+};
 
 /**
  * Parte un texto en líneas que quepan en `maxWidth`.
@@ -79,19 +186,33 @@ export const getBackground = (key) =>
  * mitad se lee peor que dejar que sobresalga un poco.
  */
 export const wrapTextLines = (text, maxWidth, measure) => {
-  const words = String(text || '').split(/\s+/).filter(Boolean);
-  if (!words.length) return [];
+  const piezas = trocear(text);
+  if (!piezas.length) return [];
 
   const lines = [];
-  let current = words[0];
+  let current = piezas[0].texto;
 
-  for (let i = 1; i < words.length; i++) {
-    const candidate = `${current} ${words[i]}`;
+  for (let i = 1; i < piezas.length; i++) {
+    const pieza = piezas[i];
+    const candidate = current + pieza.sep + pieza.texto;
+
     if (measure(candidate) <= maxWidth) {
       current = candidate;
+      continue;
+    }
+
+    // No cabe: hay que cortar aquí, salvo que el kinsoku lo impida.
+    if (NO_ABREN_LINEA.includes(pieza.texto) && current.length > 1) {
+      // 。 、 」 no pueden abrir línea: baja con ellas el carácter anterior.
+      lines.push(current.slice(0, -1));
+      current = current.slice(-1) + pieza.texto;
+    } else if (NO_CIERRAN_LINEA.includes(current.slice(-1)) && current.length > 1) {
+      // 「 （ no pueden cerrar línea: sube con ellas a la siguiente.
+      lines.push(current.slice(0, -1));
+      current = current.slice(-1) + pieza.sep + pieza.texto;
     } else {
       lines.push(current);
-      current = words[i];
+      current = pieza.texto;
     }
   }
   lines.push(current);
@@ -134,7 +255,9 @@ export const fitTextBlock = ({
   }
 
   const kept = lines.slice(0, maxLines);
-  kept[kept.length - 1] = `${kept[kept.length - 1].replace(/[.,;:]$/, '')}…`;
+  // La puntuación china es distinta de la latina: sin 。，、；： aquí, un
+  // versículo recortado en chino acababa en «。…», que se lee como un error.
+  kept[kept.length - 1] = `${kept[kept.length - 1].replace(/[.,;:。，、；：]$/, '')}…`;
   return { fontSize, lines: kept, truncated: true };
 };
 
@@ -161,7 +284,16 @@ export const ensureFontsReady = async () => {
   }
 };
 
-const paintBackground = (ctx, bg, w, h) => {
+/** `#RRGGBB` + alfa → `rgba(...)`. Los pintores necesitan desvanecer colores. */
+const conAlfa = (hex, alfa) => {
+  const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || ''));
+  if (!m) return hex;
+  const n = parseInt(m[1], 16);
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alfa})`;
+};
+
+/** El degradado en diagonal de siempre. Lo comparten los seis primeros fondos. */
+const pintarDegradado = (ctx, bg, w, h) => {
   const gradient = ctx.createLinearGradient(0, 0, w * 0.65, h);
   bg.stops.forEach((color, i) => gradient.addColorStop(i / (bg.stops.length - 1), color));
   ctx.fillStyle = gradient;
@@ -186,8 +318,123 @@ const paintBackground = (ctx, bg, w, h) => {
   ctx.arc(w * 0.12, h * 0.82, w * 0.28, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
+};
+
+/**
+ * Malla de manchas de color sobre base oscura: el fondo abstracto.
+ *
+ * Se componen con alfa normal y no con `lighter`: sumando luz, cuatro manchas
+ * se acercan al blanco por el centro y ahí es justo donde va el texto.
+ */
+const pintarAurora = (ctx, bg, w, h) => {
+  const base = ctx.createLinearGradient(0, 0, w * 0.3, h);
+  bg.stops.forEach((color, i) => base.addColorStop(i / (bg.stops.length - 1), color));
+  ctx.fillStyle = base;
+  ctx.fillRect(0, 0, w, h);
+
+  // Repartidas por las esquinas, lejos de la banda central del versículo.
+  const manchas = [
+    { x: 0.14, y: 0.16, r: 0.70, a: 0.55 },
+    { x: 0.88, y: 0.28, r: 0.58, a: 0.45 },
+    { x: 0.22, y: 0.86, r: 0.66, a: 0.42 },
+    { x: 0.86, y: 0.92, r: 0.60, a: 0.38 },
+  ];
+  manchas.forEach((m, i) => {
+    const color = bg.blobs[i % bg.blobs.length];
+    const g = ctx.createRadialGradient(w * m.x, h * m.y, 0, w * m.x, h * m.y, w * m.r);
+    g.addColorStop(0, conAlfa(color, m.a));
+    g.addColorStop(0.55, conAlfa(color, m.a * 0.35));
+    g.addColorStop(1, conAlfa(color, 0));
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+  });
+};
+
+/** Haces de luz abriéndose desde una esquina, como por una claraboya. */
+const pintarRayos = (ctx, bg, w, h) => {
+  const base = ctx.createLinearGradient(0, 0, w * 0.4, h);
+  bg.stops.forEach((color, i) => base.addColorStop(i / (bg.stops.length - 1), color));
+  ctx.fillStyle = base;
+  ctx.fillRect(0, 0, w, h);
+
+  // Origen fuera del lienzo: así los haces entran ya abiertos y no se ve el
+  // vértice, que delataría que son triángulos.
+  const ox = w * 0.88;
+  const oy = -h * 0.10;
+  const largo = Math.hypot(w, h) * 1.6;
+
+  ctx.save();
+  ctx.translate(ox, oy);
+  // Abanico hacia abajo y a la izquierda.
+  const desde = Math.PI * 0.55;
+  const hasta = Math.PI * 1.02;
+  const haces = 11;
+  for (let i = 0; i < haces; i++) {
+    const t = i / (haces - 1);
+    const centro = desde + (hasta - desde) * t;
+    // Anchos y opacidades irregulares: unos haces iguales parecen un ventilador.
+    const ancho = (0.014 + ((i * 7) % 5) * 0.006) * Math.PI;
+    const alfa = 0.05 + ((i * 3) % 4) * 0.028;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(Math.cos(centro - ancho) * largo, Math.sin(centro - ancho) * largo);
+    ctx.lineTo(Math.cos(centro + ancho) * largo, Math.sin(centro + ancho) * largo);
+    ctx.closePath();
+    ctx.fillStyle = conAlfa(bg.beam, alfa);
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // Resplandor en el foco, para que la luz parezca venir de algún sitio.
+  const foco = ctx.createRadialGradient(ox, oy, 0, ox, oy, w * 0.85);
+  foco.addColorStop(0, bg.glow);
+  foco.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = foco;
+  ctx.fillRect(0, 0, w, h);
+};
+
+/** Anillos concéntricos finos, tipo curva de nivel. El más sobrio de los tres. */
+const pintarArcos = (ctx, bg, w, h) => {
+  const base = ctx.createLinearGradient(0, 0, w * 0.5, h);
+  bg.stops.forEach((color, i) => base.addColorStop(i / (bg.stops.length - 1), color));
+  ctx.fillStyle = base;
+  ctx.fillRect(0, 0, w, h);
+
+  // Centro fuera del lienzo, abajo a la izquierda: dentro se verían anillos
+  // completos y parecería una diana.
+  const cx = w * 0.16;
+  const cy = h * 1.06;
+  const paso = w * 0.058;
+  const maximo = Math.hypot(w, h) * 1.25;
+
+  ctx.save();
+  ctx.lineCap = 'round';
+  for (let r = paso, i = 0; r < maximo; r += paso, i++) {
+    // Se desvanecen al alejarse y el grosor alterna: así se lee como relieve
+    // y no como una rejilla.
+    const lejania = r / maximo;
+    ctx.globalAlpha = Math.max(0.04, 0.20 * (1 - lejania));
+    ctx.lineWidth = (i % 4 === 0 ? 2.2 : 1.1) * Math.max(1, w / 540);
+    ctx.strokeStyle = bg.line;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.restore();
+};
+
+const PINTORES = {
+  gradient: pintarDegradado,
+  aurora: pintarAurora,
+  rays: pintarRayos,
+  arcs: pintarArcos,
+};
+
+const paintBackground = (ctx, bg, w, h) => {
+  (PINTORES[bg.style] || pintarDegradado)(ctx, bg, w, h);
 
   // Viñeta: oscurece los bordes para que el texto centrado gane contraste.
+  // Se aplica a todos los estilos, y por eso vive fuera de los pintores.
   const vignette = ctx.createRadialGradient(w / 2, h / 2, h * 0.28, w / 2, h / 2, h * 0.78);
   vignette.addColorStop(0, 'rgba(0, 0, 0, 0)');
   vignette.addColorStop(1, 'rgba(0, 0, 0, 0.22)');

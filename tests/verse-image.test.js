@@ -141,3 +141,72 @@ test('buildFileName produce un nombre de archivo seguro', () => {
   // fichero tiene que seguir teniendo nombre.
   assert.equal(buildFileName('約翰福音 3:16'), 'robible-3-16.png');
 });
+
+// ── Chino: el corte de línea no depende de los espacios ─────────────────────
+//
+// El chino no usa espacios, así que `split(/\s+/)` devolvía el versículo entero
+// como una sola «palabra» y por tanto como una sola línea: en la imagen se veía
+// una tira de texto con el principio y el final fuera del lienzo. El corte se
+// hace ahora entre ideogramas, que es como se compone el chino de verdad.
+
+/** Juan 3:16 en chino (Biblia china de unión). */
+const JUAN_316_ZH =
+  '神爱世人，甚至将他的独生子赐给他们，叫一切信他的，不至灭亡，反得永生。';
+
+test('un versículo en chino se parte en varias líneas', () => {
+  // 10 px por carácter, caja de 100 px → 10 caracteres por línea.
+  const lineas = wrapTextLines(JUAN_316_ZH, 100, medidorFalso(10));
+
+  assert.ok(lineas.length > 1, `esperaba varias líneas, hubo ${lineas.length}`);
+  for (const linea of lineas) {
+    assert.ok(linea.length <= 11, `línea demasiado ancha: "${linea}" (${linea.length})`);
+  }
+});
+
+test('el chino no pierde ni añade caracteres al partirse', () => {
+  const lineas = wrapTextLines(JUAN_316_ZH, 100, medidorFalso(10));
+  // Sin espacios entre ideogramas: al unir hay que recuperar el original.
+  assert.equal(lineas.join(''), JUAN_316_ZH);
+});
+
+test('la puntuación china no se queda huérfana al principio de línea', () => {
+  const lineas = wrapTextLines(JUAN_316_ZH, 100, medidorFalso(10));
+  for (const linea of lineas) {
+    assert.ok(
+      !'、。，．：；！？）」』'.includes(linea[0]),
+      `una línea empieza por puntuación de cierre: "${linea}"`,
+    );
+  }
+});
+
+test('mezcla de chino y latín: los espacios latinos se conservan', () => {
+  const lineas = wrapTextLines('Ioan 3:16 神爱世人', 1000, medidorFalso(1));
+  assert.deepEqual(lineas, ['Ioan 3:16 神爱世人']);
+});
+
+test('el texto latino se sigue partiendo exactamente igual que antes', () => {
+  // Misma expectativa que el test de arriba: la reescritura para chino no
+  // podía cambiar el comportamiento de las cuatro lenguas latinas.
+  const lineas = wrapTextLines('uno dos tres cuatro cinco', 100, medidorFalso(10));
+  for (const linea of lineas) {
+    assert.ok(linea.length * 10 <= 100, `línea demasiado ancha: "${linea}"`);
+  }
+  assert.equal(lineas.join(' '), 'uno dos tres cuatro cinco');
+});
+
+test('fitTextBlock reduce el cuerpo hasta que el chino cabe', () => {
+  const r = fitTextBlock({
+    text: JUAN_316_ZH,
+    maxWidth: 400,
+    maxHeight: 300,
+    maxFontSize: 60,
+    minFontSize: 20,
+    measureAt: (fs) => (s) => s.length * fs,
+  });
+  assert.ok(r.lines.length > 1, 'el chino tiene que ocupar varias líneas');
+  assert.ok(r.fontSize <= 60 && r.fontSize >= 20);
+  assert.ok(
+    r.lines.length * r.fontSize * 1.36 <= 300 || r.truncated,
+    'o cabe en la caja o viene marcado como recortado',
+  );
+});

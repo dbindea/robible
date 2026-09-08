@@ -373,7 +373,10 @@
         "night": "Night",
         "olive": "Olive",
         "lavender": "Lavender",
-        "sand": "Sand"
+        "sand": "Sand",
+        "aurora": "Aurora",
+        "rays": "Light rays",
+        "arcs": "Rings"
       },
       "share": "Share",
       "close": "Close",
