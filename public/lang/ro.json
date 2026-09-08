@@ -551,7 +551,14 @@
         "count_one": "{count} predică"
       },
       "series": "Serie / temă",
-      "series_help": "Gruparea sub care apare predica în lista publică. Opțional."
+      "series_help": "Gruparea sub care apare predica în lista publică. Opțional.",
+      "merge_new": "puncte noi",
+      "merge_kept": "modificările tale păstrate",
+      "merge_updated": "actualizate din structură",
+      "merge_removed": "puncte scoase",
+      "merge_none": "Schița era deja la zi.",
+      "outline_reverted": "Regenerarea a fost anulată.",
+      "undo_regenerate": "Anulează regenerarea"
     },
     "pulpit": {
       "mode": "Mod Amvon",

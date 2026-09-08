@@ -716,23 +716,33 @@
     align-items: center;
   }
 
+  // Mismo lenguaje visual que `.book-picker__button`: son los dos botones de
+  // la barra lateral y estaban dibujados de dos maneras distintas.
+  //
+  // El de antes iba relleno de acento y su `:hover` era un resplandor
+  // (`box-shadow: 0 0 4px 1px`, con desenfoque y en azul opaco), mientras que
+  // el de elegir libro usa el anillo nítido y translúcido que lleva el resto de
+  // la aplicación. Se unifica hacia el anillo: relleno sólido para borrar la
+  // búsqueda pesaba más que la acción, que es secundaria y destructiva.
   .button__erase {
-    background-color: var(--color-accent-solid);
-    color: var(--color-on-primary);
-    border: 0.1rem var(--border-blue);
-    height: var(--button-height);
-    font-size: 14px;
-    transition: var(--transition);
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    border-radius: 0.25rem;
     min-width: max-content;
+    height: var(--button-height);
+    border: 1px solid color-mix(in srgb, var(--color-accent) 54%, transparent);
+    border-radius: 0.25rem;
+    background: color-mix(in srgb, var(--color-on-sidebar) 8%, transparent);
+    color: var(--color-on-sidebar);
+    font-size: 14px;
+    font-weight: 600;
+    transition: var(--transition);
 
-    &:hover {
-      background: var(--color-blue-hover);
+    &:hover,
+    &:focus-visible {
+      background: color-mix(in srgb, var(--color-accent) 28%, transparent);
       border-color: var(--color-blue);
-      box-shadow: 0 0 4px 1px var(--color-blue);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 18%, transparent);
     }
 
     &:focus-visible {

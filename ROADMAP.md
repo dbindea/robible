@@ -734,6 +734,27 @@ píxeles para que no vuelva a fallar en silencio.
 - **Los tres pasos con aviso son `text`, `idea` y `structure`**, que son los tres momentos en los que se acaba predicando otra cosa sin darse cuenta: de dónde sale el material, qué pasaje manda cuando hay varios, y de dónde salen las divisiones.
 - **Los enlaces del pie van en el pie y no en el menú lateral.** El menú es la navegación de lo tuyo —favoritos, notas, tus predicaciones—; esto es lo público, lo que existe aunque no tengas cuenta.
 
+### Fase 5.G — Regenerar la schiță sin perder lo escrito a mano ✅ COMPLETADA (2026-09-08)
+
+- [x] **Fusión a tres bandas** (`mergeOutline`): respeta lo que ha reescrito el predicador, refresca lo que no tocó y trae los puntos nuevos de la estructura
+- [x] **Resumen de lo que ha hecho** («modificările tale păstrate: 2 · puncte noi: 1») y botón **Anulează**, que devuelve la schiță anterior entera
+- [x] `tests/sermon-merge.test.js`: 9 casos, incluida la estabilidad (regenerar dos veces seguidas sin tocar nada no cambia nada)
+
+**El problema:** «Regenerează din structură» rehacía la schiță entera. La generada es un punto de partida y se reescribe a mano casi siempre, así que el botón —que está al lado de «Tipărește schița»— costaba el trabajo de una tarde si se pulsaba sin querer.
+
+**Por qué fusión y no versiones:** el caso real no es «quiero volver atrás», es «he añadido un punto en la estructura y quiero que la schiță lo recoja SIN perder mis formulaciones». Con un historial de versiones habría que reescribirlas igualmente. Además, un navegador de versiones es una pantalla nueva que aprender justo la noche antes de predicar.
+
+**Cómo funciona:** el mismo modelo que git al hacer merge. La schiță guarda `base`, una instantánea de la última generación. Al regenerar se comparan tres estados —`base`, `actual` y lo que se generaría hoy— campo a campo: si `actual` sigue igual que `base` nadie lo tocó y se refresca; si difiere, lo escribió él y se respeta. Los puntos se emparejan por `id`, que viene de `content.structure` y es estable aunque se reordenen.
+
+**Decisiones que conviene no deshacer:**
+- **Sin `base` no se pisa nada.** Las schițe guardadas antes de esto no la traen; sin ella no hay forma de saber qué es suyo, así que sólo se rellenan los huecos vacíos.
+- **El orden lo manda la estructura.** Si movió un punto en STRUCTURĂ es que quiere predicarlo en ese orden.
+- **Un punto borrado de la estructura sale de la schiță**, aunque tuviera texto suyo: ha dejado de formar parte de la predicación, y una schiță con puntos que no se van a predicar es peor en el púlpito que una a la que le falte algo. Se cuenta en el resumen y «Anulează» lo devuelve.
+- **`base` se actualiza siempre a lo recién generado**, se haya aplicado o no: es lo que la aplicación propuso esta vez, y contra eso hay que comparar la próxima.
+- **El botón Anulează no caduca con el aviso.** El aviso dura tres segundos; darse cuenta de que la fusión no era lo que uno quería lleva más.
+
+**Un segundo fallo del mismo tipo, encontrado al verificar:** `crearSchita` releía `sermon.outline`, y `sermon` se carga una vez en `onMount` y no se refresca — era la schiță del momento de abrir la pantalla. Entrar a la schiță, editarla, volver a la predicación y pulsar «Creează schița» otra vez tiraba en silencio todo lo escrito en esa sesión. Ahora mira `outline`, que es el estado vivo del componente.
+
 ### Fuera de alcance
 
 IA, chatbot, red social, marketplace, comentarios, seguidores, colaboración,
