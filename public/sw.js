@@ -1,4 +1,4 @@
-const CACHE_NAME = 'robible-v28';
+const CACHE_NAME = 'robible-v30';
 
 const CORE_ASSETS = [
   '/',
@@ -42,6 +42,7 @@ const CORE_ASSETS = [
   // el diálogo aparezca también sin conexión: el texto sale de la Biblia, que
   // ya está en cache.
   '/data/daily-verses.json',
+  '/data/curated-topics.json',
   // Solo se precachean las dos Biblias originales (~8,5 MB). Las de en_kjv y
   // zh_cuv NO van aquí a propósito: sumarlas dejaría la instalación en ~17 MB
   // para descargar cuatro Biblias de las que el usuario leerá una. Se cachean
@@ -173,6 +174,113 @@ self.addEventListener('activate', (event) => {
       .keys()
       .then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))))
       .then(() => self.clients.claim()),
+  );
+});
+
+// ── Aviso diario del versículo ───────────────────────────────────────────────
+//
+// El push llega **vacío**, a propósito: el servidor sólo dice «despierta». El
+// versículo del día es determinista a partir de la fecha, y la lista está en
+// /data/daily-verses.json, que se precachea arriba. Así que el texto se arma
+// aquí, sin red y sin que por el cable viaje nada del usuario.
+//
+// Ojo: esto duplica la aritmética de daily-verse.service.js. No se puede
+// importar —un service worker clásico no comparte módulos con el bundle— así
+// que si allí cambia la forma de elegir el versículo, hay que cambiarla aquí
+// también o la notificación anunciará uno distinto del que abre la aplicación.
+const numeroDeDia = (fecha) =>
+  Math.floor(Date.UTC(fecha.getFullYear(), fecha.getMonth(), fecha.getDate()) / 86400000);
+
+const leerDeCache = async (url) => {
+  const respuesta = await caches.match(url);
+  if (!respuesta) return null;
+  try {
+    return await respuesta.json();
+  } catch {
+    return null;
+  }
+};
+
+// Preferencias que la aplicación deja escritas en la caché para este manejador.
+//
+// No se pueden leer de localStorage —un service worker no lo tiene— ni
+// preguntárselas a una pestaña abierta, porque el caso normal de un push es
+// justo que no haya ninguna: la aplicación está cerrada. Así que el cliente las
+// escribe aquí al suscribirse y en cada arranque (ver push.service.js).
+const PREFS_URL = '/__robible/push-prefs';
+
+const preferencias = async () => {
+  const p = await leerDeCache(PREFS_URL);
+  return { version: p?.version || 'vdc', locale: p?.locale || 'ro' };
+};
+
+const versiculoDeHoy = async () => {
+  const datos = await leerDeCache('/data/daily-verses.json');
+  const lista = Array.isArray(datos?.verses) ? datos.verses : [];
+  if (!lista.length) return null;
+
+  const n = numeroDeDia(new Date());
+  return lista[((n % lista.length) + lista.length) % lista.length];
+};
+
+self.addEventListener('push', (event) => {
+  event.waitUntil(
+    (async () => {
+      const { version, locale } = await preferencias();
+
+      // Los textos no pueden salir de $_(): aquí no hay biblioteca de
+      // traducción. Se leen del mismo /lang/*.json que usa la aplicación, que
+      // también está precacheado.
+      const lang = await leerDeCache(`/lang/${locale}.json`);
+      const textos = lang?.app?.daily_verse || {};
+      const titulo = textos.notification_title || textos.eyebrow || 'RoBible';
+
+      const verso = await versiculoDeHoy();
+
+      // Sólo la referencia, no el texto: sacarlo obligaría a abrir bible.json,
+      // que son varios megabytes, y el manejador de un push tiene un presupuesto
+      // de tiempo corto. El nombre del libro sale del mapa, que pesa unos pocos
+      // kilobytes.
+      let cuerpo = textos.notification_body || '';
+      if (verso) {
+        const mapa = await leerDeCache(`/data/${version}/bible.map.json`);
+        const libro = mapa?.[verso.book];
+        if (libro) cuerpo = `${libro} ${verso.chapter}:${verso.verse}`;
+      }
+
+      await self.registration.showNotification(titulo, {
+        body: cuerpo,
+        icon: '/android-chrome-192x192.png',
+        badge: '/favicon-32x32.png',
+        lang: locale,
+        // Una etiqueta fija hace que el aviso de hoy sustituya al de ayer en vez
+        // de apilarse: quien no abre la aplicación en una semana no debe
+        // encontrarse siete notificaciones.
+        tag: 'robible-daily-verse',
+        data: { url: '/profil' },
+      });
+    })(),
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const destino = event.notification.data?.url || '/';
+
+  event.waitUntil(
+    (async () => {
+      const clientes = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      // Si la aplicación ya está abierta se reutiliza esa pestaña en lugar de
+      // abrir otra: en el móvil, dos instancias de una PWA desconciertan.
+      for (const cliente of clientes) {
+        if ('focus' in cliente) {
+          await cliente.focus();
+          if ('navigate' in cliente) await cliente.navigate(destino);
+          return;
+        }
+      }
+      await self.clients.openWindow(destino);
+    })(),
   );
 });
 

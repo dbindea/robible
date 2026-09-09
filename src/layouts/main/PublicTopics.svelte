@@ -15,17 +15,23 @@
    * indexarlos, hay que cambiarlo en los dos sitios y en `topic-meta.mjs`.
    */
   import { onMount } from 'svelte';
-  import { _ } from '../../services/i18n.service';
+  import { _, currentLocale } from '../../services/i18n.service';
   import { fetchPublicTopics } from '../../services/topics.service';
   import { applySeoMetadata } from '../../services/seo.service';
   import { getBibleVersionConfigOrDefault, selectedBibleVersion } from '../../store/stores';
   import { resolveTopicIcon } from '../../config/topic-icons.js';
+  import { loadCuratedTopics, textoDe, buildCuratedPath } from '../../services/curated-topics.service';
   import Icon from '../../components/Icon.svelte';
 
   let temas = [];
+  // Las colecciones de la casa. Van arriba y las de la gente debajo: éstas SÍ se
+  // indexan (cada una tiene su presentación escrita), así que el `follow` de
+  // esta página existe sobre todo para que el rastreador llegue a ellas.
+  let curadas = [];
   let cargando = true;
   let busqueda = '';
 
+  $: locale = $currentLocale || 'ro';
   $: versionConfig = getBibleVersionConfigOrDefault($selectedBibleVersion);
 
   $: applySeoMetadata({
@@ -40,15 +46,21 @@
     ? temas.filter((t) => t.name.toLowerCase().includes(busqueda.trim().toLowerCase()))
     : temas;
 
-  const abrir = (slug) => {
-    window.history.pushState(null, '', `/tema/${encodeURIComponent(slug)}`);
+  const irA = (href) => {
+    window.history.pushState(null, '', href);
     // La errata `robibile` es la del resto del proyecto (CLAUDE.md, trampa 1).
     window.dispatchEvent(new CustomEvent('robibile:navigate'));
     window.dispatchEvent(new PopStateEvent('popstate'));
   };
 
+  const abrir = (slug) => irA(`/tema/${encodeURIComponent(slug)}`);
+
   onMount(async () => {
-    temas = (await fetchPublicTopics()) || [];
+    // En paralelo: las curadas salen de un JSON que el service worker ya tiene
+    // precacheado, así que no tienen por qué esperar a la petición al worker.
+    const [publicos, coleccion] = await Promise.all([fetchPublicTopics(), loadCuratedTopics()]);
+    temas = publicos || [];
+    curadas = coleccion || [];
     cargando = false;
   });
 </script>
@@ -74,11 +86,41 @@
     </figure>
   </section>
 
+  {#if curadas.length}
+    <section class="curadas">
+      <h2 class="bloque__titulo">{$_('app.topics.curated.section_title')}</h2>
+      <p class="bloque__lead">{$_('app.topics.curated.section_lead')}</p>
+      <ul class="rejilla rejilla--anchas">
+        {#each curadas as c (c.slug)}
+          <li>
+            <a
+              class="curada"
+              href={buildCuratedPath(c.slug)}
+              on:click|preventDefault={() => irA(buildCuratedPath(c.slug))}
+            >
+              <span class="curada__icono" aria-hidden="true" style={c.color ? `color: ${c.color}` : ''}>
+                <Icon name={resolveTopicIcon(c.icon)} />
+              </span>
+              <span class="curada__nombre">{textoDe(c, 'names', locale)}</span>
+              <span class="curada__intro">{textoDe(c, 'intros', locale)}</span>
+              <span class="curada__cuenta">
+                {c.verses.length === 1
+                  ? $_('app.topics.verse_count', { count: c.verses.length })
+                  : $_('app.topics.verses_count_plural', { count: c.verses.length })}
+              </span>
+            </a>
+          </li>
+        {/each}
+      </ul>
+    </section>
+  {/if}
+
   {#if cargando}
     <p class="teme__estado" role="status">{$_('app.loading')}</p>
   {:else if !temas.length}
     <p class="teme__estado">{$_('app.topics.public.empty')}</p>
   {:else}
+    <h2 class="bloque__titulo">{$_('app.topics.public.from_users')}</h2>
     <label class="teme__buscar">
       <span class="teme__buscar-icono"><Icon name="search" /></span>
       <input type="search" bind:value={busqueda} placeholder={$_('app.topics.public.search_placeholder')} />
@@ -209,6 +251,85 @@
     padding: 3rem 1rem;
     color: var(--color-ink-soft);
     text-align: center;
+  }
+
+  // ── Bloques de la página ──────────────────────────────────────────────────
+  // Dos secciones con el mismo encabezado: las curadas y las de la gente.
+  .bloque__titulo {
+    margin: 0 0 0.3rem;
+    color: var(--color-ink-strong);
+    font-size: clamp(1.15rem, 3.5vw, 1.5rem);
+  }
+
+  .bloque__lead {
+    margin: 0 0 1rem;
+    color: var(--color-ink-soft);
+    font-size: var(--font-size-small);
+    line-height: var(--line-height-body);
+  }
+
+  .curadas {
+    margin-bottom: clamp(1.75rem, 5vw, 2.75rem);
+    padding-bottom: clamp(1.5rem, 4vw, 2.25rem);
+    border-bottom: 1px solid var(--color-line);
+  }
+
+  // Las curadas traen presentación, así que necesitan más ancho que las tarjetas
+  // de un solo renglón de la rejilla normal.
+  .rejilla--anchas {
+    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  }
+
+  .curada {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.25rem 0.7rem;
+    height: 100%;
+    padding: 1rem 1.15rem;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-md);
+    background: var(--color-surface-raised);
+    color: inherit;
+    text-decoration: none;
+    transition: border-color var(--motion-base), transform var(--motion-base);
+
+    &:hover {
+      border-color: var(--color-accent);
+      transform: translateY(-2px);
+      text-decoration: none;
+    }
+  }
+
+  .curada__icono {
+    display: inline-flex;
+    // Ocupa las tres filas de texto para que el nombre no se descuelgue del icono.
+    grid-row: span 3;
+    color: var(--color-accent);
+    --icon-size: 1.5rem;
+  }
+
+  .curada__nombre {
+    color: var(--color-ink-strong);
+    font-weight: 700;
+    line-height: 1.25;
+  }
+
+  .curada__intro {
+    color: var(--color-ink-soft);
+    font-size: 0.82rem;
+    line-height: 1.45;
+    // Tres líneas y elipsis: las presentaciones no son todas igual de largas y
+    // sin el tope las tarjetas de la rejilla quedaban de alturas dispares.
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+  }
+
+  .curada__cuenta {
+    color: var(--color-ink-soft);
+    font-size: 0.76rem;
+    font-weight: 600;
   }
 
   .teme__buscar {

@@ -78,6 +78,13 @@ const ICONOS = {
   stop: 'stop',
   user: 'user',
   users: 'users',
+  // ── Memorización ──
+  // `minus`/`plus` suben y bajan el nivel de dificultad; `eye` revela el texto
+  // tapado; `brain` es el icono de la sección.
+  minus: 'minus',
+  plus: 'plus',
+  eye: 'eye',
+  brain: 'brain',
 };
 
 // Sólo estos llevan versión rellena: son los que tienen estado marcado o

@@ -250,13 +250,22 @@
       "public": {
         "eyebrow": "Teme publicate",
         "title": "Teme",
-        "lead": "Colecții de versete strânse și publicate de utilizatori. Deschide una ca să vezi versetele.",
+        "lead": "Colecții de versete pe teme: unele alese de RoBible, altele strânse și publicate de utilizatori.",
         "search_placeholder": "Caută o temă…",
         "no_results": "Nicio temă nu se potrivește.",
         "empty": "Încă nu a fost publicată nicio temă.",
         "seo_title": "Teme biblice — RoBible",
         "seo_description": "Colecții de versete pe teme, publicate de utilizatorii RoBible.",
-        "cta": "Creează-ți temele tale"
+        "cta": "Creează-ți temele tale",
+        "from_users": "Teme publicate de utilizatori"
+      },
+      "curated": {
+        "eyebrow": "Colecție RoBible",
+        "not_found": "Nu am găsit această colecție",
+        "all": "Vezi toate temele",
+        "more": "Alte colecții",
+        "section_title": "Colecții alese de RoBible",
+        "section_lead": "Versete strânse pe teme, cu o scurtă introducere. Se citesc și fără conexiune."
       }
     },
     "notes": {
@@ -322,6 +331,10 @@
         "sermons": {
           "label": "Predicile mele",
           "hint": "Pregătește și prezintă predici"
+        },
+        "memorize": {
+          "label": "Memorare",
+          "hint": "Învață versete pe de rost"
         }
       }
     },
@@ -393,7 +406,9 @@
       "hint": "Citește-l încet și încearcă să-l ții minte azi.",
       "open": "Vezi în context",
       "share": "Distribuie",
-      "never": "Nu mai afișa"
+      "never": "Nu mai afișa",
+      "notification_title": "Versetul zilei",
+      "notification_body": "Deschide RoBible pentru versetul de azi."
     },
     "sermons": {
       "eyebrow": "Predici",
@@ -692,6 +707,86 @@
           "structure": "Fiecare diviziune are pasajul ei. Verifică fiecare verset în contextul lui: dacă acolo nu spune ce spui tu, scoate-l — nu-l forța."
         }
       }
+    },
+    "profile": {
+      "eyebrow": "Contul tău",
+      "lead_user": "Aici ai versetul zilei, unde ai rămas cu cititul și tot ce ai strâns până acum.",
+      "lead_preacher": "Aici ai versetul zilei, unde ai rămas cu cititul, ce ai strâns și predicile tale.",
+      "login_required": "Conectează-te ca să-ți vezi profilul",
+      "seo_title": "Contul meu | RoBible",
+      "seo_description": "Versetul zilei, unde ai rămas cu cititul și tot ce ai salvat în RoBible.",
+      "daily_title": "Versetul zilei",
+      "daily_open": "Citește în context",
+      "daily_disable": "Nu-mi mai arăta zilnic",
+      "daily_enable": "Arată-mi-l zilnic",
+      "daily_on": "Vei primi versetul zilei la fiecare intrare.",
+      "daily_off": "Nu-ți mai apare automat. Îl găsești mereu aici.",
+      "daily_hint": "Îl găsești aici oricând, chiar dacă l-ai închis sau ai oprit afișarea automată.",
+      "continue_title": "Continuă de unde ai rămas",
+      "continue_action": "Continuă",
+      "continue_empty": "Încă n-ai început să citești pe acest dispozitiv.",
+      "continue_start": "Deschide Biblia",
+      "activity_title": "Ce ai strâns",
+      "activity_favorites": "Favorite",
+      "activity_notes": "Notițe",
+      "activity_topics": "Teme",
+      "activity_highlights": "Sublinieri",
+      "activity_sermons": "Predici",
+      "type_title": "Tipul contului",
+      "type_hint": "Poți schimba oricând. Nu pierzi nimic: predicile rămân ale tale chiar dacă revii la cont de cititor.",
+      "type_changed": "Tipul contului a fost schimbat.",
+      "type_failed": "Nu s-a putut schimba tipul contului.",
+      "activity_memorize": "Memorare"
+    },
+    "memorize": {
+      "eyebrow": "Exercițiu",
+      "title": "Memorare de versete",
+      "lead": "Versetul se acoperă puțin câte puțin, lăsând prima literă a fiecărui cuvânt. Ce reușești se întoarce mai rar; ce nu, mai des.",
+      "seo_title": "Memorare de versete | RoBible",
+      "seo_description": "Învață versete pe de rost cu metoda primei litere și repetiție spațiată.",
+      "login_required": "Conectează-te ca să-ți păstrezi versetele și repetările pe toate dispozitivele.",
+      "empty": "Încă n-ai niciun verset de memorat.",
+      "empty_hint": "Adaugă unul din orice verset, din versetul zilei sau dintr-o colecție.",
+      "section_due": "De repetat acum",
+      "section_learned": "Programate",
+      "due_one": "verset de repetat astăzi",
+      "due_many": "versete de repetat astăzi",
+      "due_now": "acum",
+      "due_in_one": "mâine",
+      "due_in": "în {count} zile",
+      "practice": "Exersează",
+      "open_context": "Vezi în context",
+      "remove": "Scoate din memorare",
+      "back_to_list": "Lista",
+      "level": "Nivel de dificultate",
+      "easier": "Mai ușor",
+      "harder": "Mai greu",
+      "reveal": "Arată versetul",
+      "how_did_it_go": "Cum a mers?",
+      "again": "Mai repet",
+      "got_it": "L-am știut",
+      "add": "Memorează versetul",
+      "added": "Adăugat la memorare",
+      "remove_short": "Nu-l mai memora",
+      "removed": "Scos din memorare",
+      "menu": "Memorare",
+      "all_done": "Ești la zi cu repetările. Revino când îți spunem."
+    },
+    "push": {
+      "title": "Notificare zilnică",
+      "lead": "Îți trimitem o notificare cu versetul zilei, o dată pe zi, la ora aleasă de tine.",
+      "at_hour": "La ora",
+      "enable": "Activează notificarea",
+      "disable": "Oprește notificarea",
+      "enabled_msg": "Notificarea zilnică e activă.",
+      "disabled_msg": "Notificarea zilnică e oprită.",
+      "hour_saved": "Ora a fost salvată.",
+      "denied": "Ai refuzat notificările. Le poți reactiva din setările browserului.",
+      "blocked": "Notificările sunt blocate pentru acest site. Schimbă permisiunea din setările browserului și revino.",
+      "unsupported": "Browserul acesta nu acceptă notificări.",
+      "not_configured": "Notificările nu sunt încă disponibile. Revino mai târziu.",
+      "notification_title": "Versetul zilei",
+      "notification_body": "Deschide RoBible pentru versetul de azi."
     }
   },
   "auth": {
@@ -767,7 +862,14 @@
       "invalid_user_type": "Tip de cont nevalid",
       "invalid_email": "Adresa de email nu pare corectă",
       "sermon_not_found": "Predica nu a fost găsită.",
-      "sermon_content_too_large": "Predica este prea lungă pentru a fi salvată."
+      "sermon_content_too_large": "Predica este prea lungă pentru a fi salvată.",
+      "memorization_already_exists": "Versetul e deja la memorare.",
+      "memorization_not_found": "Versetul nu e la memorare.",
+      "invalid_stage": "Nivel de repetare invalid.",
+      "invalid_due_date": "Dată de repetare invalidă.",
+      "invalid_endpoint": "Adresă de notificare invalidă.",
+      "invalid_hour": "Oră invalidă.",
+      "subscription_not_found": "Abonarea nu a fost găsită."
     },
     "user_type": "Tipul contului",
     "user_type_user": "Utilizator",

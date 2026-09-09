@@ -2,6 +2,7 @@
   import { onDestroy, onMount, tick } from 'svelte';
   import IconPicker from '../../components/IconPicker.svelte';
   import ChapterPicker from '../../components/ChapterPicker.svelte';
+  import { saveLastRead } from '../../services/reading-progress.service';
   import Icon from '../../components/Icon.svelte';
   import { resolveTopicIcon } from '../../config/topic-icons.js';
   import Modal from '../../components/Modal.svelte';
@@ -381,6 +382,13 @@
   $: selectedBook = Array.isArray(searchForm.book) ? searchForm.book[0] : null;
   $: selectedBookName = selectedBook !== null && selectedBook !== undefined ? map[selectedBook] : null;
   $: selectedChapter = Array.isArray(searchForm.chapter) ? searchForm.chapter[0] : null;
+
+  // Por dónde iba leyendo, para el «continuă de unde ai rămas» del perfil.
+  // Sólo cuando hay libro y capítulo de verdad: durante una búsqueda por
+  // palabras estos valores no describen una lectura.
+  $: if (!searchForm.searchText && Number.isInteger(selectedBook) && Number.isInteger(selectedChapter)) {
+    saveLastRead({ version: $selectedBibleVersion, book: selectedBook, chapter: selectedChapter });
+  }
   $: if (
     activeVerseTarget &&
     (searchForm.searchText ||

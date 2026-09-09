@@ -603,6 +603,260 @@ export async function removeHighlight(request, db, userId, cors) {
   return json({ ok: true }, 200, cors);
 }
 
+// ── MEMORIZACIONES ─────────────────────────────────────────────
+//
+// El calendario de repasos (cuántos días toca esperar en cada escalón) vive en
+// el cliente, en memorize.service.js. Aquí sólo se guarda el peldaño y la fecha
+// que el cliente calcula. Es deliberado: los intervalos son una decisión de
+// producto que se va a retocar, y teniéndolos aquí cada retoque sería un
+// despliegue del worker y una migración de las filas ya escritas.
+
+const filaAMemorizacion = (r) => ({
+  id: r.id,
+  book: r.book,
+  chapter: r.chapter,
+  verse: r.verse,
+  stage: r.stage,
+  dueAt: r.due_at,
+  reviewedAt: r.reviewed_at,
+  reviewCount: r.review_count,
+  createdAt: r.created_at,
+  updatedAt: r.updated_at,
+});
+
+// GET /api/memorizations
+export async function listMemorizations(db, userId) {
+  const rows = await db
+    .prepare(
+      `SELECT id, book, chapter, verse, stage, due_at, reviewed_at, review_count, created_at, updated_at
+       FROM memorizations WHERE user_id = ? ORDER BY due_at ASC`,
+    )
+    .bind(userId)
+    .all();
+  return { memorizations: (rows.results || []).map(filaAMemorizacion) };
+}
+
+// POST /api/memorizations (body: { book, chapter, verse })
+export async function addMemorization(request, db, userId, cors) {
+  let body;
+  try { body = await request.json(); } catch { return error('invalid_json', 400, cors); }
+  const { book, chapter, verse } = body || {};
+
+  if (!validators.verseRef({ book, chapter, verse })) {
+    return error('invalid_verse_ref', 400, cors);
+  }
+
+  const now = nowIso();
+  const id = genId('mem');
+
+  // DO NOTHING y no un upsert: volver a añadir un versículo que ya se está
+  // memorizando no puede reiniciar su avance de repasos.
+  await db
+    .prepare(
+      `INSERT INTO memorizations (id, user_id, book, chapter, verse, stage, due_at, review_count, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, 0, ?, 0, ?, ?)
+       ON CONFLICT(user_id, book, chapter, verse) DO NOTHING`,
+    )
+    .bind(id, userId, book, chapter, verse, now, now, now)
+    .run();
+
+  const row = await db
+    .prepare(
+      `SELECT id, book, chapter, verse, stage, due_at, reviewed_at, review_count, created_at, updated_at
+       FROM memorizations WHERE user_id = ? AND book = ? AND chapter = ? AND verse = ?`,
+    )
+    .bind(userId, book, chapter, verse)
+    .first();
+
+  return json({ ok: true, memorization: filaAMemorizacion(row) }, 201, cors);
+}
+
+// POST /api/memorizations/review (body: { book, chapter, verse, correct })
+export async function reviewMemorization(request, db, userId, cors) {
+  let body;
+  try { body = await request.json(); } catch { return error('invalid_json', 400, cors); }
+  const { book, chapter, verse, stage, dueAt, correct } = body || {};
+
+  if (!validators.verseRef({ book, chapter, verse })) {
+    return error('invalid_verse_ref', 400, cors);
+  }
+  // El cliente manda el escalón y la fecha ya calculados, pero no se aceptan a
+  // ciegas: un `stage` fuera de rango o una fecha ilegible dejaría la fila en un
+  // estado del que la propia aplicación no sabe salir.
+  const escalon = Number(stage);
+  if (!Number.isInteger(escalon) || escalon < 0 || escalon > 20) {
+    return error('invalid_stage', 400, cors);
+  }
+  if (typeof dueAt !== 'string' || Number.isNaN(Date.parse(dueAt))) {
+    return error('invalid_due_date', 400, cors);
+  }
+
+  const now = nowIso();
+  const result = await db
+    .prepare(
+      `UPDATE memorizations
+       SET stage = ?, due_at = ?, reviewed_at = ?, review_count = review_count + 1, updated_at = ?
+       WHERE user_id = ? AND book = ? AND chapter = ? AND verse = ?`,
+    )
+    .bind(escalon, dueAt, now, now, userId, book, chapter, verse)
+    .run();
+
+  if (!result.meta || result.meta.changes === 0) {
+    return error('memorization_not_found', 404, cors);
+  }
+
+  const row = await db
+    .prepare(
+      `SELECT id, book, chapter, verse, stage, due_at, reviewed_at, review_count, created_at, updated_at
+       FROM memorizations WHERE user_id = ? AND book = ? AND chapter = ? AND verse = ?`,
+    )
+    .bind(userId, book, chapter, verse)
+    .first();
+
+  // `correct` no se guarda: hoy no hay ninguna pantalla que muestre el historial
+  // de aciertos, y una columna que nadie lee es una columna que nadie mantiene.
+  // Llega en el cuerpo porque el escalón que manda el cliente ya lo tiene en
+  // cuenta; si algún día se quieren estadísticas, la columna se añade entonces.
+  void correct;
+
+  return json({ ok: true, memorization: filaAMemorizacion(row) }, 200, cors);
+}
+
+// DELETE /api/memorizations (body: { book, chapter, verse })
+export async function removeMemorization(request, db, userId, cors) {
+  let body;
+  try { body = await request.json(); } catch { return error('invalid_json', 400, cors); }
+  const { book, chapter, verse } = body || {};
+  if (!validators.verseRef({ book, chapter, verse })) {
+    return error('invalid_verse_ref', 400, cors);
+  }
+
+  const result = await db
+    .prepare(`DELETE FROM memorizations WHERE user_id = ? AND book = ? AND chapter = ? AND verse = ?`)
+    .bind(userId, book, chapter, verse)
+    .run();
+
+  if (!result.meta || result.meta.changes === 0) {
+    return error('memorization_not_found', 404, cors);
+  }
+  return json({ ok: true }, 200, cors);
+}
+
+// ── SUSCRIPCIONES PUSH ─────────────────────────────────────────
+
+// GET /api/push — lo suscrito por este usuario, para que la interfaz sepa si
+// este dispositivo ya está dado de alta.
+export async function listPushSubscriptions(db, userId) {
+  const rows = await db
+    .prepare(`SELECT id, endpoint, utc_hour, created_at, last_sent_at FROM push_subscriptions WHERE user_id = ?`)
+    .bind(userId)
+    .all();
+  return {
+    subscriptions: (rows.results || []).map((r) => ({
+      id: r.id,
+      endpoint: r.endpoint,
+      utcHour: r.utc_hour,
+      createdAt: r.created_at,
+      lastSentAt: r.last_sent_at,
+    })),
+  };
+}
+
+// POST /api/push (body: { endpoint, utcHour })
+export async function savePushSubscription(request, db, userId, cors) {
+  let body;
+  try { body = await request.json(); } catch { return error('invalid_json', 400, cors); }
+  const { endpoint, utcHour } = body || {};
+
+  // El endpoint lo emite el navegador; lo único que se comprueba es que sea una
+  // URL https de longitud razonable. No se puede validar el dominio: cada
+  // navegador usa el suyo y aparecen nuevos.
+  if (typeof endpoint !== 'string' || endpoint.length < 20 || endpoint.length > 1000) {
+    return error('invalid_endpoint', 400, cors);
+  }
+  try {
+    if (new URL(endpoint).protocol !== 'https:') return error('invalid_endpoint', 400, cors);
+  } catch {
+    return error('invalid_endpoint', 400, cors);
+  }
+
+  const hora = Number(utcHour);
+  if (!Number.isInteger(hora) || hora < 0 || hora > 23) {
+    return error('invalid_hour', 400, cors);
+  }
+
+  const now = nowIso();
+  const id = genId('push');
+
+  // El endpoint es único: si el mismo dispositivo vuelve a suscribirse —pasa en
+  // cada arranque, para corregir el horario de verano— se actualiza la hora en
+  // lugar de acumular filas muertas.
+  await db
+    .prepare(
+      `INSERT INTO push_subscriptions (id, user_id, endpoint, utc_hour, created_at)
+       VALUES (?, ?, ?, ?, ?)
+       ON CONFLICT(endpoint) DO UPDATE SET
+         user_id = excluded.user_id,
+         utc_hour = excluded.utc_hour`,
+    )
+    .bind(id, userId, endpoint, hora, now)
+    .run();
+
+  const row = await db
+    .prepare(`SELECT id, endpoint, utc_hour, created_at FROM push_subscriptions WHERE endpoint = ?`)
+    .bind(endpoint)
+    .first();
+
+  return json(
+    { ok: true, subscription: { id: row.id, endpoint: row.endpoint, utcHour: row.utc_hour, createdAt: row.created_at } },
+    201,
+    cors,
+  );
+}
+
+// DELETE /api/push (body: { endpoint })
+export async function removePushSubscription(request, db, userId, cors) {
+  let body;
+  try { body = await request.json(); } catch { return error('invalid_json', 400, cors); }
+  const { endpoint } = body || {};
+  if (typeof endpoint !== 'string' || !endpoint) return error('invalid_endpoint', 400, cors);
+
+  const result = await db
+    .prepare(`DELETE FROM push_subscriptions WHERE user_id = ? AND endpoint = ?`)
+    .bind(userId, endpoint)
+    .run();
+
+  if (!result.meta || result.meta.changes === 0) {
+    return error('subscription_not_found', 404, cors);
+  }
+  return json({ ok: true }, 200, cors);
+}
+
+/** Las que toca avisar a esta hora UTC. La usa el cron, no ninguna ruta. */
+export async function listPushDueAt(db, utcHour) {
+  const rows = await db
+    .prepare(`SELECT id, endpoint FROM push_subscriptions WHERE utc_hour = ?`)
+    .bind(utcHour)
+    .all();
+  return rows.results || [];
+}
+
+export async function markPushSent(db, ids, cuando) {
+  if (!ids.length) return;
+  const marcas = ids.map(() => '?').join(',');
+  await db
+    .prepare(`UPDATE push_subscriptions SET last_sent_at = ? WHERE id IN (${marcas})`)
+    .bind(cuando, ...ids)
+    .run();
+}
+
+/** Borra las suscripciones que el navegador ya ha tirado (404/410 del envío). */
+export async function deletePushSubscriptions(db, ids) {
+  if (!ids.length) return;
+  const marcas = ids.map(() => '?').join(',');
+  await db.prepare(`DELETE FROM push_subscriptions WHERE id IN (${marcas})`).bind(...ids).run();
+}
+
 // ── SEARCHES (Phase 3.4 — historial persistente multi-device) ───
 
 // GET /api/searches
