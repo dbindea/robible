@@ -1,0 +1,56 @@
+# Comprobaciones automáticas de cada PR y de cada push a master.
+#
+# Por qué existe: `master` exigía una revisión aprobatoria, y en un repositorio
+# de una sola persona ese requisito no se puede cumplir —GitHub no deja aprobar
+# tu propio PR—, así que en la práctica se saltaba en cada release. Un control
+# que siempre se salta no protege de nada. Estas comprobaciones sí: no dependen
+# de que haya otra persona, y fallan por motivos reales.
+#
+# Se ejecuta lo mismo que se ejecutaría a mano antes de subir. El build va el
+# último porque es el más lento y el que menos suele fallar.
+
+name: CI
+
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+
+# Si se empuja otra vez al mismo PR, la ejecución anterior se cancela: no tiene
+# sentido esperar el resultado de un commit que ya está superado.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verificar:
+    name: Lint, tests y build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # La versión sale de .nvmrc para que no haya dos sitios que mantener.
+          node-version-file: .nvmrc
+          cache: npm
+
+      # `npm ci` y no `npm install`: instala exactamente lo del lockfile y falla
+      # si el lockfile y el package.json no cuadran, que es justo lo que se
+      # quiere saber antes de mergear.
+      - run: npm ci
+
+      # Debe salir en 0 errores. Los 12 avisos son deliberados y no bloquean.
+      - name: Lint
+        run: npm run lint
+
+      - name: Tests
+        run: npm test
+
+      # El build genera además las páginas SEO estáticas y los sitemaps, así que
+      # aquí se cubre también `scripts/generate-seo.mjs`, que sólo se ejecuta en
+      # el despliegue y donde un fallo no se vería hasta producción.
+      - name: Build
+        run: npm run build
