@@ -262,7 +262,15 @@ const paraElPublico = (r) => {
     const d = contenido?.development?.[punto.id] || {};
     return {
       title: punto.title || '',
-      subpoints: (punto.subpoints || []).map((s) => s.title || '').filter(Boolean),
+      // El subpunto sale con su desarrollo, que vive en el mismo mapa que el
+      // del punto pero bajo su propio id. Antes viajaba sólo el título y el
+      // texto se quedaba sin publicar.
+      subpoints: (punto.subpoints || [])
+        .map((s) => ({
+          title: s.title || '',
+          text: contenido?.development?.[s.id]?.text || '',
+        }))
+        .filter((s) => s.title || s.text),
       explain: d.explain || '',
       illustrate: d.illustrate || '',
       apply: d.apply || '',

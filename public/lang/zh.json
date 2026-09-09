@@ -489,6 +489,7 @@
       "dev_explain": "解释 — 经文说了什么？",
       "dev_illustrate": "举例 — 例子、比较、经历",
       "dev_apply": "应用 — 听众该怎么做？",
+      "dev_subpoint": "分点展开",
       "development_needs_structure": "请先在「结构」步骤中添加要点。",
       "intro": "引言",
       "intro_help": "你如何引入主题？如何进入经文？",

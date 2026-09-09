@@ -125,16 +125,24 @@
                quiere en la schiță, y quien lee esto no tiene por qué verlos. -->
           <h2>{i + 1}. {quitarMarcas(punto.title)}</h2>
 
-          {#if punto.subpoints?.length}
-            <ul class="predica__subpuntos">
-              {#each punto.subpoints as sub (sub)}<li>{quitarMarcas(sub)}</li>{/each}
-            </ul>
-          {/if}
-
           {#each [['explain', punto.explain], ['illustrate', punto.illustrate], ['apply', punto.apply]] as [clave, texto] (clave)}
             {#if texto?.trim()}
               <p class="predica__etiqueta">{$_(`app.sermons.dev_${clave}`)}</p>
               <p class="predica__texto">{quitarMarcas(texto)}</p>
+            {/if}
+          {/each}
+
+          <!-- El subpunto pasó de ser una cadena suelta a `{ title, text }`
+               cuando ganó desarrollo propio. Se aceptan las dos formas porque
+               el worker y esta página se despliegan por separado (trampa 36):
+               entre un despliegue y otro hay predicaciones servidas a la
+               antigua, y con una sola forma se quedarían sin subpuntos. -->
+          {#each punto.subpoints || [] as sub, j (j)}
+            {@const titulo = quitarMarcas(typeof sub === 'string' ? sub : sub?.title || '')}
+            {@const texto = quitarMarcas(typeof sub === 'string' ? '' : sub?.text || '')}
+            {#if titulo || texto}
+              <h3 class="predica__subpunto">{i + 1}.{j + 1} {titulo}</h3>
+              {#if texto}<p class="predica__texto">{texto}</p>{/if}
             {/if}
           {/each}
 
@@ -261,12 +269,10 @@
     border-bottom: 2px solid var(--wash-accent-strong);
   }
 
-  .predica__subpuntos {
-    margin: 0 0 0.9rem;
-    padding-left: 1.1rem;
-    color: var(--color-ink-soft);
-
-    li { margin-bottom: 0.2rem; }
+  .predica__subpunto {
+    margin: 1.1rem 0 0.35rem;
+    font-size: 1rem;
+    font-weight: 700;
   }
 
   .predica__etiqueta {
