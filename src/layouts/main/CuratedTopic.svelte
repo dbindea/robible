@@ -28,6 +28,9 @@
   let topic = null;
   let otros = [];
   let cargando = true;
+  // El slug ya cargado. Evita recargar cuando el evento de navegación llega por
+  // partida doble (se emiten `popstate` y `robibile:navigate` juntos).
+  let slugActual = null;
 
   $: versionConfig = getBibleVersionConfigOrDefault($selectedBibleVersion);
   $: locale = $currentLocale || 'ro';
@@ -88,13 +91,39 @@
     window.dispatchEvent(new PopStateEvent('popstate'));
   };
 
-  onMount(async () => {
+  /**
+   * Lee el slug de la URL y carga la colección.
+   *
+   * **No basta con hacer esto en `onMount`.** Los chips de «otras colecciones»
+   * llevan de `/versete/x` a `/versete/y`: el tipo de ruta no cambia, así que
+   * `Main.svelte` sigue pintando este mismo componente sin volver a crearlo y
+   * `onMount` no se ejecuta otra vez. El resultado era que la URL cambiaba y la
+   * pantalla se quedaba igual — parecía que el enlace no hacía nada.
+   */
+  const cargar = async () => {
     const m = window.location.pathname.match(/^\/versete\/([^/]+)\/?$/);
     const slug = m ? decodeURIComponent(m[1]) : '';
+    if (slug === slugActual) return;
+
+    slugActual = slug;
+    cargando = true;
     topic = slug ? await getCuratedTopic(slug) : null;
     // Las demás colecciones, para que la página no sea un callejón sin salida.
     otros = (await loadCuratedTopics()).filter((t) => t.slug !== slug).slice(0, 5);
     cargando = false;
+    // Al cambiar de colección se vuelve arriba: si no, se aterriza a media
+    // lista de versículos de la anterior.
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  onMount(() => {
+    cargar();
+    window.addEventListener('popstate', cargar);
+    window.addEventListener('robibile:navigate', cargar);
+    return () => {
+      window.removeEventListener('popstate', cargar);
+      window.removeEventListener('robibile:navigate', cargar);
+    };
   });
 </script>
 
