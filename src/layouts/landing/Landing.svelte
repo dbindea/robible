@@ -566,6 +566,55 @@
     </div>
   </section>
 
+  <!-- ─── PERFILES ────────────────────────────────────────────
+       Va después de «para quién» y antes de la comparación: primero te
+       reconoces como lector, y justo entonces se te dice qué cuenta elegir. -->
+  <section class="profiles" aria-labelledby="profiles-title">
+    <header class="section-header" data-reveal>
+      <p class="section-eyebrow">{$_('landing.profiles.eyebrow')}</p>
+      <h2 id="profiles-title" class="section-title">{$_('landing.profiles.title')}</h2>
+      <p class="profiles__lead">{$_('landing.profiles.lead')}</p>
+    </header>
+
+    <div class="profiles__grid">
+      <article class="profile" data-reveal>
+        <p class="profile__badge">{$_('landing.profiles.user.badge')}</p>
+        <h3 class="profile__title">{$_('landing.profiles.user.title')}</h3>
+        <p class="profile__text">{$_('landing.profiles.user.text')}</p>
+        <ul class="profile__lista">
+          {#each ['f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7'] as f (f)}
+            <li>
+              <span class="profile__tick" aria-hidden="true"><Icon name="check" /></span>
+              {$_(`landing.profiles.user.${f}`)}
+            </li>
+          {/each}
+        </ul>
+        <a class="btn btn--ghost" href="/biblia">{$_('landing.profiles.user.cta')}</a>
+      </article>
+
+      <!-- La del predicador va destacada: es lo que distingue a RoBible de
+           cualquier otra Biblia en línea. -->
+      <article class="profile profile--destacado" data-reveal>
+        <p class="profile__badge profile__badge--destacado">{$_('landing.profiles.preacher.badge')}</p>
+        <h3 class="profile__title">{$_('landing.profiles.preacher.title')}</h3>
+        <p class="profile__text">{$_('landing.profiles.preacher.text')}</p>
+        <ul class="profile__lista">
+          {#each ['f1', 'f2', 'f3', 'f4', 'f5'] as f (f)}
+            <li>
+              <span class="profile__tick" aria-hidden="true"><Icon name="check" /></span>
+              {$_(`landing.profiles.preacher.${f}`)}
+            </li>
+          {/each}
+        </ul>
+        <p class="profile__nota">
+          <span class="profile__nota-icono" aria-hidden="true"><Icon name="lectern" /></span>
+          {$_('landing.profiles.preacher.note')}
+        </p>
+        <a class="btn btn--primary" href="/predicile-mele">{$_('landing.profiles.preacher.cta')}</a>
+      </article>
+    </div>
+  </section>
+
   <!-- ─── COMPARISON ─────────────────────────────────────────── -->
   <section class="compare" aria-labelledby="compare-title">
     <header class="section-header" data-reveal>
@@ -1036,18 +1085,28 @@
     border-color: var(--color-ink);
   }
 
+  /* Es un enlace de verdad (baja a #count), pero su caja medía 1×48 px: la
+     línea decorativa ERA el enlace. Ahora el enlace es una zona de 44 px de
+     ancho —el mínimo cómodo para un dedo— y la línea se dibuja dentro. */
   .hero__scroll-hint {
     position: absolute;
     bottom: 1.5rem;
     left: 50%;
     transform: translateX(-50%);
-    width: 1px;
+    display: flex;
+    justify-content: center;
+    width: 2.75rem;
     height: 3rem;
-    background: var(--color-line);
-    display: block;
     transition: opacity var(--motion-slow);
   }
-  .hero__scroll-hint::before {
+  .hero__scroll-line {
+    position: relative;
+    display: block;
+    width: 1px;
+    height: 100%;
+    background: var(--color-line);
+  }
+  .hero__scroll-line::before {
     content: '';
     position: absolute;
     top: 0;
@@ -1428,7 +1487,10 @@
     color: var(--color-accent);
     text-decoration: none;
     position: relative;
-    display: inline-block;
+    /* Caja de 24 px: el texto por sí solo daba 22. */
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.5rem;
   }
   .audience__card-link::after {
     content: '';
@@ -1660,6 +1722,10 @@
     }
   }
   .footer__nav a {
+    /* Caja de 24 px: WCAG 2.5.8. El texto por sí solo daba 22. */
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.5rem;
     font-family: var(--font-family-base);
     font-size: 0.85rem;
     color: var(--color-ink-soft);
@@ -1741,6 +1807,130 @@
     }
   }
 
+  /* ── Perfiles ─────────────────────────────────────────────
+     Mismos tokens que el resto de la página: ni un `--landing-*`, que no
+     existen (ver la nota de Paletas al final). */
+  .profiles {
+    padding: clamp(4rem, 8vw, 6rem) clamp(1.25rem, 5vw, 4rem);
+    max-width: 78rem;
+    margin: 0 auto;
+  }
+
+  .profiles__lead {
+    margin: 0.75rem 0 0;
+    color: var(--color-ink-soft);
+    font-size: var(--font-size-lead);
+    line-height: var(--line-height-body);
+  }
+
+  .profiles__grid {
+    display: grid;
+    /* Dos columnas cuando caben; apiladas si no. Sin media query: el mínimo de
+       19rem decide solo. */
+    grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+    gap: 1.25rem;
+    align-items: start;
+  }
+
+  .profile {
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+    height: 100%;
+    padding: clamp(1.25rem, 3vw, 1.75rem);
+    border: 1px solid var(--color-line);
+    border-radius: 0.4rem;
+    background: var(--color-surface);
+    transition: border-color var(--motion-base), transform var(--motion-base);
+
+    &:hover { transform: translateY(-2px); }
+
+    /* El CTA se pega abajo para que las dos tarjetas terminen a la misma
+       altura aunque una tenga más líneas. */
+    .btn { margin-top: auto; align-self: flex-start; }
+  }
+
+  .profile--destacado {
+    border-color: var(--color-accent);
+    box-shadow: var(--box-shadow-lg);
+  }
+
+  .profile__badge {
+    align-self: flex-start;
+    margin: 0;
+    padding: 0.2rem 0.6rem;
+    border-radius: var(--radius-pill);
+    background: var(--wash-subtle);
+    color: var(--color-ink-soft);
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: var(--letter-spacing-eyebrow);
+  }
+
+  .profile__badge--destacado {
+    background: var(--color-accent-solid);
+    color: var(--color-on-primary);
+  }
+
+  .profile__title {
+    margin: 0;
+    font-family: var(--font-family-base);
+    font-size: clamp(1.35rem, 3vw, 1.7rem);
+    color: var(--color-ink-strong);
+    line-height: 1.15;
+  }
+
+  .profile__text {
+    margin: 0;
+    color: var(--color-ink-soft);
+    line-height: var(--line-height-body);
+  }
+
+  .profile__lista {
+    display: grid;
+    gap: 0.45rem;
+    margin: 0.25rem 0 0;
+    padding: 0;
+    list-style: none;
+
+    li {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 0.55rem;
+      align-items: start;
+      font-size: 0.92rem;
+      line-height: 1.4;
+    }
+  }
+
+  .profile__tick {
+    display: inline-flex;
+    margin-top: 0.15rem;
+    color: var(--color-success);
+    --icon-size: 0.95rem;
+  }
+
+  .profile__nota {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.55rem;
+    margin: 0.35rem 0 0;
+    padding: 0.7rem 0.85rem;
+    border-radius: 0.3rem;
+    background: var(--wash-accent);
+    color: var(--color-ink);
+    font-size: 0.86rem;
+    line-height: 1.45;
+  }
+
+  .profile__nota-icono {
+    display: inline-flex;
+    margin-top: 0.1rem;
+    color: var(--color-accent-ink);
+    --icon-size: 1rem;
+  }
+
   /* ── Predicaciones publicadas ─────────────────────────────
      Mismos tokens y mismo patrón de sección que .audience: la landing no tiene
      paleta propia, consume los semánticos de global.css y así sigue a la que el
@@ -1811,6 +2001,12 @@
     margin: 1.25rem 0 0;
     text-align: center;
     font-weight: 700;
+
+    a {
+      display: inline-flex;
+      align-items: center;
+      min-height: 1.5rem;
+    }
   }
 
   .sermons__meta {

@@ -1,6 +1,7 @@
 <script>
   import { onDestroy, onMount, tick } from 'svelte';
   import IconPicker from '../../components/IconPicker.svelte';
+  import ChapterPicker from '../../components/ChapterPicker.svelte';
   import Icon from '../../components/Icon.svelte';
   import { resolveTopicIcon } from '../../config/topic-icons.js';
   import Modal from '../../components/Modal.svelte';
@@ -929,17 +930,16 @@
 </script>
 
 {#if !searchForm.searchText && chapterArray.length}
-  <div class="radio-toolbar sticky" aria-label={$_('app.result.chapters_label')}>
-    <form
-      class="radio-toolbar__form"
-      aria-label={$_('app.result.chapter_form_label')}
-      on:change|preventDefault={updateChapterForm}
-    >
-      {#each chapterArray as item (item)}
-        <input type="radio" id={`chapter-${item}`} value={item} bind:group={chapterForm.chapter} />
-        <label for={`chapter-${item}`}>{Number(item + 1)}</label>
-      {/each}
-    </form>
+  <div class="radio-toolbar sticky">
+    <!-- Mismo selector que en la comparación. Antes era una tira horizontal en
+         la que el capítulo que estabas leyendo podía quedar a 5000 px de la
+         izquierda sin que nada te llevara hasta él. -->
+    <ChapterPicker
+      chapters={chapterArray}
+      current={chapterForm.chapter}
+      label={$_('app.result.chapter_form_label')}
+      onSelect={(ch) => { chapterForm.chapter = ch; updateChapterForm(); }}
+    />
   </div>
 {/if}
 
@@ -1529,6 +1529,13 @@
     }
   }
 
+  .breadcrumbs a {
+    // 19 px de alto: por debajo del mínimo táctil de WCAG 2.5.8.
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.5rem;
+  }
+
   .breadcrumbs {
     display: flex;
     flex-wrap: wrap;
@@ -1997,6 +2004,10 @@
   .count {
     font-weight: 700;
   }
+  // Sólo el marco: los capítulos los dibuja y los desplaza `ChapterPicker`.
+  // Aquí había además un `overflow-x: auto` y, en la media query de móvil, un
+  // `flex-wrap: nowrap` sobre el formulario. Ésa era la causa de que los 150
+  // capítulos de los Salmos salieran en una tira de 6903 px de ancho.
   .radio-toolbar {
     padding: 1rem;
     background-color: var(--color-bg-light);
@@ -2004,53 +2015,6 @@
     z-index: 1;
     box-shadow: var(--box-shadow-up);
     border-radius: 0.25rem;
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    scrollbar-color: color-mix(in srgb, var(--color-accent) 45%, transparent) transparent;
-
-    &__form {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      align-items: center;
-      min-width: 0;
-    }
-
-    label {
-      flex: 0 0 auto;
-      background-color: var(--color-white);
-      min-width: 2rem;
-      min-height: 2rem;
-      padding: 0.25rem 0.45rem;
-      font-size: 14px;
-      border: 1px solid color-mix(in srgb, var(--color-accent) 34%, transparent);
-      border-radius: 0.25rem;
-      color: var(--color-bg-dark);
-      cursor: pointer;
-      line-height: 1.35;
-      text-align: center;
-      transition: var(--transition);
-    }
-
-    input[type='radio'] {
-      opacity: 0;
-      position: fixed;
-      width: 0;
-    }
-
-    input[type='radio']:hover + label,
-    input[type='radio']:focus-visible + label {
-      border-color: var(--color-blue);
-      background: color-mix(in srgb, var(--color-blue) 13%, var(--color-white));
-      box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 12%, transparent);
-    }
-
-    input[type='radio']:checked + label {
-      border-color: var(--color-blue-hover);
-      background: var(--color-accent-solid);
-      color: var(--color-on-primary);
-      box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 18%, transparent);
-    }
   }
 
   .toast {
@@ -2114,16 +2078,6 @@
       margin-inline: -1rem;
       border-radius: 0;
       padding: 0.75rem 1rem;
-
-      &__form {
-        flex-wrap: nowrap;
-        min-width: 100%;
-        width: max-content;
-      }
-
-      label {
-        min-width: 2.35rem;
-      }
     }
 
     .verse {

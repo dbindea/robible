@@ -124,6 +124,21 @@
   to = "/.netlify/functions/sermons-sitemap"
   status = 200
 
+# ── Portada de predicaciones ─────────────────────────────────────────────────
+# Mismo par de reglas que /tema y /predica. Es la página con la que se quiere
+# aparecer al buscar «predică expozitivă», así que el rastreador tiene que ver
+# el método y la lista ya escritos, sin depender de que ejecute JavaScript.
+[[redirects]]
+  from = "/predici"
+  query = {app = "1"}
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/predici"
+  to = "/.netlify/functions/sermons-index-meta"
+  status = 200
+
 # ── Predicación compartida ────────────────────────────────────────────────────
 # Mismo par de reglas que /tema y por el mismo motivo (ver arriba). La
 # diferencia está en la función: sermon-meta emite `index, follow` y datos

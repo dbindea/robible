@@ -1,6 +1,7 @@
 <script>
   import { onMount, onDestroy, tick } from 'svelte';
   import Icon from '../../components/Icon.svelte';
+  import ChapterPicker from '../../components/ChapterPicker.svelte';
   import { _ } from '../../services/i18n.service';
   import {
     selectedBibleVersion,
@@ -338,18 +339,14 @@
           </button>
         {/if}
 
-        <div class="compare-chapters" role="group">
-          {#each chapterArray as ch (ch)}
-            <button
-              type="button"
-              class="compare-chapter-btn"
-              class:compare-chapter-btn--active={ch === selectedChapter}
-              on:click={() => selectChapter(ch)}
-            >
-              {Number(ch + 1)}
-            </button>
-          {/each}
-        </div>
+        <!-- El mismo componente que usa la lectura: los 150 capítulos de los
+             Salmos ya no se meten en una ventana de 72 px de alto. -->
+        <ChapterPicker
+          chapters={chapterArray}
+          current={selectedChapter}
+          label={$_('app.compare.chapters_label')}
+          onSelect={selectChapter}
+        />
 
         {#if canGoNext}
           <button
@@ -861,50 +858,6 @@
     }
   }
 
-  .compare-chapters {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.25rem;
-    max-height: 4.5rem;
-    overflow-y: auto;
-    padding: 0.2rem;
-    scrollbar-color: color-mix(in srgb, var(--color-accent) 45%, transparent) transparent;
-  }
-
-  .compare-chapter-btn {
-    flex: 0 0 auto;
-    min-width: 2rem;
-    min-height: 2rem;
-    padding: 0.2rem 0.35rem;
-    border: 1px solid color-mix(in srgb, var(--color-accent) 32%, transparent);
-    border-radius: 0.22rem;
-    background: var(--wash-accent);
-    color: var(--color-ink-strong);
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: var(--transition);
-    line-height: 1.3;
-
-    &:hover,
-    &:focus-visible {
-      border-color: var(--color-blue);
-      background: color-mix(in srgb, var(--color-blue) 12%, var(--color-white));
-    }
-
-    &--active {
-      border-color: var(--color-blue-hover);
-      background: var(--color-accent-solid);
-      color: var(--color-on-primary);
-      box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 18%, transparent);
-    }
-
-    &:focus-visible {
-      outline: 2px solid var(--color-blue);
-      outline-offset: 2px;
-    }
-  }
-
   .compare-nav-btn {
     display: flex;
     align-items: center;
@@ -1339,12 +1292,6 @@
 
     .compare-book-btn {
       min-width: 0;
-      flex: 1 1 auto;
-      min-width: 0;
-    }
-
-    .compare-chapters {
-      max-height: 3rem;
       flex: 1 1 auto;
       min-width: 0;
     }

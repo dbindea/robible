@@ -168,7 +168,8 @@
       },
       "choose_version": "Comparar con",
       "exit_compare": "Salir",
-      "choose_version_hint": "Elige la versión con la que quieres comparar"
+      "choose_version_hint": "Elige la versión con la que quieres comparar",
+      "chapters_label": "Capítulos del libro"
     },
     "topics": {
       "title": "Índice temático",
@@ -538,7 +539,7 @@
       "step_of": "Paso {current} de {total}",
       "blog": {
         "eyebrow": "Predicaciones publicadas",
-        "title": "Predicaciones",
+        "title": "Predicaciones expositivas, temáticas y textuales",
         "lead": "Predicaciones preparadas en RoBible y puestas a disposición de todos. Busca por tema, por texto bíblico o por fecha.",
         "search_placeholder": "Busca por título, idea o texto bíblico…",
         "by_theme": "Tema",
@@ -549,9 +550,18 @@
         "clear": "Quitar filtros",
         "no_results": "Ninguna predicación coincide con los filtros elegidos.",
         "empty": "Todavía no se ha publicado ninguna predicación.",
-        "seo_title": "Predicaciones — RoBible",
-        "seo_description": "Predicaciones expositivas a disposición de todos: busca por tema, por texto bíblico o por fecha.",
-        "count_one": "{count} predicación"
+        "seo_title": "Predicaciones expositivas — ejemplos y herramienta | RoBible",
+        "seo_description": "Predicaciones expositivas, temáticas y textuales publicadas por predicadores. Aprende cómo se prepara una predicación expositiva, paso a paso.",
+        "count_one": "{count} predicación",
+        "themes_title": "Explora por tema",
+        "all_themes": "Todos los temas",
+        "no_theme": "Sin tema",
+        "page_prev": "Anterior",
+        "page_next": "Siguiente",
+        "page_of": "Página {current} de {total}",
+        "guide_title": "Cómo se prepara una predicación expositiva",
+        "guide_lead": "Siete pasos. Los recorres en RoBible con guía de homilética en cada uno, y al final tienes la predicación y el esquema para el púlpito.",
+        "guide_cta": "Empieza una predicación"
       },
       "series": "Serie / tema",
       "series_help": "La agrupación bajo la que aparece la predicación en la lista pública. Elige una o crea una nueva.",
@@ -915,6 +925,36 @@
       "point": "{count} punto",
       "points": "{count} puntos",
       "see_all": "Ver todas las predicaciones"
+    },
+    "profiles": {
+      "eyebrow": "Dos tipos de cuenta",
+      "title": "¿Lector o predicador?",
+      "lead": "La cuenta es gratuita en los dos casos. Eliges al registrarte y puedes cambiar cuando quieras: no se pierde nada.",
+      "user": {
+        "badge": "Gratis",
+        "title": "Usuario",
+        "text": "Todo lo que necesitas para leer, buscar y guardar lo que encuentres.",
+        "f1": "Comparte versículos como imagen, listos para un estado",
+        "f2": "Favoritos, para volver a lo que te tocó",
+        "f3": "Subraya en cinco colores",
+        "f4": "Lee con música de fondo",
+        "f5": "Agrupa versículos por temas",
+        "f6": "Notas personales en cualquier versículo",
+        "f7": "Publica un tema y pasa el enlace a quien quieras",
+        "cta": "Abre la Biblia"
+      },
+      "preacher": {
+        "badge": "Todo lo anterior, más",
+        "title": "Predicador",
+        "text": "Un taller completo para preparar predicaciones: simple, ordenado y sin que nadie te escriba la predicación.",
+        "f1": "Predicaciones expositivas, temáticas y textuales",
+        "f2": "Siete pasos con guía de homilética en cada uno",
+        "f3": "Esquema para el púlpito, generado y editable",
+        "f4": "PDF de la predicación y del esquema",
+        "f5": "Publica la predicación y recibe un enlace",
+        "cta": "Empieza una predicación",
+        "note": "El Modo Púlpito funciona del todo sin conexión: la predicación, el esquema y el texto de las referencias se quedan en el móvil. Ni una petición de red mientras predicas."
+      }
     }
   }
 }

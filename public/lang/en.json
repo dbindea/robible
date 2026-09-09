@@ -168,7 +168,8 @@
       },
       "choose_version": "Compare with",
       "exit_compare": "Exit comparison",
-      "choose_version_hint": "Choose the version you want to compare with"
+      "choose_version_hint": "Choose the version you want to compare with",
+      "chapters_label": "Chapters of the book"
     },
     "topics": {
       "title": "Thematic Index",
@@ -538,7 +539,7 @@
       "step_of": "Step {current} of {total}",
       "blog": {
         "eyebrow": "Published sermons",
-        "title": "Sermons",
+        "title": "Expository, thematic and textual sermons",
         "lead": "Sermons prepared in RoBible and made available to everyone. Browse by theme, by biblical text or by date.",
         "search_placeholder": "Search by title, idea or biblical text…",
         "by_theme": "Theme",
@@ -549,9 +550,18 @@
         "clear": "Clear filters",
         "no_results": "No sermon matches the chosen filters.",
         "empty": "No sermon has been published yet.",
-        "seo_title": "Sermons — RoBible",
-        "seo_description": "Expository sermons made available to everyone: browse by theme, by biblical text or by date.",
-        "count_one": "{count} sermon"
+        "seo_title": "Expository sermons — examples and preparation tool | RoBible",
+        "seo_description": "Expository, thematic and textual sermons published by preachers. Learn how an expository sermon is prepared, step by step.",
+        "count_one": "{count} sermon",
+        "themes_title": "Browse by theme",
+        "all_themes": "All themes",
+        "no_theme": "No theme",
+        "page_prev": "Previous",
+        "page_next": "Next",
+        "page_of": "Page {current} of {total}",
+        "guide_title": "How an expository sermon is prepared",
+        "guide_lead": "Seven steps. You walk them in RoBible with a homiletics guide at each one, and end with the sermon and the pulpit outline.",
+        "guide_cta": "Start a sermon"
       },
       "series": "Series / theme",
       "series_help": "The grouping this sermon appears under in the public list. Pick one or create a new one.",
@@ -915,6 +925,36 @@
       "point": "{count} point",
       "points": "{count} points",
       "see_all": "See all sermons"
+    },
+    "profiles": {
+      "eyebrow": "Two kinds of account",
+      "title": "Reader or preacher?",
+      "lead": "The account is free either way. You choose when you sign up and can switch whenever you like — nothing is lost.",
+      "user": {
+        "badge": "Free",
+        "title": "Reader",
+        "text": "Everything you need to read, search and keep what you find.",
+        "f1": "Share verses as an image, ready for a status",
+        "f2": "Favourites, to find again what struck you",
+        "f3": "Highlight in five colours",
+        "f4": "Read with background music",
+        "f5": "Group verses by topic",
+        "f6": "Personal notes on any verse",
+        "f7": "Publish a topic and send the link to anyone",
+        "cta": "Open the Bible"
+      },
+      "preacher": {
+        "badge": "All of the above, plus",
+        "title": "Preacher",
+        "text": "A full workshop for preparing sermons: simple, orderly, and nobody writes the sermon for you.",
+        "f1": "Expository, thematic and textual sermons",
+        "f2": "Seven steps with a homiletics guide at each one",
+        "f3": "A pulpit outline, generated and editable",
+        "f4": "PDF of the sermon and of the outline",
+        "f5": "Publish the sermon and get a link",
+        "cta": "Start a sermon",
+        "note": "Pulpit Mode works entirely offline: the sermon, the outline and the text of every reference stay on the phone. Not one network request while you preach."
+      }
     }
   }
 }

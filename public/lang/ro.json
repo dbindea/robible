@@ -168,7 +168,8 @@
       },
       "choose_version": "Compară cu",
       "exit_compare": "Ieși din comparare",
-      "choose_version_hint": "Alege versiunea cu care vrei să compari"
+      "choose_version_hint": "Alege versiunea cu care vrei să compari",
+      "chapters_label": "Capitolele cărții"
     },
     "topics": {
       "title": "Indice tematic",
@@ -538,7 +539,7 @@
       "step_of": "Pasul {current} din {total}",
       "blog": {
         "eyebrow": "Predici publicate",
-        "title": "Predici",
+        "title": "Predici expozitive, tematice și textuale",
         "lead": "Predici pregătite în RoBible și puse la dispoziția tuturor. Caută după temă, după textul biblic sau după dată.",
         "search_placeholder": "Caută după titlu, idee sau text biblic…",
         "by_theme": "Temă",
@@ -549,9 +550,18 @@
         "clear": "Șterge filtrele",
         "no_results": "Nicio predică nu se potrivește cu filtrele alese.",
         "empty": "Încă nu a fost publicată nicio predică.",
-        "seo_title": "Predici — RoBible",
-        "seo_description": "Predici expozitive puse la dispoziția tuturor: caută după temă, după textul biblic sau după dată.",
-        "count_one": "{count} predică"
+        "seo_title": "Predici expozitive — exemple și unealtă de pregătire | RoBible",
+        "seo_description": "Predici expozitive, tematice și textuale publicate de predicatori. Vezi cum se face o predică expozitivă, pas cu pas, și pregătește-o în RoBible.",
+        "count_one": "{count} predică",
+        "themes_title": "Răsfoiește după temă",
+        "all_themes": "Toate temele",
+        "no_theme": "Fără temă",
+        "page_prev": "Înapoi",
+        "page_next": "Înainte",
+        "page_of": "Pagina {current} din {total}",
+        "guide_title": "Cum se face o predică expozitivă",
+        "guide_lead": "Șapte pași. Îi parcurgi în RoBible cu ghid de omiletică la fiecare, iar la final ai predica și schița pentru amvon.",
+        "guide_cta": "Începe o predică"
       },
       "series": "Serie / temă",
       "series_help": "Gruparea sub care apare predica în lista publică. Alege una sau creează-ți una nouă.",
@@ -915,6 +925,36 @@
       "point": "{count} punct",
       "points": "{count} puncte",
       "see_all": "Vezi toate predicile"
+    },
+    "profiles": {
+      "eyebrow": "Două feluri de cont",
+      "title": "Cititor sau predicator?",
+      "lead": "Contul e gratuit în ambele cazuri. Alegi la înregistrare și poți schimba oricând — nu pierzi nimic.",
+      "user": {
+        "badge": "Gratuit",
+        "title": "Utilizator",
+        "text": "Tot ce-ți trebuie ca să citești, să cauți și să păstrezi ce ai găsit.",
+        "f1": "Distribuie versete ca imagine, gata de status",
+        "f2": "Favorite, ca să regăsești ce te-a atins",
+        "f3": "Subliniază în cinci culori",
+        "f4": "Citește cu muzică de fundal",
+        "f5": "Grupează versete pe teme",
+        "f6": "Notițe personale pe orice verset",
+        "f7": "Publică o temă și trimite linkul oricui",
+        "cta": "Deschide Biblia"
+      },
+      "preacher": {
+        "badge": "Tot ce e mai sus, plus",
+        "title": "Predicator",
+        "text": "Un atelier complet pentru pregătit predici: simplu, ordonat și fără să-ți scrie nimeni predica.",
+        "f1": "Predici expozitive, tematice și textuale",
+        "f2": "Șapte pași cu ghid de omiletică la fiecare",
+        "f3": "Schiță pentru amvon, generată și editabilă",
+        "f4": "PDF pentru predică și pentru schiță",
+        "f5": "Publică predica și primești un link",
+        "cta": "Începe o predică",
+        "note": "Modul Amvon funcționează complet offline: predica, schița și textul referințelor rămân pe telefon. Nicio cerere de rețea în timp ce predici."
+      }
     }
   }
 }
