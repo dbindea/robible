@@ -844,8 +844,8 @@
                      subpunto: es una división del punto, no un punto entero. -->
                 {#each punto.subpoints || [] as sub, j (sub.id)}
                   {@const ds = desarrolloDe(sub.id)}
-                  <div class="subpunto">
-                    <h4 class="subpunto__nombre">
+                  <div class="subdesarrollo">
+                    <h4 class="subdesarrollo__nombre">
                       {i + 1}.{j + 1} {quitarMarcas(sub.title) || $_('app.sermons.subpoint_placeholder')}
                     </h4>
                     <div class="campo">
@@ -1758,7 +1758,12 @@
   // lo que dice de un vistazo que esto cuelga del punto y no es otro punto: en
   // DEZVOLTARE hay una tarjeta por punto y sin la marca de jerarquía los
   // subpuntos se leían como puntos sueltos.
-  .subpunto {
+  //
+  // **No se llama `.subpunto`**: ese nombre ya es del paso Structură, que es una
+  // fila `flex` con `button { width: 1.6rem }`. Reutilizarlo ponía este bloque
+  // en horizontal y estrujaba «Marchează» y «+ Referință» a 1,6 rem, con el
+  // texto saliendo en vertical, una letra por línea.
+  .subdesarrollo {
     display: grid;
     gap: 0.5rem;
     margin-left: 0.15rem;
@@ -1766,7 +1771,7 @@
     border-left: 2px solid var(--color-line-strong);
   }
 
-  .subpunto__nombre {
+  .subdesarrollo__nombre {
     margin: 0;
     color: var(--color-ink-soft);
     font-size: var(--font-size-small);
