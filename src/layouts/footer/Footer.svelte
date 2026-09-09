@@ -247,6 +247,10 @@
     margin-bottom: 0.35rem;
 
     a {
+      /* El texto solo daba 17 px de alto y WCAG 2.5.8 pide 24. */
+      display: inline-flex;
+      align-items: center;
+      min-height: 1.5rem;
       color: var(--color-accent-ink);
       font-size: 0.82rem;
       font-weight: 700;

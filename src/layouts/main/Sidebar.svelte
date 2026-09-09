@@ -627,6 +627,8 @@
     gap: 0.5rem;
     margin-left: 1rem;
     line-height: 1.45;
+    // 23 px de alto se quedaba justo por debajo del mínimo de WCAG 2.5.8.
+    min-height: 1.5rem;
 
     // Contenedor del texto + badge New
     > span {

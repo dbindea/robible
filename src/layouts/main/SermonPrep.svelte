@@ -1673,8 +1673,14 @@
     background: var(--color-surface-sunken);
   }
 
+  // Envuelve a propósito. En una pantalla de 360 px la fila —número, campo de
+  // título y los tres botones— pedía 328 px donde caben 290, y el sobrante se
+  // convertía en scroll horizontal de TODA la página. Con `wrap` y un ancho
+  // mínimo para el campo, los botones bajan a su propia línea en vez de
+  // empujar.
   .punto__cabecera {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 0.4rem;
   }
@@ -1688,7 +1694,9 @@
   }
 
   .punto__titulo {
-    flex: 1 1 auto;
+    // 11rem de base: por debajo de eso el campo no se lee, así que en vez de
+    // seguir encogiendo manda a los botones a la línea siguiente.
+    flex: 1 1 11rem;
     min-width: 0;
     padding: 0.4rem 0.6rem;
     border: 1px solid var(--color-line);
@@ -1707,8 +1715,8 @@
     gap: 0.15rem;
 
     button {
-      width: 1.7rem;
-      height: 1.7rem;
+      width: 2rem;
+      height: 2rem;
       border: 1px solid var(--color-line);
       border-radius: var(--radius-sm);
       background: var(--color-surface);

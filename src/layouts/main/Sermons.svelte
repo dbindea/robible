@@ -438,16 +438,17 @@
   }
 
   // ── Filtros ───────────────────────────────────────────────────────────────
+  // Envuelven en vez de deslizarse.
+  //
+  // Antes era un carril con `overflow-x` y la barra escondida: a 360 px el
+  // cuarto filtro («Predicate») quedaba partido a media palabra en el borde y
+  // nada indicaba que hubiera más — un carril sin barra ni degradado es un
+  // control invisible. Cuatro pastillas cortas caben en dos filas sin apretar.
   .predici__filtros {
     display: flex;
+    flex-wrap: wrap;
     gap: 0.4rem;
-    overflow-x: auto;
-    padding-bottom: 0.35rem;
     margin-bottom: 0.6rem;
-    // En móvil los cuatro filtros no caben: se deslizan en vez de partirse.
-    scrollbar-width: none;
-
-    &::-webkit-scrollbar { display: none; }
   }
 
   .predici__filtro {
