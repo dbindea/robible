@@ -401,7 +401,7 @@
     on:input|stopPropagation={() => { if (searchForm.searchType !== 'reference') updateFilter(searchForm); }}
   >
     <div class="block-erase">
-      <span class="filter-text">{$_('app.sidebar.filter')}</span>
+      <span class="filter-text"><span class="filter-text__icono" aria-hidden="true"><Icon name="filter" /></span>{$_('app.sidebar.filter')}</span>
       <button class="button__erase" on:click|stopPropagation={resetForm} type="button">
         <span class="icon-delete icon--M" aria-hidden="true"></span>{$_('app.sidebar.clear_search')}
       </button>
@@ -1006,9 +1006,17 @@
     }
   }
 
+  .filter-text__icono {
+    display: inline-flex;
+    --icon-size: 0.95rem;
+  }
+
   .filter-text {
     display: inline-flex;
-    align-items: flex-end;
+    // `center` y no `flex-end`: con el embudo al lado, alinear por la base
+    // dejaba el icono descolgado respecto al texto.
+    align-items: center;
+    gap: 0.4rem;
     font-weight: 600;
     font-size: 1.1rem;
   }

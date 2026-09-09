@@ -250,12 +250,22 @@
       "public": {
         "eyebrow": "Temas publicados",
         "title": "Temas",
-        "lead": "Colecciones de versículos reunidas y publicadas por los usuarios. Abre una para ver los versículos.",
+        "lead": "Colecciones de versículos por temas: unas elegidas por RoBible, otras reunidas y publicadas por los usuarios.",
         "search_placeholder": "Busca un tema…",
         "no_results": "Ningún tema coincide.",
         "empty": "Todavía no se ha publicado ningún tema.",
         "seo_title": "Temas bíblicos — RoBible",
-        "seo_description": "Colecciones de versículos por temas, publicadas por los usuarios de RoBible."
+        "seo_description": "Colecciones de versículos por temas, publicadas por los usuarios de RoBible.",
+        "cta": "Crea tus propios temas",
+        "from_users": "Temas publicados por los usuarios"
+      },
+      "curated": {
+        "eyebrow": "Colección RoBible",
+        "not_found": "No hemos encontrado esta colección",
+        "all": "Ver todos los temas",
+        "more": "Otras colecciones",
+        "section_title": "Colecciones elegidas por RoBible",
+        "section_lead": "Versículos reunidos por temas, con una breve introducción. Se leen también sin conexión."
       }
     },
     "notes": {
@@ -321,6 +331,10 @@
         "sermons": {
           "label": "Mis predicaciones",
           "hint": "Prepara y presenta predicaciones"
+        },
+        "memorize": {
+          "label": "Memorizar",
+          "hint": "Aprende versículos de memoria"
         }
       }
     },
@@ -392,7 +406,9 @@
       "hint": "Léelo despacio e intenta retenerlo hoy.",
       "open": "Ver en contexto",
       "share": "Compartir",
-      "never": "No volver a mostrar"
+      "never": "No volver a mostrar",
+      "notification_title": "Versículo del día",
+      "notification_body": "Abre RoBible para ver el versículo de hoy."
     },
     "sermons": {
       "eyebrow": "Predicaciones",
@@ -691,6 +707,86 @@
           "structure": "Cada división tiene su pasaje. Comprueba cada versículo en su contexto: si allí no dice lo que tú dices, quítalo en vez de forzarlo."
         }
       }
+    },
+    "profile": {
+      "eyebrow": "Tu cuenta",
+      "lead_user": "Aquí tienes el versículo del día, por dónde ibas leyendo y todo lo que has guardado.",
+      "lead_preacher": "Aquí tienes el versículo del día, por dónde ibas leyendo, lo que has guardado y tus predicaciones.",
+      "login_required": "Inicia sesión para ver tu perfil",
+      "seo_title": "Mi cuenta | RoBible",
+      "seo_description": "El versículo del día, por dónde ibas leyendo y todo lo que has guardado en RoBible.",
+      "daily_title": "Versículo del día",
+      "daily_open": "Leer en su contexto",
+      "daily_disable": "No mostrármelo a diario",
+      "daily_enable": "Mostrármelo a diario",
+      "daily_on": "Recibirás el versículo del día al entrar.",
+      "daily_off": "Ya no aparece solo. Aquí lo tienes siempre.",
+      "daily_hint": "Lo tienes aquí cuando quieras, aunque lo hayas cerrado o hayas desactivado el aviso automático.",
+      "continue_title": "Continúa donde lo dejaste",
+      "continue_action": "Continuar",
+      "continue_empty": "Todavía no has empezado a leer en este dispositivo.",
+      "continue_start": "Abrir la Biblia",
+      "activity_title": "Lo que has guardado",
+      "activity_favorites": "Favoritos",
+      "activity_notes": "Notas",
+      "activity_topics": "Temas",
+      "activity_highlights": "Subrayados",
+      "activity_sermons": "Predicaciones",
+      "type_title": "Tipo de cuenta",
+      "type_hint": "Puedes cambiarlo cuando quieras. No se pierde nada: tus predicaciones siguen siendo tuyas aunque vuelvas a cuenta de lector.",
+      "type_changed": "Se ha cambiado el tipo de cuenta.",
+      "type_failed": "No se ha podido cambiar el tipo de cuenta.",
+      "activity_memorize": "Memorización"
+    },
+    "memorize": {
+      "eyebrow": "Ejercicio",
+      "title": "Memorizar versículos",
+      "lead": "El versículo se va tapando poco a poco, dejando la inicial de cada palabra. Lo que aciertas vuelve más tarde; lo que fallas, antes.",
+      "seo_title": "Memorizar versículos | RoBible",
+      "seo_description": "Aprende versículos de memoria con el método de la primera letra y repetición espaciada.",
+      "login_required": "Conéctate para conservar tus versículos y tus repasos en todos los dispositivos.",
+      "empty": "Todavía no tienes ningún versículo para memorizar.",
+      "empty_hint": "Añade uno desde cualquier versículo, desde el versículo del día o desde una colección.",
+      "section_due": "Para repasar ahora",
+      "section_learned": "Programados",
+      "due_one": "versículo para repasar hoy",
+      "due_many": "versículos para repasar hoy",
+      "due_now": "ahora",
+      "due_in_one": "mañana",
+      "due_in": "en {count} días",
+      "practice": "Practicar",
+      "open_context": "Ver en contexto",
+      "remove": "Quitar de memorización",
+      "back_to_list": "La lista",
+      "level": "Nivel de dificultad",
+      "easier": "Más fácil",
+      "harder": "Más difícil",
+      "reveal": "Mostrar el versículo",
+      "how_did_it_go": "¿Qué tal ha ido?",
+      "again": "Lo repito",
+      "got_it": "Me lo sabía",
+      "add": "Memorizar el versículo",
+      "added": "Añadido a memorización",
+      "remove_short": "Dejar de memorizarlo",
+      "removed": "Quitado de memorización",
+      "menu": "Memorizar",
+      "all_done": "Estás al día con los repasos. Vuelve cuando te avisemos."
+    },
+    "push": {
+      "title": "Notificación diaria",
+      "lead": "Te enviamos una notificación con el versículo del día, una vez al día, a la hora que elijas.",
+      "at_hour": "A las",
+      "enable": "Activar la notificación",
+      "disable": "Desactivar la notificación",
+      "enabled_msg": "La notificación diaria está activa.",
+      "disabled_msg": "La notificación diaria está desactivada.",
+      "hour_saved": "Hora guardada.",
+      "denied": "Has rechazado las notificaciones. Puedes volver a activarlas desde los ajustes del navegador.",
+      "blocked": "Las notificaciones están bloqueadas para este sitio. Cambia el permiso en los ajustes del navegador y vuelve.",
+      "unsupported": "Este navegador no admite notificaciones.",
+      "not_configured": "Las notificaciones todavía no están disponibles. Vuelve más adelante.",
+      "notification_title": "Versículo del día",
+      "notification_body": "Abre RoBible para ver el versículo de hoy."
     }
   },
   "auth": {
@@ -766,7 +862,14 @@
       "invalid_user_type": "Tipo de cuenta no válido",
       "invalid_email": "La dirección de email no parece correcta",
       "sermon_not_found": "No se ha encontrado la predicación.",
-      "sermon_content_too_large": "La predicación es demasiado larga para guardarse."
+      "sermon_content_too_large": "La predicación es demasiado larga para guardarse.",
+      "memorization_already_exists": "El versículo ya está en memorización.",
+      "memorization_not_found": "El versículo no está en memorización.",
+      "invalid_stage": "Nivel de repaso no válido.",
+      "invalid_due_date": "Fecha de repaso no válida.",
+      "invalid_endpoint": "Dirección de notificación no válida.",
+      "invalid_hour": "Hora no válida.",
+      "subscription_not_found": "No se ha encontrado la suscripción."
     },
     "user_type": "Tipo de cuenta",
     "user_type_user": "Usuario",

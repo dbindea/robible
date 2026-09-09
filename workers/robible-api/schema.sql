@@ -219,6 +219,65 @@ CREATE TABLE IF NOT EXISTS highlights (
 CREATE INDEX IF NOT EXISTS idx_highlights_user ON highlights(user_id);
 CREATE INDEX IF NOT EXISTS idx_highlights_user_verse ON highlights(user_id, book, chapter, verse);
 
+-- ============== MEMORIZACIONES (schema_version 11) ==============
+--
+-- Versículos que el usuario está memorizando, con el escalón de repetición
+-- espaciada en el que está cada uno.
+--
+-- No cuelga de `favorites` aunque se le parezca: un favorito es una marca
+-- permanente y un versículo en memorización es un proceso con estado, que además
+-- se abandona cuando ya está aprendido. Mezclarlos obligaría a que quitar un
+-- favorito borrase el avance de repasos.
+--
+-- El texto del versículo NO se guarda: sale de la Biblia que el cliente ya tiene,
+-- y guardarlo aquí lo ataría a una versión concreta.
+CREATE TABLE IF NOT EXISTS memorizations (
+  id TEXT PRIMARY KEY,                              -- 'mem_<uuid>'
+  user_id TEXT NOT NULL,
+  book INTEGER NOT NULL,                            -- 0-65
+  chapter INTEGER NOT NULL,                          -- 1-based
+  verse INTEGER NOT NULL,                            -- 1-based
+  -- Índice dentro de ESCALONES_DIAS (memorize.service.js). El calendario vive en
+  -- el cliente a propósito: aquí sólo se guarda en qué peldaño está, así que
+  -- afinar los intervalos no obliga a migrar ninguna fila.
+  stage INTEGER NOT NULL DEFAULT 0,
+  due_at TEXT NOT NULL,                             -- cuándo toca el próximo repaso
+  reviewed_at TEXT,
+  review_count INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE (user_id, book, chapter, verse),            -- un versículo se memoriza una vez
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_memorizations_user ON memorizations(user_id, due_at);
+
+-- ============== SUSCRIPCIONES PUSH (schema_version 11) ==============
+--
+-- Un dispositivo suscrito al aviso diario. Es por dispositivo y no por usuario:
+-- el endpoint lo emite el navegador, así que el mismo usuario en el móvil y en
+-- el portátil son dos filas — y así debe ser, porque cada uno concede el permiso
+-- por su cuenta y puede revocarlo por su cuenta.
+--
+-- NO se guardan `p256dh` ni `auth`, las claves de cifrado del navegador. Sólo
+-- hacen falta para mandar contenido dentro del push, y aquí el push va vacío:
+-- el service worker calcula el versículo del día por su cuenta (ver push.js).
+-- Guardar claves que no se usan es superficie de ataque a cambio de nada.
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+  id TEXT PRIMARY KEY,                              -- 'push_<uuid>'
+  user_id TEXT NOT NULL,
+  endpoint TEXT NOT NULL UNIQUE,                    -- la URL que da el navegador
+  -- Hora UTC en la que toca avisar a ESTE dispositivo. La convierte el cliente
+  -- desde la hora local elegida, y la reenvía en cada arranque: así el cambio de
+  -- horario de verano se corrige solo, sin tocar la base de datos.
+  utc_hour INTEGER NOT NULL DEFAULT 6,              -- 0-23
+  created_at TEXT NOT NULL,
+  last_sent_at TEXT,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+-- El cron pregunta exactamente por esto: «todas las de esta hora».
+CREATE INDEX IF NOT EXISTS idx_push_hour ON push_subscriptions(utc_hour);
+CREATE INDEX IF NOT EXISTS idx_push_user ON push_subscriptions(user_id);
+
 -- ============== SERMONS / PREDICI (schema_version 9) ==============
 --
 -- Una sola tabla, y dos columnas JSON dentro. No es pereza: el proceso de
@@ -297,3 +356,21 @@ UPDATE _meta SET value = '9' WHERE key = 'schema_version' AND value < '9';
 --   ALTER TABLE sermons ADD COLUMN published_at TEXT;
 --   CREATE UNIQUE INDEX IF NOT EXISTS idx_sermons_public_slug ON sermons(public_slug) WHERE public_slug IS NOT NULL;
 --   CREATE INDEX IF NOT EXISTS idx_sermons_public ON sermons(is_public, published_at DESC) WHERE is_public = 1;
+--
+-- 11: se añaden memorizations y push_subscriptions
+--   CREATE TABLE IF NOT EXISTS push_subscriptions (
+--     id TEXT PRIMARY KEY, user_id TEXT NOT NULL, endpoint TEXT NOT NULL UNIQUE,
+--     utc_hour INTEGER NOT NULL DEFAULT 6, created_at TEXT NOT NULL, last_sent_at TEXT,
+--     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE);
+--   CREATE INDEX IF NOT EXISTS idx_push_hour ON push_subscriptions(utc_hour);
+--   CREATE INDEX IF NOT EXISTS idx_push_user ON push_subscriptions(user_id);
+--
+--   CREATE TABLE IF NOT EXISTS memorizations (
+--     id TEXT PRIMARY KEY, user_id TEXT NOT NULL,
+--     book INTEGER NOT NULL, chapter INTEGER NOT NULL, verse INTEGER NOT NULL,
+--     stage INTEGER NOT NULL DEFAULT 0, due_at TEXT NOT NULL, reviewed_at TEXT,
+--     review_count INTEGER NOT NULL DEFAULT 0,
+--     created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+--     UNIQUE (user_id, book, chapter, verse),
+--     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE);
+--   CREATE INDEX IF NOT EXISTS idx_memorizations_user ON memorizations(user_id, due_at);

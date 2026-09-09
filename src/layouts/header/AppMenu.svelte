@@ -18,10 +18,13 @@
     { key: 'index', icon: 'bookmark', enabled: true, pathKey: 'indexPath', defaultHref: '/indice' },
     { key: 'favorites', icon: 'star', enabled: true, pathKey: 'favoritesPath', defaultHref: '/favorites' },
     { key: 'notes', icon: 'notes', enabled: true, pathKey: 'notesPath', defaultHref: '/notes' },
+    // Sin path por idioma, como el resto de lo privado: no se indexa ni se
+    // comparte, así que no gana nada teniendo cuatro formas.
+    { key: 'memorize', icon: 'brain', enabled: true, defaultHref: '/memorare' },
     // Sólo para cuentas de tipo predicador. No se traduce por idioma: es una
     // ruta privada, no indexable, y no gana nada teniendo cuatro formas.
     { key: 'sermons', icon: 'sermons', enabled: true, defaultHref: '/predicile-mele', onlyPreacher: true },
-    { key: 'user', icon: 'user', enabled: false },
+    { key: 'user', icon: 'user', enabled: true, defaultHref: '/profil' },
   ];
 
   // El menú se recalcula con el usuario: al pasar de usuario a predicador (o al
@@ -116,6 +119,8 @@
                 <Icon name="star" />
               {:else if item.icon === 'notes'}
                 <Icon name="file-text" />
+              {:else if item.icon === 'brain'}
+                <Icon name="brain" />
               {:else if item.icon === 'sermons'}
                 <!-- Atril: la imagen del púlpito, que es donde acaba una predicación -->
                 <Icon name="lectern" />

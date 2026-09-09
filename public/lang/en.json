@@ -250,12 +250,22 @@
       "public": {
         "eyebrow": "Published topics",
         "title": "Topics",
-        "lead": "Collections of verses gathered and published by users. Open one to see the verses.",
+        "lead": "Collections of verses by theme: some chosen by RoBible, others gathered and published by users.",
         "search_placeholder": "Search a topic…",
         "no_results": "No topic matches.",
         "empty": "No topic has been published yet.",
         "seo_title": "Bible topics — RoBible",
-        "seo_description": "Collections of verses by topic, published by RoBible users."
+        "seo_description": "Collections of verses by topic, published by RoBible users.",
+        "cta": "Create your own topics",
+        "from_users": "Topics published by users"
+      },
+      "curated": {
+        "eyebrow": "RoBible collection",
+        "not_found": "We could not find this collection",
+        "all": "See all topics",
+        "more": "Other collections",
+        "section_title": "Collections chosen by RoBible",
+        "section_lead": "Verses gathered by theme, each with a short introduction. They read offline too."
       }
     },
     "notes": {
@@ -321,6 +331,10 @@
         "sermons": {
           "label": "My sermons",
           "hint": "Prepare and deliver sermons"
+        },
+        "memorize": {
+          "label": "Memorise",
+          "hint": "Learn verses by heart"
         }
       }
     },
@@ -392,7 +406,9 @@
       "hint": "Read it slowly and try to keep it with you today.",
       "open": "See in context",
       "share": "Share",
-      "never": "Don't show again"
+      "never": "Don't show again",
+      "notification_title": "Verse of the day",
+      "notification_body": "Open RoBible for today’s verse."
     },
     "sermons": {
       "eyebrow": "Sermons",
@@ -691,6 +707,86 @@
           "structure": "Each division has its own passage. Check every verse in its context: if it does not say there what you are saying, drop it rather than force it."
         }
       }
+    },
+    "profile": {
+      "eyebrow": "Your account",
+      "lead_user": "Here you have the verse of the day, where you left off reading, and everything you have saved.",
+      "lead_preacher": "Here you have the verse of the day, where you left off reading, what you have saved and your sermons.",
+      "login_required": "Sign in to see your profile",
+      "seo_title": "My account | RoBible",
+      "seo_description": "The verse of the day, where you left off reading and everything you have saved in RoBible.",
+      "daily_title": "Verse of the day",
+      "daily_open": "Read it in context",
+      "daily_disable": "Stop showing it daily",
+      "daily_enable": "Show it to me daily",
+      "daily_on": "You will get the verse of the day when you come in.",
+      "daily_off": "It no longer appears on its own. You always have it here.",
+      "daily_hint": "It is here whenever you want, even if you closed it or turned the daily prompt off.",
+      "continue_title": "Pick up where you left off",
+      "continue_action": "Continue",
+      "continue_empty": "You have not started reading on this device yet.",
+      "continue_start": "Open the Bible",
+      "activity_title": "What you have saved",
+      "activity_favorites": "Favourites",
+      "activity_notes": "Notes",
+      "activity_topics": "Topics",
+      "activity_highlights": "Highlights",
+      "activity_sermons": "Sermons",
+      "type_title": "Account type",
+      "type_hint": "You can change it whenever you like. Nothing is lost: your sermons stay yours even if you go back to a reader account.",
+      "type_changed": "The account type has been changed.",
+      "type_failed": "The account type could not be changed.",
+      "activity_memorize": "Memorising"
+    },
+    "memorize": {
+      "eyebrow": "Practice",
+      "title": "Memorise verses",
+      "lead": "The verse is covered a little at a time, keeping the first letter of each word. What you get right comes back later; what you miss comes back sooner.",
+      "seo_title": "Memorise verses | RoBible",
+      "seo_description": "Learn verses by heart with the first-letter method and spaced repetition.",
+      "login_required": "Sign in to keep your verses and your reviews across devices.",
+      "empty": "You have no verses to memorise yet.",
+      "empty_hint": "Add one from any verse, from the verse of the day or from a collection.",
+      "section_due": "To review now",
+      "section_learned": "Scheduled",
+      "due_one": "verse to review today",
+      "due_many": "verses to review today",
+      "due_now": "now",
+      "due_in_one": "tomorrow",
+      "due_in": "in {count} days",
+      "practice": "Practise",
+      "open_context": "See in context",
+      "remove": "Remove from memorising",
+      "back_to_list": "The list",
+      "level": "Difficulty level",
+      "easier": "Easier",
+      "harder": "Harder",
+      "reveal": "Show the verse",
+      "how_did_it_go": "How did it go?",
+      "again": "I'll go again",
+      "got_it": "I knew it",
+      "add": "Memorise this verse",
+      "added": "Added to memorising",
+      "remove_short": "Stop memorising it",
+      "removed": "Removed from memorising",
+      "menu": "Memorise",
+      "all_done": "You are up to date with your reviews. Come back when we tell you."
+    },
+    "push": {
+      "title": "Daily notification",
+      "lead": "We send you a notification with the verse of the day, once a day, at the hour you choose.",
+      "at_hour": "At",
+      "enable": "Turn on the notification",
+      "disable": "Turn off the notification",
+      "enabled_msg": "The daily notification is on.",
+      "disabled_msg": "The daily notification is off.",
+      "hour_saved": "Hour saved.",
+      "denied": "You declined notifications. You can turn them back on in your browser settings.",
+      "blocked": "Notifications are blocked for this site. Change the permission in your browser settings and come back.",
+      "unsupported": "This browser does not support notifications.",
+      "not_configured": "Notifications are not available yet. Come back later.",
+      "notification_title": "Verse of the day",
+      "notification_body": "Open RoBible for today’s verse."
     }
   },
   "auth": {
@@ -766,7 +862,14 @@
       "invalid_user_type": "Invalid account type",
       "invalid_email": "That email address does not look right",
       "sermon_not_found": "Sermon not found.",
-      "sermon_content_too_large": "The sermon is too long to save."
+      "sermon_content_too_large": "The sermon is too long to save.",
+      "memorization_already_exists": "That verse is already being memorised.",
+      "memorization_not_found": "That verse is not being memorised.",
+      "invalid_stage": "Invalid review level.",
+      "invalid_due_date": "Invalid review date.",
+      "invalid_endpoint": "Invalid notification address.",
+      "invalid_hour": "Invalid hour.",
+      "subscription_not_found": "Subscription not found."
     },
     "user_type": "Account type",
     "user_type_user": "User",

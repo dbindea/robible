@@ -14,6 +14,9 @@
   import PublicSermon from './PublicSermon.svelte';
   import PublicSermons from './PublicSermons.svelte';
   import PublicTopics from './PublicTopics.svelte';
+  import Profile from './Profile.svelte';
+  import CuratedTopic from './CuratedTopic.svelte';
+  import Memorize from './Memorize.svelte';
   import Sermons from './Sermons.svelte';
   import SermonPrep from './SermonPrep.svelte';
   import SermonPulpit from './SermonPulpit.svelte';
@@ -78,6 +81,20 @@
   const isPublicTopicsPath = (path) => path === '/teme' || path === '/teme/';
   let isPublicTopicsMode = typeof window !== 'undefined' ? isPublicTopicsPath(window.location.pathname) : false;
 
+  // Colección curada por RoBible. SÍ se indexa, al revés que /tema/<slug>:
+  // trae un texto de presentación propio y una selección hecha a mano, no una
+  // lista de versículos que ya tienen su página en otro sitio.
+  const isCuratedPath = (path) => /^\/versete\/[^/]+\/?$/.test(path);
+  let isCuratedMode = typeof window !== 'undefined' ? isCuratedPath(window.location.pathname) : false;
+
+  // Perfil. Privado y sin traducir por idioma, como el resto de lo privado.
+  const isProfilePath = (path) => path === '/profil' || path === '/profil/';
+  let isProfileMode = typeof window !== 'undefined' ? isProfilePath(window.location.pathname) : false;
+
+  // Memorización. Privada también: es el avance de repasos de una persona.
+  const isMemorizePath = (path) => path === '/memorare' || path === '/memorare/';
+  let isMemorizeMode = typeof window !== 'undefined' ? isMemorizePath(window.location.pathname) : false;
+
   // «Predicile mele»: el cuaderno privado. Vive en /predicile-mele desde que
   // /predici pasó a ser el blog público — el plural suelto describe mejor «todas
   // las publicadas» que «las mías», y así la ruta pública queda corta, que es la
@@ -131,6 +148,9 @@
     isPublicSermonMode = isPublicSermonPath(window.location.pathname);
     isPublicSermonsMode = isPublicSermonsPath(window.location.pathname);
     isPublicTopicsMode = isPublicTopicsPath(window.location.pathname);
+    isProfileMode = isProfilePath(window.location.pathname);
+    isCuratedMode = isCuratedPath(window.location.pathname);
+    isMemorizeMode = isMemorizePath(window.location.pathname);
     isSermonsMode = isSermonsPath(window.location.pathname);
     sermonId = sermonIdFromPath(window.location.pathname);
     pulpitId = pulpitIdFromPath(window.location.pathname);
@@ -163,8 +183,8 @@
 </script>
 
 <!-- La ruta /landing la resuelve App.svelte antes de montar Main. -->
-<div class="main" class:main--immersive={isImmersive} class:main--compare={isCompareMode} class:main--index={isIndexMode} class:main--favorites={isFavoritesMode} class:main--notes={isNotesMode || isPublicTopicMode || isPublicSermonMode || isSermonsMode || isPublicSermonsMode || isPublicTopicsMode}>
-  {#if !isImmersive && !isCompareMode && !isIndexMode && !isFavoritesMode && !isNotesMode && !isPublicTopicMode && !isPublicSermonMode && !isSermonsMode && !isPublicSermonsMode && !isPublicTopicsMode}
+<div class="main" class:main--immersive={isImmersive} class:main--compare={isCompareMode} class:main--index={isIndexMode} class:main--favorites={isFavoritesMode} class:main--notes={isNotesMode || isPublicTopicMode || isPublicSermonMode || isSermonsMode || isPublicSermonsMode || isPublicTopicsMode || isProfileMode || isCuratedMode || isMemorizeMode}>
+  {#if !isImmersive && !isCompareMode && !isIndexMode && !isFavoritesMode && !isNotesMode && !isPublicTopicMode && !isPublicSermonMode && !isSermonsMode && !isPublicSermonsMode && !isPublicTopicsMode && !isProfileMode && !isCuratedMode && !isMemorizeMode}
     <div class="sidebar">
       <Sidebar {map} {result} {count} />
     </div>
@@ -183,6 +203,12 @@
         <PublicSermons {map} />
       {:else if isPublicTopicsMode}
         <PublicTopics />
+      {:else if isProfileMode}
+        <Profile {bible} {map} />
+      {:else if isCuratedMode}
+        <CuratedTopic {bible} {map} />
+      {:else if isMemorizeMode}
+        <Memorize {bible} {map} />
       {:else if isPublicSermonMode}
         <PublicSermon {map} />
       {:else if isPublicTopicMode}

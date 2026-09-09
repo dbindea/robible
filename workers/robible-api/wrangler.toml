@@ -19,6 +19,22 @@ database_id = "e81cde5b-230d-44cb-8d6c-07276e6be777"
 ALLOWED_ORIGIN = "https://robible.com,https://www.robible.com,https://robible.app,https://www.robible.app,http://localhost:5173,http://127.0.0.1:5173"
 RATE_LIMIT_PER_MINUTE = "30"
 RATE_LIMIT_PER_HOUR = "500"
+# Contacto que exige la especificación VAPID: es a quien escribe el servidor de
+# push si nuestros envíos dan problemas.
+VAPID_SUBJECT = "mailto:contacto@robible.com"
+# Clave pública VAPID. NO es secreta: el navegador la necesita para suscribirse.
+# Se genera con `node scripts/generate-vapid-keys.mjs` y la privada va aparte,
+# con `npx wrangler secret put VAPID_PRIVATE_KEY`.
+# Mientras esté vacía, el aviso diario simplemente no se ofrece.
+VAPID_PUBLIC_KEY = "BO9ZPJWKzeHS63WMMpUGhND4d856PAL8vqgIN7nYkTdxjD2YwZeR9N2Py_SlPbY3LOeq3svqEWPegOil4pLMndw"
+
+# Aviso diario del versículo. Cada hora en punto: el manejador despierta sólo a
+# los dispositivos cuya hora UTC coincide, así que la mayoría de ejecuciones no
+# envían nada y salen en milisegundos. Con un cron diario habría que elegir una
+# única hora del mundo, y las 8 de la mañana en Arad son las 9 en Madrid y las 3
+# de la madrugada en otros sitios.
+[triggers]
+crons = ["0 * * * *"]
 
 # Límite de CPU: solo disponible en plan de pago. En plan Free se omite.
 # (Antes: [limits] cpu_ms = 50 — comentado para no romper el deploy en Free)

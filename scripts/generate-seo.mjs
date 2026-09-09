@@ -78,72 +78,15 @@ const TOPICS = [
       [57, 13, 4],
     ],
   },
-  {
-    version: 'vdc',
-    path: '/versete/dragoste',
-    title: 'Versete despre dragoste | Biblia Online',
-    description: 'Citeste versete biblice despre dragoste, credinta si viata crestina.',
-    references: [
-      [42, 3, 16],
-      [45, 13, 4],
-      [45, 13, 13],
-      [61, 4, 8],
-      [61, 4, 18],
-      [44, 5, 8],
-      [42, 13, 34],
-      [42, 15, 13],
-      [47, 5, 22],
-      [50, 3, 14],
-    ],
-  },
-  {
-    version: 'vdc',
-    path: '/versete/speranta',
-    title: 'Versete despre speranta | Biblia Online',
-    description: 'Gaseste versete biblice despre speranta pentru citire, meditatie si partajare.',
-    references: [
-      [23, 29, 11],
-      [44, 15, 13],
-      [44, 5, 5],
-      [57, 11, 1],
-      [18, 42, 11],
-      [22, 40, 31],
-      [24, 3, 24],
-      [59, 1, 3],
-    ],
-  },
-  {
-    version: 'vdc',
-    path: '/versete/credinta',
-    title: 'Versete despre credinta | Biblia Online',
-    description: 'Versete despre credinta in Biblia online, cu trimiteri rapide catre context.',
-    references: [
-      [57, 11, 1],
-      [44, 10, 17],
-      [48, 2, 8],
-      [40, 11, 24],
-      [39, 17, 20],
-      [46, 5, 7],
-      [58, 2, 17],
-      [47, 2, 20],
-    ],
-  },
-  {
-    version: 'vdc',
-    path: '/versete/casatorie',
-    title: 'Versete despre casatorie | Biblia Online',
-    description: 'Citeste versete biblice despre casatorie, familie si dragoste.',
-    references: [
-      [0, 2, 24],
-      [39, 19, 6],
-      [48, 5, 25],
-      [48, 5, 33],
-      [45, 13, 4],
-      [50, 3, 14],
-      [19, 18, 22],
-      [57, 13, 4],
-    ],
-  },
+  // Aquí había cuatro entradas más, en rumano, bajo /versete/: dragoste,
+  // speranta, credinta y casatorie. Se han mudado a
+  // scripts/build-curated-topics.mjs **con la misma URL y los mismos
+  // versículos**, porque eran la versión primitiva de las colecciones curadas:
+  // título y descripción escritos aquí dentro, un solo idioma y sin la
+  // aplicación detrás. Ahora las genera el bloque de colecciones de más abajo.
+  //
+  // Las cuatro en español se quedan: /versiculos/ es otro prefijo y la ruta
+  // /versete/<slug> de la aplicación no lo atiende.
 ];
 
 function escapeHtml(value = '') {
@@ -484,6 +427,25 @@ function getTopicContent(versionData, topic, matches) {
   </article>`;
 }
 
+// Contenido prerenderizado de una colección curada (/versete/<slug>).
+//
+// Se pinta con la Biblia por defecto, no con las cuatro: la URL es una sola y
+// la aplicación reescribe el texto con la versión activa nada más arrancar.
+// Aquí lo que importa es que el rastreador —y quien llega con JavaScript
+// desactivado— vea los versículos escritos, no un div vacío.
+function getCuratedContent(tema, versiculos) {
+  const items = versiculos
+    .map(({ referencia, texto, href }) => `<li><a href="${href}">${escapeHtml(referencia)}</a><p>${escapeHtml(texto)}</p></li>`)
+    .join('');
+
+  return `<article class="seo-prerender">
+    <nav><a href="/">RoBible</a> / <a href="/teme">Teme</a></nav>
+    <h1>${escapeHtml(tema.names.ro)}</h1>
+    <p>${escapeHtml(tema.intros.ro)}</p>
+    <ol>${items}</ol>
+  </article>`;
+}
+
 async function loadVersionData() {
   // Filtrar solo versiones con datos disponibles (excluir placeholders)
   const available = BIBLE_VERSIONS.filter((v) => v.available !== false);
@@ -690,6 +652,82 @@ async function main() {
     // despliegues; esta portada, en cambio, existe siempre.
     { loc: absoluteUrl('/predici'), lastmod: TODAY, changefreq: 'weekly', priority: '0.8' },
   ];
+
+  // ── Colecciones curadas (/versete/<slug>) ─────────────────────────────────
+  //
+  // Se prerenderizan de verdad, al contrario que los temas de los usuarios: son
+  // seis páginas, no treinta mil (trampa 6 de CLAUDE.md), y son las únicas del
+  // sitio con un texto de presentación escrito a mano. La lista se lee del JSON
+  // que genera build-curated-topics.mjs para no repetirla en dos sitios.
+  //
+  // `/teme` NO se anuncia en el sitemap: sigue con noindex, igual que antes.
+  const versionPorDefecto = versionDataList.find((item) => item.config.value === 'vdc') || versionDataList[0];
+
+  try {
+    const curadas = JSON.parse(await readFile(path.join(ROOT_DIR, 'public', 'data', 'curated-topics.json'), 'utf8'));
+
+    for (const tema of curadas.topics || []) {
+      const ruta = `/versete/${tema.slug}`;
+      const versiculos = tema.verses
+        .map(({ book, chapter, verse }) => ({
+          referencia: `${versionPorDefecto.map[book]} ${chapter}:${verse}`,
+          texto: versionPorDefecto.bible[book]?.[chapter - 1]?.[verse - 1] || '',
+          href: buildBiblePath({
+            version: versionPorDefecto.config.value,
+            map: versionPorDefecto.map,
+            book,
+            chapter,
+            verse,
+          }),
+        }))
+        .filter((item) => item.texto);
+
+      const esquema = {
+        '@context': 'https://schema.org',
+        '@graph': [
+          ...getWebsiteSchema(versionPorDefecto),
+          {
+            '@type': 'CollectionPage',
+            name: tema.names.ro,
+            description: tema.intros.ro,
+            inLanguage: versionPorDefecto.config.locale,
+            url: absoluteUrl(ruta),
+            hasPart: versiculos.map(({ referencia, texto, href }) => ({
+              '@type': 'CreativeWork',
+              name: referencia,
+              text: texto,
+              url: absoluteUrl(href),
+            })),
+          },
+          getBreadcrumbSchema([
+            { name: 'RoBible', href: `${SITE_URL}/` },
+            { name: tema.names.ro, href: absoluteUrl(ruta) },
+          ]),
+        ],
+      };
+
+      await writeRoute(
+        ruta,
+        injectSeo(indexHtml, {
+          locale: versionPorDefecto.config.locale,
+          ogLocale: versionPorDefecto.config.ogLocale,
+          title: `${tema.names.ro} | RoBible`,
+          description: tema.intros.ro.slice(0, 155),
+          canonicalPath: ruta,
+          type: 'article',
+          schema: esquema,
+          content: getCuratedContent(tema, versiculos),
+        }),
+      );
+
+      staticRoutes.push({ loc: absoluteUrl(ruta), lastmod: TODAY, changefreq: 'monthly', priority: '0.8' });
+    }
+  } catch (error) {
+    // Sin el fichero el build sale igual, sólo que sin las colecciones. Se avisa
+    // porque es un fallo silencioso: la página seguiría funcionando en la app.
+    console.warn(`Colecciones curadas: no se han generado (${error.message})`);
+  }
+
   await writeSitemap('sitemaps/static.xml', staticRoutes);
   await writeSitemap('sitemaps/books.xml', bookUrls);
   await writeSitemap('sitemaps/chapters.xml', chapterUrls);

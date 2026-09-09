@@ -86,3 +86,17 @@ export const getVerseForToday = async (date = new Date()) => {
   const verses = await loadDailyVerses();
   return pickVerseForDate(verses, date);
 };
+
+/**
+ * El versículo de hoy **sin condiciones**: aunque ya se haya mostrado o el
+ * usuario haya desactivado el aviso.
+ *
+ * `getVerseForToday` sirve al diálogo automático y por eso calla cuando no toca
+ * mostrarlo. Pero eso dejaba el versículo del día inalcanzable: quien lo cerró
+ * sin leerlo, o lo desactivó hace meses, no tenía forma de volver a verlo. Esta
+ * es la que usa el perfil, donde se entra a propósito a buscarlo.
+ */
+export const getTodayVerse = async (date = new Date()) => {
+  const verses = await loadDailyVerses();
+  return pickVerseForDate(verses, date);
+};
