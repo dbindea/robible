@@ -943,6 +943,17 @@ editor tipo Word, ni roles más allá de Utilizator/Predicator.
 
 ## Historial de cambios recientes
 
+**2026-09-09 — v1.2.0** · service worker `robible-v30` · schema D1 **11**
+
+Primera versión etiquetada. Antes de ésta el número llevaba en `1.1.0` desde agosto,
+así que no distinguía nada: el pie de la aplicación enseña `versión · caché del SW`,
+y con eso más la etiqueta se puede saber exactamente qué código tiene un usuario que
+reporta un fallo. Reúne todo lo de las fases 9 y 10.
+
+- Colecciones curadas (`/versete/<slug>`), memorización (`/memorare`) y aviso diario por push
+- Revisión visual completa: selector de capítulos unificado, troceo del chino, `/predici`, `/teme`, `/profil`
+- Recuperación manual de cuenta por correo al propietario; el campo email ya no promete lo que no hace
+
 **2026-09-09 — Colecciones curadas, memorización y aviso diario (schema 11)**
 - `/versete/<slug>`: 10 colecciones curadas, 79 versículos, presentación en 4 idiomas, prerenderizadas y en el sitemap. Los 4 slugs rumanos que ya existían como páginas estáticas se absorbieron **sin cambiar URL ni versículos**
 - `/memorare`: método de la primera letra con niveles anidados y repetición espaciada. Tabla `memorizations`, sincronizada
