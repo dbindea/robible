@@ -19,9 +19,15 @@ Sesiones con TTL de **30 días** (`SESSION_TTL_MS` en `src/utils.js`); los token
     había retirado en septiembre precisamente por guardar email. El email vuelve
     como decisión de producto explícita, no por descuido: es opcional de verdad,
     la interfaz no insiste y la app funciona igual sin él.
-  - **El envío de correo NO está implementado.** Hoy el email sólo se almacena;
-    para usarlo de verdad hace falta un proveedor (MailChannels desde Workers,
-    Resend, Postmark…) y un flujo de token por correo. Está pendiente.
+  - **El envío de correo NO está implementado, y no lo estará por ahora**
+    (decisión del propietario, 9 sep 2026). Hoy el email sólo se almacena y el
+    usuario no recibe ningún mensaje; el texto del campo lo dice así. Cuando haya
+    volumen se valorará para validaciones o avisos, y entonces hará falta un
+    proveedor (MailChannels desde Workers, Resend, Postmark…).
+  - **Recuperación de cuenta cuando falla todo lo demás:** quien no recuerda su
+    respuesta de seguridad escribe a `dbindea@gmail.com` y la cuenta se recupera
+    **a mano contra D1**. El diálogo de recuperación lo indica; sin esa salida la
+    gente se daba por perdida y creaba otra cuenta.
 - **Multi-idioma**: las preguntas de seguridad se devuelven como clave, el frontend las traduce
 
 ## Estructura
@@ -198,18 +204,24 @@ Para endurecer contra bots, en el dashboard de Cloudflare puedes añadir **Rate 
 
 ## Modelo de datos (D1)
 
-Schema en [`schema.sql`](schema.sql). Versión actual: **4** (fila `schema_version` en `_meta`).
+Schema en [`schema.sql`](schema.sql). Versión actual: **11** (fila `schema_version` en `_meta`).
 
-- `users` — id, nickname (UNIQUE), password_hash, sec_question, sec_answer_hash, timestamps
+- `users` — id, nickname (UNIQUE), password_hash, sec_question, sec_question_text, sec_answer_hash, user_type (`user` | `preacher`), email (opcional), timestamps
 - `auth_sessions` — token, user_id, expires_at, user_agent
-- `topics` — id, user_id (FK), name, icon, color, is_default · UNIQUE (user_id, name)
+- `topics` — id, user_id (FK), name, icon, color, is_default, is_public, public_slug, public_version, published_at · UNIQUE (user_id, name)
 - `verse_refs` — id, user_id (FK), topic_id (FK), book, chapter, verse · UNIQUE (topic_id, book, chapter, verse)
 - `favorites` — id, user_id (FK), book, chapter, verse, added_at · UNIQUE (user_id, book, chapter, verse)
 - `notes` — id, user_id (FK), book, chapter, verse, text (1-500), color, timestamps · UNIQUE (user_id, book, chapter, verse), lo que permite el upsert natural
+- `highlights` — id, user_id (FK), book, chapter, verse, color, timestamps · UNIQUE (user_id, book, chapter, verse)
+- `sermons` — id, user_id (FK), title, pasaje, version, type, status, series, `content_json`, `outline_json`, is_public, public_slug, published_at, timestamps
+- `memorizations` — id, user_id (FK), book, chapter, verse, stage, due_at, reviewed_at, review_count, timestamps · UNIQUE (user_id, book, chapter, verse). **El calendario de repasos vive en el cliente**: aquí sólo se guarda el peldaño y la fecha que aquél calcula
+- `push_subscriptions` — id, user_id (FK), endpoint (UNIQUE), utc_hour, created_at, last_sent_at. **No guarda `p256dh` ni `auth`**: sólo harían falta para cifrar contenido dentro del push, y el push va vacío
 - `user_searches` — id, user_id (FK), search_text, search_type, testament, book_json, chapter_json, last_used_at · UNIQUE (user_id, search_text); el cap de 25 se aplica en código
-- `user_profiles` — user_id (PK), name, email, confession, avatar_url, settings (JSON), colors (JSON) · **definida pero sin endpoints que la usen**, ver [docs/AUDITORIA-2026-09-04.md](../../docs/AUDITORIA-2026-09-04.md) hallazgo 9
 - `rate_limits` — ip, endpoint, window_start, count (cleanup on-request)
 - `_meta` — key/value; guarda `schema_version`
+
+> `user_profiles` ya no existe: se retiró en septiembre de 2026 por guardar PII
+> que nadie usaba (hallazgo 9 de la auditoría). No la reintroduzcas.
 
 `schema.sql` usa `CREATE TABLE IF NOT EXISTS`, así que re-ejecutarlo es idempotente. No aplica migraciones destructivas: cualquier `ALTER TABLE` va a mano, seguido de subir `schema_version`.
 

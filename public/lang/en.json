@@ -878,8 +878,9 @@
     "user_type_preacher_hint": "Everything a user has, plus the sermon tools.",
     "email_optional": "Email (optional)",
     "email_placeholder": "name@example.com",
-    "email_help": "Only used to recover your account. You can leave it empty.",
-    "security_question_help": "Write a question only you know the answer to."
+    "email_help": "We do not use it for anything yet and you will not receive any messages. We keep it so we can reach you if you lose access to your account.",
+    "security_question_help": "Write a question only you know the answer to.",
+    "recover_manual": "Cannot remember the answer either? Write to us and we will recover your account by hand:"
   },
   "landing": {
     "skip_to_content": "Skip to content",

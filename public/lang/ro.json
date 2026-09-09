@@ -878,8 +878,9 @@
     "user_type_preacher_hint": "Tot ce are un utilizator, plus instrumentele pentru predici.",
     "email_optional": "Email (opțional)",
     "email_placeholder": "nume@exemplu.ro",
-    "email_help": "Doar pentru recuperarea contului. Poți lăsa gol.",
-    "security_question_help": "Scrie o întrebare la care doar tu știi răspunsul."
+    "email_help": "Nu îl folosim încă pentru nimic și nu primești niciun mesaj. Îl păstrăm ca să te putem contacta dacă rămâi fără acces la cont.",
+    "security_question_help": "Scrie o întrebare la care doar tu știi răspunsul.",
+    "recover_manual": "Nu-ți amintești nici răspunsul? Scrie-ne și îți recuperăm contul manual:"
   },
   "landing": {
     "skip_to_content": "Sari la conținut",

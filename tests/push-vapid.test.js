@@ -34,7 +34,7 @@ test('la cabecera tiene la forma que espera el servidor de push', async () => {
     endpoint: 'https://fcm.googleapis.com/fcm/send/abc123',
     publicKey,
     privateKey,
-    subject: 'mailto:contacto@robible.com',
+    subject: 'mailto:dbindea@gmail.com',
   });
 
   assert.match(cabecera, /^vapid t=[\w-]+\.[\w-]+\.[\w-]+, k=[\w-]+$/);
@@ -47,7 +47,7 @@ test('la firma se verifica con la clave pública', async () => {
     endpoint: 'https://updates.push.services.mozilla.com/wpush/v2/xyz',
     publicKey,
     privateKey,
-    subject: 'mailto:contacto@robible.com',
+    subject: 'mailto:dbindea@gmail.com',
   });
 
   const jwt = cabecera.slice('vapid t='.length, cabecera.indexOf(', k='));
@@ -68,7 +68,7 @@ test('el JWT declara ES256 y lleva las tres reclamaciones obligatorias', async (
     endpoint: 'https://wns2-par02p.notify.windows.com/w/?token=xyz',
     publicKey,
     privateKey,
-    subject: 'mailto:contacto@robible.com',
+    subject: 'mailto:dbindea@gmail.com',
   });
 
   const jwt = cabecera.slice('vapid t='.length, cabecera.indexOf(', k='));
@@ -80,7 +80,7 @@ test('el JWT declara ES256 y lleva las tres reclamaciones obligatorias', async (
 
   assert.equal(h.alg, 'ES256');
   assert.equal(h.typ, 'JWT');
-  assert.equal(c.sub, 'mailto:contacto@robible.com');
+  assert.equal(c.sub, 'mailto:dbindea@gmail.com');
   assert.ok(c.exp > Math.floor(Date.now() / 1000), 'el token nace caducado');
   assert.ok(c.exp <= Math.floor(Date.now() / 1000) + 24 * 3600, 'la especificación no permite más de 24 h');
 });
@@ -93,7 +93,7 @@ test('`aud` es el origen del endpoint, no el endpoint entero', async () => {
     endpoint: 'https://fcm.googleapis.com/fcm/send/token-largo-con/barras',
     publicKey,
     privateKey,
-    subject: 'mailto:contacto@robible.com',
+    subject: 'mailto:dbindea@gmail.com',
   });
 
   const jwt = cabecera.slice('vapid t='.length, cabecera.indexOf(', k='));
@@ -109,7 +109,7 @@ test('una clave pública que no es un punto P-256 se rechaza', async () => {
         endpoint: 'https://fcm.googleapis.com/fcm/send/abc',
         publicKey: b64url(Buffer.alloc(10)),
         privateKey,
-        subject: 'mailto:contacto@robible.com',
+        subject: 'mailto:dbindea@gmail.com',
       }),
     /P-256/,
   );
@@ -117,7 +117,7 @@ test('una clave pública que no es un punto P-256 se rechaza', async () => {
 
 test('dos endpoints distintos producen firmas distintas', async () => {
   const { publicKey, privateKey } = await generarPar();
-  const comun = { publicKey, privateKey, subject: 'mailto:contacto@robible.com' };
+  const comun = { publicKey, privateKey, subject: 'mailto:dbindea@gmail.com' };
   const a = await buildVapidHeader({ ...comun, endpoint: 'https://fcm.googleapis.com/x' });
   const b = await buildVapidHeader({ ...comun, endpoint: 'https://updates.push.services.mozilla.com/y' });
   assert.notEqual(a, b);

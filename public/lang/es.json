@@ -878,8 +878,9 @@
     "user_type_preacher_hint": "Todo lo de un usuario, más las herramientas de predicación.",
     "email_optional": "Email (opcional)",
     "email_placeholder": "nombre@ejemplo.com",
-    "email_help": "Solo para recuperar la cuenta. Puedes dejarlo vacío.",
-    "security_question_help": "Escribe una pregunta cuya respuesta solo sepas tú."
+    "email_help": "Todavía no lo usamos para nada y no vas a recibir ningún mensaje. Lo guardamos para poder localizarte si te quedas sin acceso a la cuenta.",
+    "security_question_help": "Escribe una pregunta cuya respuesta solo sepas tú.",
+    "recover_manual": "¿Tampoco recuerdas la respuesta? Escríbenos y te recuperamos la cuenta a mano:"
   },
   "landing": {
     "skip_to_content": "Saltar al contenido",

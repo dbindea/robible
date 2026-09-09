@@ -10,13 +10,13 @@
 
 ## Resumen ejecutivo
 
-RoBible es una app web (PWA) de la Biblia con soporte offline, auth multi-device, índice temático (con temas compartibles), favoritos, notas y subrayados sincronizados, y lectura acompañada de música. **Cuatro** Biblias con datos (`vdc`, `rvl`, `en_kjv`, `zh_cuv`) e interfaz traducida a cuatro idiomas. Construida con Svelte 5 + Vite, SCSS, datos JSON estáticos, backend en Cloudflare Workers + D1.
+RoBible es una app web (PWA) de la Biblia con soporte offline, auth multi-device, índice temático (con temas compartibles), favoritos, notas y subrayados sincronizados, memorización de versículos, lectura acompañada de música y un módulo completo de preparación de predicaciones con Modo Amvon. **Cuatro** Biblias con datos (`vdc`, `rvl`, `en_kjv`, `zh_cuv`) e interfaz traducida a cuatro idiomas. Construida con Svelte 5 + Vite, SCSS, datos JSON estáticos, backend en Cloudflare Workers + D1.
 
 **Stack:**
 - Frontend: Svelte 5 (sintaxis legacy, no runes) + Vite 8, SCSS themeable (light/dark)
 - Data: JSON estáticos en `/public/data/{vdc,rvl,en_kjv,zh_cuv}/bible.{map,json}` — entre 3 y 4,3 MB por Biblia
 - i18n: propio, sin librería. JSON en `/public/lang/{ro,es,en,zh}.json`
-- PWA: manifest + service worker (cache-first, versiones) — hoy `robible-v28`
+- PWA: manifest + service worker (cache-first, versiones) — hoy `robible-v30`
 - Rutas: path-based custom (parsea `window.location.pathname`)
 - Backend: Cloudflare Workers (`robible-api`) + D1 (`robible-db`), router Hono
 - Auth: PBKDF2 + HMAC tokens persistidos en D1 (revocables), TTL 30 días
@@ -223,14 +223,14 @@ Cuándo revisar: cada release mayor (Phase 4.1, 4.6, etc.) + cada 3 meses como m
 - [x] Selector de idioma independiente del de la Biblia, vía `?lang=ro|es|en|zh` (recarga la página para recargar el locale)
 - [x] Micro-demo de búsqueda por referencia en el hero: descarga solo `bible.map.json` (2,5 KB), no la Biblia entera
 - [x] SEO propio con `applyLandingSeoMetadata()` + hreflang de los 4 idiomas en el sitemap
-- Pendiente: los counters muestran `users: null` — el dato real del backend no está conectado
+- ✅ Cerrado (9 sep 2026): el contador `users: null` no se mostraba en ninguna parte y se retiró
 
 ### Phase 5.2 — i18n a 4 idiomas ✅ COMPLETADA (2026-09-01)
 
 - [x] `public/lang/en.json` y `zh.json` completos (357 y 356 claves, a la par de `ro` y `es`)
 - [x] Scripts auxiliares de traducción: `scripts/write-landing-translations.{cjs,py}`
 - [x] `BIBLE_VERSIONS` amplía el catálogo con `en_kjv` y `zh_cuv`, ambas `available: false`
-- ⚠️ **Ojo**: la interfaz está traducida a 4 idiomas pero solo hay **datos bíblicos en 2**. Un usuario que llega en inglés o chino ve la UI en su idioma y no encuentra Biblia. Ver [auditoría, hallazgo 10](docs/AUDITORIA-2026-09-04.md)
+- ✅ Resuelto: hoy hay **datos bíblicos en las cuatro** (`vdc`, `rvl`, `en_kjv`, `zh_cuv`). El aviso de la auditoría (hallazgo 10) sobre llegar en inglés o chino y no encontrar Biblia ya no aplica. El service worker sigue precacheando sólo `vdc` y `rvl`: las otras dos se descargan la primera vez que se abren
 
 ### Phase 5.3 — Búsqueda por referencia ✅ COMPLETADA (2026-09-01)
 
@@ -296,15 +296,54 @@ Cuándo revisar: cada release mayor (Phase 4.1, 4.6, etc.) + cada 3 meses como m
 
 ---
 
+## Siguiente release
+
+Estado a **9 sep 2026**. La aplicación está desplegada y funcionando; esto es lo que queda.
+
+### Listo para subir (en el árbol de trabajo, sin commitear)
+
+| Qué | Por qué importa |
+|---|---|
+| Navegación entre colecciones curadas (`CuratedTopic.svelte`) | **Bug vivo en producción**: los chips de «Alte colecții» no hacen nada. Ir de `/versete/x` a `/versete/y` no cambia el tipo de ruta, así que `Main.svelte` no vuelve a montar el componente y `onMount` no se ejecuta otra vez |
+| Rescate manual de cuenta (`AuthModal.svelte`) | Quien no recuerda su respuesta de seguridad se quedaba sin salida y se creaba otra cuenta |
+| Texto del campo email en los 4 idiomas | Prometía «sólo para recuperar la cuenta» y no se usa para nada |
+| `VAPID_SUBJECT` → `dbindea@gmail.com` | Es a donde escriben Google o Mozilla si los envíos de push dan problemas |
+
+**El backend ya está desplegado** (schema 11, worker con el cron horario). El frontend lo sube el propietario.
+
+### Pendiente de comprobar en el mundo real
+
+- **Entrega de un push a un dispositivo.** La firma VAPID está verificada contra su propia clave pública y el cron desplegado, pero nadie ha recibido todavía una notificación. Se confirma suscribiéndose desde el móvil y esperando a la hora elegida. **En iOS hace falta tener la PWA instalada** (iOS 16.4+).
+- **El aviso de actualización de la PWA.** El service worker va por `robible-v30`; quien la tenga instalada verá el aviso y tiene que aceptarlo. Purgar Cloudflare no cambia nada, porque responde el service worker.
+
+### Candidatos para más adelante
+
+Sin fecha ni compromiso. Por orden de valor aparente:
+
+1. **Uso del email**, cuando haya volumen: validación de la cuenta o aviso al autor cuando su predicación recibe visitas. Hoy no se envía nada y no hay proveedor elegido.
+2. **Estadísticas de repaso** en memorización: la columna `correct` llega al worker y **no se guarda**, a propósito, porque no hay pantalla que la lea. Si algún día se quiere una racha o un histórico, se añade la columna entonces.
+3. **Sonido o vibración del aviso diario**, y poder elegir varios días de la semana en vez de todos.
+4. **Precachear `en_kjv` y `zh_cuv`** sólo para quien las use: hoy se descargan la primera vez que se abren, y hasta entonces esas dos no funcionan sin conexión.
+5. **Menús a ancho completo o bottom sheet en móvil** (heredado de la Phase 4.3, sin verificar si sigue molestando).
+6. **Badge de notificaciones y tooltip al hover** en el sidebar (heredado de la Phase 4.2, sin verificar si sigue teniendo sentido).
+
+### Lo que NO está pendiente aunque lo parezca
+
+- Los **12 avisos de lint** son deliberados (`svelte/require-each-key`, `infinite-reactive-loop`). Son señales reales pero no bloqueantes; no se silencian sin mirarlas.
+- **`tts.service.js` no existe** y no hay que reconectarlo: la lectura es música + resaltado, por decisión de producto. Todo lo que se llama `tts` es herencia del nombre.
+- **No se generan páginas por versículo**, a propósito (ver trampa 6 de CLAUDE.md).
+
+---
+
 ## Deuda técnica
 
 Levantada en la revisión de traspaso del **4 sep 2026**. Detalle, evidencia y verificación en **[docs/AUDITORIA-2026-09-04.md](docs/AUDITORIA-2026-09-04.md)**.
 
-15 hallazgos, **12 arreglados** el mismo día. Lo que queda:
+15 hallazgos, **12 arreglados** el mismo día. **No queda ninguno abierto.**
 
-| # | Hallazgo | Prioridad | Estado |
-|---|---|---|---|
-| 8 | 17 MB de PNG/SVG del pipeline de logo versionados en `robible/` (16 ficheros) | Info | ⚠️ Falta `git rm -r --cached robible/` |
+| # | Hallazgo | Estado |
+|---|---|---|
+| 8 | 17 MB de PNG/SVG del pipeline de logo versionados en `robible/` | ✅ Cerrado (9 sep 2026): `git ls-files robible/` devuelve 0 ficheros. La carpeta sigue en disco, ignorada, porque es la fuente del pipeline del logo |
 
 Arreglados: idioma del TTS, `USE_BACKEND` en producción, idioma de las categorías por defecto, `SW_CACHE_VERSION` muerto, rutas fantasma del sitemap, configuración de ESLint (99 errores → 0), claves de traducción que faltaban en `es` y `zh`, rama muerta de `Landing`, adaptador D1 del dev-server, y el JSON-LD de FAQ que repetía la misma pregunta cinco veces.
 
@@ -376,7 +415,7 @@ El objetivo es doble: **limpiar el UX en móvil** y **abrir el producto a los pr
 - `sec_question` vale ahora siempre `'custom'`; `LEGACY_SECURITY_QUESTIONS` se conserva sólo para traducir las claves de cuentas anteriores al recuperar el acceso.
 - Cambiar de tipo **no borra nada**: verificado que las categorías sobreviven.
 - El item de menú "Predicile mele" **no** se ha añadido todavía: llevaría a una ruta que aún no existe. Va con la Fase 5, donde tiene destino.
-- ⚠️ El email **sólo se almacena**. El envío de correo necesita un proveedor y está pendiente. `workers/robible-api/README.md` está actualizado.
+- El email **sólo se almacena, y así se queda por ahora** (decisión del propietario, 9 sep 2026). No hay envío de correo ni lo habrá hasta que haya volumen — entonces se valorará para validaciones o avisos. Mientras tanto, quien pierde el acceso y tampoco recuerda su respuesta de seguridad **escribe a `dbindea@gmail.com`** y la cuenta se recupera a mano contra D1; el diálogo de recuperación lo dice (`auth.recover_manual`). El texto del campo se cambió para no prometer lo que no hace: antes decía «sólo para recuperar la cuenta». `workers/robible-api/README.md` está actualizado.
 
 **Arreglo colateral**: la sección `auth` del español estaba **entera en rumano** (63 claves). Un usuario hispano veía el registro, el login y todos los errores en un idioma que no es el suyo. Corregido. Quedan ~30 claves más fuera de `auth` en la misma situación.
 
@@ -775,6 +814,44 @@ píxeles para que no vuelva a fallar en silencio.
 
 **Un fallo propio encontrado al verificar:** el botón flotante de modo lectura de `Main.svelte` era un `{#if …}{:else}`, así que al excluir el módulo de predicación esas pantallas cayeron en el `else` y enseñaban el botón de **salir** del modo inmersivo sin estar en él. La rama de salida comprueba ahora `isImmersive` explícitamente.
 
+### Fase 9 — Revisión visual completa y descubrimiento público ✅ COMPLETADA (2026-09-08/09)
+
+Repaso de la aplicación entera en escritorio y móvil, con las correcciones que salieron.
+
+- [x] **Selector de capítulos unificado** (`ChapterPicker.svelte`) para lectura y comparación
+- [x] **Troceo de líneas para el chino** en la imagen para compartir, con kinsoku básico
+- [x] **Tres fondos nuevos** con dibujo propio (`aurora`, `rays`, `arcs`), no sólo cambios de paleta
+- [x] **Regeneración de la schiță por fusión a tres bandas** (`mergeOutline`) con deshacer
+- [x] Modales de nota y de categorías, icono de filtro en el sidebar, corrección gramatical desactivada
+- [x] **Se pueden borrar los temas del índice por defecto** (se retiró `cannot_delete_default` del worker)
+- [x] **`/predici` rehecha** con portada, agrupación por etiquetas, paginación y el método en JSON-LD (`HowTo`), servida además por `netlify/functions/sermons-index-meta.mjs`
+- [x] **`/teme`** y enlaces del pie: el contenido público ya se puede encontrar sin tener el enlace
+- [x] **`/profil`** con el versículo del día alcanzable, continuar leyendo y contadores
+- [x] **Objetivos táctiles a 24 px** (WCAG 2.5.8) en pie, landing y migas
+
+**Los Salmos en un móvil eran el caso que lo destapó:** la lectura sacaba los 150 capítulos en una tira horizontal de 6903 px con el capítulo activo fuera de pantalla, y la comparación metía ~25 filas en una ventana de 72 px. Eran dos selectores distintos, cada uno roto a su manera.
+
+**Método, porque condiciona lo que vale la revisión:** se midió en el DOM —estilos calculados, `scrollWidth`, `getBoundingClientRect`— y no sobre capturas. Una captura de página completa coloca mal los elementos `position: fixed` y produjo un solapamiento que no existía, retirado explícitamente. Por el mismo motivo se descartó un barrido de contraste propio que daba fallos en las cinco paletas: el analizador leía `color(srgb … / 0.14)` como opaco.
+
+### Fase 10 — Colecciones curadas, memorización y aviso diario ✅ COMPLETADA (2026-09-09, schema 11)
+
+- [x] **Colecciones curadas** en `/versete/<slug>`: 10 temas, 79 versículos, presentación en los cuatro idiomas, generadas por `scripts/build-curated-topics.mjs` y **prerenderizadas** con el texto real
+- [x] **Memorización de versículos** en `/memorare`: método de la primera letra con niveles anidados y repetición espaciada (1 → 180 días), tabla `memorizations`, sincronizada
+- [x] **Aviso diario por notificación push**: VAPID, tabla `push_subscriptions`, cron horario en el worker y manejadores `push` / `notificationclick` en el service worker
+- [x] Cuatro iconos nuevos de Phosphor (`minus`, `plus`, `eye`, `brain`) por el generador, no a mano
+
+**El prefijo `/versete/` ya tenía dueño.** Cuatro slugs —`dragoste`, `speranta`, `credinta`, `casatorie`— existían como páginas estáticas dentro de `TOPICS`, con `staticOnly` y sin la aplicación detrás: entrando por URL funcionaban, pero al llegar navegando dentro de la aplicación daban «colección no encontrada». Se han mudado al JSON **con la misma URL y los mismos versículos**, porque ya estaban indexadas. Las cuatro españolas de `/versiculos/` se quedan donde estaban.
+
+**El push va sin contenido, a propósito.** Mandar datos dentro obliga a cifrar el cuerpo con aes128gcm (RFC 8291) en el worker. No hace falta: el versículo del día es determinista por fecha y su lista está precacheada, así que el push sólo dice «despierta» y el service worker arma la notificación. Cuesta que `public/sw.js` tenga **copiada** la aritmética de `daily-verse.service.js`; `tests/sw-daily-verse.test.js` compara las dos día a día durante 400 días para que no se separen.
+
+**Decisiones que conviene no deshacer:**
+- **La hora del aviso se guarda ya convertida a UTC**, calculada en el cliente y reenviada en cada arranque: el cron es una consulta indexada y el horario de verano se corrige solo.
+- **El calendario de repasos vive en el cliente.** En la base sólo se guarda el peldaño, así que afinar los intervalos no obliga a migrar filas.
+- **Volver a añadir un versículo ya memorizado no reinicia su avance** (`DO NOTHING`, no upsert).
+- **Un 404 de ruta no desplegada se distingue del de negocio** (`not_found` frente a `memorization_not_found`): sin eso, el frontend no caía a `localStorage` durante la ventana en que Netlify va por delante de Cloudflare.
+
+**Verificado:** firma VAPID comprobada contra su propia clave pública; rutas nuevas ejercitadas contra el worker de producción con una cuenta de prueba, luego borrada; censo de D1 antes y después de la migración, idéntico. **Sin verificar:** la entrega real de un push a un dispositivo — necesita un móvil suscrito y esperar a la hora.
+
 ### Fuera de alcance
 
 IA, chatbot, red social, marketplace, comentarios, seguidores, colaboración,
@@ -795,10 +872,11 @@ editor tipo Word, ni roles más allá de Utilizator/Predicator.
 ### Backend
 - `workers/robible-api/src/index.js` — Hono router + CORS
 - `workers/robible-api/src/auth.js` — register, login, recover, me, logout, change-password
-- `workers/robible-api/src/data.js` — topics, verse_refs, favorites, notes, highlights, searches, export, health
+- `workers/robible-api/src/data.js` — topics, verse_refs, favorites, notes, highlights, searches, memorizations, push_subscriptions, export, health
 - `workers/robible-api/src/utils.js` — hashing, tokens (HMAC), validators, rate limit
 - `workers/robible-api/src/sermons.js` — predicaciones (lista, detalle, creación, edición, borrado)
-- `workers/robible-api/schema.sql` — D1 schema (versión 9)
+- `workers/robible-api/src/push.js` — firma VAPID y envío del aviso diario (sin payload)
+- `workers/robible-api/schema.sql` — D1 schema (versión 11)
 - `workers/robible-api/wrangler.toml` — bindings + env vars
 - `workers/robible-api/dev-server.js` — emulador local con `node:sqlite`
 
@@ -810,6 +888,13 @@ editor tipo Word, ni roles más allá de Utilizator/Predicator.
 - `src/layouts/main/Compare.svelte` — comparar versiones
 - `src/layouts/main/Index.svelte` — índice temático (con el panel de publicar)
 - `src/layouts/main/PublicTopic.svelte` — tema compartido, visible sin cuenta
+- `src/layouts/main/PublicTopics.svelte` — `/teme`: colecciones curadas + temas de la gente
+- `src/layouts/main/CuratedTopic.svelte` — `/versete/<slug>`: colección curada, **indexada**
+- `src/layouts/main/PublicSermons.svelte` — `/predici`: el blog público
+- `src/layouts/main/PublicSermon.svelte` — `/predica/<slug>`: una predicación
+- `src/layouts/main/Profile.svelte` — `/profil`: versículo del día, continuar leyendo, actividad
+- `src/layouts/main/Memorize.svelte` — `/memorare`: práctica y repasos
+- `src/layouts/main/{Sermons,SermonPrep,SermonPulpit}.svelte` — cuaderno privado, preparación y Modo Amvon
 - `src/layouts/main/Favorites.svelte` — lista de favoritos
 - `src/layouts/main/Notes.svelte` — notas agrupadas por libro
 - `src/layouts/main/Sidebar.svelte` — filtros, búsqueda por texto y por referencia
@@ -823,8 +908,10 @@ editor tipo Word, ni roles más allá de Utilizator/Predicator.
 - `src/components/TtsPlayer.svelte` — FAB flotante + panel expandible para lectura en voz alta
 - `src/components/{IconPicker,ActionButton}.svelte`
 - `src/store/stores.js` — stores globales (filter, selectedBibleVersion, compareWithVersion, themeMode, immersiveMode)
-- `src/store/{auth,favorites,notes,highlights,topics,searches,tts,appMenu,authMenu}Store.js`
-- `src/services/{auth,topics,favorites,notes,highlights,searches}.service.js` — API-first con fallback
+- `src/store/{auth,favorites,notes,highlights,topics,searches,tts,sermons,memorize,appMenu,authMenu}Store.js`
+- `src/services/{auth,topics,favorites,notes,highlights,searches,sermons,memorize}.service.js` — API-first con fallback
+- `src/services/{curated-topics,daily-verse,reading-progress}.service.js` — datos locales o de JSON estático
+- `src/services/push.service.js` — permiso, suscripción y hora del aviso diario
 - `src/services/apiClient.js` — cliente API + política de fallback (`withFallback`)
 - `src/services/referenceSearch.service.js` — búsqueda por referencia con fuzzy matching
 - `src/services/filter.service.js` — búsqueda por texto
@@ -847,7 +934,7 @@ editor tipo Word, ni roles más allá de Utilizator/Predicator.
 - `node workers/robible-api/dev-server.js` — emulador backend
 
 ### Service Worker
-- Cache version: **`robible-v28`** (a bumpar a mano en `public/sw.js` con cada release)
+- Cache version: **`robible-v30`** (a bumpar a mano en `public/sw.js` con cada release)
 - `public/sw.js` es la **única** fuente de verdad de la versión de cache (la constante duplicada de `config.js` se eliminó el 2026-09-04)
 - Pre-cachea: ambas Biblias, todos los assets, lang files
 - Network-first para navegación · cache-first para assets y data · stale-while-revalidate para `/lang/`
@@ -855,6 +942,19 @@ editor tipo Word, ni roles más allá de Utilizator/Predicator.
 ---
 
 ## Historial de cambios recientes
+
+**2026-09-09 — Colecciones curadas, memorización y aviso diario (schema 11)**
+- `/versete/<slug>`: 10 colecciones curadas, 79 versículos, presentación en 4 idiomas, prerenderizadas y en el sitemap. Los 4 slugs rumanos que ya existían como páginas estáticas se absorbieron **sin cambiar URL ni versículos**
+- `/memorare`: método de la primera letra con niveles anidados y repetición espaciada. Tabla `memorizations`, sincronizada
+- Aviso diario por push: VAPID, tabla `push_subscriptions`, cron horario, manejadores en el service worker. **Sin payload**: el versículo lo calcula el propio service worker
+- 4 iconos nuevos de Phosphor por el generador; SW a `robible-v30`; 278 tests (41 nuevos)
+- D1 migrada en producción con censo antes y después: sin pérdida de datos
+- **Dos bugs propios cazados al verificar**: `Number(null)` y `Number('')` valen 0, así que el aviso se ofrecía a medianoche; y navegar entre colecciones no remontaba el componente, con lo que los chips parecían enlaces muertos
+
+**2026-09-08 — Revisión visual completa y descubrimiento del contenido público**
+- Selector de capítulos unificado, troceo de líneas para el chino, 3 fondos nuevos, fusión a tres bandas de la schiță
+- `/predici` rehecha con portada, etiquetas, paginación y `HowTo` en JSON-LD; `/teme` y enlaces del pie; `/profil`
+- Objetivos táctiles a 24 px; modales de nota y categorías arreglados; se pueden borrar los temas por defecto
 
 **2026-09-04 — Revisión de traspaso**
 - Documentación creada: `CLAUDE.md` (manual operativo), `docs/ARQUITECTURA.md`, `docs/OPERACIONES.md`, `docs/AUDITORIA-2026-09-04.md`
