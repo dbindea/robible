@@ -878,8 +878,9 @@
     "user_type_preacher_hint": "普通用户的全部功能，另加讲道工具。",
     "email_optional": "邮箱（可选）",
     "email_placeholder": "name@example.com",
-    "email_help": "仅用于找回账号，可以留空。",
-    "security_question_help": "写一个只有你知道答案的问题。"
+    "email_help": "目前我们不会用它做任何事，你也不会收到任何邮件。保留它只是为了在你无法登录时能联系上你。",
+    "security_question_help": "写一个只有你知道答案的问题。",
+    "recover_manual": "连答案也想不起来了？写信给我们，我们会手动帮你找回账号："
   },
   "landing": {
     "skip_to_content": "跳到主要内容",

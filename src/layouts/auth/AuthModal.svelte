@@ -359,6 +359,14 @@
             {busy ? $_('auth.working') : $_('auth.continue')}
           </button>
         </form>
+        <!-- Salida manual. No hay envío de correo todavía: si alguien no
+             recuerda ni su respuesta de seguridad, la única forma de recuperar
+             la cuenta es que escriba y se haga a mano contra la base de datos.
+             Decirlo aquí evita que se dé por perdido y cree otra cuenta. -->
+        <p class="auth-modal__rescue">
+          {$_('auth.recover_manual')}
+          <a href="mailto:dbindea@gmail.com?subject=RoBible%20-%20recuperare%20cont">dbindea@gmail.com</a>
+        </p>
         <div class="auth-modal__footer">
           <button class="auth-modal__link" type="button" on:click={() => switchView('login')}>
             {$_('auth.back_to_login')}
@@ -676,6 +684,24 @@
 
   .auth-modal__sep {
     color: color-mix(in srgb, var(--color-bg-dark) 35%, transparent);
+  }
+
+  .auth-modal__rescue {
+    margin: 0.85rem 0 0;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--color-line);
+    color: var(--color-ink-soft);
+    font-size: 0.8rem;
+    line-height: 1.5;
+    text-align: center;
+
+    a {
+      color: var(--color-accent-ink);
+      font-weight: 600;
+      // Enlace dentro de una frase: la norma de 24 px exime los objetivos en
+      // línea, y forzarle altura rompería el flujo del texto (WCAG 2.5.8).
+      word-break: break-word;
+    }
   }
 
   .auth-modal__link {
