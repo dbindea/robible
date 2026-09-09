@@ -298,7 +298,7 @@
     <div class="nueva">
       <label class="nueva__campo">
         <span>{$_('app.sermons.field_title')}</span>
-        <input type="text" bind:value={nuevo.title} maxlength="120" placeholder={$_('app.sermons.field_title_hint')} />
+        <input spellcheck="false" type="text" bind:value={nuevo.title} maxlength="120" placeholder={$_('app.sermons.field_title_hint')} />
       </label>
 
       <div class="nueva__campo">

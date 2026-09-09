@@ -59,6 +59,7 @@ const ICONOS = {
   // Subrayado del versículo: la paleta de colores del usuario.
   palette: 'palette',
   highlight: 'highlighter-circle',
+  filter: 'funnel-simple',
   'arrow-right': 'arrow-right',
   'arrow-left': 'arrow-left',
   'chevron-up': 'caret-up',

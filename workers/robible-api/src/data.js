@@ -186,7 +186,12 @@ export async function deleteTopic(db, userId, topicId, cors) {
     .bind(topicId, userId)
     .first();
   if (!existing) return error('topic_not_found', 404, cors);
-  if (existing.is_default) return error('cannot_delete_default', 403, cors);
+  // Los temas por defecto también se borran.
+  //
+  // Antes devolvían un 403: eran intocables. Pero son sugerencias que la
+  // aplicación siembra al crear la cuenta, no datos del sistema — a quien no
+  // le sirva «Vindecare» se le estaba obligando a tenerla en el índice para
+  // siempre. Son suyos, y borrarlos sólo le afecta a él.
 
   await db
     .prepare('DELETE FROM topics WHERE id = ? AND user_id = ?')

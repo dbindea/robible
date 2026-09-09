@@ -255,7 +255,8 @@
         "no_results": "没有匹配的主题。",
         "empty": "尚未发布任何主题。",
         "seo_title": "圣经主题 — RoBible",
-        "seo_description": "由 RoBible 用户发布的分主题经文合集。"
+        "seo_description": "由 RoBible 用户发布的分主题经文合集。",
+        "cta": "创建你自己的主题"
       }
     },
     "notes": {

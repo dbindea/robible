@@ -194,13 +194,30 @@
 
   .recap__campo { margin: 0; }
 
+  /* La pregunta tiene que leerse tan bien como la respuesta.
+     En gris claro a 0.68 rem las etiquetas casi desaparecían al lado del texto,
+     y sin ellas la recapitulación es una lista de frases sueltas sin saber a
+     qué contestan. Ahora van en tinta normal, un punto más grandes y con una
+     marca de acento delante que las ancla visualmente. */
   .recap__clave {
-    margin: 0 0 0.15rem;
-    color: var(--color-ink-soft);
-    font-size: 0.68rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0 0 0.2rem;
+    color: var(--color-ink);
+    font-size: 0.74rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: var(--letter-spacing-eyebrow);
+
+    &::before {
+      content: '';
+      flex: 0 0 auto;
+      width: 0.2rem;
+      height: 0.8rem;
+      border-radius: 1px;
+      background: var(--color-accent);
+    }
   }
 
   .recap__valor {

@@ -54,11 +54,25 @@
 </script>
 
 <section class="teme">
-  <header class="teme__cabecera">
-    <p class="teme__eyebrow">{$_('app.topics.public.eyebrow')}</p>
-    <h1>{$_('app.topics.public.title')}</h1>
-    <p class="teme__lead">{$_('app.topics.public.lead')}</p>
-  </header>
+  <!-- Misma portada que /predici: es la otra puerta pública del sitio y no
+       tiene por qué parecer un panel de administración al lado de aquélla. -->
+  <section class="portada">
+    <div class="portada__texto">
+      <p class="portada__eyebrow">{$_('app.topics.public.eyebrow')}</p>
+      <h1 class="portada__titulo">{$_('app.topics.public.title')}</h1>
+      <p class="portada__lead">{$_('app.topics.public.lead')}</p>
+      <a class="portada__cta" href="/indice">
+        <Icon name="bookmark" size="1rem" />
+        {$_('app.topics.public.cta')}
+      </a>
+    </div>
+    <figure class="portada__foto" aria-hidden="true">
+      <picture>
+        <source srcset="/assets/img/landing/persona-leyendo.webp" type="image/webp" />
+        <img src="/assets/img/landing/persona-leyendo.jpg" alt="" width="1000" height="667" loading="eager" />
+      </picture>
+    </figure>
+  </section>
 
   {#if cargando}
     <p class="teme__estado" role="status">{$_('app.loading')}</p>
@@ -109,19 +123,34 @@
     padding: clamp(0.5rem, 2vw, 1.5rem) 0 4rem;
   }
 
-  .teme__cabecera {
-    margin-bottom: 1.25rem;
-
-    h1 {
-      margin: 0 0 0.4rem;
-      color: var(--color-ink-strong);
-      font-size: clamp(1.6rem, 4vw, 2.2rem);
-      line-height: 1.15;
-    }
+  // ── Portada ───────────────────────────────────────────────────────────────
+  // Calcada de la de /predici a propósito: las dos son páginas públicas y tienen
+  // que reconocerse como del mismo sitio.
+  .portada {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+    gap: clamp(1.25rem, 4vw, 2.5rem);
+    align-items: center;
+    margin-bottom: clamp(1.5rem, 4vw, 2.5rem);
+    padding: clamp(1.5rem, 5vw, 3rem);
+    border: 1px solid var(--color-line);
+    border-radius: 0.5rem;
+    background: var(--color-surface);
+    box-shadow: var(--box-shadow-lg);
+    animation: portada-entra var(--motion-slow, 260ms) var(--ease-out) both;
   }
 
-  .teme__eyebrow {
-    margin: 0 0 0.3rem;
+  @keyframes portada-entra {
+    from { opacity: 0; transform: translateY(0.75rem); }
+    to { opacity: 1; transform: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .portada { animation: none; }
+  }
+
+  .portada__eyebrow {
+    margin: 0 0 0.35rem;
     color: var(--color-accent-ink);
     font-size: 0.75rem;
     font-weight: 700;
@@ -129,11 +158,51 @@
     letter-spacing: var(--letter-spacing-eyebrow);
   }
 
-  .teme__lead {
-    margin: 0;
+  .portada__titulo {
+    margin: 0 0 0.6rem;
+    color: var(--color-ink-strong);
+    font-size: clamp(2rem, 6vw, 3rem);
+    line-height: 1.08;
+    letter-spacing: -0.01em;
+  }
+
+  .portada__lead {
+    margin: 0 0 1.25rem;
     color: var(--color-ink-soft);
     font-size: var(--font-size-lead);
     line-height: var(--line-height-body);
+  }
+
+  .portada__cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.65rem 1.3rem;
+    border-radius: var(--radius-md);
+    background: var(--color-accent-solid);
+    color: var(--color-on-primary);
+    font-weight: 700;
+    text-decoration: none;
+    transition: var(--transition);
+    --icon-size: 1rem;
+
+    &:hover { background: var(--color-accent-solid-hover); text-decoration: none; }
+  }
+
+  .portada__foto {
+    margin: 0;
+    border-radius: 0.4rem;
+    overflow: hidden;
+    // Sin la relación fija la foto marca el alto y en móvil se come la pantalla
+    // entera antes de llegar al primer tema.
+    aspect-ratio: 3 / 2;
+
+    img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
   }
 
   .teme__estado {

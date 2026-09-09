@@ -659,7 +659,7 @@
           {#each ['repeats', 'contrasts', 'actions', 'tension', 'truth'] as clave (clave)}
             <label class="campo">
               <span>{$_(`app.sermons.obs_${clave}`)}</span>
-              <textarea rows="5" bind:value={content.observation[clave]} on:input={guardarContenido}></textarea>
+              <textarea spellcheck="false" rows="5" bind:value={content.observation[clave]} on:input={guardarContenido}></textarea>
             </label>
           {/each}
         </div>
@@ -690,7 +690,7 @@
           {#each ['before', 'after', 'historical'] as clave (clave)}
             <label class="campo">
               <span>{$_(`app.sermons.ctx_${clave}`)}</span>
-              <textarea rows="5" bind:value={content.context[clave]} on:input={guardarContenido}></textarea>
+              <textarea spellcheck="false" rows="5" bind:value={content.context[clave]} on:input={guardarContenido}></textarea>
             </label>
           {/each}
         </div>
@@ -707,22 +707,22 @@
           <label class="campo">
             <span>{$_('app.sermons.idea_exegetical')}</span>
             <small class="campo__pista">{$_('app.sermons.idea_exegetical_help')}</small>
-            <textarea rows="3" bind:value={content.idea.exegetical} on:input={guardarContenido}></textarea>
+            <textarea spellcheck="false" rows="3" bind:value={content.idea.exegetical} on:input={guardarContenido}></textarea>
           </label>
           <label class="campo">
             <span>{$_('app.sermons.idea_purpose')}</span>
             <small class="campo__pista">{$_('app.sermons.idea_purpose_help')}</small>
-            <textarea rows="5" bind:value={content.idea.purpose} on:input={guardarContenido}></textarea>
+            <textarea spellcheck="false" rows="5" bind:value={content.idea.purpose} on:input={guardarContenido}></textarea>
           </label>
           <label class="campo">
             <span>{$_('app.sermons.idea_central')}</span>
             <small class="campo__pista">{$_('app.sermons.idea_central_help')}</small>
-            <textarea rows="3" bind:value={content.idea.central} on:input={guardarContenido}></textarea>
+            <textarea spellcheck="false" rows="3" bind:value={content.idea.central} on:input={guardarContenido}></textarea>
           </label>
           <label class="campo">
             <span>{$_('app.sermons.idea_question')}</span>
             <small class="campo__pista">{$_('app.sermons.idea_question_help')}</small>
-            <textarea rows="2" bind:value={content.idea.question} on:input={guardarContenido}></textarea>
+            <textarea spellcheck="false" rows="2" bind:value={content.idea.question} on:input={guardarContenido}></textarea>
           </label>
         </div>
 
@@ -738,7 +738,7 @@
             <div class="punto">
               <div class="punto__cabecera">
                 <span class="punto__num">{i + 1}</span>
-                <input
+                <input spellcheck="false"
                   type="text"
                   class="punto__titulo"
                   bind:value={punto.title}
@@ -755,7 +755,7 @@
               {#each punto.subpoints || [] as sub, j (sub.id)}
                 <div class="subpunto">
                   <span class="subpunto__num">{i + 1}.{j + 1}</span>
-                  <input type="text" bind:value={sub.title} on:input={guardarContenido} placeholder={$_('app.sermons.subpoint_placeholder')} />
+                  <input spellcheck="false" type="text" bind:value={sub.title} on:input={guardarContenido} placeholder={$_('app.sermons.subpoint_placeholder')} />
                   <button type="button" class="punto__borrar" on:click={() => borrarSubpunto(punto, sub.id)} aria-label={$_('app.sermons.delete')}>✕</button>
                 </div>
               {/each}
@@ -811,7 +811,7 @@
                         {$_('app.sermons.mark_keyword')}
                       </button>
                     </div>
-                    <textarea
+                    <textarea spellcheck="false"
                       rows="6"
                       bind:this={areas[`${punto.id}:${campo}`]}
                       bind:value={d[campo]}
@@ -864,12 +864,12 @@
           <label class="campo">
             <span>{$_('app.sermons.intro')}</span>
             <small class="campo__pista">{$_('app.sermons.intro_help')}</small>
-            <textarea rows="8" bind:value={content.intro} on:input={guardarContenido}></textarea>
+            <textarea spellcheck="false" rows="8" bind:value={content.intro} on:input={guardarContenido}></textarea>
           </label>
           <label class="campo">
             <span>{$_('app.sermons.conclusion')}</span>
             <small class="campo__pista">{$_('app.sermons.conclusion_help')}</small>
-            <textarea rows="8" bind:value={content.conclusion} on:input={guardarContenido}></textarea>
+            <textarea spellcheck="false" rows="8" bind:value={content.conclusion} on:input={guardarContenido}></textarea>
           </label>
 
           <!-- La serie NO va en `content_json`: es una columna de la tabla,
@@ -948,7 +948,7 @@
         <div class="publicada no-imprimir">
           <p class="publicada__titulo">{$_('app.sermons.share.is_public')}</p>
           <div class="publicada__fila">
-            <input type="text" readonly value={enlacePublico} on:focus={(e) => e.target.select()} />
+            <input spellcheck="false" type="text" readonly value={enlacePublico} on:focus={(e) => e.target.select()} />
             <button type="button" on:click={copiarEnlace}>{$_('app.topics.share.copy_link')}</button>
           </div>
           <p class="publicada__pista">{$_('app.sermons.share.public_hint')}</p>
@@ -972,13 +972,13 @@
 
         <label class="campo">
           <span>{$_('app.sermons.idea_central')}</span>
-          <textarea rows="2" bind:value={outline.idea} on:input={guardarSchita}></textarea>
+          <textarea spellcheck="false" rows="2" bind:value={outline.idea} on:input={guardarSchita}></textarea>
         </label>
 
         <label class="campo">
           <span>{$_('app.sermons.outline_intro')}</span>
           <small class="campo__pista">{$_('app.sermons.outline_lines_help')}</small>
-          <textarea
+          <textarea spellcheck="false"
             class="campo__lista"
             rows="3"
             bind:value={textoIntro}
@@ -988,14 +988,14 @@
 
         {#each outline.points as p, i (p.id || i)}
           <div class="punto">
-            <textarea class="punto__titulo-area" rows="2" bind:value={p.title} on:input={guardarSchita}></textarea>
+            <textarea spellcheck="false" class="punto__titulo-area" rows="2" bind:value={p.title} on:input={guardarSchita}></textarea>
             <label class="campo">
               <span>{$_('app.sermons.outline_keywords')}</span>
               <!-- Una idea por línea. El texto del `textarea` es estado propio
                    (`textoClaves`) y no se vuelve a derivar del array mientras se
                    escribe: si se derivara, borrar un guion reordenaría el valor
                    bajo el cursor y saltaría al final en cada tecla. -->
-              <textarea
+              <textarea spellcheck="false"
                 class="campo__lista"
                 rows="4"
                 bind:value={textoClaves[p.id || i]}
@@ -1007,11 +1007,11 @@
 
         <label class="campo">
           <span>{$_('app.sermons.outline_application')}</span>
-          <textarea rows="3" bind:value={outline.application} on:input={guardarSchita}></textarea>
+          <textarea spellcheck="false" rows="3" bind:value={outline.application} on:input={guardarSchita}></textarea>
         </label>
         <label class="campo">
           <span>{$_('app.sermons.conclusion')}</span>
-          <textarea rows="3" bind:value={outline.conclusion} on:input={guardarSchita}></textarea>
+          <textarea spellcheck="false" rows="3" bind:value={outline.conclusion} on:input={guardarSchita}></textarea>
         </label>
       </div>
 
@@ -1050,7 +1050,7 @@
 >
   <label class="campo">
     <span>{$_('app.sermons.refs_search')}</span>
-    <input
+    <input spellcheck="false"
       type="text"
       bind:value={consultaRef}
       on:input={buscarRef}

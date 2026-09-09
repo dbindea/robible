@@ -255,7 +255,8 @@
         "no_results": "Ningún tema coincide.",
         "empty": "Todavía no se ha publicado ningún tema.",
         "seo_title": "Temas bíblicos — RoBible",
-        "seo_description": "Colecciones de versículos por temas, publicadas por los usuarios de RoBible."
+        "seo_description": "Colecciones de versículos por temas, publicadas por los usuarios de RoBible.",
+        "cta": "Crea tus propios temas"
       }
     },
     "notes": {

@@ -1284,7 +1284,7 @@
       </button>
     {:else}
       <div class="save-topic-menu__inline">
-        <input
+        <input spellcheck="false"
           type="text"
           bind:value={newTopicInline.name}
           placeholder={$_('app.topics.new_topic_placeholder')}
@@ -1392,7 +1392,7 @@
     size="md"
     onClose={closeNoteModal}
   >
-    <textarea
+    <textarea spellcheck="false"
       class="note-modal__textarea"
       bind:value={noteText}
       placeholder={$_('app.notes.placeholder')}
@@ -1887,6 +1887,233 @@
 
   .save-topic-btn[aria-expanded="true"] {
     opacity: 1;
+  }
+
+  // ── Modales de nota y de categorías ───────────────────────────────────────
+  //
+  // Estas reglas se perdieron en algún momento: el marcado seguía llevando las
+  // clases, pero no existía ni una regla para ellas, así que el navegador
+  // pintaba sus valores por defecto — botones grises con borde `outset`, la
+  // lista con viñetas y sangría de 40 px, el `textarea` sin radio ni relleno.
+  // Sólo `.save-topic-option` había sobrevivido.
+
+  .note-modal__textarea {
+    width: 100%;
+    padding: 0.7rem 0.85rem;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-sm);
+    background: var(--color-field);
+    color: var(--color-ink);
+    font: inherit;
+    font-size: var(--font-size-small);
+    line-height: 1.5;
+    resize: vertical;
+
+    &:focus-visible {
+      outline: none;
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 18%, transparent);
+    }
+  }
+
+  .note-modal__footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    margin-top: 0.85rem;
+  }
+
+  .note-modal__color-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--color-ink-soft);
+  }
+
+  .note-modal__color-label {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  // El selector de color nativo trae un marco y un relleno que no pegan con
+  // nada. Se le quita el cromo y queda sólo la muestra, como una pastilla.
+  .note-modal__color-picker {
+    width: 2.25rem;
+    height: 1.75rem;
+    padding: 0;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-sm);
+    background: transparent;
+    cursor: pointer;
+
+    &::-webkit-color-swatch-wrapper { padding: 2px; }
+    &::-webkit-color-swatch { border: 0; border-radius: 2px; }
+    &::-moz-color-swatch { border: 0; border-radius: 2px; }
+  }
+
+  .note-modal__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+
+    button {
+      min-height: 2.25rem;
+      padding: 0.5rem 1rem;
+      border: 1px solid var(--color-line);
+      border-radius: var(--radius-pill);
+      background: transparent;
+      color: var(--color-ink);
+      font: inherit;
+      font-size: var(--font-size-small);
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+
+      &:disabled { opacity: 0.4; cursor: not-allowed; }
+      &:hover:not(:disabled) { border-color: var(--color-accent); color: var(--color-accent-ink); }
+    }
+  }
+
+  // Anidados bajo su contenedor para ganarle a la regla `button` de arriba sin
+  // recurrir a !important: tres clases contra dos clases y un elemento.
+  .note-modal__actions .note-modal__save {
+    border-color: var(--color-accent);
+    // Relleno de acento porque lleva texto encima: `--color-accent` sólo
+    // garantiza 3:1 y aquí hace falta 4.5 (ver sistema de diseño en CLAUDE.md).
+    background: var(--color-accent-solid);
+    color: var(--color-on-primary);
+
+    &:hover:not(:disabled) {
+      background: var(--color-accent-solid-hover);
+      color: var(--color-on-primary);
+    }
+  }
+
+  .note-modal__actions .note-modal__delete {
+    color: var(--color-danger);
+
+    &:hover { border-color: var(--color-danger); color: var(--color-danger); }
+  }
+
+  .save-topic-menu__list {
+    display: grid;
+    gap: 0.2rem;
+    margin: 0;
+    padding: 0;
+    // Sin esto salían las viñetas y los 40 px de sangría del navegador.
+    list-style: none;
+  }
+
+  .save-topic-menu__empty {
+    margin: 0;
+    color: var(--color-ink-soft);
+    font-size: var(--font-size-small);
+  }
+
+  .save-topic-menu__divider {
+    height: 1px;
+    margin: 0.75rem 0;
+    background: var(--color-line);
+  }
+
+  .save-topic-menu__add-new {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 2.25rem;
+    padding: 0.5rem 1rem;
+    border: 1px dashed var(--color-line-accent);
+    border-radius: var(--radius-pill);
+    background: transparent;
+    color: var(--color-accent-ink);
+    font: inherit;
+    font-size: var(--font-size-small);
+    font-weight: 700;
+    cursor: pointer;
+    transition: var(--transition);
+
+    &:hover { border-style: solid; background: var(--wash-accent); }
+  }
+
+  .save-topic-menu__inline {
+    display: grid;
+    gap: 0.6rem;
+
+    input[type='text'] {
+      width: 100%;
+      padding: 0.5rem 0.7rem;
+      border: 1px solid var(--color-line);
+      border-radius: var(--radius-sm);
+      background: var(--color-field);
+      color: var(--color-ink);
+      font: inherit;
+      font-size: var(--font-size-small);
+
+      &:focus-visible {
+        outline: none;
+        border-color: var(--color-accent);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 18%, transparent);
+      }
+    }
+  }
+
+  // La fila del icono y el color; los botones van en `__inline-actions`.
+  .save-topic-menu__inline-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .save-topic-menu__inline-color {
+    width: 2.25rem;
+    height: 1.75rem;
+    padding: 0;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-sm);
+    background: transparent;
+    cursor: pointer;
+
+    &::-webkit-color-swatch-wrapper { padding: 2px; }
+    &::-webkit-color-swatch { border: 0; border-radius: 2px; }
+    &::-moz-color-swatch { border: 0; border-radius: 2px; }
+  }
+
+  .save-topic-menu__inline-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.5rem;
+
+    button {
+      min-height: 2.25rem;
+      padding: 0.5rem 1rem;
+      border: 1px solid var(--color-line);
+      border-radius: var(--radius-pill);
+      background: transparent;
+      color: var(--color-ink);
+      font: inherit;
+      font-size: var(--font-size-small);
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+
+      &:disabled { opacity: 0.4; cursor: not-allowed; }
+      &:hover:not(:disabled) { border-color: var(--color-accent); color: var(--color-accent-ink); }
+    }
+  }
+
+  .save-topic-menu__inline-actions .save-topic-menu__inline-save {
+    border-color: var(--color-accent);
+    background: var(--color-accent-solid);
+    color: var(--color-on-primary);
+
+    &:hover:not(:disabled) {
+      background: var(--color-accent-solid-hover);
+      color: var(--color-on-primary);
+    }
   }
 
   .save-topic-option {

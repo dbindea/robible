@@ -286,24 +286,26 @@
                   ? $_('app.topics.verse_count', { count })
                   : $_('app.topics.verses_count_plural', { count })}
               </span>
-              {#if !topic.isDefault}
-                <span
-                  class="topic-card__delete"
-                  role="button"
-                  tabindex="0"
-                  title={$_('app.topics.delete_topic')}
-                  aria-label={$_('app.topics.delete_topic')}
-                  on:click|stopPropagation={() => handleDeleteTopic(topic)}
-                  on:keydown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      handleDeleteTopic(topic);
-                    }
-                  }}
-                >
-                  <span aria-hidden="true">&#10005;</span>
-                </span>
-              {/if}
+              <!-- También en los temas por defecto. Son sugerencias que se
+                   siembran al crear la cuenta, no datos del sistema: a quien no
+                   le sirvan, obligarle a tenerlos en el índice para siempre no
+                   tiene sentido. El worker dejó de devolver 403 por lo mismo. -->
+              <span
+                class="topic-card__delete"
+                role="button"
+                tabindex="0"
+                title={$_('app.topics.delete_topic')}
+                aria-label={$_('app.topics.delete_topic')}
+                on:click|stopPropagation={() => handleDeleteTopic(topic)}
+                on:keydown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleDeleteTopic(topic);
+                  }
+                }}
+              >
+                <span aria-hidden="true">&#10005;</span>
+              </span>
             </button>
           {/each}
         </div>
@@ -410,7 +412,7 @@
         <form class="modal__form" on:submit|preventDefault={submitCreate}>
           <label class="modal__field">
             <span class="modal__label">{$_('app.topics.topic_name')}</span>
-            <input
+            <input spellcheck="false"
               type="text"
               bind:value={editForm.name}
               placeholder={$_('app.topics.new_topic_placeholder')}

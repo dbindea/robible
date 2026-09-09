@@ -255,7 +255,8 @@
         "no_results": "No topic matches.",
         "empty": "No topic has been published yet.",
         "seo_title": "Bible topics — RoBible",
-        "seo_description": "Collections of verses by topic, published by RoBible users."
+        "seo_description": "Collections of verses by topic, published by RoBible users.",
+        "cta": "Create your own topics"
       }
     },
     "notes": {

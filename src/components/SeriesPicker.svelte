@@ -116,7 +116,7 @@
 
   {#if escribiendo}
     <div class="series__nueva">
-      <input
+      <input spellcheck="false"
         type="text"
         bind:this={campo}
         bind:value={borrador}
