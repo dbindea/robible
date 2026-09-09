@@ -323,11 +323,15 @@
   };
 
   const borrarPunto = (id) => {
+    const punto = content.structure.find((p) => p.id === id);
     content.structure = content.structure.filter((p) => p.id !== id);
-    // El desarrollo huérfano se va con su punto: si no, el JSON crece con
-    // trozos que ya no se ven en ninguna pantalla.
-    const { [id]: _fuera, ...resto } = content.development;
-    content.development = resto;
+    // El desarrollo huérfano se va con su punto —y con sus subpuntos, que
+    // guardan el suyo en el mismo mapa—: si no, el JSON crece con trozos que
+    // ya no se ven en ninguna pantalla.
+    const fuera = new Set([id, ...(punto?.subpoints || []).map((s) => s.id)]);
+    content.development = Object.fromEntries(
+      Object.entries(content.development).filter(([clave]) => !fuera.has(clave)),
+    );
     guardarContenido();
   };
 
@@ -343,12 +347,22 @@
 
   const borrarSubpunto = (punto, subId) => {
     punto.subpoints = punto.subpoints.filter((s) => s.id !== subId);
+    const { [subId]: _fuera, ...resto } = content.development;
+    content.development = resto;
     guardarContenido();
   };
 
+  // El desarrollo de un punto y el de un subpunto viven en el MISMO mapa —los
+  // ids no chocan— pero tienen forma distinta: tres casillas el punto, un solo
+  // texto seguido el subpunto. Se distinguen por el prefijo que les ponen
+  // `newPoint` y `newSubpoint`, y por eso marcar y añadir referencias funciona
+  // igual en los dos sin una segunda versión de cada manejador. Ver el
+  // comentario de `development` en `sermon-content.service.js`.
   const desarrolloDe = (id) => {
     if (!content.development[id]) {
-      content.development[id] = { explain: '', illustrate: '', apply: '', refs: [] };
+      content.development[id] = String(id).startsWith('s_')
+        ? { text: '', refs: [] }
+        : { explain: '', illustrate: '', apply: '', refs: [] };
     }
     return content.development[id];
   };
@@ -823,6 +837,68 @@
                   </div>
                 {/each}
 
+                <!-- Los subpuntos escritos en STRUCTURĂ se desarrollan aquí,
+                     cada uno con su propio texto. Sin esto había que escribirlo
+                     todo dentro de las tres casillas del punto y las divisiones
+                     no llegaban ni al documento ni al PDF. Un solo campo por
+                     subpunto: es una división del punto, no un punto entero. -->
+                {#each punto.subpoints || [] as sub, j (sub.id)}
+                  {@const ds = desarrolloDe(sub.id)}
+                  <div class="subpunto">
+                    <h4 class="subpunto__nombre">
+                      {i + 1}.{j + 1} {quitarMarcas(sub.title) || $_('app.sermons.subpoint_placeholder')}
+                    </h4>
+                    <div class="campo">
+                      <div class="campo__cabecera">
+                        <span>{$_('app.sermons.dev_subpoint')}</span>
+                        <button
+                          type="button"
+                          class="campo__marcar"
+                          disabled={!seleccion[`${sub.id}:text`]}
+                          on:click={() => marcarSeleccion(sub.id, 'text')}
+                          title={$_('app.sermons.mark_help')}
+                        >
+                          <Icon name="highlight" size="0.85rem" />
+                          {$_('app.sermons.mark_keyword')}
+                        </button>
+                      </div>
+                      <textarea spellcheck="false"
+                        rows="5"
+                        bind:this={areas[`${sub.id}:text`]}
+                        bind:value={ds.text}
+                        on:input={guardarContenido}
+                        on:select={() => refrescarSeleccion(sub.id, 'text')}
+                        on:keyup={() => refrescarSeleccion(sub.id, 'text')}
+                        on:mouseup={() => refrescarSeleccion(sub.id, 'text')}
+                      ></textarea>
+                    </div>
+
+                    <div class="refs">
+                      <span class="refs__titulo">{$_('app.sermons.refs_title')}</span>
+                      {#if (ds.refs || []).length}
+                        <ul class="refs__lista">
+                          {#each ds.refs as ref (ref.label)}
+                            <li>
+                              <span class="refs__cita">{ref.label}</span>
+                              <button
+                                type="button"
+                                class="refs__quitar"
+                                aria-label={$_('app.sermons.refs_remove')}
+                                on:click={() => quitarRef(sub.id, ref)}
+                              >
+                                <Icon name="close" size="0.7rem" />
+                              </button>
+                            </li>
+                          {/each}
+                        </ul>
+                      {/if}
+                      <button type="button" class="refs__añadir" on:click={() => abrirBuscadorRefs(sub.id)}>
+                        + {$_('app.sermons.refs_add')}
+                      </button>
+                    </div>
+                  </div>
+                {/each}
+
                 <!-- Referencias a otros pasajes: en la schiță se ve sólo la
                      cita; en el púlpito, el texto entero. -->
                 <div class="refs">
@@ -916,12 +992,17 @@
           <!-- El documento es la predicación en limpio: se lee y se imprime,
                así que va sin la sintaxis de marcado. -->
           <h2>{i + 1}. {quitarMarcas(punto.title) || $_('app.sermons.point_placeholder')}</h2>
-          {#each punto.subpoints || [] as sub, j (sub.id)}
-            <h3>{i + 1}.{j + 1} {quitarMarcas(sub.title)}</h3>
-          {/each}
           {#if d.explain}<p class="documento__parrafo">{quitarMarcas(d.explain)}</p>{/if}
           {#if d.illustrate}<p class="documento__parrafo documento__parrafo--ilustra">{quitarMarcas(d.illustrate)}</p>{/if}
           {#if d.apply}<p class="documento__parrafo">{quitarMarcas(d.apply)}</p>{/if}
+          <!-- El subpunto va después del cuerpo del punto y con su propio
+               texto, igual que en el PDF: antes eran sólo titulares sueltos
+               apilados debajo del título, sin nada que los desarrollara. -->
+          {#each punto.subpoints || [] as sub, j (sub.id)}
+            {@const ds = content.development[sub.id] || {}}
+            <h3>{i + 1}.{j + 1} {quitarMarcas(sub.title)}</h3>
+            {#if ds.text}<p class="documento__parrafo">{quitarMarcas(ds.text)}</p>{/if}
+          {/each}
         {/each}
 
         {#if content.conclusion.trim()}
@@ -1671,6 +1752,25 @@
     border: 1px solid var(--color-line);
     border-radius: var(--radius-md);
     background: var(--color-surface-sunken);
+  }
+
+  // El desarrollo de un subpunto, dentro del de su punto. El filete lateral es
+  // lo que dice de un vistazo que esto cuelga del punto y no es otro punto: en
+  // DEZVOLTARE hay una tarjeta por punto y sin la marca de jerarquía los
+  // subpuntos se leían como puntos sueltos.
+  .subpunto {
+    display: grid;
+    gap: 0.5rem;
+    margin-left: 0.15rem;
+    padding-left: 0.7rem;
+    border-left: 2px solid var(--color-line-strong);
+  }
+
+  .subpunto__nombre {
+    margin: 0;
+    color: var(--color-ink-soft);
+    font-size: var(--font-size-small);
+    font-weight: 700;
   }
 
   // Envuelve a propósito. En una pantalla de 360 px la fila —número, campo de

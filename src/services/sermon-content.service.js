@@ -35,7 +35,13 @@ export const emptyContent = () => ({
   idea: { exegetical: '', purpose: '', central: '', question: '' },
   // Paso STRUCTURA: puntos con subpuntos. Máximo dos niveles.
   structure: [],
-  // Paso DEZVOLTARE: por id de punto.
+  // Paso DEZVOLTARE. El mapa va por id, y admite **las dos clases de id**: la
+  // de un punto (`p_…`) guarda `{ explain, illustrate, apply, refs }`, la de un
+  // subpunto (`s_…`) guarda `{ text, refs }`. Un subpunto se desarrolla en un
+  // solo texto seguido a propósito: es una división del punto, no un punto
+  // entero, y repetirle las tres casillas convertía la pantalla en un
+  // formulario interminable. Los ids no chocan porque `newPoint` y
+  // `newSubpoint` los prefijan distinto.
   development: {},
   // Paso FINALIZARE.
   intro: '',
@@ -91,6 +97,8 @@ export const stepCompletion = (content) => {
     context: algo(c.context),
     idea: algo(c.idea),
     structure: c.structure.length > 0,
+    // `algo` recorre los valores del objeto, así que vale igual para el
+    // desarrollo de un punto (tres casillas) y para el de un subpunto (una).
     development: Object.values(c.development).some((d) => algo(d || {})),
     final: !!(c.intro.trim() || c.conclusion.trim()),
   };
@@ -143,7 +151,9 @@ export const sermonWordCount = (content) => {
 
   for (const punto of c.structure) {
     total += countWords(punto.title);
-    for (const sub of punto.subpoints || []) total += countWords(sub.title);
+    for (const sub of punto.subpoints || []) {
+      total += countWords(sub.title) + countWords(c.development[sub.id]?.text);
+    }
     const d = c.development[punto.id];
     if (d) total += countWords(d.explain) + countWords(d.illustrate) + countWords(d.apply);
   }
@@ -268,7 +278,14 @@ export const generateOutline = (content) => {
       // Lo que el predicador ha marcado con asteriscos manda. El corte
       // automático sólo entra cuando no ha marcado nada: adivinar es el peor
       // resultado posible, pero es mejor que dejarle la schiță en blanco.
-      const suyas = [...marcadas(d.explain), ...marcadas(d.illustrate), ...marcadas(d.apply)];
+      const suyas = [
+        ...marcadas(d.explain),
+        ...marcadas(d.illustrate),
+        ...marcadas(d.apply),
+        // El desarrollo de un subpunto se marca igual que el del punto, y lo
+        // marcado ahí es justo lo que se quiere ver desde el atril.
+        ...(punto.subpoints || []).flatMap((s) => marcadas(c.development[s.id]?.text)),
+      ];
       const keywords = suyas.length
         ? [...subpuntos, ...suyas]
         : [...subpuntos, ...claves(d.explain, 2, 4), ...claves(d.illustrate, 1, 4)];
@@ -279,7 +296,11 @@ export const generateOutline = (content) => {
         keywords: keywords.filter(Boolean),
         // Las del punto y las del desarrollo, en ese orden y sin repetir. En la
         // schiță sólo se ve la cita; el texto entero es cosa del Modo Amvon.
-        refs: [...(punto.refs || []), ...(d.refs || [])]
+        refs: [
+          ...(punto.refs || []),
+          ...(d.refs || []),
+          ...(punto.subpoints || []).flatMap((s) => c.development[s.id]?.refs || []),
+        ]
           .map((r) => (r?.label || '').trim())
           .filter((label, i, todas) => label && todas.indexOf(label) === i),
       };
@@ -496,6 +517,11 @@ export const collectReferences = (content) => {
     for (const r of punto.refs || []) añadir(r);
     const d = c.development[punto.id];
     for (const r of (d?.refs || [])) añadir(r);
+    // Las de los subpuntos también: en el púlpito no hay red, y una referencia
+    // que se citó dentro de un subpunto se lee igual que las demás.
+    for (const sub of punto.subpoints || []) {
+      for (const r of (c.development[sub.id]?.refs || [])) añadir(r);
+    }
   }
   return [...vistas.values()];
 };

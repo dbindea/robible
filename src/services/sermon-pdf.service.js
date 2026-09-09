@@ -145,17 +145,32 @@ export const definirPredica = (sermon, contenido, etiquetas = {}) => {
       { text: `${i + 1}. ${quitarMarcas(punto.title).trim()}`, fontSize: T.punto, bold: true, margin: [0, 14, 0, 2] },
     ];
 
-    for (const sub of punto.subpoints || []) {
-      if ((sub.title || '').trim()) {
-        grupo.push({ text: `— ${quitarMarcas(sub.title).trim()}`, fontSize: T.cuerpo, color: GRIS, margin: [10, 1, 0, 0] });
-      }
-    }
-
     grupo.push(...bloqueDeTexto(e.explain, d.explain));
     grupo.push(...bloqueDeTexto(e.illustrate, d.illustrate));
     grupo.push(...bloqueDeTexto(e.apply, d.apply));
 
-    const refs = [...(punto.refs || []), ...(d.refs || [])].filter((r) => r?.label);
+    // Un subpunto se imprime como el punto que lo contiene: un titular
+    // numerado (1.1, 1.2…) y debajo su texto en cuerpo normal. Antes era una
+    // línea gris con un guion, sin numerar y sin sitio para el desarrollo, y
+    // desde el atril no se distinguía de una nota al margen.
+    (punto.subpoints || []).forEach((sub, j) => {
+      const titulo = quitarMarcas(sub.title || '').trim();
+      const texto = quitarMarcas(c.development[sub.id]?.text || '').trim();
+      if (!titulo && !texto) return;
+      grupo.push({
+        text: `${i + 1}.${j + 1} ${titulo}`.trim(),
+        fontSize: T.cuerpo,
+        bold: true,
+        margin: [0, 10, 0, 3],
+      });
+      if (texto) grupo.push({ text: texto, fontSize: T.cuerpo, lineHeight: 1.35, alignment: 'justify' });
+    });
+
+    const refs = [
+      ...(punto.refs || []),
+      ...(d.refs || []),
+      ...(punto.subpoints || []).flatMap((sub) => c.development[sub.id]?.refs || []),
+    ].filter((r) => r?.label);
     if (refs.length) {
       grupo.push({ text: e.refs, fontSize: T.nota, color: GRIS, characterSpacing: 0.6, margin: [0, 8, 0, 2] });
       for (const r of refs) {

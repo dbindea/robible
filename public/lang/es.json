@@ -489,6 +489,7 @@
       "dev_explain": "Explica — ¿qué dice el texto?",
       "dev_illustrate": "Ilustra — ejemplo, comparación, experiencia",
       "dev_apply": "Aplica — ¿qué debe hacer el oyente?",
+      "dev_subpoint": "Desarrollo del subpunto",
       "development_needs_structure": "Añade primero los puntos en el paso Estructura.",
       "intro": "Introducción",
       "intro_help": "¿Cómo introduces el tema? ¿Cómo llegas al texto?",
