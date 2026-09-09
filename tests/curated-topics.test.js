@@ -75,3 +75,5 @@ test('los cuatro slugs heredados siguen existiendo', () => {
     assert.ok(slugs.has(heredado), `falta el slug heredado /versete/${heredado}`);
   }
 });
+
+test('prueba temporal que debe fallar', () => { assert.equal(1, 2); });
