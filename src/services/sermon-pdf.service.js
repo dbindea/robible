@@ -135,6 +135,19 @@ export const definirPredica = (sermon, contenido, etiquetas = {}) => {
     cuerpo.push({ text: quitarMarcas(c.intro).trim(), fontSize: T.cuerpo, lineHeight: 1.35, alignment: 'justify' });
   }
 
+  // La transición, entre la introducción y el primer punto: sin encabezado
+  // propio, porque no es una sección — es la frase con la que se pasa de una a
+  // otro. En negrita para encontrarla de un golpe de vista desde el atril.
+  if (c.transition.trim()) {
+    cuerpo.push({
+      text: quitarMarcas(c.transition).trim(),
+      fontSize: T.cuerpo,
+      bold: true,
+      lineHeight: 1.35,
+      margin: [0, 10, 0, 0],
+    });
+  }
+
   c.structure.forEach((punto, i) => {
     const d = c.development[punto.id] || {};
     // Un punto no debería quedar partido entre el pie de una hoja y la
@@ -231,6 +244,13 @@ export const definirSchita = (sermon, esquema, etiquetas = {}) => {
 
   for (const linea of o.intro || []) {
     trozos.push({ text: `- ${linea}`, fontSize: T.schitaClave, color: GRIS, margin: [0, 0, 0, 2] });
+  }
+
+  // La transición va entera y en negrita, sin el guion de las demás líneas: el
+  // resto de la schiță son recortes que se miran de reojo, y ésta es la única
+  // frase que se lee tal cual está escrita.
+  if (o.transition) {
+    trozos.push({ text: o.transition, fontSize: T.schitaClave, bold: true, margin: [0, 5, 0, 3] });
   }
 
   o.points.forEach((p, i) => {

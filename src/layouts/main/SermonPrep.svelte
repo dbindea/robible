@@ -22,6 +22,8 @@
   import Icon from '../../components/Icon.svelte';
   import Ajutor from '../../components/Ajutor.svelte';
   import Recapitulare from '../../components/Recapitulare.svelte';
+  import Notite from '../../components/Notite.svelte';
+  import Sugestii from '../../components/Sugestii.svelte';
   import SeriesPicker from '../../components/SeriesPicker.svelte';
   import Modal from '../../components/Modal.svelte';
   import { searchReferences } from '../../services/referenceSearch.service';
@@ -338,6 +340,31 @@
   const mover = (index, delta) => {
     content.structure = movePoint(content.structure, index, delta);
     guardarContenido();
+  };
+
+  // ── Propoziția de tranziție ───────────────────────────────────────────────
+  let areaTransicion;
+
+  /**
+   * Mete la plantilla elegida en el campo de la transición.
+   *
+   * **Nunca pisa lo escrito**: si ya hay algo, la plantilla se añade en una
+   * línea nueva. Un molde que borrase la frase que el predicador acaba de
+   * formular convertiría un botón de ayuda en una trampa, y encima sin deshacer.
+   * Con el campo vacío —el caso normal— simplemente lo rellena.
+   */
+  const usarSugerencia = async (plantilla) => {
+    const actual = (content.transition || '').trim();
+    content.transition = actual ? `${actual}\n${plantilla}` : plantilla;
+    guardarContenido();
+    // El cursor al final del molde, listo para terminar la frase: es lo
+    // siguiente que hay que hacer, y sin esto hay que ir a buscar el campo.
+    await tick();
+    if (areaTransicion) {
+      areaTransicion.focus();
+      const fin = areaTransicion.value.length;
+      areaTransicion.setSelectionRange(fin, fin);
+    }
   };
 
   const añadirSubpunto = (punto) => {
@@ -662,6 +689,22 @@
               {$_('app.sermons.marked_count', { count: content.marks.length })}
             </p>
           {/if}
+
+          <!-- La hoja en blanco. Va al final del paso, después del texto: se
+               apunta MIENTRAS se lee la perícopa, no antes de haberla leído.
+               Ocupa casi la pantalla a propósito — un campo de cinco líneas
+               invita a escribir cinco líneas, y aquí se quiere lo contrario. -->
+          <label class="campo campo--notas">
+            <span>{$_('app.sermons.notes')}</span>
+            <small class="campo__pista">{$_('app.sermons.notes_help')}</small>
+            <textarea
+              spellcheck="false"
+              class="campo__hoja"
+              placeholder={$_('app.sermons.notes_placeholder')}
+              bind:value={content.notes}
+              on:input={guardarContenido}
+            ></textarea>
+          </label>
         </div>
 
       <!-- ── OBSERVARE ────────────────────────────────────────────────── -->
@@ -669,6 +712,7 @@
         <div class="bloque">
           <h2>{$_('app.sermons.step_observation')}</h2>
           <Ajutor paso="observation" tip={sermon?.type} />
+          <Notite notes={content.notes} />
           <p class="bloque__ayuda">{$_('app.sermons.optional_help')}</p>
           {#each ['repeats', 'contrasts', 'actions', 'tension', 'truth'] as clave (clave)}
             <label class="campo">
@@ -683,6 +727,7 @@
         <div class="bloque">
           <h2>{$_('app.sermons.step_context')}</h2>
           <Ajutor paso="context" tip={sermon?.type} />
+          <Notite notes={content.notes} />
 
           {#if contextoAntes.length}
             <details class="contexto">
@@ -718,6 +763,7 @@
         <div class="bloque">
           <h2>{$_('app.sermons.step_idea')}</h2>
           <Ajutor paso="idea" tip={sermon?.type} />
+          <Notite notes={content.notes} />
           <label class="campo">
             <span>{$_('app.sermons.idea_exegetical')}</span>
             <small class="campo__pista">{$_('app.sermons.idea_exegetical_help')}</small>
@@ -746,7 +792,24 @@
           <h2>{$_('app.sermons.step_structure')}</h2>
           <Ajutor paso="structure" tip={sermon?.type} />
           <Recapitulare {content} paso="structure" {referencia} />
+          <Notite notes={content.notes} />
           <p class="bloque__ayuda">{$_('app.sermons.structure_help')}</p>
+
+          <!-- La transición va ANTES de los puntos: es la frase con la que se
+               entra en ellos, y escribirla obliga a decidir cuántas divisiones
+               hay y cómo se llaman en plural — que es medio trabajo del paso. -->
+          <div class="campo">
+            <span>{$_('app.sermons.transition')}</span>
+            <small class="campo__pista">{$_('app.sermons.transition_help')}</small>
+            <Sugestii onElegir={usarSugerencia} />
+            <textarea
+              spellcheck="false"
+              rows="3"
+              bind:this={areaTransicion}
+              bind:value={content.transition}
+              on:input={guardarContenido}
+            ></textarea>
+          </div>
 
           {#each content.structure as punto, i (punto.id)}
             <div class="punto">
@@ -792,6 +855,7 @@
           <h2>{$_('app.sermons.step_development')}</h2>
           <Ajutor paso="development" tip={sermon?.type} />
           <Recapitulare {content} paso="development" {referencia} />
+          <Notite notes={content.notes} />
           {#if !content.structure.length}
             <p class="bloque__ayuda">{$_('app.sermons.development_needs_structure')}</p>
             <button type="button" class="bloque__añadir" on:click={() => irAPaso('structure')}>
@@ -937,6 +1001,7 @@
           <h2>{$_('app.sermons.step_final')}</h2>
           <Ajutor paso="final" tip={sermon?.type} />
           <Recapitulare {content} paso="final" {referencia} />
+          <Notite notes={content.notes} />
           <label class="campo">
             <span>{$_('app.sermons.intro')}</span>
             <small class="campo__pista">{$_('app.sermons.intro_help')}</small>
@@ -985,6 +1050,13 @@
         {#if content.intro.trim()}
           <h2>{$_('app.sermons.intro')}</h2>
           <p class="documento__parrafo">{quitarMarcas(content.intro)}</p>
+        {/if}
+
+        <!-- Sin encabezado propio y en su sitio: la transición no es una
+             sección de la predicación, es la frase con la que se sale de la
+             introducción y se entra en el primer punto. -->
+        {#if content.transition.trim()}
+          <p class="documento__parrafo documento__parrafo--transicion">{quitarMarcas(content.transition)}</p>
         {/if}
 
         {#each content.structure as punto, i (punto.id)}
@@ -1065,6 +1137,13 @@
             bind:value={textoIntro}
             on:input={() => { outline.intro = textoAClaves(textoIntro); guardarSchita(); }}
           ></textarea>
+        </label>
+
+        <!-- La transición sí va entera en la schiță, al contrario que el resto:
+             es la única frase que se dice tal cual está escrita. -->
+        <label class="campo">
+          <span>{$_('app.sermons.transition')}</span>
+          <textarea spellcheck="false" rows="2" bind:value={outline.transition} on:input={guardarSchita}></textarea>
         </label>
 
         {#each outline.points as p, i (p.id || i)}
@@ -1648,6 +1727,18 @@
     }
   }
 
+  /* La hoja de notas del paso TEXT: casi la pantalla entera.
+     El tamaño ES la instrucción. Con las cinco filas del resto de campos el
+     predicador escribe cinco líneas y pasa de paso; aquí se quiere que vuelque
+     todo lo que se le ocurra, y una hoja grande y vacía lo pide sola.
+     `dvh` y no `vh` porque en el móvil el teclado se come la ventana y con `vh`
+     el campo se queda por debajo, con el cursor escondido detrás de las teclas.
+     El `clamp` acota los dos extremos: en un portátil apaisado 60 dvh son cuatro
+     dedos de alto, y en un monitor vertical serían dos palmos. */
+  .campo--notas .campo__hoja {
+    min-height: clamp(16rem, 65dvh, 48rem);
+  }
+
   /* Las listas de la schiță: una idea por línea, con su guion. Sin ajuste
      automático de línea la lista se lee como lista y no como párrafo, que es
      justo lo que hay que ver de reojo desde el atril. */
@@ -1979,6 +2070,16 @@
     margin: 0 0 0.6rem;
     white-space: pre-wrap;
     color: var(--color-ink);
+
+    /* La transición se lee de un vistazo entre la introducción y el primer
+       punto: media tinta y un filete de acento, sin llegar a ser un titular.
+       No lleva cursiva — es texto que se dice tal cual, no una acotación. */
+    &--transicion {
+      padding-left: 0.75rem;
+      border-left: 2px solid var(--color-accent);
+      color: var(--color-ink-strong);
+      font-weight: 600;
+    }
 
     // La ilustración se distingue del resto sin gritar: es material de apoyo.
     &--ilustra {

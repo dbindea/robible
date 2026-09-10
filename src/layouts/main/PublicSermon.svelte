@@ -118,6 +118,13 @@
         </section>
       {/if}
 
+      <!-- Sin encabezado: es la frase con la que se entra en las divisiones,
+           no una sección. Puede faltar — las predicaciones publicadas antes de
+           que existiera el campo no la traen. -->
+      {#if sermon.transition?.trim()}
+        <p class="predica__transicion">{quitarMarcas(sermon.transition)}</p>
+      {/if}
+
       {#each sermon.points as punto, i (i)}
         <section class="predica__punto">
           <!-- `quitarMarcas` también en títulos y subpuntos: los asteriscos
@@ -267,6 +274,15 @@
   .predica__punto h2 {
     padding-bottom: 0.4rem;
     border-bottom: 2px solid var(--wash-accent-strong);
+  }
+
+  .predica__transicion {
+    margin: 0 0 1.75rem;
+    padding-left: 0.85rem;
+    border-left: 3px solid var(--color-accent);
+    color: var(--color-ink-strong);
+    font-weight: 600;
+    line-height: var(--line-height-body);
   }
 
   .predica__subpunto {

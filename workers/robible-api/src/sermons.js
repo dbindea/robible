@@ -296,6 +296,10 @@ const paraElPublico = (r) => {
     publishedAt: r.published_at || null,
     idea: contenido?.idea?.central || '',
     intro: contenido?.intro || '',
+    // La frase que enlaza la introducción con las divisiones. Se predica, así
+    // que se publica. `notes` en cambio NO sale nunca: es el cuaderno de
+    // trabajo del predicador, con dudas y material a medio pensar.
+    transition: contenido?.transition || '',
     conclusion: contenido?.conclusion || '',
     points: puntos,
   };
