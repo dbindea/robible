@@ -75,7 +75,12 @@
       ).filter((v) => v.texto)
     : [];
 
-  $: puedeCrear = nuevo.book !== null && nuevo.chapter && nuevo.verseStart && !guardando;
+  // El título es obligatorio. Sin él la lista se llena de «Fără titlu» y el
+  // buscador de arriba —que filtra por título y por referencia— deja de servir
+  // en cuanto hay más de tres predicaciones. Se puede cambiar después: el de la
+  // pantalla de preparación se edita en línea.
+  $: puedeCrear = nuevo.title.trim().length > 0
+    && nuevo.book !== null && nuevo.chapter && nuevo.verseStart && !guardando;
 
   const referenciaDe = (s) => {
     const libro = map[s.book] || '';
@@ -297,8 +302,8 @@
   >
     <div class="nueva">
       <label class="nueva__campo">
-        <span>{$_('app.sermons.field_title')}</span>
-        <input spellcheck="false" type="text" bind:value={nuevo.title} maxlength="120" placeholder={$_('app.sermons.field_title_hint')} />
+        <span>{$_('app.sermons.field_title')} <em class="nueva__obligatorio">{$_('app.sermons.required')}</em></span>
+        <input spellcheck="false" type="text" required bind:value={nuevo.title} maxlength="120" placeholder={$_('app.sermons.field_title_hint')} />
       </label>
 
       <div class="nueva__campo">
@@ -662,6 +667,15 @@
   .nueva {
     display: grid;
     gap: 0.85rem;
+  }
+
+  /* «obligatoriu» escrito, no un asterisco: el asterisco sólo se entiende si
+     ya sabes que significa eso, y aquí hay un único campo obligatorio. */
+  .nueva__obligatorio {
+    color: var(--color-ink-soft);
+    font-size: 0.72rem;
+    font-style: normal;
+    font-weight: 500;
   }
 
   .nueva__campo {

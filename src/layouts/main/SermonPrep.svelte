@@ -342,6 +342,78 @@
     guardarContenido();
   };
 
+  // ── Título editable en línea ──────────────────────────────────────────────
+  //
+  // El título se decide antes de escribir nada y casi siempre cambia: se empieza
+  // con «Suferința» y se acaba con «De ce ne mirăm de încercare?». Estaba fijo
+  // desde la creación, así que la única forma de corregirlo era duplicar la
+  // predicación entera.
+  //
+  // Se edita aquí y no en la lista porque es donde se está trabajando; en la
+  // lista el título es una fila de un listado y un campo suelto invitaría a
+  // tocarlo sin querer al buscar.
+  let editandoTitulo = false;
+  let borradorTitulo = '';
+  let inputTitulo;
+  let avisoTitulo = '';
+
+  const editarTitulo = async () => {
+    borradorTitulo = sermon?.title || '';
+    editandoTitulo = true;
+    await tick();
+    inputTitulo?.focus();
+    inputTitulo?.select();
+  };
+
+  /**
+   * Guarda el título si tiene algo; si está vacío, deja lo que había.
+   *
+   * **No atrapa el foco.** Insistir con `focus()` hasta que escriba algo es lo
+   * que pide un campo obligatorio, y también es la forma más rápida de dejar a
+   * alguien encerrado en un input del que no sabe salir. Se recupera el título
+   * anterior y se explica por qué; las predicaciones nuevas ya no pueden nacer
+   * sin título, así que el caso vacío sólo lo alcanzan las de antes de esto.
+   */
+  const guardarTitulo = async () => {
+    // Salir del modo edición quita el <input> del DOM, y al quitarlo el
+    // navegador dispara su `blur` — que vuelve a entrar aquí. Sin esta guarda,
+    // Escape cancelaba y acto seguido el blur guardaba justo el borrador que se
+    // acababa de descartar, así que cancelar no cancelaba nada. También evita
+    // que Enter guarde dos veces.
+    if (!editandoTitulo) return;
+
+    const limpio = borradorTitulo.trim();
+    editandoTitulo = false;
+
+    if (!limpio) {
+      avisoTitulo = $_('app.sermons.title_required');
+      return;
+    }
+    avisoTitulo = '';
+    if (limpio === (sermon.title || '')) return;
+
+    // `sermon` se cargó una vez en onMount y no se refresca (ver el comentario
+    // de `crearSchita`): hay que actualizar la copia local o la cabecera
+    // seguiría enseñando el título viejo hasta recargar.
+    sermon = { ...sermon, title: limpio };
+    await sermonsStore.update(sermonId, { title: limpio });
+  };
+
+  const cancelarTitulo = () => {
+    editandoTitulo = false;
+    avisoTitulo = '';
+  };
+
+  const teclaTitulo = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      guardarTitulo();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      cancelarTitulo();
+    }
+  };
+
   // ── Propoziția de tranziție ───────────────────────────────────────────────
   let areaTransicion;
 
@@ -610,7 +682,32 @@
       </div>
     </header>
 
-    <h1 class="prep__titulo">{sermon.title || $_('app.sermons.untitled')}</h1>
+    <!-- El <h1> se queda como <h1>: dentro va el botón o el campo, según se
+         esté leyendo o editando. Convertir el propio encabezado en un botón
+         habría dejado la pantalla sin título de nivel 1. -->
+    <h1 class="prep__titulo">
+      {#if editandoTitulo}
+        <input
+          spellcheck="false"
+          type="text"
+          class="prep__titulo-campo"
+          maxlength="120"
+          bind:this={inputTitulo}
+          bind:value={borradorTitulo}
+          on:keydown={teclaTitulo}
+          on:blur={guardarTitulo}
+          aria-label={$_('app.sermons.field_title')}
+        />
+      {:else}
+        <button type="button" class="prep__titulo-boton" on:click={editarTitulo} title={$_('app.sermons.rename')}>
+          <span>{sermon.title || $_('app.sermons.untitled')}</span>
+          <Icon name="pencil" />
+        </button>
+      {/if}
+    </h1>
+    {#if avisoTitulo}
+      <p class="prep__titulo-aviso" role="alert">{avisoTitulo}</p>
+    {/if}
     <!-- El tipo al lado del pasaje: la guía y los avisos cambian según cuál
          sea, y hasta ahora sólo se veía en la lista, antes de entrar. -->
     <p class="prep__ref">
@@ -1548,6 +1645,78 @@
   .prep__titulo {
     margin: 0;
     font-size: var(--font-size-h3);
+  }
+
+  /* El título se lee como un título y se edita como un campo. El botón no
+     parece un botón hasta que se le acerca el ratón —el lápiz sí está siempre,
+     que es lo que dice que esto se puede tocar—: un encabezado con marco y
+     fondo dejaría de leerse como el nombre de la predicación. */
+  .prep__titulo-boton {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    max-width: 100%;
+    margin: -0.15rem -0.4rem;
+    padding: 0.15rem 0.4rem;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: text;
+    transition: var(--transition);
+    --icon-size: 0.75em;
+
+    > span { min-width: 0; }
+
+    /* El lápiz apagado hasta que se pasa por encima: presente para quien lo
+       busca, callado para quien está leyendo. */
+    :global(svg) {
+      flex: 0 0 auto;
+      color: var(--color-ink-soft);
+      opacity: 0.5;
+      transition: var(--transition);
+    }
+
+    &:hover,
+    &:focus-visible {
+      border-color: var(--color-line);
+      background: var(--color-surface-sunken);
+
+      :global(svg) { color: var(--color-accent); opacity: 1; }
+    }
+
+    &:focus-visible {
+      outline: none;
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 18%, transparent);
+    }
+  }
+
+  .prep__titulo-campo {
+    width: 100%;
+    margin: -0.15rem 0;
+    padding: 0.15rem 0.4rem;
+    border: 1px solid var(--color-accent);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+    color: var(--color-ink);
+    /* `font: inherit` sobre el <h1>: el campo tiene el mismo cuerpo y peso que
+       el título, así que al pulsar no salta nada de sitio. */
+    font: inherit;
+
+    &:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 18%, transparent);
+    }
+  }
+
+  .prep__titulo-aviso {
+    margin: 0.35rem 0 0;
+    color: var(--color-accent-ink);
+    font-size: var(--font-size-small);
+    font-weight: 600;
   }
 
   .prep__ref {
