@@ -1,7 +1,7 @@
 # RoBible — Roadmap
 
 > Documento vivo. Actualizado en cada milestone.
-> Última actualización: **10 sep 2026** (Predicación: subpuntos con desarrollo, cuaderno de notas, guion por tipo, frase de transición y título editable)
+> Última actualización: **11 sep 2026** (Predicación: sincronización entre dispositivos, PDF completo, orden de pasos, citas en línea, autor al publicar y manual en `/ghid-predicare`)
 
 > Documentación de referencia: [CLAUDE.md](CLAUDE.md) · [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) · [docs/OPERACIONES.md](docs/OPERACIONES.md)
 > Deuda técnica detectada: [docs/AUDITORIA-2026-09-04.md](docs/AUDITORIA-2026-09-04.md)
@@ -942,6 +942,22 @@ editor tipo Word, ni roles más allá de Utilizator/Predicator.
 ---
 
 ## Historial de cambios recientes
+
+**2026-09-11 — Predicación: sincronización, PDF completo, orden de pasos y citas en línea**
+
+Lote de nueve peticiones sobre el módulo, todas verificadas con tests nuevos y
+Playwright contra el backend local (`dev-server.js`) simulando dos dispositivos
+reales con `fetch` directo. Sin bump de service worker: no se tocó `sw.js`.
+
+- **Sincronización entre dispositivos, arreglada.** `syncFromServer` conservaba el contenido local para siempre; ahora sólo lo hace si es igual o más nuevo que el remoto (`contenidoSigueValido`, trampa 62). Además, `onMount` sincroniza contra el servidor antes de cargar el sermón, y hay un botón **Actualizează** para refrescar sin perder lo que aún no se haya guardado (trampa 63)
+- **PDF completo.** Los puntos que desaparecían era un heurístico de «no partir esta página» que contaba bloques en vez de medir alto: si un desarrollo largo no cabía en lo que quedaba de página, pdfmake lo omitía entero en lugar de partirlo (trampa 64)
+- **Introducción antes del desarrollo.** STEPS pasa de 7 a 8 pasos; `intro` es paso propio antes de `development`, y `final` se queda sólo con la conclusión (trampa 65). Es una excepción deliberada a lo que enseña el curso de homilética, documentada como tal
+- **Citas bíblicas en línea** (`{{Referencia|texto}}`), insertadas en el punto exacto del cursor y pintadas en cursiva junto al `*marcado*` en negrita que ya existía (trampa 67). Un solo componente (`TextoFormateado.svelte`) las renderiza igual en la vista de edición, el «documento final» y la página pública, para que PDF y HTML no puedan desincronizarse
+- **Subpuntos reordenados** antes de explicación/ilustración/aplicación, siguiendo la convención de que un subpunto es una subdivisión de la idea y no algo posterior a desarrollarla (trampa 66). Cambiado a la vez en la edición, el PDF y la página pública
+- **Autor y fecha al publicar.** `paraElPublico` añade el nickname vía `JOIN users`, única excepción a que la respuesta pública no lleva datos de usuario (trampa 68); firma visible en `PublicSermon.svelte`, tarjetas de `PublicSermons.svelte` y el HTML para crawlers de `sermon-meta.mjs`
+- **Manual de predicación expositiva en `/ghid-predicare`**, indexado, con timeline vertical de los ocho pasos y comparación de los tres tipos. Reutiliza las claves de `homiletics.js` y `sermons.service.js` — no hay texto nuevo que se pueda desincronizar del que ya usa la app. Se avisó de que no había documentos adjuntos accesibles en la sesión: el orden y las reglas obligatorias/opcionales de los subpuntos se resolvieron con el conocimiento de homilética ya incorporado al proyecto, no con material nuevo del usuario
+- 322 tests (22 nuevos: `sermons-sync.test.js` completo más ampliaciones en `sermon-content` y `sermon-pdf`), 7 trampas nuevas en `CLAUDE.md`
+- **Dos fallos propios cazados al verificar, ninguno reportado por el usuario**: el botón Actualizează, sin guardia, subía la copia local vieja y pisaba una edición más reciente de otro dispositivo (de ahí `guardadoEnElAire`); y el texto nuevo de `/ghid-predicare` decía «siete pasos» en los cuatro idiomas por quedarse desactualizado tras añadir `intro` a STEPS
 
 **2026-09-10 — Predicación: subpuntos con desarrollo, cuaderno de notas y frase de transición** · service worker `robible-v31`
 

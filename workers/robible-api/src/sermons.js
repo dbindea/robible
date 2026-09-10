@@ -243,10 +243,16 @@ export async function removeSermon(db, userId, sermonId, cors) {
 
 // ── Predicaciones públicas (sin auth) ─────────────────────────────────────
 //
-// De una predicación publicada salen el título, el pasaje, la schiță y el
-// desarrollo, y **nada del usuario**: ni id, ni nickname, ni fechas de la
-// cuenta. Compartir una predicación no debe permitir averiguar quién la
-// escribió ni cuántas tiene.
+// De una predicación publicada salen el título, el pasaje, la schiță, el
+// desarrollo y —desde el 10 sep 2026, a petición explícita del propietario—
+// el nickname de quien la escribió y la fecha de publicación, para una firma
+// bajo el texto. Sigue sin salir nada más de la cuenta: ni el id, ni el
+// email, ni fechas de la cuenta que no sean ésta.
+//
+// `author` se llama así y no `nickname` a propósito: hoy resuelve al
+// nickname porque es lo único que hay, pero si el perfil gana un nombre para
+// mostrar más adelante, ese día sólo cambia la consulta SQL — el campo de la
+// respuesta y quien lo lee (`PublicSermon.svelte`) no tienen que enterarse.
 //
 // Lo que se publica es la predicación **en limpio**, no el cuaderno de
 // preparación: fuera observación, contexto y notas de estudio. Son apuntes
@@ -294,6 +300,7 @@ const paraElPublico = (r) => {
     // una predicación, y el autor la escribe pensando en quien la va a leer.
     series: r.series || null,
     publishedAt: r.published_at || null,
+    author: r.author_nickname || null,
     idea: contenido?.idea?.central || '',
     intro: contenido?.intro || '',
     // La frase que enlaza la introducción con las divisiones. Se predica, así
@@ -343,9 +350,11 @@ export async function getPublicSermon(db, slug, cors) {
 
   const r = await db
     .prepare(
-      `SELECT public_slug, title, book, chapter, verse_start, verse_end, version,
-              type, series, published_at, content_json
-       FROM sermons WHERE public_slug = ? AND is_public = 1`,
+      `SELECT s.public_slug, s.title, s.book, s.chapter, s.verse_start, s.verse_end, s.version,
+              s.type, s.series, s.published_at, s.content_json, u.nickname AS author_nickname
+       FROM sermons s
+       JOIN users u ON u.id = s.user_id
+       WHERE s.public_slug = ? AND s.is_public = 1`,
     )
     .bind(slug)
     .first();
@@ -369,11 +378,12 @@ export async function getPublicSermon(db, slug, cors) {
 export async function listPublicSermons(db, cors, limite = 60) {
   const rows = await db
     .prepare(
-      `SELECT public_slug, title, book, chapter, verse_start, verse_end, version,
-              type, series, published_at, content_json
-       FROM sermons
-       WHERE is_public = 1 AND public_slug IS NOT NULL
-       ORDER BY published_at DESC
+      `SELECT s.public_slug, s.title, s.book, s.chapter, s.verse_start, s.verse_end, s.version,
+              s.type, s.series, s.published_at, s.content_json, u.nickname AS author_nickname
+       FROM sermons s
+       JOIN users u ON u.id = s.user_id
+       WHERE s.is_public = 1 AND s.public_slug IS NOT NULL
+       ORDER BY s.published_at DESC
        LIMIT ?`,
     )
     .bind(Math.min(Math.max(1, limite), 200))
@@ -393,6 +403,7 @@ export async function listPublicSermons(db, cors, limite = 60) {
         type: s.type,
         series: s.series,
         publishedAt: s.publishedAt,
+        author: s.author,
         idea: s.idea,
         points: s.points.length,
       };

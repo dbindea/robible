@@ -651,6 +651,11 @@ async function main() {
     // sitemaps/sermons.xml, que sirve una función porque se publican entre
     // despliegues; esta portada, en cambio, existe siempre.
     { loc: absoluteUrl('/predici'), lastmod: TODAY, changefreq: 'weekly', priority: '0.8' },
+    // El manual de predicación. Contenido 100% estático —sale de
+    // `app.homiletics.*` y `app.sermons.type_*`, ya en el bundle—, así que no
+    // necesita una función de Netlify como `/predici`: la SPA la resuelve
+    // igual que `/indice` o `/favorites`.
+    { loc: absoluteUrl('/ghid-predicare'), lastmod: TODAY, changefreq: 'monthly', priority: '0.7' },
   ];
 
   // ── Colecciones curadas (/versete/<slug>) ─────────────────────────────────
