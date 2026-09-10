@@ -41,6 +41,10 @@
 
   $: copyVerseLabel = $_('app.topics.delete_verse');
   $: createTopicLabel = $_('app.topics.create_topic');
+  // Se compara contra `editandoId` directamente y no a través de un helper:
+  // Svelte sólo sigue lo que ve escrito en la expresión (trampa 23).
+  $: tituloDialogo = editandoId ? $_('app.topics.edit_topic') : $_('app.topics.create_topic');
+  $: accionDialogo = editandoId ? $_('app.topics.save') : $_('app.topics.create');
 
   // ── Publicar un tema ────────────────────────────────────
   let publicando = false;
@@ -160,25 +164,50 @@
     }
   };
 
+  // El mismo diálogo crea y edita: los campos son los mismos y mantener dos
+  // copias del formulario garantizaba que un campo nuevo se añadiera sólo a
+  // uno. `editandoId` a null significa «estoy creando».
+  let editandoId = null;
+
   const openCreate = () => {
     if (!$isAuthenticated) {
       openAuthMenu();
       return;
     }
+    editandoId = null;
     editForm = { name: '', icon: 'bookmark', color: '#2E7D9B' };
+    isCreateOpen = true;
+  };
+
+  const openEdit = (topic) => {
+    editandoId = topic.id;
+    editForm = { name: topic.name, icon: topic.icon || 'bookmark', color: topic.color || '#2E7D9B' };
     isCreateOpen = true;
   };
 
   const closeCreate = () => {
     isCreateOpen = false;
+    editandoId = null;
   };
 
-  const submitCreate = () => {
-    if (!editForm.name.trim()) return;
+  const submitCreate = async () => {
+    if (!editForm.name.trim() || isSubmitting) return;
     isSubmitting = true;
     try {
-      topicsStore.create(editForm);
-      isCreateOpen = false;
+      // `updateTopic` existía en el servicio y en el store desde el principio,
+      // sin que ninguna pantalla lo llamara: el diálogo sólo sabía crear, así
+      // que un tema mal nombrado o con el icono equivocado había que borrarlo y
+      // rehacerlo, perdiendo los versículos guardados dentro.
+      if (editandoId) {
+        await topicsStore.update(editandoId, {
+          name: editForm.name.trim(),
+          icon: editForm.icon,
+          color: editForm.color,
+        });
+      } else {
+        await topicsStore.create(editForm);
+      }
+      closeCreate();
     } finally {
       isSubmitting = false;
     }
@@ -290,21 +319,39 @@
                    siembran al crear la cuenta, no datos del sistema: a quien no
                    le sirvan, obligarle a tenerlos en el índice para siempre no
                    tiene sentido. El worker dejó de devolver 403 por lo mismo. -->
-              <span
-                class="topic-card__delete"
-                role="button"
-                tabindex="0"
-                title={$_('app.topics.delete_topic')}
-                aria-label={$_('app.topics.delete_topic')}
-                on:click|stopPropagation={() => handleDeleteTopic(topic)}
-                on:keydown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    handleDeleteTopic(topic);
-                  }
-                }}
-              >
-                <span aria-hidden="true">&#10005;</span>
+              <span class="topic-card__acciones">
+                <span
+                  class="topic-card__accion"
+                  role="button"
+                  tabindex="0"
+                  title={$_('app.topics.edit_topic')}
+                  aria-label={$_('app.topics.edit_topic')}
+                  on:click|stopPropagation={() => openEdit(topic)}
+                  on:keydown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      openEdit(topic);
+                    }
+                  }}
+                >
+                  <Icon name="pencil" size="0.8rem" />
+                </span>
+                <span
+                  class="topic-card__accion topic-card__accion--borrar"
+                  role="button"
+                  tabindex="0"
+                  title={$_('app.topics.delete_topic')}
+                  aria-label={$_('app.topics.delete_topic')}
+                  on:click|stopPropagation={() => handleDeleteTopic(topic)}
+                  on:keydown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleDeleteTopic(topic);
+                    }
+                  }}
+                >
+                  <Icon name="close" size="0.8rem" />
+                </span>
               </span>
             </button>
           {/each}
@@ -407,8 +454,8 @@
   <!-- Create topic modal -->
   {#if isCreateOpen}
     <div class="modal-backdrop" on:click={closeCreate} role="presentation">
-      <div class="modal" on:click|stopPropagation on:keydown={(e) => e.key === 'Escape' && closeCreate()} role="dialog" tabindex="-1" aria-modal="true" aria-label={createTopicLabel}>
-        <h3 class="modal__title">{createTopicLabel}</h3>
+      <div class="modal" on:click|stopPropagation on:keydown={(e) => e.key === 'Escape' && closeCreate()} role="dialog" tabindex="-1" aria-modal="true" aria-label={tituloDialogo}>
+        <h3 class="modal__title">{tituloDialogo}</h3>
         <form class="modal__form" on:submit|preventDefault={submitCreate}>
           <label class="modal__field">
             <span class="modal__label">{$_('app.topics.topic_name')}</span>
@@ -441,7 +488,7 @@
               {$_('app.topics.cancel')}
             </button>
             <button type="submit" class="modal__btn modal__btn--primary" disabled={isSubmitting || !editForm.name.trim()}>
-              {$_('app.topics.create')}
+              {accionDialogo}
             </button>
           </div>
         </form>
@@ -684,32 +731,47 @@
       font-weight: 600;
     }
 
-    &__delete {
+    &__acciones {
       position: absolute;
-      top: 0.5rem;
-      right: 0.5rem;
+      top: 0.4rem;
+      right: 0.4rem;
+      display: flex;
+      gap: 0.15rem;
+      /* Apagadas hasta que se pasa por encima: son acciones secundarias y la
+         tarjeta entera ya es un botón. En táctil se muestran siempre — ver la
+         media query de abajo. */
+      opacity: 0;
+      transition: opacity var(--motion-base) var(--ease-out);
+    }
+
+    &__accion {
       display: grid;
       place-items: center;
-      width: 1.6rem;
-      height: 1.6rem;
+      /* 1.75rem = 28 px: por encima del mínimo de 24 de la WCAG 2.5.8, que es
+         lo que hay que respetar en cuanto se ven en el móvil. */
+      width: 1.75rem;
+      height: 1.75rem;
       border: 0;
       border-radius: 50%;
-      background: transparent;
+      background: var(--color-surface);
       color: var(--color-ink-soft);
       cursor: pointer;
       transition: var(--transition);
-      opacity: 0;
-      font-size: 0.85rem;
 
       &:hover,
       &:focus-visible {
+        background: var(--wash-accent);
+        color: var(--color-accent);
+      }
+
+      &--borrar:hover,
+      &--borrar:focus-visible {
         background: var(--color-danger-wash);
         color: var(--color-danger);
-        opacity: 1;
       }
 
       &:focus-visible {
-        outline: 2px solid var(--color-blue);
+        outline: 2px solid var(--color-accent);
         outline-offset: 2px;
       }
     }
@@ -721,10 +783,19 @@
       border-color: color-mix(in srgb, var(--topic-color) 50%, transparent);
     }
 
-    &:hover &__delete,
-    &:focus-within &__delete {
+    &:hover &__acciones,
+    &:focus-within &__acciones {
       opacity: 1;
     }
+  }
+
+  /* En un móvil no hay `hover`: con las acciones apagadas hasta pasar el ratón,
+     editar y borrar un tema eran sencillamente inalcanzables desde el teléfono
+     —que es donde más se usa esta pantalla—. `hover: none` distingue el táctil
+     del escritorio sin mirar el ancho, que es lo correcto: un portátil con
+     pantalla táctil tiene las dos cosas y no debe perder el ratón. */
+  @media (hover: none) {
+    .topic-card__acciones { opacity: 1; }
   }
 
   // === COMPARTIR TEMA ===
