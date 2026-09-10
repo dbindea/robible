@@ -78,6 +78,16 @@ CREATE TABLE IF NOT EXISTS topics (
   public_slug TEXT,                                 -- 'ansiedad-a3f2', único
   public_version TEXT,                              -- 'vdc' | 'rvl' | ...
   published_at TEXT,
+  -- ── Descripción y orden (schema_version 12) ─────────────────────────────
+  -- `description` es la frase que explica de qué va el tema, como las de las
+  -- colecciones curadas. Opcional: un tema sin ella se ve igual que antes.
+  description TEXT,
+  -- `position` es el orden que el usuario decide con las flechas. Se rellena
+  -- al migrar siguiendo `created_at`, para que nadie se encuentre el índice
+  -- barajado. Entero con huecos permitidos: al reordenar se reescriben todas
+  -- las posiciones del usuario, así que no hace falta que sean consecutivas
+  -- entre operaciones.
+  position INTEGER NOT NULL DEFAULT 0,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   UNIQUE (user_id, name)                            -- no duplicar nombres por usuario
 );
@@ -374,3 +384,26 @@ UPDATE _meta SET value = '9' WHERE key = 'schema_version' AND value < '9';
 --     UNIQUE (user_id, book, chapter, verse),
 --     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE);
 --   CREATE INDEX IF NOT EXISTS idx_memorizations_user ON memorizations(user_id, due_at);
+--
+-- 12: topics gana description y position (descripción y orden manual)
+--   ALTER TABLE topics ADD COLUMN description TEXT;
+--   ALTER TABLE topics ADD COLUMN position INTEGER NOT NULL DEFAULT 0;
+--   -- Sembrar el orden actual para que nadie vea su índice barajado. SQLite en
+--   -- D1 no tiene ROW_NUMBER() en UPDATE, así que se cuenta con una subconsulta
+--   -- correlacionada dentro de cada usuario.
+--   --
+--   -- OJO con el desempate por `id`: los temas que siembra `seedDefaultsForUser`
+--   -- al crear la cuenta comparten `created_at` al milisegundo, así que un
+--   -- `t2.created_at < topics.created_at` a secas les da posición 0 a TODOS y
+--   -- el orden queda sin definir. Pasó al aplicar esta migración y lo cazó el
+--   -- censo posterior.
+--   UPDATE topics SET position = (
+--     SELECT COUNT(*) FROM topics AS t2
+--     WHERE t2.user_id = topics.user_id
+--       AND (t2.created_at < topics.created_at
+--            OR (t2.created_at = topics.created_at AND t2.id < topics.id))
+--   );
+--   CREATE INDEX IF NOT EXISTS idx_topics_orden ON topics(user_id, position);
+--
+-- Aplicado en producción el 10 sep 2026: 6 temas y 2 usuarios antes y después,
+-- 0 colisiones de posición.

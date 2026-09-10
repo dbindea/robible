@@ -136,6 +136,19 @@ test('noteText y topicName: longitud acotada', () => {
   assert.ok(!validators.topicName('  '));
 });
 
+test('topicDescription: opcional, pero acotada', () => {
+  // A diferencia del nombre, SÍ puede venir vacía: es opcional y '' significa
+  // borrarla. Si el validador la rechazara, no habría forma de quitar una
+  // descripción ya escrita.
+  assert.ok(validators.topicDescription(''), 'la descripción vacía debe valer');
+  assert.ok(validators.topicDescription('   '), 'sólo espacios equivale a vacía');
+  assert.ok(validators.topicDescription('Versete despre nădejde'));
+  assert.ok(validators.topicDescription('x'.repeat(200)));
+  assert.ok(!validators.topicDescription('x'.repeat(201)));
+  assert.ok(!validators.topicDescription(null));
+  assert.ok(!validators.topicDescription(42));
+});
+
 // ── Hashing ─────────────────────────────────────────────────────────────────
 
 test('hashValue es determinista y verifica correctamente', async () => {

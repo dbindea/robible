@@ -144,6 +144,11 @@ export const validators = {
   nickname: (n) => typeof n === 'string' && VALID_NICKNAME.test(n.trim()),
   password: VALID_PASSWORD,
   topicName: (n) => typeof n === 'string' && n.trim().length >= 1 && n.trim().length <= 40,
+  // La descripción SÍ puede venir vacía: es opcional y '' significa borrarla.
+  // 200 caracteres es una o dos frases —lo que cabe bajo el título de una
+  // tarjeta sin empujar el recuento de versículos fuera de la vista—, no un
+  // artículo.
+  topicDescription: (d) => typeof d === 'string' && d.trim().length <= 200,
   // Icon: acepta 1-4 chars (emoji como 📌) o 1-20 chars (slug como 'bookmark', 'cross')
   icon: (i) => typeof i === 'string' && i.length >= 1 && i.length <= 20,
   color: (c) => typeof c === 'string' && /^#[0-9A-Fa-f]{6}$/.test(c),

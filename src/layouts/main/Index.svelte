@@ -22,7 +22,7 @@
   let view = 'list'; // 'list' | 'detail'
   let selectedTopicId = null;
   let isCreateOpen = false;
-  let editForm = { name: '', icon: 'bookmark', color: '#2E7D9B' };
+  let editForm = { name: '', description: '', icon: 'bookmark', color: '#2E7D9B' };
   let isSubmitting = false;
 
   $: topics = $topicsStore.topics;
@@ -176,7 +176,7 @@
       return;
     }
     editandoId = null;
-    editForm = { name: '', icon: 'bookmark', color: '#2E7D9B' };
+    editForm = { name: '', description: '', icon: 'bookmark', color: '#2E7D9B' };
     isCreateOpen = true;
   };
 
@@ -184,6 +184,7 @@
     editandoId = topic.id;
     editForm = {
       name: topic.name,
+      description: topic.description || '',
       // Pasa por `resolveTopicIcon` para que el selector marque el icono
       // correcto también en los temas antiguos, que guardan un emoji: con el
       // valor crudo no coincidía con ninguna opción, el selector salía sin nada
@@ -210,6 +211,7 @@
       if (editandoId) {
         await topicsStore.update(editandoId, {
           name: editForm.name.trim(),
+          description: editForm.description.trim(),
           icon: editForm.icon,
           color: editForm.color,
         });
@@ -324,7 +326,7 @@
         </div>
       {:else}
         <div class="topics-grid">
-          {#each topics as topic (topic.id)}
+          {#each topics as topic, i (topic.id)}
             {@const count = (verseRefs[topic.id] || []).length}
             <button
               type="button"
@@ -334,6 +336,9 @@
             >
               <span class="topic-card__icon" aria-hidden="true"><Icon name={resolveTopicIcon(topic.icon)} size="1.1rem" /></span>
               <span class="topic-card__name">{topic.name}</span>
+              {#if topic.description}
+                <span class="topic-card__desc">{topic.description}</span>
+              {/if}
               <span class="topic-card__count">
                 {count === 1
                   ? $_('app.topics.verse_count', { count })
@@ -344,6 +349,46 @@
                    le sirvan, obligarle a tenerlos en el índice para siempre no
                    tiene sentido. El worker dejó de devolver 403 por lo mismo. -->
               <span class="topic-card__acciones">
+                <!-- Flechas y no arrastrar: arrastrar dentro de una rejilla que
+                     hace scroll es incómodo en el móvil y falla mucho, y esto
+                     funciona igual en los dos sitios. Mismo criterio que la
+                     estructura de las predicaciones. -->
+                <span
+                  class="topic-card__accion"
+                  class:topic-card__accion--inerte={i === 0}
+                  role="button"
+                  tabindex={i === 0 ? -1 : 0}
+                  aria-disabled={i === 0}
+                  title={$_('app.topics.move_up')}
+                  aria-label={$_('app.topics.move_up')}
+                  on:click|stopPropagation={() => i > 0 && topicsStore.move(topic.id, -1)}
+                  on:keydown={(e) => {
+                    if ((e.key === 'Enter' || e.key === ' ') && i > 0) {
+                      e.preventDefault();
+                      topicsStore.move(topic.id, -1);
+                    }
+                  }}
+                >
+                  <Icon name="chevron-up" size="0.8rem" />
+                </span>
+                <span
+                  class="topic-card__accion topic-card__accion--abajo"
+                  class:topic-card__accion--inerte={i === topics.length - 1}
+                  role="button"
+                  tabindex={i === topics.length - 1 ? -1 : 0}
+                  aria-disabled={i === topics.length - 1}
+                  title={$_('app.topics.move_down')}
+                  aria-label={$_('app.topics.move_down')}
+                  on:click|stopPropagation={() => i < topics.length - 1 && topicsStore.move(topic.id, 1)}
+                  on:keydown={(e) => {
+                    if ((e.key === 'Enter' || e.key === ' ') && i < topics.length - 1) {
+                      e.preventDefault();
+                      topicsStore.move(topic.id, 1);
+                    }
+                  }}
+                >
+                  <Icon name="chevron-up" size="0.8rem" />
+                </span>
                 <span
                   class="topic-card__accion"
                   role="button"
@@ -491,6 +536,20 @@
               maxlength="40"
               autofocus
             />
+          </label>
+          <label class="modal__field">
+            <span class="modal__label">{$_('app.topics.topic_description')}</span>
+            <!-- Opcional a propósito: un tema sin descripción se ve igual que
+                 antes. 200 caracteres es una o dos frases, lo que cabe bajo el
+                 título sin empujar el recuento de versículos fuera de la vista. -->
+            <textarea
+              spellcheck="false"
+              class="modal__textarea"
+              rows="2"
+              maxlength="200"
+              bind:value={editForm.description}
+              placeholder={$_('app.topics.topic_description_hint')}
+            ></textarea>
           </label>
           <label class="modal__field modal__field--row">
             <div class="modal__field-col">
@@ -886,6 +945,20 @@
       transition: opacity var(--motion-base) var(--ease-out);
     }
 
+    /* La descripción bajo el título. Dos líneas como mucho: pasado eso la
+       tarjeta crece y la rejilla deja de leerse de un vistazo, que es para lo
+       que sirve esta pantalla. */
+    &__desc {
+      margin-top: 0.15rem;
+      color: var(--color-ink-soft);
+      font-size: 0.78rem;
+      line-height: 1.35;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
     &__accion {
       display: grid;
       place-items: center;
@@ -910,6 +983,20 @@
       &--borrar:focus-visible {
         background: var(--color-danger-wash);
         color: var(--color-danger);
+      }
+
+      /* La flecha de bajar es la de subir girada: `Icon` no trae `chevron-down`
+         y añadir un trazo al fichero generado por un giro de 180° no compensa. */
+      &--abajo :global(svg) { transform: rotate(180deg); }
+
+      /* En el primero y en el último la flecha no lleva a ninguna parte.
+         Se apaga en vez de esconderse: si desapareciera, los botones de
+         debajo cambiarían de sitio entre tarjetas y habría que buscarlos. */
+      &--inerte {
+        opacity: 0.3;
+        cursor: default;
+
+        &:hover { background: var(--color-surface); color: var(--color-ink-soft); }
       }
 
       &:focus-visible {

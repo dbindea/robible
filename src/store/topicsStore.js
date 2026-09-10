@@ -51,6 +51,15 @@ const createTopicsStore = () => {
       refresh();
       return ok;
     },
+    move: async (id, delta) => {
+      // El servicio ya escribió en local antes de llamar al servidor, así que
+      // se refresca ANTES de esperar: la flecha responde en el acto y no
+      // después de la ida y vuelta a la red.
+      const promesa = topicsService.moveTopic(id, delta);
+      refresh();
+      await promesa;
+      refresh();
+    },
     publish: async (id, version) => {
       const res = await topicsService.publishTopic(id, version);
       refresh();
