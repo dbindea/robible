@@ -2,6 +2,7 @@ import { writable, get } from 'svelte/store';
 import * as topicsService from '../services/topics.service';
 import { currentUser } from './authStore';
 import { tokenStore } from '../services/apiClient';
+import { registrarSincronizacion } from '../services/resync.service';
 
 // Reaccionar al usuario actual: cuando cambia, recargar topics del namespace
 // y, si hay token, sincronizar del backend (multi-device).
@@ -88,3 +89,6 @@ export const topicsContainingVerse = (book, chapter, verse) => {
     ),
   );
 };
+
+// Releer del servidor al volver a la aplicación. Ver `resync.service.js`.
+registrarSincronizacion("topics", topicsService.syncFromServer, topicsStore.refresh);

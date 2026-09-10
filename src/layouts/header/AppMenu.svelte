@@ -112,7 +112,7 @@
               {#if item.icon === 'home'}
                 <Icon name="book-open" />
               {:else if item.icon === 'compare'}
-                <Icon name="compare" />
+                <Icon name="swap" />
               {:else if item.icon === 'bookmark'}
                 <Icon name="bookmark" />
               {:else if item.icon === 'star'}

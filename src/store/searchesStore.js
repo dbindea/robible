@@ -2,6 +2,7 @@ import { writable, get } from 'svelte/store';
 import * as searchesService from '../services/searches.service';
 import { currentUser } from './authStore';
 import { tokenStore } from '../services/apiClient';
+import { registrarSincronizacion } from '../services/resync.service';
 
 // Reaccionar al usuario actual: cuando cambia, recargar searches del namespace
 // y, si hay token, sincronizar del backend (multi-device).
@@ -55,3 +56,6 @@ const createSearchesStore = () => {
 };
 
 export const searchesStore = createSearchesStore();
+
+// Releer del servidor al volver a la aplicación. Ver `resync.service.js`.
+registrarSincronizacion("searches", searchesService.syncFromServer, searchesStore.refresh);

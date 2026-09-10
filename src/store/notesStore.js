@@ -2,6 +2,7 @@ import { writable, get } from 'svelte/store';
 import * as notesService from '../services/notes.service';
 import { currentUser } from './authStore';
 import { tokenStore } from '../services/apiClient';
+import { registrarSincronizacion } from '../services/resync.service';
 
 // Reaccionar al usuario actual: cuando cambia, recargar notes del namespace
 // y, si hay token, sincronizar del backend (multi-device).
@@ -43,3 +44,6 @@ const createNotesStore = () => {
 };
 
 export const notesStore = createNotesStore();
+
+// Releer del servidor al volver a la aplicación. Ver `resync.service.js`.
+registrarSincronizacion("notes", notesService.syncFromServer, notesStore.refresh);

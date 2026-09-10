@@ -1153,7 +1153,7 @@
               aria-haspopup="listbox"
               aria-expanded={compareMenuVerseKey === item.key}
             >
-              <Icon name="compare" />
+              <Icon name="swap" />
             </button>
           </span>
         {/if}

@@ -6,6 +6,7 @@ import { writable, get } from 'svelte/store';
 import * as highlightsService from '../services/highlights.service';
 import { currentUser } from './authStore';
 import { tokenStore } from '../services/apiClient';
+import { registrarSincronizacion } from '../services/resync.service';
 
 const initial = highlightsService.loadHighlights();
 const { subscribe, set } = writable(initial);
@@ -43,3 +44,6 @@ export const highlightsStore = {
   },
   refresh: () => set(highlightsService.loadHighlights()),
 };
+
+// Releer del servidor al volver a la aplicación. Ver `resync.service.js`.
+registrarSincronizacion("highlights", highlightsService.syncFromServer, highlightsStore.refresh);

@@ -113,7 +113,7 @@
       aria-current={isOnCompare ? 'page' : undefined}
       on:click={(e) => navigate(e, '/compara')}
     >
-      <Icon name="compare" />
+      <Icon name="swap" />
       <span class="nav-link__label">{$_('app.compare.title')}</span>
     </a>
 

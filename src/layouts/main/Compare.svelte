@@ -429,7 +429,7 @@
     <!-- Empty state -->
     <div class="compare-empty">
       <div class="compare-empty__icon" aria-hidden="true">
-        <Icon name="compare" />
+        <Icon name="swap" />
       </div>
       <h2>{$_('app.compare.title')}</h2>
       <p>{$_('app.compare.subtitle')}</p>

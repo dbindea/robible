@@ -5,6 +5,7 @@ import { writable, get } from 'svelte/store';
 import * as memService from '../services/memorize.service';
 import { currentUser } from './authStore';
 import { tokenStore } from '../services/apiClient';
+import { registrarSincronizacion } from '../services/resync.service';
 
 const initial = memService.loadMemorizations();
 const { subscribe, set } = writable(initial);
@@ -47,3 +48,6 @@ export const memorizeStore = {
   },
   refresh: () => set(memService.loadMemorizations()),
 };
+
+// Releer del servidor al volver a la aplicación. Ver `resync.service.js`.
+registrarSincronizacion("memorize", memService.syncFromServer, memorizeStore.refresh);
