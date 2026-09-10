@@ -101,10 +101,12 @@ const normalizeFromApi = (apiData) => ({
   topics: (apiData.topics || []).map((t) => ({
     id: t.id,
     name: t.name,
+    description: t.description || '',
     icon: t.icon || 'bookmark',
     color: t.color || '#2E7D9B',
     isDefault: !!t.isDefault,
     createdAt: t.createdAt,
+    position: Number.isFinite(t.position) ? t.position : 0,
     isPublic: !!t.isPublic,
     publicSlug: t.publicSlug || null,
     publicVersion: t.publicVersion || null,
@@ -163,14 +165,14 @@ export const syncFromServer = async () => {
   }
 };
 
-export const createTopic = async ({ name, icon = 'bookmark', color = '#2E7D9B' }) => {
+export const createTopic = async ({ name, description = '', icon = 'bookmark', color = '#2E7D9B' }) => {
   if (!name?.trim()) throw new Error('Topic name is required');
 
   if (USE_BACKEND) {
     try {
-      const res = await api.post('/api/topics', { name: name.trim(), icon, color });
+      const res = await api.post('/api/topics', { name: name.trim(), description: description.trim(), icon, color });
       const state = readLS() || { topics: [], verseRefs: {} };
-      const topic = { id: res.topic.id, name: res.topic.name, icon: res.topic.icon, color: res.topic.color, isDefault: !!res.topic.isDefault, createdAt: res.topic.createdAt };
+      const topic = { id: res.topic.id, name: res.topic.name, description: res.topic.description || '', icon: res.topic.icon, color: res.topic.color, isDefault: !!res.topic.isDefault, createdAt: res.topic.createdAt, position: res.topic.position ?? 0 };
       state.topics.push(topic);
       state.verseRefs[topic.id] = state.verseRefs[topic.id] || [];
       writeLS(state);
@@ -186,7 +188,17 @@ export const createTopic = async ({ name, icon = 'bookmark', color = '#2E7D9B' }
   // Fallback localStorage
   const state = readLS() || seedDefaultsIfEmpty();
   const id = genId(name);
-  const topic = { id, name: name.trim(), icon, color, isDefault: false, createdAt: nowIso() };
+  const topic = {
+    id,
+    name: name.trim(),
+    description: description.trim(),
+    icon,
+    color,
+    isDefault: false,
+    createdAt: nowIso(),
+    // Al final, igual que hace el worker.
+    position: state.topics.length,
+  };
   state.topics.push(topic);
   state.verseRefs[id] = state.verseRefs[id] || [];
   writeLS(state);
@@ -204,6 +216,7 @@ export const updateTopic = async (id, patch) => {
           state.topics[idx] = {
             ...state.topics[idx],
             name: res.topic.name,
+            description: res.topic.description || '',
             icon: res.topic.icon,
             color: res.topic.color,
             // Sin esto el toggle de publicar se quedaba en la cache con el
@@ -240,6 +253,46 @@ export const updateTopic = async (id, patch) => {
   state.topics[idx] = merged;
   writeLS(state);
   return merged;
+};
+
+/**
+ * Mueve un tema una posición arriba o abajo.
+ *
+ * Se reescribe el orden **entero** y no sólo las dos filas que se intercambian:
+ * un intercambio depende de qué había antes, así que con dos dispositivos
+ * abiertos dos movimientos cruzados dejarían un orden que no es el que ve
+ * ninguno de los dos. Mandar la lista completa es idempotente y gana siempre la
+ * última que llega — que es justo lo que el usuario acaba de ver en pantalla.
+ *
+ * Escribe en local ANTES de llamar al servidor: la flecha tiene que responder
+ * en el acto, y si la red falla el orden nuevo se queda igualmente guardado
+ * aquí. La próxima sincronización lo pisará con el del servidor, que es el
+ * comportamiento correcto — sin cola de pendientes, como el resto de temas.
+ */
+export const moveTopic = async (id, delta) => {
+  const state = readLS();
+  if (!state) return null;
+
+  const desde = state.topics.findIndex((t) => t.id === id);
+  if (desde === -1) return null;
+  const hasta = desde + delta;
+  if (hasta < 0 || hasta >= state.topics.length) return state.topics;
+
+  const orden = [...state.topics];
+  [orden[desde], orden[hasta]] = [orden[hasta], orden[desde]];
+  // La posición se reescribe según el índice para que la cache local ordene
+  // igual que ordenará el servidor en la próxima lectura.
+  state.topics = orden.map((t, i) => ({ ...t, position: i }));
+  writeLS(state);
+
+  if (USE_BACKEND) {
+    try {
+      await api.put('/api/topics/order', { ids: state.topics.map((t) => t.id) });
+    } catch (e) {
+      console.warn('moveTopic: backend failed, orden sólo local:', e.message);
+    }
+  }
+  return state.topics;
 };
 
 // ── Publicación de temas ────────────────────────────────

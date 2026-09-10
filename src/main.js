@@ -2,6 +2,7 @@ import App from './App.svelte';
 import { mount } from 'svelte';
 import { tokenStore } from './services/apiClient';
 import { getActive as getActivePulpit } from './services/sermon-pulpit.service';
+import { iniciarResincronizacion } from './services/resync.service';
 
 // Limpiar el contenido pre-rendered (SEO) antes de montar la SPA
 // para que no se vea duplicado (seo-prerender + vista SPA).
@@ -40,6 +41,11 @@ if (typeof window !== 'undefined' && window.location.pathname === '/') {
 const app = mount(App, {
   target: appTarget,
 });
+
+// Releer del servidor al volver a la aplicación. Va DESPUÉS de montar: los
+// stores se registran al importarse, y hasta que Svelte no monta el árbol no
+// se han importado todos.
+iniciarResincronizacion();
 
 window.addEventListener('beforeinstallprompt', (event) => {
   event.preventDefault();

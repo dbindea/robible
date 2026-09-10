@@ -77,6 +77,27 @@ function makeD1Adapter() {
       // reportaba `db: down` aunque la base de datos funcionase.
       return { bind: withArgs, ...withArgs() };
     },
+
+    /**
+     * `db.batch([...])` de D1: varias sentencias preparadas de una tacada.
+     *
+     * Faltaba, y el emulador devolvía un 500 en cuanto una ruta la usaba —
+     * la reordenación de temas fue la primera. Aquí se ejecutan en serie
+     * dentro de una transacción: D1 tampoco garantiza paralelismo y sí que el
+     * lote es atómico, así que media reordenación aplicada no puede quedar.
+     */
+    async batch(sentencias) {
+      sqlite.exec('BEGIN');
+      try {
+        const salida = [];
+        for (const s of sentencias) salida.push(await s.run());
+        sqlite.exec('COMMIT');
+        return salida;
+      } catch (e) {
+        sqlite.exec('ROLLBACK');
+        throw e;
+      }
+    },
   };
 }
 

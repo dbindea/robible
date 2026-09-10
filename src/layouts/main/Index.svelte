@@ -12,6 +12,7 @@
   import { openAuthMenu } from '../../store/authMenuStore';
   import IconPicker from '../../components/IconPicker.svelte';
   import Icon from '../../components/Icon.svelte';
+  import Modal from '../../components/Modal.svelte';
   import { resolveTopicIcon } from '../../config/topic-icons.js';
 
   export let bible = [];
@@ -21,7 +22,7 @@
   let view = 'list'; // 'list' | 'detail'
   let selectedTopicId = null;
   let isCreateOpen = false;
-  let editForm = { name: '', icon: 'bookmark', color: '#2E7D9B' };
+  let editForm = { name: '', description: '', icon: 'bookmark', color: '#2E7D9B' };
   let isSubmitting = false;
 
   $: topics = $topicsStore.topics;
@@ -41,6 +42,10 @@
 
   $: copyVerseLabel = $_('app.topics.delete_verse');
   $: createTopicLabel = $_('app.topics.create_topic');
+  // Se compara contra `editandoId` directamente y no a través de un helper:
+  // Svelte sólo sigue lo que ve escrito en la expresión (trampa 23).
+  $: tituloDialogo = editandoId ? $_('app.topics.edit_topic') : $_('app.topics.create_topic');
+  $: accionDialogo = editandoId ? $_('app.topics.save') : $_('app.topics.create');
 
   // ── Publicar un tema ────────────────────────────────────
   let publicando = false;
@@ -160,35 +165,85 @@
     }
   };
 
+  // El mismo diálogo crea y edita: los campos son los mismos y mantener dos
+  // copias del formulario garantizaba que un campo nuevo se añadiera sólo a
+  // uno. `editandoId` a null significa «estoy creando».
+  let editandoId = null;
+
   const openCreate = () => {
     if (!$isAuthenticated) {
       openAuthMenu();
       return;
     }
-    editForm = { name: '', icon: 'bookmark', color: '#2E7D9B' };
+    editandoId = null;
+    editForm = { name: '', description: '', icon: 'bookmark', color: '#2E7D9B' };
+    isCreateOpen = true;
+  };
+
+  const openEdit = (topic) => {
+    editandoId = topic.id;
+    editForm = {
+      name: topic.name,
+      description: topic.description || '',
+      // Pasa por `resolveTopicIcon` para que el selector marque el icono
+      // correcto también en los temas antiguos, que guardan un emoji: con el
+      // valor crudo no coincidía con ninguna opción, el selector salía sin nada
+      // marcado y guardar convertía el emoji en el icono por defecto sin avisar.
+      icon: resolveTopicIcon(topic.icon),
+      color: topic.color || '#2E7D9B',
+    };
     isCreateOpen = true;
   };
 
   const closeCreate = () => {
     isCreateOpen = false;
+    editandoId = null;
   };
 
-  const submitCreate = () => {
-    if (!editForm.name.trim()) return;
+  const submitCreate = async () => {
+    if (!editForm.name.trim() || isSubmitting) return;
     isSubmitting = true;
     try {
-      topicsStore.create(editForm);
-      isCreateOpen = false;
+      // `updateTopic` existía en el servicio y en el store desde el principio,
+      // sin que ninguna pantalla lo llamara: el diálogo sólo sabía crear, así
+      // que un tema mal nombrado o con el icono equivocado había que borrarlo y
+      // rehacerlo, perdiendo los versículos guardados dentro.
+      if (editandoId) {
+        await topicsStore.update(editandoId, {
+          name: editForm.name.trim(),
+          description: editForm.description.trim(),
+          icon: editForm.icon,
+          color: editForm.color,
+        });
+      } else {
+        await topicsStore.create(editForm);
+      }
+      closeCreate();
     } finally {
       isSubmitting = false;
     }
   };
 
-  const handleDeleteTopic = (topic) => {
-    if (!confirm($_('app.topics.delete_confirm'))) return;
-    topicsStore.remove(topic.id);
-    if (selectedTopicId === topic.id) {
-      backToList();
+  // ── Borrar un tema, siempre con confirmación ──────────────────────────────
+  //
+  // Era el `confirm()` del navegador: un diálogo del sistema, sin estilo, sin
+  // el nombre del tema y —lo que importa— sin decir cuántos versículos se
+  // llevaba por delante. Ahora usa el mismo patrón que el de predicaciones.
+  let temaABorrar = null;
+  let borrandoTema = false;
+
+  const handleDeleteTopic = (topic) => { temaABorrar = topic; };
+
+  const confirmarBorradoTema = async () => {
+    if (!temaABorrar || borrandoTema) return;
+    borrandoTema = true;
+    const id = temaABorrar.id;
+    try {
+      await topicsStore.remove(id);
+      temaABorrar = null;
+      if (selectedTopicId === id) backToList();
+    } finally {
+      borrandoTema = false;
     }
   };
 
@@ -271,7 +326,7 @@
         </div>
       {:else}
         <div class="topics-grid">
-          {#each topics as topic (topic.id)}
+          {#each topics as topic, i (topic.id)}
             {@const count = (verseRefs[topic.id] || []).length}
             <button
               type="button"
@@ -281,6 +336,9 @@
             >
               <span class="topic-card__icon" aria-hidden="true"><Icon name={resolveTopicIcon(topic.icon)} size="1.1rem" /></span>
               <span class="topic-card__name">{topic.name}</span>
+              {#if topic.description}
+                <span class="topic-card__desc">{topic.description}</span>
+              {/if}
               <span class="topic-card__count">
                 {count === 1
                   ? $_('app.topics.verse_count', { count })
@@ -290,21 +348,79 @@
                    siembran al crear la cuenta, no datos del sistema: a quien no
                    le sirvan, obligarle a tenerlos en el índice para siempre no
                    tiene sentido. El worker dejó de devolver 403 por lo mismo. -->
-              <span
-                class="topic-card__delete"
-                role="button"
-                tabindex="0"
-                title={$_('app.topics.delete_topic')}
-                aria-label={$_('app.topics.delete_topic')}
-                on:click|stopPropagation={() => handleDeleteTopic(topic)}
-                on:keydown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    handleDeleteTopic(topic);
-                  }
-                }}
-              >
-                <span aria-hidden="true">&#10005;</span>
+              <span class="topic-card__acciones">
+                <!-- Flechas y no arrastrar: arrastrar dentro de una rejilla que
+                     hace scroll es incómodo en el móvil y falla mucho, y esto
+                     funciona igual en los dos sitios. Mismo criterio que la
+                     estructura de las predicaciones. -->
+                <span
+                  class="topic-card__accion"
+                  class:topic-card__accion--inerte={i === 0}
+                  role="button"
+                  tabindex={i === 0 ? -1 : 0}
+                  aria-disabled={i === 0}
+                  title={$_('app.topics.move_up')}
+                  aria-label={$_('app.topics.move_up')}
+                  on:click|stopPropagation={() => i > 0 && topicsStore.move(topic.id, -1)}
+                  on:keydown={(e) => {
+                    if ((e.key === 'Enter' || e.key === ' ') && i > 0) {
+                      e.preventDefault();
+                      topicsStore.move(topic.id, -1);
+                    }
+                  }}
+                >
+                  <Icon name="chevron-up" size="0.8rem" />
+                </span>
+                <span
+                  class="topic-card__accion topic-card__accion--abajo"
+                  class:topic-card__accion--inerte={i === topics.length - 1}
+                  role="button"
+                  tabindex={i === topics.length - 1 ? -1 : 0}
+                  aria-disabled={i === topics.length - 1}
+                  title={$_('app.topics.move_down')}
+                  aria-label={$_('app.topics.move_down')}
+                  on:click|stopPropagation={() => i < topics.length - 1 && topicsStore.move(topic.id, 1)}
+                  on:keydown={(e) => {
+                    if ((e.key === 'Enter' || e.key === ' ') && i < topics.length - 1) {
+                      e.preventDefault();
+                      topicsStore.move(topic.id, 1);
+                    }
+                  }}
+                >
+                  <Icon name="chevron-up" size="0.8rem" />
+                </span>
+                <span
+                  class="topic-card__accion"
+                  role="button"
+                  tabindex="0"
+                  title={$_('app.topics.edit_topic')}
+                  aria-label={$_('app.topics.edit_topic')}
+                  on:click|stopPropagation={() => openEdit(topic)}
+                  on:keydown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      openEdit(topic);
+                    }
+                  }}
+                >
+                  <Icon name="pencil" size="0.8rem" />
+                </span>
+                <span
+                  class="topic-card__accion topic-card__accion--borrar"
+                  role="button"
+                  tabindex="0"
+                  title={$_('app.topics.delete_topic')}
+                  aria-label={$_('app.topics.delete_topic')}
+                  on:click|stopPropagation={() => handleDeleteTopic(topic)}
+                  on:keydown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleDeleteTopic(topic);
+                    }
+                  }}
+                >
+                  <Icon name="close" size="0.8rem" />
+                </span>
               </span>
             </button>
           {/each}
@@ -407,8 +523,8 @@
   <!-- Create topic modal -->
   {#if isCreateOpen}
     <div class="modal-backdrop" on:click={closeCreate} role="presentation">
-      <div class="modal" on:click|stopPropagation on:keydown={(e) => e.key === 'Escape' && closeCreate()} role="dialog" tabindex="-1" aria-modal="true" aria-label={createTopicLabel}>
-        <h3 class="modal__title">{createTopicLabel}</h3>
+      <div class="modal" on:click|stopPropagation on:keydown={(e) => e.key === 'Escape' && closeCreate()} role="dialog" tabindex="-1" aria-modal="true" aria-label={tituloDialogo}>
+        <h3 class="modal__title">{tituloDialogo}</h3>
         <form class="modal__form" on:submit|preventDefault={submitCreate}>
           <label class="modal__field">
             <span class="modal__label">{$_('app.topics.topic_name')}</span>
@@ -420,6 +536,20 @@
               maxlength="40"
               autofocus
             />
+          </label>
+          <label class="modal__field">
+            <span class="modal__label">{$_('app.topics.topic_description')}</span>
+            <!-- Opcional a propósito: un tema sin descripción se ve igual que
+                 antes. 200 caracteres es una o dos frases, lo que cabe bajo el
+                 título sin empujar el recuento de versículos fuera de la vista. -->
+            <textarea
+              spellcheck="false"
+              class="modal__textarea"
+              rows="2"
+              maxlength="200"
+              bind:value={editForm.description}
+              placeholder={$_('app.topics.topic_description_hint')}
+            ></textarea>
           </label>
           <label class="modal__field modal__field--row">
             <div class="modal__field-col">
@@ -441,7 +571,7 @@
               {$_('app.topics.cancel')}
             </button>
             <button type="submit" class="modal__btn modal__btn--primary" disabled={isSubmitting || !editForm.name.trim()}>
-              {$_('app.topics.create')}
+              {accionDialogo}
             </button>
           </div>
         </form>
@@ -450,7 +580,125 @@
   {/if}
 </div>
 
+<!-- ── Confirmar el borrado de un tema ─────────────────────────────────────
+     Con `Modal`, que es el diálogo de la aplicación (el de crear/editar de
+     arriba es anterior y sigue escrito a mano). `fitContent` porque son dos
+     líneas y sin él la hoja de móvil ocupa 92 dvh a medio llenar. -->
+{#if temaABorrar}
+  <Modal
+    open={true}
+    title={$_('app.topics.delete_topic')}
+    size="sm"
+    fitContent
+    onClose={() => (temaABorrar = null)}
+  >
+    {@const versiculos = (verseRefs[temaABorrar.id] || []).length}
+    <div class="borrar-tema">
+      <p class="borrar-tema__pregunta">{$_('app.topics.delete_confirm')}</p>
+      <p class="borrar-tema__cual" style:--topic-color={temaABorrar.color}>
+        <span class="borrar-tema__icono" aria-hidden="true">
+          <Icon name={resolveTopicIcon(temaABorrar.icon)} size="1rem" />
+        </span>
+        <strong>{temaABorrar.name}</strong>
+      </p>
+      <!-- Cuántos versículos se lleva. Es el dato que decide: borrar una
+           categoría vacía no cuesta nada y borrar una con cuarenta sí. -->
+      {#if versiculos > 0}
+        <p class="borrar-tema__aviso">
+          {versiculos === 1
+            ? $_('app.topics.delete_verses_warning', { count: versiculos })
+            : $_('app.topics.delete_verses_warning_plural', { count: versiculos })}
+        </p>
+      {/if}
+      {#if temaABorrar.isPublic}
+        <p class="borrar-tema__aviso">{$_('app.topics.delete_public_warning')}</p>
+      {/if}
+    </div>
+
+    <svelte:fragment slot="footer">
+      <!-- Clases propias y no `.modal__btn`: aquélla está anidada bajo `.modal`,
+           que es el diálogo escrito a mano de arriba. Dentro de `<Modal>` el
+           `.modal` lleva el hash de scope de *ese* componente, así que el
+           selector anidado de este fichero no llega — los botones saldrían sin
+           estilo ninguno. -->
+      <button type="button" class="borrar-tema__boton" on:click={() => (temaABorrar = null)}>
+        {$_('app.topics.cancel')}
+      </button>
+      <button type="button" class="borrar-tema__boton borrar-tema__boton--peligro" disabled={borrandoTema} on:click={confirmarBorradoTema}>
+        {borrandoTema ? $_('auth.working') : $_('app.topics.delete_topic')}
+      </button>
+    </svelte:fragment>
+  </Modal>
+{/if}
+
 <style lang="scss">
+  // === BORRAR UN TEMA ===
+  .borrar-tema {
+    display: grid;
+    gap: 0.7rem;
+    font-size: var(--font-size-small);
+    line-height: var(--line-height-body);
+  }
+
+  .borrar-tema__pregunta {
+    margin: 0;
+    color: var(--color-ink);
+  }
+
+  .borrar-tema__cual {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0.6rem 0.75rem;
+    border-left: 3px solid var(--topic-color, var(--color-accent));
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    background: var(--color-surface-sunken);
+    color: var(--color-ink-strong);
+  }
+
+  .borrar-tema__icono {
+    display: inline-flex;
+    flex: 0 0 auto;
+    color: var(--topic-color, var(--color-accent));
+  }
+
+  .borrar-tema__aviso {
+    margin: 0;
+    color: var(--color-danger-ink);
+    font-weight: 600;
+  }
+
+  .borrar-tema__boton {
+    padding: 0.5rem 1.1rem;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-pill);
+    background: transparent;
+    color: var(--color-ink);
+    font-size: var(--font-size-small);
+    font-weight: 700;
+    cursor: pointer;
+    transition: var(--transition);
+
+    &:hover { border-color: var(--color-accent); color: var(--color-accent); }
+
+    /* Veladura y tinta de peligro, no rojo macizo: no hay token de relleno para
+       `danger` y en las paletas oscuras es claro. Mismo patrón que el diálogo
+       de borrar una predicación. */
+    &--peligro {
+      border-color: color-mix(in srgb, var(--color-danger) 55%, transparent);
+      background: var(--color-danger-wash);
+      color: var(--color-danger-ink);
+
+      &:hover:not(:disabled) {
+        border-color: var(--color-danger);
+        background: color-mix(in srgb, var(--color-danger) 26%, transparent);
+      }
+
+      &:disabled { opacity: 0.5; cursor: not-allowed; }
+    }
+  }
+
   .index-page {
     width: 100%;
     max-width: 96rem;
@@ -684,32 +932,75 @@
       font-weight: 600;
     }
 
-    &__delete {
+    &__acciones {
       position: absolute;
-      top: 0.5rem;
-      right: 0.5rem;
+      top: 0.4rem;
+      right: 0.4rem;
+      display: flex;
+      gap: 0.15rem;
+      /* Apagadas hasta que se pasa por encima: son acciones secundarias y la
+         tarjeta entera ya es un botón. En táctil se muestran siempre — ver la
+         media query de abajo. */
+      opacity: 0;
+      transition: opacity var(--motion-base) var(--ease-out);
+    }
+
+    /* La descripción bajo el título. Dos líneas como mucho: pasado eso la
+       tarjeta crece y la rejilla deja de leerse de un vistazo, que es para lo
+       que sirve esta pantalla. */
+    &__desc {
+      margin-top: 0.15rem;
+      color: var(--color-ink-soft);
+      font-size: 0.78rem;
+      line-height: 1.35;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    &__accion {
       display: grid;
       place-items: center;
-      width: 1.6rem;
-      height: 1.6rem;
+      /* 1.75rem = 28 px: por encima del mínimo de 24 de la WCAG 2.5.8, que es
+         lo que hay que respetar en cuanto se ven en el móvil. */
+      width: 1.75rem;
+      height: 1.75rem;
       border: 0;
       border-radius: 50%;
-      background: transparent;
+      background: var(--color-surface);
       color: var(--color-ink-soft);
       cursor: pointer;
       transition: var(--transition);
-      opacity: 0;
-      font-size: 0.85rem;
 
       &:hover,
       &:focus-visible {
+        background: var(--wash-accent);
+        color: var(--color-accent);
+      }
+
+      &--borrar:hover,
+      &--borrar:focus-visible {
         background: var(--color-danger-wash);
         color: var(--color-danger);
-        opacity: 1;
+      }
+
+      /* La flecha de bajar es la de subir girada: `Icon` no trae `chevron-down`
+         y añadir un trazo al fichero generado por un giro de 180° no compensa. */
+      &--abajo :global(svg) { transform: rotate(180deg); }
+
+      /* En el primero y en el último la flecha no lleva a ninguna parte.
+         Se apaga en vez de esconderse: si desapareciera, los botones de
+         debajo cambiarían de sitio entre tarjetas y habría que buscarlos. */
+      &--inerte {
+        opacity: 0.3;
+        cursor: default;
+
+        &:hover { background: var(--color-surface); color: var(--color-ink-soft); }
       }
 
       &:focus-visible {
-        outline: 2px solid var(--color-blue);
+        outline: 2px solid var(--color-accent);
         outline-offset: 2px;
       }
     }
@@ -721,10 +1012,19 @@
       border-color: color-mix(in srgb, var(--topic-color) 50%, transparent);
     }
 
-    &:hover &__delete,
-    &:focus-within &__delete {
+    &:hover &__acciones,
+    &:focus-within &__acciones {
       opacity: 1;
     }
+  }
+
+  /* En un móvil no hay `hover`: con las acciones apagadas hasta pasar el ratón,
+     editar y borrar un tema eran sencillamente inalcanzables desde el teléfono
+     —que es donde más se usa esta pantalla—. `hover: none` distingue el táctil
+     del escritorio sin mirar el ancho, que es lo correcto: un portátil con
+     pantalla táctil tiene las dos cosas y no debe perder el ratón. */
+  @media (hover: none) {
+    .topic-card__acciones { opacity: 1; }
   }
 
   // === COMPARTIR TEMA ===

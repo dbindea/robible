@@ -2,6 +2,7 @@ import { writable, get } from 'svelte/store';
 import * as topicsService from '../services/topics.service';
 import { currentUser } from './authStore';
 import { tokenStore } from '../services/apiClient';
+import { registrarSincronizacion } from '../services/resync.service';
 
 // Reaccionar al usuario actual: cuando cambia, recargar topics del namespace
 // y, si hay token, sincronizar del backend (multi-device).
@@ -50,6 +51,15 @@ const createTopicsStore = () => {
       refresh();
       return ok;
     },
+    move: async (id, delta) => {
+      // El servicio ya escribió en local antes de llamar al servidor, así que
+      // se refresca ANTES de esperar: la flecha responde en el acto y no
+      // después de la ida y vuelta a la red.
+      const promesa = topicsService.moveTopic(id, delta);
+      refresh();
+      await promesa;
+      refresh();
+    },
     publish: async (id, version) => {
       const res = await topicsService.publishTopic(id, version);
       refresh();
@@ -88,3 +98,6 @@ export const topicsContainingVerse = (book, chapter, verse) => {
     ),
   );
 };
+
+// Releer del servidor al volver a la aplicación. Ver `resync.service.js`.
+registrarSincronizacion("topics", topicsService.syncFromServer, topicsStore.refresh);

@@ -5,6 +5,7 @@ import { writable, get } from 'svelte/store';
 import * as favsService from '../services/favorites.service';
 import { currentUser } from './authStore';
 import { tokenStore } from '../services/apiClient';
+import { registrarSincronizacion } from '../services/resync.service';
 
 const initial = favsService.loadFavorites();
 const { subscribe, set } = writable(initial);
@@ -41,3 +42,6 @@ export const favoritesStore = {
   },
   refresh: () => set(favsService.loadFavorites()),
 };
+
+// Releer del servidor al volver a la aplicación. Ver `resync.service.js`.
+registrarSincronizacion("favorites", favsService.syncFromServer, favoritesStore.refresh);

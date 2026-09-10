@@ -6,6 +6,7 @@ import { writable, get } from 'svelte/store';
 import * as sermonsService from '../services/sermons.service';
 import { currentUser } from './authStore';
 import { tokenStore } from '../services/apiClient';
+import { registrarSincronizacion } from '../services/resync.service';
 
 const { subscribe, set } = writable(sermonsService.loadSermons());
 
@@ -74,3 +75,6 @@ export const countByStatus = () => {
     preached: lista.filter((s) => s.status === 'preached').length,
   };
 };
+
+// Releer del servidor al volver a la aplicación. Ver `resync.service.js`.
+registrarSincronizacion("sermons", sermonsService.syncFromServer, sermonsStore.refresh);

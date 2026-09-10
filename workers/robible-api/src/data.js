@@ -15,9 +15,13 @@ import {
 export async function listTopics(db, userId) {
   const topics = await db
     .prepare(
-      `SELECT id, name, icon, color, is_default, created_at,
+      // El orden lo manda `position`, que el usuario controla con las flechas.
+      // `created_at` queda de desempate: dos temas con la misma posición sólo
+      // pueden venir de una reordenación a medias, y ahí el orden estable es
+      // preferible a uno arbitrario que cambie en cada petición.
+      `SELECT id, name, description, icon, color, is_default, created_at, position,
               is_public, public_slug, public_version, published_at
-       FROM topics WHERE user_id = ? ORDER BY created_at ASC`,
+       FROM topics WHERE user_id = ? ORDER BY position ASC, created_at ASC`,
     )
     .bind(userId)
     .all();
@@ -47,10 +51,12 @@ export async function listTopics(db, userId) {
     topics: (topics.results || []).map((t) => ({
       id: t.id,
       name: t.name,
+      description: t.description || '',
       icon: t.icon,
       color: t.color,
       isDefault: !!t.is_default,
       createdAt: t.created_at,
+      position: t.position ?? 0,
       isPublic: !!t.is_public,
       publicSlug: t.public_slug || null,
       publicVersion: t.public_version || null,
@@ -64,8 +70,9 @@ export async function listTopics(db, userId) {
 export async function createTopic(request, db, userId, cors) {
   let body;
   try { body = await request.json(); } catch { return error('invalid_json', 400, cors); }
-  const { name, icon = '📌', color = '#2E7D9B' } = body || {};
+  const { name, description = '', icon = 'bookmark', color = '#2E7D9B' } = body || {};
   if (!validators.topicName(name)) return error('invalid_name', 400, cors);
+  if (!validators.topicDescription(description)) return error('invalid_description', 400, cors);
   if (!validators.icon(icon)) return error('invalid_icon', 400, cors);
   if (!validators.color(color)) return error('invalid_color', 400, cors);
 
@@ -78,17 +85,33 @@ export async function createTopic(request, db, userId, cors) {
 
   const id = genShortId('topic', name);
   const now = nowIso();
+  // Al final de la lista, que es donde se espera encontrar lo recién creado.
+  const ultima = await db
+    .prepare('SELECT MAX(position) AS max FROM topics WHERE user_id = ?')
+    .bind(userId)
+    .first();
+  const position = Number.isFinite(ultima?.max) ? ultima.max + 1 : 0;
+
   await db
     .prepare(
-      `INSERT INTO topics (id, user_id, name, icon, color, is_default, created_at)
-       VALUES (?, ?, ?, ?, ?, 0, ?)`,
+      `INSERT INTO topics (id, user_id, name, description, icon, color, is_default, created_at, position)
+       VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)`,
     )
-    .bind(id, userId, name.trim(), icon, color, now)
+    .bind(id, userId, name.trim(), description.trim() || null, icon, color, now, position)
     .run();
 
   return json({
     ok: true,
-    topic: { id, name: name.trim(), icon, color, isDefault: false, createdAt: now },
+    topic: {
+      id,
+      name: name.trim(),
+      description: description.trim(),
+      icon,
+      color,
+      isDefault: false,
+      createdAt: now,
+      position,
+    },
   }, 201, cors);
 }
 
@@ -97,11 +120,11 @@ export async function createTopic(request, db, userId, cors) {
 export async function updateTopic(request, db, userId, topicId, cors) {
   let body;
   try { body = await request.json(); } catch { return error('invalid_json', 400, cors); }
-  const { name, icon, color, isPublic, version } = body || {};
+  const { name, description, icon, color, isPublic, version } = body || {};
 
   const existing = await db
     .prepare(
-      `SELECT id, name, icon, color, is_default, created_at,
+      `SELECT id, name, description, icon, color, is_default, created_at, position,
               is_public, public_slug, public_version, published_at
        FROM topics WHERE id = ? AND user_id = ?`,
     )
@@ -115,6 +138,14 @@ export async function updateTopic(request, db, userId, topicId, cors) {
   if (newIcon === null) return error('invalid_icon', 400, cors);
   const newColor = color !== undefined ? (validators.color(color) ? color : null) : existing.color;
   if (newColor === null) return error('invalid_color', 400, cors);
+  // La descripción se puede vaciar a propósito: '' la borra, `undefined` la
+  // deja como estaba. Sin esa distinción no habría forma de quitarla.
+  if (description !== undefined && !validators.topicDescription(description)) {
+    return error('invalid_description', 400, cors);
+  }
+  const newDescription = description !== undefined
+    ? (description.trim() || null)
+    : (existing.description || null);
 
   // ── Publicación ────────────────────────────────────────
   let nuevoPublico = existing.is_public;
@@ -155,11 +186,11 @@ export async function updateTopic(request, db, userId, topicId, cors) {
   await db
     .prepare(
       `UPDATE topics
-       SET name = ?, icon = ?, color = ?,
+       SET name = ?, description = ?, icon = ?, color = ?,
            is_public = ?, public_slug = ?, public_version = ?, published_at = ?
        WHERE id = ? AND user_id = ?`,
     )
-    .bind(newName, newIcon, newColor, nuevoPublico, nuevoSlug, nuevaVersion, nuevaFecha, topicId, userId)
+    .bind(newName, newDescription, newIcon, newColor, nuevoPublico, nuevoSlug, nuevaVersion, nuevaFecha, topicId, userId)
     .run();
 
   return json({
@@ -167,16 +198,46 @@ export async function updateTopic(request, db, userId, topicId, cors) {
     topic: {
       id: topicId,
       name: newName,
+      description: newDescription || '',
       icon: newIcon,
       color: newColor,
       isDefault: !!existing.is_default,
       createdAt: existing.created_at || null,
+      position: existing.position ?? 0,
       isPublic: !!nuevoPublico,
       publicSlug: nuevoSlug || null,
       publicVersion: nuevaVersion || null,
       publishedAt: nuevaFecha || null,
     },
   }, 200, cors);
+}
+
+// PUT /api/topics/order — el orden completo, de una vez
+//
+// Recibe la lista de ids en el orden que quiere el usuario y reescribe las
+// posiciones. Se manda la lista ENTERA y no «mueve el tema X una arriba»
+// porque un intercambio depende de qué había antes: con dos dispositivos
+// abiertos, dos intercambios cruzados dejarían un orden que no es el que ve
+// ninguno de los dos. La lista completa es idempotente y siempre gana la
+// última que llega, que es lo que el usuario acaba de ver en pantalla.
+export async function reorderTopics(request, db, userId, cors) {
+  let body;
+  try { body = await request.json(); } catch { return error('invalid_json', 400, cors); }
+  const { ids } = body || {};
+  if (!Array.isArray(ids) || ids.length === 0 || ids.length > 200) {
+    return error('invalid_order', 400, cors);
+  }
+  if (ids.some((id) => typeof id !== 'string' || !id)) return error('invalid_order', 400, cors);
+  if (new Set(ids).size !== ids.length) return error('invalid_order', 400, cors);
+
+  // Sólo se tocan filas de este usuario: el `WHERE user_id` de cada UPDATE es
+  // lo que impide reordenar —o tocar— los temas de otro mandando sus ids.
+  const sentencias = ids.map((id, i) =>
+    db.prepare('UPDATE topics SET position = ? WHERE id = ? AND user_id = ?').bind(i, id, userId),
+  );
+  await db.batch(sentencias);
+
+  return json({ ok: true }, 200, cors);
 }
 
 // DELETE /api/topics/:id

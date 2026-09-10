@@ -158,6 +158,14 @@ app.post('/api/topics', requireAuthMw, async (c) => {
   return data.createTopic(c.req.raw, c.env.DB, user.id, corsFor(c));
 });
 
+// Antes que `/api/topics/:id`: si fuera después, Hono emparejaría «order»
+// como si fuera el id de un tema y la reordenación caería en el PATCH.
+app.put('/api/topics/order', requireAuthMw, async (c) => {
+  const user = c.get('user');
+  applyCors(c);
+  return data.reorderTopics(c.req.raw, c.env.DB, user.id, corsFor(c));
+});
+
 app.patch('/api/topics/:id', requireAuthMw, async (c) => {
   const user = c.get('user');
   applyCors(c);
