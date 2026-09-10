@@ -490,6 +490,13 @@
       "dev_illustrate": "Ilustra — ejemplo, comparación, experiencia",
       "dev_apply": "Aplica — ¿qué debe hacer el oyente?",
       "dev_subpoint": "Desarrollo del subpunto",
+      "notes": "Notas de trabajo",
+      "notes_help": "Ideas, versículos que te vienen a la memoria, ilustraciones, lo que sea — antes de saber qué predicación va a salir. Es tuyo: no entra en la predicación, ni en el PDF, ni en la página pública.",
+      "notes_placeholder": "Escribe aquí todo lo que se te ocurra sobre este texto…",
+      "notes_open": "Mis notas",
+      "notes_empty": "Todavía no hay nada escrito en el paso Texto.",
+      "transition": "Frase de transición",
+      "transition_help": "La frase que lleva de la introducción a las divisiones.",
       "development_needs_structure": "Añade primero los puntos en el paso Estructura.",
       "intro": "Introducción",
       "intro_help": "¿Cómo introduces el tema? ¿Cómo llegas al texto?",
@@ -696,16 +703,32 @@
         "b4": "No empieces con detalles técnicos sobre el libro o sobre los destinatarios.",
         "b5": "La conclusión tiene también tres partes: retomar la idea homilética, recapitular las divisiones y la visión: qué pasará si los oyentes aplican la idea."
       },
+      "transition": {
+        "title": "¿Cómo se hace?",
+        "how": "Número de divisiones + la palabra clave en plural + la pregunta analítica. Anuncia de qué vas a hablar sin decir todavía el primer punto.",
+        "pick": "Toca una sugerencia para usarla como punto de partida.",
+        "s1": "Veamos juntos tres MOTIVOS por los que…",
+        "s2": "El texto nos muestra cuatro PASOS por los que…",
+        "s3": "He aquí dos CONDICIONES que Dios pone…"
+      },
       "types": {
         "textual": {
           "text": "El texto es corto: un versículo o dos. Marca sus palabras, porque de ellas saldrán las divisiones.",
+          "observation": "En un texto corto cada palabra pesa. No busques repeticiones que el texto no tiene: mira cada palabra por separado y la relación entre ellas.",
+          "context": "Aquí el contexto cuenta el doble: un versículo sacado de su párrafo puede acabar diciendo cualquier cosa. Lee el capítulo entero antes de decidir qué dice tu versículo.",
           "idea": "La idea sale también de ese texto corto, no del tema que te sugiere. Si has llegado a una idea que el texto no sostiene, has pasado a una predicación temática.",
-          "structure": "Las divisiones salen de las partes del texto corto —oraciones, palabras clave—, no de otros pasajes. Los demás versículos entran en Desarrollo, como apoyo."
+          "structure": "Las divisiones salen de las partes del texto corto —oraciones, palabras clave—, no de otros pasajes. Los demás versículos entran en Desarrollo, como apoyo.",
+          "development": "Aquí entran los demás pasajes, como apoyo de lo que ya dice tu texto. Lo explican, no lo sustituyen.",
+          "final": "La conclusión vuelve al versículo del que partiste. El oyente tiene que irse sabiéndose de memoria el texto corto que le has predicado."
         },
         "thematic": {
           "text": "Éste es el texto base. En una predicación temática cada división se apoya en otro pasaje: añádelos como referencias en el paso Desarrollo.",
+          "observation": "Observa el texto base, no el tema. El tema ya se ve; lo que tienes que averiguar es qué dice este pasaje sobre él, con sus propias palabras.",
+          "context": "Cada pasaje que vayas a usar tiene su contexto, no sólo el de base. Un versículo que en su contexto dice otra cosa no entra en la predicación, por bien que suene.",
           "idea": "La idea exegética sale del texto base; los demás pasajes la sostienen, no la cambian. Si la idea no se puede sacar de ningún texto, es tuya y no de la Escritura.",
-          "structure": "Cada división tiene su pasaje. Comprueba cada versículo en su contexto: si allí no dice lo que tú dices, quítalo en vez de forzarlo."
+          "structure": "Cada división tiene su pasaje. Comprueba cada versículo en su contexto: si allí no dice lo que tú dices, quítalo en vez de forzarlo.",
+          "development": "El peligro aquí es la colección de versículos. Cada pasaje se explica brevemente en su contexto; si no, la predicación se queda en una lista de citas sin enseñanza.",
+          "final": "La conclusión recoge el tema en una sola frase. Si el oyente no sabe decir al salir de qué se ha hablado, el tema era demasiado amplio."
         }
       }
     },

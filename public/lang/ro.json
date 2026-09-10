@@ -490,6 +490,13 @@
       "dev_illustrate": "Ilustrează — exemplu, comparație, experiență",
       "dev_apply": "Aplică — ce trebuie să facă ascultătorul?",
       "dev_subpoint": "Dezvoltarea subpunctului",
+      "notes": "Notițe de lucru",
+      "notes_help": "Gânduri, versete care îți vin în minte, ilustrații, orice — înainte de a ști ce predică va ieși. Rămâne al tău: nu intră în predică, în PDF sau în pagina publică.",
+      "notes_placeholder": "Scrie aici tot ce îți trece prin minte despre acest text…",
+      "notes_open": "Notițele mele",
+      "notes_empty": "Încă nimic scris la pasul Text.",
+      "transition": "Propoziția de tranziție",
+      "transition_help": "Fraza care duce de la introducere la diviziuni.",
       "development_needs_structure": "Adaugă întâi punctele în pasul Structură.",
       "intro": "Introducere",
       "intro_help": "Cum introduci tema? Cum ajungi la text?",
@@ -696,16 +703,32 @@
         "b4": "Nu începe cu detalii tehnice despre carte sau despre destinatari.",
         "b5": "Încheierea are tot trei părți: reluarea ideii omiletice, recapitularea diviziunilor și viziunea — ce se va întâmpla dacă ascultătorii aplică ideea."
       },
+      "transition": {
+        "title": "Cum se face?",
+        "how": "Numărul diviziunilor + cuvântul cheie la plural + întrebarea analitică. Anunță despre ce vei vorbi, fără să spui încă primul punct.",
+        "pick": "Atinge o sugestie ca s-o folosești ca punct de plecare.",
+        "s1": "Să vedem împreună trei MOTIVE pentru care…",
+        "s2": "Textul ne arată patru PAȘI prin care…",
+        "s3": "Iată două CONDIȚII pe care Dumnezeu le pune…"
+      },
       "types": {
         "textual": {
           "text": "Textul este scurt — un verset sau două. Marchează cuvintele lui: din ele vor ieși diviziunile.",
+          "observation": "Într-un text scurt fiecare cuvânt cântărește. Nu căuta repetiții pe care textul nu le are: uită-te la fiecare cuvânt în parte și la legătura dintre ele.",
+          "context": "Contextul contează dublu aici: un verset scos din paragraful lui poate ajunge să spună orice. Citește tot capitolul înainte de a decide ce spune versetul tău.",
           "idea": "Ideea iese tot din acest text scurt, nu din tema pe care ți-o sugerează. Dacă ai ajuns la o idee pe care textul n-o susține, ai trecut la o predică tematică.",
-          "structure": "Diviziunile ies din părțile textului scurt — propoziții, cuvinte cheie —, nu din alte pasaje. Alte versete intră la Dezvoltare, ca sprijin."
+          "structure": "Diviziunile ies din părțile textului scurt — propoziții, cuvinte cheie —, nu din alte pasaje. Alte versete intră la Dezvoltare, ca sprijin.",
+          "development": "Aici intră celelalte pasaje, ca sprijin pentru ce spune deja textul tău. Ele explică versetul, nu îl înlocuiesc.",
+          "final": "Încheierea se întoarce la versetul de la care ai plecat. Ascultătorul trebuie să plece știind pe de rost textul scurt pe care l-ai predicat."
         },
         "thematic": {
           "text": "Acesta este textul de bază. Într-o predică tematică fiecare diviziune se sprijină pe alt pasaj: adaugă-le ca referințe la pasul Dezvoltare.",
+          "observation": "Observă textul de bază, nu tema. Tema se vede deja; ce ai de aflat este ce spune acest pasaj despre ea, cu cuvintele lui.",
+          "context": "Fiecare pasaj pe care îl vei folosi are contextul lui, nu doar cel de bază. Un verset care în context spune altceva nu intră în predică, oricât de bine ar suna.",
           "idea": "Ideea exegetică iese din textul de bază; celelalte pasaje o susțin, nu o schimbă. Dacă ideea nu se poate scoate din niciun text, este a ta, nu a Scripturii.",
-          "structure": "Fiecare diviziune are pasajul ei. Verifică fiecare verset în contextul lui: dacă acolo nu spune ce spui tu, scoate-l — nu-l forța."
+          "structure": "Fiecare diviziune are pasajul ei. Verifică fiecare verset în contextul lui: dacă acolo nu spune ce spui tu, scoate-l — nu-l forța.",
+          "development": "Pericolul aici este colecția de versete. Fiecare pasaj se explică pe scurt în contextul lui, altfel predica devine o listă de citate fără învățătură.",
+          "final": "Încheierea strânge tema într-o singură propoziție. Dacă ascultătorul nu poate spune la ieșire despre ce a fost vorba, tema a fost prea largă."
         }
       }
     },

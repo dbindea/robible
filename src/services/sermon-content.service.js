@@ -19,6 +19,12 @@ export const emptyContent = () => ({
   version: CONTENT_VERSION,
   // Paso TEXT: palabras o expresiones marcadas dentro de la perícopa.
   marks: [],
+  // Paso TEXT: el cuaderno de servilleta. Ocurrencias, versículos que vienen a
+  // la memoria, una ilustración que se acaba de oír — lo que se apunta ANTES de
+  // saber qué predicación va a salir. No se predica ni se publica: no entra en
+  // el recuento de palabras, ni en el documento, ni en el PDF, ni en la página
+  // pública. Se escribe aquí y se relee plegado en los pasos siguientes.
+  notes: '',
   // Paso OBSERVARE: cinco preguntas, todas opcionales.
   observation: { repeats: '', contrasts: '', actions: '', tension: '', truth: '' },
   // Paso CONTEXT.
@@ -35,6 +41,12 @@ export const emptyContent = () => ({
   idea: { exegetical: '', purpose: '', central: '', question: '' },
   // Paso STRUCTURA: puntos con subpuntos. Máximo dos niveles.
   structure: [],
+  // Paso STRUCTURA: la propoziția de tranziție, la frase que enlaza la idea
+  // omiletică con las divisiones. Va suelta y no dentro de `idea` porque se
+  // escribe aquí, mirando ya los puntos: se formula con el número, la palabra
+  // clave en plural y la pregunta analítica, y sin ella el auditorio pasa de la
+  // introducción al primer punto sin saber qué le van a contar.
+  transition: '',
   // Paso DEZVOLTARE. El mapa va por id, y admite **las dos clases de id**: la
   // de un punto (`p_…`) guarda `{ explain, illustrate, apply, refs }`, la de un
   // subpunto (`s_…`) guarda `{ text, refs }`. Un subpunto se desarrolla en un
@@ -69,10 +81,12 @@ export const normalizeContent = (raw) => {
   return {
     version: CONTENT_VERSION,
     marks: Array.isArray(obj.marks) ? obj.marks : base.marks,
+    notes: typeof obj.notes === 'string' ? obj.notes : '',
     observation: { ...base.observation, ...(obj.observation || {}) },
     context: { ...base.context, ...(obj.context || {}) },
     idea: { ...base.idea, ...(obj.idea || {}) },
     structure: Array.isArray(obj.structure) ? obj.structure : base.structure,
+    transition: typeof obj.transition === 'string' ? obj.transition : '',
     development: obj.development && typeof obj.development === 'object' ? obj.development : base.development,
     intro: typeof obj.intro === 'string' ? obj.intro : '',
     conclusion: typeof obj.conclusion === 'string' ? obj.conclusion : '',
@@ -92,11 +106,13 @@ export const stepCompletion = (content) => {
   const c = normalizeContent(content);
   const algo = (o) => Object.values(o).some((v) => String(v || '').trim().length > 0);
   return {
-    text: c.marks.length > 0,
+    // Las notas cuentan tanto como las marcas: hay quien llega al texto con una
+    // página de apuntes y todavía ninguna palabra subrayada.
+    text: c.marks.length > 0 || c.notes.trim().length > 0,
     observation: algo(c.observation),
     context: algo(c.context),
     idea: algo(c.idea),
-    structure: c.structure.length > 0,
+    structure: c.structure.length > 0 || c.transition.trim().length > 0,
     // `algo` recorre los valores del objeto, así que vale igual para el
     // desarrollo de un punto (tres casillas) y para el de un subpunto (una).
     development: Object.values(c.development).some((d) => algo(d || {})),
@@ -147,7 +163,9 @@ export const countWords = (texto) => {
 /** Palabras de todo lo que se predica: intro, puntos, desarrollo y conclusión. */
 export const sermonWordCount = (content) => {
   const c = normalizeContent(content);
-  let total = countWords(c.intro) + countWords(c.conclusion);
+  // `notes` queda fuera a propósito: es el cuaderno de trabajo, no se predica.
+  // Contarlo daría una duración inflada justo a quien más apunta.
+  let total = countWords(c.intro) + countWords(c.transition) + countWords(c.conclusion);
 
   for (const punto of c.structure) {
     total += countWords(punto.title);
@@ -170,6 +188,10 @@ export const emptyOutline = () => ({
   version: OUTLINE_VERSION,
   idea: '',
   intro: [],
+  // La frase con la que se pasa de la introducción a las divisiones. Va entera
+  // y no recortada como el resto: es lo único de la schiță que se dice tal cual
+  // está escrito, y media frase desde el atril no sirve de nada.
+  transition: '',
   points: [],
   application: '',
   conclusion: '',
@@ -269,6 +291,7 @@ export const generateOutline = (content) => {
     // acordarse de quitarlos en cada uno de esos sitios.
     idea: quitarMarcas(c.idea.central).trim(),
     intro: claves(c.intro),
+    transition: quitarMarcas(c.transition).trim(),
     points: c.structure.map((punto) => {
       const d = c.development[punto.id] || {};
       const subpuntos = (punto.subpoints || [])
@@ -357,6 +380,7 @@ export const normalizeOutline = (raw) => {
     version: OUTLINE_VERSION,
     idea: typeof obj.idea === 'string' ? obj.idea : '',
     intro: Array.isArray(obj.intro) ? obj.intro : [],
+    transition: typeof obj.transition === 'string' ? obj.transition : '',
     points: Array.isArray(obj.points) ? obj.points : [],
     application: typeof obj.application === 'string' ? obj.application : '',
     conclusion: typeof obj.conclusion === 'string' ? obj.conclusion : '',
@@ -391,6 +415,7 @@ export const normalizeOutline = (raw) => {
 const contenidoDeSchita = (o) => ({
   idea: o.idea,
   intro: o.intro,
+  transition: o.transition,
   points: o.points,
   application: o.application,
   conclusion: o.conclusion,
@@ -476,6 +501,7 @@ export const mergeOutline = (actual, nueva) => {
     version: OUTLINE_VERSION,
     idea: campo('idea'),
     intro: campo('intro'),
+    transition: campo('transition'),
     points: puntos,
     application: campo('application'),
     conclusion: campo('conclusion'),
@@ -491,7 +517,7 @@ export const mergeOutline = (actual, nueva) => {
 /** Palabras de la schiță. Sirve para avisar si se está alargando de más. */
 export const outlineWordCount = (outline) => {
   const o = normalizeOutline(outline);
-  let total = countWords(o.idea) + countWords(o.application) + countWords(o.conclusion);
+  let total = countWords(o.idea) + countWords(o.transition) + countWords(o.application) + countWords(o.conclusion);
   for (const linea of o.intro) total += countWords(linea);
   for (const p of o.points) {
     total += countWords(p.title);

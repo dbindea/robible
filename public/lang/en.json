@@ -490,6 +490,13 @@
       "dev_illustrate": "Illustrate — example, comparison, experience",
       "dev_apply": "Apply — what should the listener do?",
       "dev_subpoint": "Subpoint development",
+      "notes": "Working notes",
+      "notes_help": "Thoughts, verses that come to mind, illustrations, anything — before you know what sermon will come out of it. It stays yours: it never reaches the sermon, the PDF or the public page.",
+      "notes_placeholder": "Write down whatever comes to mind about this text…",
+      "notes_open": "My notes",
+      "notes_empty": "Nothing written in the Text step yet.",
+      "transition": "Transition sentence",
+      "transition_help": "The sentence that leads from the introduction into the divisions.",
       "development_needs_structure": "Add your points in the Structure step first.",
       "intro": "Introduction",
       "intro_help": "How do you introduce the theme? How do you reach the text?",
@@ -696,16 +703,32 @@
         "b4": "Do not begin with technical detail about the book or about its recipients.",
         "b5": "The conclusion also has three parts: restating the homiletical idea, recapping the divisions, and the vision — what will happen if the hearers apply the idea."
       },
+      "transition": {
+        "title": "How to write it",
+        "how": "Number of divisions + the key word in the plural + the analytical question. It announces what you are about to say without giving away the first point yet.",
+        "pick": "Tap a suggestion to use it as a starting point.",
+        "s1": "Let us look together at three REASONS why…",
+        "s2": "The text shows us four STEPS by which…",
+        "s3": "Here are two CONDITIONS that God sets…"
+      },
       "types": {
         "textual": {
           "text": "The text is short — a verse or two. Mark its words: the divisions will come out of them.",
+          "observation": "In a short text every word carries weight. Do not hunt for repetitions the text does not have: look at each word on its own and at how they hold together.",
+          "context": "Context counts double here: a verse pulled out of its paragraph can be made to say anything. Read the whole chapter before deciding what your verse says.",
           "idea": "The idea also comes from that short text, not from the subject it suggests to you. If you have arrived at an idea the text does not support, you have moved to a thematic sermon.",
-          "structure": "The divisions come from the parts of the short text — clauses, key words — not from other passages. Other verses belong in Development, as support."
+          "structure": "The divisions come from the parts of the short text — clauses, key words — not from other passages. Other verses belong in Development, as support.",
+          "development": "This is where the other passages come in, as support for what your text already says. They explain it; they do not replace it.",
+          "final": "The conclusion returns to the verse you started from. The listener should leave knowing by heart the short text you preached."
         },
         "thematic": {
           "text": "This is the base text. In a thematic sermon each division rests on a different passage: add them as references in the Development step.",
+          "observation": "Observe the base text, not the subject. The subject is already in plain sight; what you have to find out is what this passage says about it, in its own words.",
+          "context": "Every passage you are going to use has its own context, not just the base one. A verse that says something else in context does not go into the sermon, however well it sounds.",
           "idea": "The exegetical idea comes from the base text; the other passages support it, they do not change it. If the idea cannot be drawn from any text, it is yours and not Scripture’s.",
-          "structure": "Each division has its own passage. Check every verse in its context: if it does not say there what you are saying, drop it rather than force it."
+          "structure": "Each division has its own passage. Check every verse in its context: if it does not say there what you are saying, drop it rather than force it.",
+          "development": "The danger here is the string of proof texts. Each passage gets a brief explanation in its own context; otherwise the sermon is a list of quotations with no teaching in it.",
+          "final": "The conclusion gathers the subject into a single sentence. If the listener cannot say on the way out what it was about, the subject was too broad."
         }
       }
     },

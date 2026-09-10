@@ -38,23 +38,41 @@ export const GUIA = {
  * Avisos por tipo de predicación.
  *
  * El curso —y por tanto toda la guía de arriba— es de predicación
- * **expositiva**. Las otras dos formas comparten el recorrido pero cambian en
- * tres momentos, y son justo los tres en los que es fácil acabar predicando
- * otra cosa sin darse cuenta:
+ * **expositiva**. Las otras dos formas comparten el recorrido pero no se
+ * recorren igual, así que cada paso lleva su propia nota: el guía de arriba
+ * explica el paso, y la nota dice qué cambia si lo que estás escribiendo es una
+ * textual o una temática.
  *
- *   - `text`: de dónde sale el material.
- *   - `idea`: qué pasaje manda cuando hay varios.
- *   - `structure`: de dónde salen las divisiones.
+ * Empezó cubriendo sólo `text`, `idea` y `structure`, que son donde es más fácil
+ * acabar predicando otra cosa sin darte cuenta. Se extendió a los siete porque
+ * quedarse a medias era peor que no estar: quien elige «tematică» leía consejo
+ * a su medida en tres pantallas y en las otras cuatro la guía de un curso que
+ * no es el suyo, sin nada que se lo advirtiera.
  *
  * `expositive` no aparece a propósito: la guía entera ya está escrita para ese
  * caso, y repetirlo en un recuadro aparte sería ruido. El aviso sale sólo
  * cuando lo que estás escribiendo NO es lo que la guía asume.
  */
-const PASOS_CON_NOTA = ['text', 'idea', 'structure'];
+const PASOS_CON_NOTA = ['text', 'observation', 'context', 'idea', 'structure', 'development', 'final'];
 export const TIPOS_CON_NOTA = ['textual', 'thematic'];
 
 export const tieneNotaDeTipo = (tipo, paso) =>
   TIPOS_CON_NOTA.includes(tipo) && PASOS_CON_NOTA.includes(paso);
+
+// ── Propoziția de tranziție ───────────────────────────────
+//
+// La frase que lleva de la introducción a las divisiones. Se formula con el
+// número de divisiones, la **palabra clave en plural** (motive, pași, condiții…)
+// y la pregunta analítica, y anuncia de qué se va a hablar sin adelantar
+// todavía el primer punto.
+//
+// Aquí sólo está el recuento; las plantillas viven en `app.homiletics.transition.sN`
+// de los cuatro ficheros de idioma, como todo el texto de la guía. Tres y no
+// más: son moldes para arrancar, no un repertorio que haya que leerse.
+export const SUGERENCIAS_TRANSICION = 3;
+
+export const sugerenciasDeTransicion = () =>
+  Array.from({ length: SUGERENCIAS_TRANSICION }, (_, i) => `s${i + 1}`);
 
 /** Los pasos que tienen guía. Los demás no muestran el botón. */
 export const tieneGuia = (paso) => Object.prototype.hasOwnProperty.call(GUIA, paso);
