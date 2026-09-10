@@ -150,9 +150,32 @@
     }
   };
 
-  const borrar = async (s) => {
-    await sermonsStore.remove(s.id);
-    mostrarAviso($_('app.sermons.deleted'));
+  // ── Borrado, siempre con confirmación ─────────────────────────────────────
+  //
+  // Una predicación son horas de estudio y **no hay papelera**: `remove()` la
+  // quita del dispositivo y del servidor, y no queda de dónde recuperarla.
+  // Antes se borraba al primer toque, con el botón pegado a «Deschide» en una
+  // fila estrecha de móvil.
+  //
+  // Es un `Modal` y no un `confirm()` del navegador —que es lo que hace el
+  // índice temático— porque aquí hay que enseñar CUÁL se va a borrar: en la
+  // lista hay predicaciones con el mismo título («Casa zidită pe stâncă» dos
+  // veces, sin ir más lejos) y un «¿estás seguro?» a secas no despeja nada.
+  let aBorrar = null;
+  let borrando = false;
+
+  const pedirBorrar = (s) => { aBorrar = s; };
+
+  const confirmarBorrado = async () => {
+    if (!aBorrar || borrando) return;
+    borrando = true;
+    try {
+      await sermonsStore.remove(aBorrar.id);
+      aBorrar = null;
+      mostrarAviso($_('app.sermons.deleted'));
+    } finally {
+      borrando = false;
+    }
   };
 
   const duplicar = async (s) => {
@@ -276,7 +299,7 @@
                   {$_('app.sermons.duplicate')}
                 </button>
               {/if}
-              <button type="button" class="predica__accion predica__accion--borrar" on:click={() => borrar(s)}>
+              <button type="button" class="predica__accion predica__accion--borrar" on:click={() => pedirBorrar(s)}>
                 {$_('app.sermons.delete')}
               </button>
             </div>
@@ -384,6 +407,46 @@
     onClose={() => (drawerAbierto = false)}
     onSelect={elegirLibro}
   />
+{/if}
+
+<!-- ── Confirmar el borrado ────────────────────────────────────────────────
+     `fitContent` porque son tres líneas: sin él la hoja de móvil se planta en
+     92 dvh y deja medio diálogo vacío (ver la trampa de los modales). -->
+{#if aBorrar}
+  <Modal
+    open={true}
+    eyebrow={$_('app.sermons.eyebrow')}
+    title={$_('app.sermons.delete_title')}
+    size="sm"
+    fitContent
+    onClose={() => (aBorrar = null)}
+  >
+    <div class="borrar">
+      <p class="borrar__pregunta">{$_('app.sermons.delete_confirm')}</p>
+      <!-- Cuál es. En la lista puede haber dos con el mismo nombre. -->
+      <p class="borrar__cual">
+        <strong>{aBorrar.title || $_('app.sermons.untitled')}</strong>
+        <span class="borrar__ref">{referenciaDe(aBorrar)}</span>
+      </p>
+      <p class="borrar__aviso">{$_('app.sermons.delete_warning')}</p>
+      {#if aBorrar.isPublic}
+        <!-- Publicada: además del trabajo se cae el enlace que haya repartido. -->
+        <p class="borrar__aviso borrar__aviso--publica">{$_('app.sermons.delete_public_warning')}</p>
+      {/if}
+    </div>
+
+    <svelte:fragment slot="footer">
+      <!-- Cancelar primero y a la izquierda: es la salida segura, y en un
+           diálogo destructivo la salida segura no se pone donde cae el pulgar
+           por inercia después de haber pulsado «Șterge» en la lista. -->
+      <button type="button" class="nueva__cancelar" on:click={() => (aBorrar = null)}>
+        {$_('app.topics.cancel')}
+      </button>
+      <button type="button" class="borrar__confirmar" disabled={borrando} on:click={confirmarBorrado}>
+        {borrando ? $_('auth.working') : $_('app.sermons.delete')}
+      </button>
+    </svelte:fragment>
+  </Modal>
 {/if}
 
 <style lang="scss">
@@ -797,7 +860,8 @@
   }
 
   .nueva__cancelar,
-  .nueva__crear {
+  .nueva__crear,
+  .borrar__confirmar {
     padding: 0.5rem 1.1rem;
     border-radius: var(--radius-pill);
     font-size: var(--font-size-small);
@@ -812,6 +876,64 @@
     color: var(--color-ink);
 
     &:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  }
+
+  // ── Diálogo de borrado ──────────────────────────────────────────────────
+  .borrar {
+    display: grid;
+    gap: 0.7rem;
+    font-size: var(--font-size-small);
+    line-height: var(--line-height-body);
+  }
+
+  .borrar__pregunta {
+    margin: 0;
+    color: var(--color-ink);
+  }
+
+  /* Cuál se va a borrar, sobre superficie hundida para que se lea como un dato
+     y no como parte de la frase. */
+  .borrar__cual {
+    display: grid;
+    gap: 0.15rem;
+    margin: 0;
+    padding: 0.6rem 0.75rem;
+    border-left: 3px solid var(--color-danger);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    background: var(--color-surface-sunken);
+    color: var(--color-ink-strong);
+  }
+
+  .borrar__ref {
+    color: var(--color-ink-soft);
+    font-size: var(--font-size-tiny);
+  }
+
+  .borrar__aviso {
+    margin: 0;
+    color: var(--color-danger-ink);
+    font-weight: 600;
+  }
+
+  .borrar__aviso--publica {
+    font-weight: 500;
+  }
+
+  /* Veladura y tinta de peligro, no un rojo macizo: no hay token de relleno
+     para `danger` y en las paletas oscuras `--color-danger` es claro, así que
+     un botón rojo con texto blanco quedaría ilegible en dos de las cinco.
+     Es el mismo patrón que ya usan el pie y el diálogo de cuenta. */
+  .borrar__confirmar {
+    border: 1px solid color-mix(in srgb, var(--color-danger) 55%, transparent);
+    background: var(--color-danger-wash);
+    color: var(--color-danger-ink);
+
+    &:hover:not(:disabled) {
+      border-color: var(--color-danger);
+      background: color-mix(in srgb, var(--color-danger) 26%, transparent);
+    }
+
+    &:disabled { opacity: 0.5; cursor: not-allowed; }
   }
 
   .nueva__crear {
