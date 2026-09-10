@@ -544,7 +544,6 @@
                  título sin empujar el recuento de versículos fuera de la vista. -->
             <textarea
               spellcheck="false"
-              class="modal__textarea"
               rows="2"
               maxlength="200"
               bind:value={editForm.description}
@@ -1330,6 +1329,16 @@
       &--row {
         flex-direction: row;
         gap: 0.85rem;
+
+        /* En una pantalla estrecha el selector de iconos no cabe al lado del
+           color: la rejilla de catorce iconos tiene un ancho mínimo que no
+           cede, así que se comía la fila entera y la columna del color se
+           quedaba en 11 px — con «CULOARE» saliendo en vertical, una letra por
+           línea, y la muestra reducida a una raya. Apilados caben los dos. */
+        @media (max-width: 30rem) {
+          flex-direction: column;
+          gap: 0.5rem;
+        }
       }
 
       &-col {
@@ -1348,7 +1357,12 @@
       letter-spacing: 0.04em;
     }
 
-    input[type='text'] {
+    /* El `textarea` va con el `input`: la regla era sólo `input[type='text']`,
+       así que el campo de descripción salía con el estilo del navegador —fondo
+       blanco, borde fino y tipografía distinta— al lado de un nombre que sí
+       estaba maquetado. */
+    input[type='text'],
+    textarea {
       width: 100%;
       padding: 0.55rem 0.75rem;
       border: 1px solid color-mix(in srgb, var(--color-accent) 32%, transparent);
@@ -1363,6 +1377,16 @@
         border-color: var(--color-blue);
         box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 16%, transparent);
       }
+    }
+
+    /* Un `textarea` no hereda la fuente del contenedor: sin esto se queda en la
+       monoespaciada del navegador. Y sólo se estira a lo alto — a lo ancho
+       podría salirse del diálogo. */
+    textarea {
+      font-family: inherit;
+      line-height: 1.45;
+      resize: vertical;
+      min-height: 3.5rem;
     }
 
     input[type='color'] {
