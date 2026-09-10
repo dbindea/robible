@@ -12,6 +12,7 @@
   import { openAuthMenu } from '../../store/authMenuStore';
   import IconPicker from '../../components/IconPicker.svelte';
   import Icon from '../../components/Icon.svelte';
+  import Modal from '../../components/Modal.svelte';
   import { resolveTopicIcon } from '../../config/topic-icons.js';
 
   export let bible = [];
@@ -181,7 +182,15 @@
 
   const openEdit = (topic) => {
     editandoId = topic.id;
-    editForm = { name: topic.name, icon: topic.icon || 'bookmark', color: topic.color || '#2E7D9B' };
+    editForm = {
+      name: topic.name,
+      // Pasa por `resolveTopicIcon` para que el selector marque el icono
+      // correcto también en los temas antiguos, que guardan un emoji: con el
+      // valor crudo no coincidía con ninguna opción, el selector salía sin nada
+      // marcado y guardar convertía el emoji en el icono por defecto sin avisar.
+      icon: resolveTopicIcon(topic.icon),
+      color: topic.color || '#2E7D9B',
+    };
     isCreateOpen = true;
   };
 
@@ -213,11 +222,26 @@
     }
   };
 
-  const handleDeleteTopic = (topic) => {
-    if (!confirm($_('app.topics.delete_confirm'))) return;
-    topicsStore.remove(topic.id);
-    if (selectedTopicId === topic.id) {
-      backToList();
+  // ── Borrar un tema, siempre con confirmación ──────────────────────────────
+  //
+  // Era el `confirm()` del navegador: un diálogo del sistema, sin estilo, sin
+  // el nombre del tema y —lo que importa— sin decir cuántos versículos se
+  // llevaba por delante. Ahora usa el mismo patrón que el de predicaciones.
+  let temaABorrar = null;
+  let borrandoTema = false;
+
+  const handleDeleteTopic = (topic) => { temaABorrar = topic; };
+
+  const confirmarBorradoTema = async () => {
+    if (!temaABorrar || borrandoTema) return;
+    borrandoTema = true;
+    const id = temaABorrar.id;
+    try {
+      await topicsStore.remove(id);
+      temaABorrar = null;
+      if (selectedTopicId === id) backToList();
+    } finally {
+      borrandoTema = false;
     }
   };
 
@@ -497,7 +521,125 @@
   {/if}
 </div>
 
+<!-- ── Confirmar el borrado de un tema ─────────────────────────────────────
+     Con `Modal`, que es el diálogo de la aplicación (el de crear/editar de
+     arriba es anterior y sigue escrito a mano). `fitContent` porque son dos
+     líneas y sin él la hoja de móvil ocupa 92 dvh a medio llenar. -->
+{#if temaABorrar}
+  <Modal
+    open={true}
+    title={$_('app.topics.delete_topic')}
+    size="sm"
+    fitContent
+    onClose={() => (temaABorrar = null)}
+  >
+    {@const versiculos = (verseRefs[temaABorrar.id] || []).length}
+    <div class="borrar-tema">
+      <p class="borrar-tema__pregunta">{$_('app.topics.delete_confirm')}</p>
+      <p class="borrar-tema__cual" style:--topic-color={temaABorrar.color}>
+        <span class="borrar-tema__icono" aria-hidden="true">
+          <Icon name={resolveTopicIcon(temaABorrar.icon)} size="1rem" />
+        </span>
+        <strong>{temaABorrar.name}</strong>
+      </p>
+      <!-- Cuántos versículos se lleva. Es el dato que decide: borrar una
+           categoría vacía no cuesta nada y borrar una con cuarenta sí. -->
+      {#if versiculos > 0}
+        <p class="borrar-tema__aviso">
+          {versiculos === 1
+            ? $_('app.topics.delete_verses_warning', { count: versiculos })
+            : $_('app.topics.delete_verses_warning_plural', { count: versiculos })}
+        </p>
+      {/if}
+      {#if temaABorrar.isPublic}
+        <p class="borrar-tema__aviso">{$_('app.topics.delete_public_warning')}</p>
+      {/if}
+    </div>
+
+    <svelte:fragment slot="footer">
+      <!-- Clases propias y no `.modal__btn`: aquélla está anidada bajo `.modal`,
+           que es el diálogo escrito a mano de arriba. Dentro de `<Modal>` el
+           `.modal` lleva el hash de scope de *ese* componente, así que el
+           selector anidado de este fichero no llega — los botones saldrían sin
+           estilo ninguno. -->
+      <button type="button" class="borrar-tema__boton" on:click={() => (temaABorrar = null)}>
+        {$_('app.topics.cancel')}
+      </button>
+      <button type="button" class="borrar-tema__boton borrar-tema__boton--peligro" disabled={borrandoTema} on:click={confirmarBorradoTema}>
+        {borrandoTema ? $_('auth.working') : $_('app.topics.delete_topic')}
+      </button>
+    </svelte:fragment>
+  </Modal>
+{/if}
+
 <style lang="scss">
+  // === BORRAR UN TEMA ===
+  .borrar-tema {
+    display: grid;
+    gap: 0.7rem;
+    font-size: var(--font-size-small);
+    line-height: var(--line-height-body);
+  }
+
+  .borrar-tema__pregunta {
+    margin: 0;
+    color: var(--color-ink);
+  }
+
+  .borrar-tema__cual {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0.6rem 0.75rem;
+    border-left: 3px solid var(--topic-color, var(--color-accent));
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    background: var(--color-surface-sunken);
+    color: var(--color-ink-strong);
+  }
+
+  .borrar-tema__icono {
+    display: inline-flex;
+    flex: 0 0 auto;
+    color: var(--topic-color, var(--color-accent));
+  }
+
+  .borrar-tema__aviso {
+    margin: 0;
+    color: var(--color-danger-ink);
+    font-weight: 600;
+  }
+
+  .borrar-tema__boton {
+    padding: 0.5rem 1.1rem;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-pill);
+    background: transparent;
+    color: var(--color-ink);
+    font-size: var(--font-size-small);
+    font-weight: 700;
+    cursor: pointer;
+    transition: var(--transition);
+
+    &:hover { border-color: var(--color-accent); color: var(--color-accent); }
+
+    /* Veladura y tinta de peligro, no rojo macizo: no hay token de relleno para
+       `danger` y en las paletas oscuras es claro. Mismo patrón que el diálogo
+       de borrar una predicación. */
+    &--peligro {
+      border-color: color-mix(in srgb, var(--color-danger) 55%, transparent);
+      background: var(--color-danger-wash);
+      color: var(--color-danger-ink);
+
+      &:hover:not(:disabled) {
+        border-color: var(--color-danger);
+        background: color-mix(in srgb, var(--color-danger) 26%, transparent);
+      }
+
+      &:disabled { opacity: 0.5; cursor: not-allowed; }
+    }
+  }
+
   .index-page {
     width: 100%;
     max-width: 96rem;
