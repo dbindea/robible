@@ -1,7 +1,7 @@
 # RoBible — Roadmap
 
 > Documento vivo. Actualizado en cada milestone.
-> Última actualización: **7 sep 2026** (Fases 2-7: UX móvil · perfiles · player y música · «Predicile mele» con Modo Amvon offline · cinco paletas, cristal e iconos nuevos)
+> Última actualización: **10 sep 2026** (Predicación: subpuntos con desarrollo, cuaderno de notas, guion por tipo, frase de transición y título editable)
 
 > Documentación de referencia: [CLAUDE.md](CLAUDE.md) · [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) · [docs/OPERACIONES.md](docs/OPERACIONES.md)
 > Deuda técnica detectada: [docs/AUDITORIA-2026-09-04.md](docs/AUDITORIA-2026-09-04.md)
@@ -16,7 +16,7 @@ RoBible es una app web (PWA) de la Biblia con soporte offline, auth multi-device
 - Frontend: Svelte 5 (sintaxis legacy, no runes) + Vite 8, SCSS themeable (light/dark)
 - Data: JSON estáticos en `/public/data/{vdc,rvl,en_kjv,zh_cuv}/bible.{map,json}` — entre 3 y 4,3 MB por Biblia
 - i18n: propio, sin librería. JSON en `/public/lang/{ro,es,en,zh}.json`
-- PWA: manifest + service worker (cache-first, versiones) — hoy `robible-v30`
+- PWA: manifest + service worker (cache-first, versiones) — hoy `robible-v31`
 - Rutas: path-based custom (parsea `window.location.pathname`)
 - Backend: Cloudflare Workers (`robible-api`) + D1 (`robible-db`), router Hono
 - Auth: PBKDF2 + HMAC tokens persistidos en D1 (revocables), TTL 30 días
@@ -314,7 +314,7 @@ Estado a **9 sep 2026**. La aplicación está desplegada y funcionando; esto es 
 ### Pendiente de comprobar en el mundo real
 
 - **Entrega de un push a un dispositivo.** La firma VAPID está verificada contra su propia clave pública y el cron desplegado, pero nadie ha recibido todavía una notificación. Se confirma suscribiéndose desde el móvil y esperando a la hora elegida. **En iOS hace falta tener la PWA instalada** (iOS 16.4+).
-- **El aviso de actualización de la PWA.** El service worker va por `robible-v30`; quien la tenga instalada verá el aviso y tiene que aceptarlo. Purgar Cloudflare no cambia nada, porque responde el service worker.
+- **El aviso de actualización de la PWA.** El service worker va por `robible-v31`; quien la tenga instalada verá el aviso y tiene que aceptarlo. Purgar Cloudflare no cambia nada, porque responde el service worker.
 
 ### Candidatos para más adelante
 
@@ -934,7 +934,7 @@ editor tipo Word, ni roles más allá de Utilizator/Predicator.
 - `node workers/robible-api/dev-server.js` — emulador backend
 
 ### Service Worker
-- Cache version: **`robible-v30`** (a bumpar a mano en `public/sw.js` con cada release)
+- Cache version: **`robible-v31`** (a bumpar a mano en `public/sw.js` con cada release)
 - `public/sw.js` es la **única** fuente de verdad de la versión de cache (la constante duplicada de `config.js` se eliminó el 2026-09-04)
 - Pre-cachea: ambas Biblias, todos los assets, lang files
 - Network-first para navegación · cache-first para assets y data · stale-while-revalidate para `/lang/`
@@ -942,6 +942,20 @@ editor tipo Word, ni roles más allá de Utilizator/Predicator.
 ---
 
 ## Historial de cambios recientes
+
+**2026-09-10 — Predicación: subpuntos con desarrollo, cuaderno de notas y frase de transición** · service worker `robible-v31`
+
+Cuatro entregas seguidas sobre el módulo de predicación, todas verificadas en el
+navegador con Playwright antes de subirlas. Sin cambios de schema: `notes` y
+`transition` viven dentro de `content_json`, que no se consulta por dentro desde SQL.
+
+- **Subpuntos con desarrollo propio.** En STRUCTURĂ se escribían y en DEZVOLTARE no había dónde desarrollarlos. Ahora cada subpunto tiene su texto y sus referencias, guardados en el mismo mapa `development` bajo su id (`s_…`). En el PDF se imprimen como el punto que los contiene —titular `1.1` y cuerpo normal—, no como la línea gris con guion que eran antes
+- **Cuaderno de notas** (`content.notes`): una hoja de 65 dvh en el paso TEXT para lo que se apunta antes de saber qué predicación va a salir, y un plegable de sólo lectura en los seis pasos siguientes. **No se predica**: fuera del recuento, del documento, de los dos PDF y de la página pública, con test de centinela
+- **Guion propio para textual y temática en los siete pasos**, no en tres. Verificado contra fuentes de homilética: el parecido con la expositiva es correcto — la clasificación de Broadus separa por el origen de las divisiones, y textual y expositiva comparten ese principio
+- **Propoziția de tranziție** (`content.transition`): campo en STRUCTURĂ con una bombilla que explica la fórmula —número + palabra clave en plural + pregunta analítica— y tres moldes pulsables que nunca pisan lo escrito. Sale en el documento, en los dos PDF, en la schiță y en el Modo Amvon
+- **Título obligatorio y editable en línea**: se pulsa el `<h1>` y se convierte en campo. Enter y blur guardan, Escape cancela. Sólo se valida en el cliente, a propósito (ver trampa 61)
+- 295 tests (17 nuevos), 6 trampas nuevas en `CLAUDE.md` y dos actualizadas
+- **Tres fallos propios cazados al verificar**, ninguno visible sin abrir el navegador: la clase `.subpunto` reutilizada dentro del mismo componente, que ponía el bloque en horizontal; Escape guardando en vez de cancelar porque quitar el `<input>` del DOM dispara su `blur`; y la transición ausente del Modo Amvon, que es justo donde esa frase se dice
 
 **2026-09-09 — v1.2.0** · service worker `robible-v30` · schema D1 **11**
 

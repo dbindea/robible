@@ -44,7 +44,7 @@ const PASOS = [
   ['Observare', 'Cuvintele cheie se recunosc după trei semne: se repetă în text, sunt explicate chiar de scriitorul biblic, sau sunt importante în desfășurarea acțiunii ori a argumentației.'],
   ['Context', 'Un text scos din context ajunge pretext. Contextul îți arată ce a vrut să spună autorul, nu ce ne-ar conveni nouă să spună.'],
   ['Idee', 'Aici se decide predica, și se ajunge în trei pași: ce a spus textul atunci, ce vrea Dumnezeu să schimbe acum și cum se spune asta astăzi.'],
-  ['Structură', 'Diviziunile argumentează, explică sau aplică ideea omiletică. Se obțin punând o întrebare analitică ideii omiletice: De ce? Cum? Când? Cu ce condiții? Ce înseamnă?'],
+  ['Structură', 'Diviziunile argumentează, explică sau aplică ideea omiletică. Se obțin punând o întrebare analitică ideii omiletice: De ce? Cum? Când? Cu ce condiții? Ce înseamnă? Tot aici se scrie propoziția de tranziție: numărul diviziunilor, cuvântul cheie la plural și întrebarea analitică — fraza care duce de la introducere la primul punct.'],
   ['Dezvoltare', 'Fiecare diviziune se dezvoltă prin trei secțiuni: explicarea și aplicarea sunt obligatorii, ilustrarea este opțională.'],
   ['Finalizare', 'Introducerea se scrie la sfârșit, pentru că abia acum știi unde duci predica.'],
 ];

@@ -2,22 +2,22 @@
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <sitemap>
     <loc>https://robible.com/sitemaps/static.xml</loc>
-    <lastmod>2026-09-09</lastmod>
+    <lastmod>2026-09-10</lastmod>
   </sitemap>
   <sitemap>
     <loc>https://robible.com/sitemaps/books.xml</loc>
-    <lastmod>2026-09-09</lastmod>
+    <lastmod>2026-09-10</lastmod>
   </sitemap>
   <sitemap>
     <loc>https://robible.com/sitemaps/chapters.xml</loc>
-    <lastmod>2026-09-09</lastmod>
+    <lastmod>2026-09-10</lastmod>
   </sitemap>
   <sitemap>
     <loc>https://robible.com/sitemaps/topics.xml</loc>
-    <lastmod>2026-09-09</lastmod>
+    <lastmod>2026-09-10</lastmod>
   </sitemap>
   <sitemap>
     <loc>https://robible.com/sitemaps/sermons.xml</loc>
-    <lastmod>2026-09-09</lastmod>
+    <lastmod>2026-09-10</lastmod>
   </sitemap>
 </sitemapindex>

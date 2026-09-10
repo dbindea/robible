@@ -129,8 +129,22 @@ function buildHtml({ sermon, canonicalUrl, redirectPath }) {
       <h1>${escapeHtml(sermon.title)}</h1>
       ${referencia ? `<p>${escapeHtml(referencia)}</p>` : ''}
       ${sermon.idea ? `<p>${escapeHtml(sinMarcas(sermon.idea))}</p>` : ''}
+      ${sermon.transition ? `<p>${escapeHtml(sinMarcas(sermon.transition))}</p>` : ''}
       ${(sermon.points || [])
-        .map((p) => `<h2>${escapeHtml(sinMarcas(p.title || ''))}</h2>`)
+        .map((p, i) => {
+          // Punto y, debajo, sus subpuntos numerados. El subpunto viaja como
+          // `{ title, text }` desde que tiene desarrollo propio, pero las
+          // predicaciones servidas por un worker anterior lo mandan como cadena
+          // suelta: se aceptan las dos formas, igual que en PublicSermon.svelte.
+          const subs = (p.subpoints || [])
+            .map((s, j) => {
+              const titulo = typeof s === 'string' ? s : s?.title || '';
+              return titulo ? `<h3>${i + 1}.${j + 1} ${escapeHtml(sinMarcas(titulo))}</h3>` : '';
+            })
+            .filter(Boolean)
+            .join('\n      ');
+          return `<h2>${escapeHtml(sinMarcas(p.title || ''))}</h2>${subs ? `\n      ${subs}` : ''}`;
+        })
         .join('\n      ')}
       <p><a href="${escapeHtml(redirectPath)}">${safeTitle}</a></p>
     </article>
