@@ -24,14 +24,20 @@
  * usa de hilo conductor y ver la MISMA predicación avanzar paso a paso enseña
  * más que siete ejemplos sueltos.
  */
+// `intro` y `final` fueron un solo paso (FINALIZARE) hasta el 10 sep 2026: se
+// separaron para escribir la introducción ANTES de DEZVOLTARE, por decisión
+// del propietario y en contra de lo que enseña el curso (que la escribe al
+// final). Ver la nota de `STEPS` en `sermon-content.service.js`. `final` se
+// queda sólo con la conclusión, por eso baja a una viñeta.
 export const GUIA = {
   text: { bullets: 3 },
   observation: { bullets: 4 },
   context: { bullets: 5 },
   idea: { bullets: 4, quote: true, warn: true, example: 3 },
   structure: { bullets: 5, example: 4 },
+  intro: { bullets: 4 },
   development: { bullets: 4 },
-  final: { bullets: 5 },
+  final: { bullets: 1 },
 };
 
 /**
@@ -53,7 +59,7 @@ export const GUIA = {
  * caso, y repetirlo en un recuadro aparte sería ruido. El aviso sale sólo
  * cuando lo que estás escribiendo NO es lo que la guía asume.
  */
-const PASOS_CON_NOTA = ['text', 'observation', 'context', 'idea', 'structure', 'development', 'final'];
+const PASOS_CON_NOTA = ['text', 'observation', 'context', 'idea', 'structure', 'intro', 'development', 'final'];
 export const TIPOS_CON_NOTA = ['textual', 'thematic'];
 
 export const tieneNotaDeTipo = (tipo, paso) =>

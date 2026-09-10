@@ -309,6 +309,10 @@
                   <span aria-hidden="true">·</span>
                   <span>{fechaLarga(p.publishedAt)}</span>
                 {/if}
+                {#if p.author}
+                  <span aria-hidden="true">·</span>
+                  <span>{p.author}</span>
+                {/if}
               </p>
             </a>
           </article>

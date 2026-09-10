@@ -96,7 +96,15 @@ export const normalizeContent = (raw) => {
 // ── Pasos ───────────────────────────────────────────────
 // El orden importa: es el recorrido que propone la aplicación. Se puede
 // retroceder y saltar, pero no reordenar.
-export const STEPS = ['text', 'observation', 'context', 'idea', 'structure', 'development', 'final'];
+//
+// `intro` va ANTES de `development` por decisión explícita del propietario, y
+// no es lo que enseña el curso: el curso dice que la introducción se escribe
+// AL FINAL, cuando ya se sabe adónde lleva la predicación (era el texto de
+// `final.why` hasta el 10 sep 2026). Se cambia a propósito, para escribirla en
+// el hueco entre STRUCTURĂ y DEZVOLTARE y no perder el hilo del orden en que
+// se predica. `final` se queda sólo con la conclusión y la serie — sigue
+// siendo el último paso, pero ya no combina las dos cosas.
+export const STEPS = ['text', 'observation', 'context', 'idea', 'structure', 'intro', 'development', 'final'];
 
 /**
  * Cuánto hay hecho de cada paso. Alimenta la línea de progreso.
@@ -113,10 +121,11 @@ export const stepCompletion = (content) => {
     context: algo(c.context),
     idea: algo(c.idea),
     structure: c.structure.length > 0 || c.transition.trim().length > 0,
+    intro: c.intro.trim().length > 0,
     // `algo` recorre los valores del objeto, así que vale igual para el
     // desarrollo de un punto (tres casillas) y para el de un subpunto (una).
     development: Object.values(c.development).some((d) => algo(d || {})),
-    final: !!(c.intro.trim() || c.conclusion.trim()),
+    final: c.conclusion.trim().length > 0,
   };
 };
 
@@ -240,9 +249,79 @@ export const marcadas = (texto) => {
   return [...texto.matchAll(MARCA)].map((m) => m[1].trim()).filter(Boolean);
 };
 
-/** El texto sin los asteriscos, para leerlo o contarlo. */
+// ── Cita en línea ───────────────────────────────────────
+//
+// El asterisco destaca una PALABRA suelta para la schiță; esto es otra cosa:
+// mete el VERSÍCULO ENTERO dentro del párrafo, en el sitio exacto donde se va
+// a leer en voz alta. Referencia y texto van entre llaves dobles, separados
+// por una barra — `{{Ioan 3:16|Fiindcă atât de mult a iubit Dumnezeu…}}` —
+// porque el asterisco ya está cogido y una coma o un guion aparecen todo el
+// rato dentro de una cita bíblica; la barra, no.
+//
+// Se inserta con el buscador de referencias (el mismo que ya existía para
+// añadir una referencia al pie del punto), no escribiéndola a mano: nadie
+// debería teclear el texto de un versículo entero letra a letra.
+const CITA = /\{\{([^{}|]+)\|([^{}]+)\}\}/g;
+
+/** El texto sin los asteriscos NI las citas, para leerlo, contarlo o generar
+ *  la schiță a partir de él. Una cita se aplana a «referencia: versículo»
+ *  para que no desaparezca de un plumazo — en `countWords` cuenta como lo que
+ *  se predica, y en la schiță puede servir de material para el resumen
+ *  automático si no hay nada marcado con asteriscos. */
 export const quitarMarcas = (texto) =>
-  typeof texto === 'string' ? texto.replace(MARCA, '$1') : '';
+  typeof texto === 'string' ? texto.replace(MARCA, '$1').replace(CITA, '$1: $2') : '';
+
+/**
+ * Inserta una cita en la posición `[desde, hasta)` de un texto.
+ *
+ * Si había algo seleccionado, la cita lo sustituye — sirve para rellenar un
+ * hueco ya escrito («aquí la cita») sin dejar el texto viejo al lado. Si no
+ * había selección, se inserta en el cursor. Devuelve dónde queda el cursor
+ * después, para no tener que ir a buscarlo.
+ */
+export const insertarCita = (texto, desde, hasta, ref) => {
+  const t = typeof texto === 'string' ? texto : '';
+  const bloque = `{{${ref.label}|${ref.text}}}`;
+  const nuevo = t.slice(0, desde) + bloque + t.slice(hasta);
+  return { texto: nuevo, cursor: desde + bloque.length };
+};
+
+/**
+ * Divide un texto en segmentos con formato, para imprimirlo o mostrarlo sin
+ * perder la negrita de un `*marca*` ni la cursiva de una `{{cita}}`.
+ *
+ * Antes los dos se limpiaban con `quitarMarcas` sin más, y el formato se
+ * perdía en el camino: la negrita nunca llegaba al papel y la cita salía
+ * como texto plano pegado a la frase, indistinguible del resto. Un
+ * `segmento` es `{ texto, bold? }` o `{ texto, italica? }`; sirve igual para
+ * pdfmake (un array de `text` con estilos) que para el HTML del documento —
+ * los dos necesitan lo mismo: texto plano intercalado con trozos que llevan
+ * otro formato.
+ */
+const PATRON_MIXTO = /\*([^*\n]+)\*|\{\{([^{}|]+)\|([^{}]+)\}\}/g;
+
+export const segmentarTexto = (texto) => {
+  const t = typeof texto === 'string' ? texto : '';
+  const segmentos = [];
+  let ultimo = 0;
+  for (const m of t.matchAll(PATRON_MIXTO)) {
+    if (m.index > ultimo) segmentos.push({ texto: t.slice(ultimo, m.index) });
+    if (m[1] !== undefined) {
+      // *palabra* → negrita. Es justo lo que se marcó para verlo desde el
+      // atril; en papel tiene sentido que se note lo mismo.
+      segmentos.push({ texto: m[1], bold: true });
+    } else {
+      // {{ref|texto}} → la referencia en negrita, pegada al versículo en
+      // cursiva. Así se lee como una cita dentro de la frase y no como un
+      // trozo de código suelto.
+      segmentos.push({ texto: `${m[2]} `, bold: true });
+      segmentos.push({ texto: m[3], italica: true });
+    }
+    ultimo = m.index + m[0].length;
+  }
+  if (ultimo < t.length) segmentos.push({ texto: t.slice(ultimo) });
+  return segmentos.length ? segmentos : [{ texto: t }];
+};
 
 /**
  * Envuelve entre asteriscos el trozo `[desde, hasta)` de un texto.

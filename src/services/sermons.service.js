@@ -95,11 +95,37 @@ export const loadSermons = () =>
 export const getSermon = (id) => readLS().find((s) => s.id === id) || null;
 
 /**
- * Trae del servidor y reemplaza la copia local.
+ * ¿El contenido que hay guardado localmente sigue siendo bueno frente a lo
+ * que dice la cabecera que acaba de mandar el servidor?
  *
- * Sólo se llama al iniciar sesión o al abrir el módulo, nunca durante la
- * edición: sobrescribir mientras el usuario escribe le borraría lo que acaba de
- * teclear. Los cambios aún sin subir se conservan.
+ * Aparte, como función pura, para poder probar el fallo de fondo sin tocar
+ * red ni `USE_BACKEND`: **éste era el fallo real detrás de «lo que escribo en
+ * un dispositivo no se ve en el otro»**. Antes se conservaba el contenido
+ * local SIEMPRE que existiera, sin mirar la fecha. La primera vez que se
+ * abría una predicación se descargaba su contenido; a partir de ahí, aunque
+ * llegaran cien sincronizaciones, ese contenido se daba por bueno para
+ * siempre —ni un refresco de página lo tocaba, porque `fetchDetail` hace
+ * exactamente lo mismo: si ya hay algo en local, no vuelve a preguntar—. Un
+ * cambio hecho en otro dispositivo nunca llegaba a reflejarse aquí.
+ *
+ * La condición es simplemente: ¿el `updatedAt` que tengo es al menos tan
+ * nuevo como el del servidor? Los dos usan el mismo `nowIso()`, así que la
+ * comparación de cadenas ISO 8601 basta.
+ */
+export const contenidoSigueValido = (local, remoto) =>
+  local?.content != null && String(local.updatedAt) >= String(remoto?.updatedAt);
+
+/**
+ * Trae la cabecera de todas las predicaciones y decide, para cada una, si el
+ * contenido que hay en el dispositivo sigue siendo bueno o si hay que
+ * olvidarlo para que se vuelva a pedir.
+ *
+ * Se llama al iniciar sesión, al volver a la aplicación (ver
+ * `resync.service.js`) y al abrir una predicación en `SermonPrep`, justo
+ * antes de leerla — nunca DURANTE la edición: esto no toca lo que ya está
+ * cargado en el componente, sólo la cache en disco de la que se lee la
+ * próxima vez. Sobrescribir mientras el usuario escribe le borraría lo que
+ * acaba de teclear. Los cambios aún sin subir se conservan siempre.
  */
 export const syncFromServer = async () => {
   if (!USE_BACKEND || !currentUserId) return null;
@@ -114,9 +140,18 @@ export const syncFromServer = async () => {
     const fusionadas = remotas.map((r) => {
       const local = locales.find((s) => s.id === r.id);
       if (local && pendientes[r.id]) return local;
-      // El detalle (content/outline) no viene en la lista: se conserva el local
-      // si ya se había descargado, y si no se pedirá al abrirla.
-      return { ...r, content: local?.content ?? null, outline: local?.outline ?? null };
+
+      // El detalle (content/outline) no viene en esta lista — ver
+      // `listSermons` en el worker—; si mi copia local está anticuada se
+      // descarta (queda `null`) para que `fetchDetail` la vuelva a pedir la
+      // próxima vez que se abra. No se pide aquí mismo para no descargar el
+      // cuerpo entero de cada predicación sólo por refrescar la lista.
+      const localAlDia = contenidoSigueValido(local, r);
+      return {
+        ...r,
+        content: localAlDia ? local.content : null,
+        outline: localAlDia ? local.outline : null,
+      };
     });
 
     // Las creadas sin conexión todavía no existen arriba: no se pierden.
@@ -126,6 +161,31 @@ export const syncFromServer = async () => {
   } catch (e) {
     console.warn('[predici] No se pudo sincronizar:', e.message);
     return null;
+  }
+};
+
+/**
+ * Vuelve a pedir el detalle al servidor, saltándose la cache local aunque ya
+ * la hubiera.
+ *
+ * A diferencia de `fetchDetail` —que una vez descargado el contenido no lo
+ * vuelve a pedir nunca—, esto SIEMPRE va al servidor. Es lo que hace el botón
+ * «Actualizează»: se niega si hay cambios de ESTE dispositivo sin subir
+ * todavía, porque pisarlos sería perder lo último que se ha escrito, que es
+ * justo lo que el botón promete no hacer. El propio botón, antes de llamar
+ * aquí, fuerza el guardado pendiente (ver `guardarYa` en `SermonPrep.svelte`),
+ * así que llegar aquí con algo en la cola normalmente significa que ese
+ * guardado ha fallado por falta de conexión.
+ */
+export const refreshDetail = async (id) => {
+  if (!USE_BACKEND) return { ok: false, reason: 'offline' };
+  if (id.startsWith('local_')) return { ok: false, reason: 'offline' };
+  if (readPending()[id]) return { ok: false, reason: 'pending' };
+  try {
+    const res = await api.get(`/api/sermons/${encodeURIComponent(id)}`);
+    return { ok: true, sermon: upsertLocal({ ...res.sermon }) };
+  } catch (e) {
+    return { ok: false, reason: 'network', error: e.message };
   }
 };
 

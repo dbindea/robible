@@ -615,7 +615,32 @@
       "series_new": "Tema nuevo",
       "series_first": "Añadir un tema",
       "series_add": "Añadir",
-      "series_new_placeholder": "Nombre del tema…"
+      "series_new_placeholder": "Nombre del tema…",
+      "step_intro": "Introducción",
+      "optional": "opcional",
+      "refresh": "Actualizar",
+      "refresh_working": "Actualizando…",
+      "refresh_ok": "Actualizado desde el servidor.",
+      "refresh_pending": "Tienes cambios aún sin subir; se sincronizarán antes de actualizar.",
+      "refresh_offline": "Esta predicación todavía no se ha sincronizado nunca; no hay de dónde actualizarla.",
+      "refresh_failed": "No se ha podido actualizar. Comprueba la conexión e inténtalo de nuevo.",
+      "insert_verse": "Insertar versículo",
+      "insert_verse_help": "Elige un versículo y su texto completo se pega aquí, en cursiva al imprimir.",
+      "guide_link": "Guía de predicación",
+      "guide": {
+        "seo_title": "Cómo hacer una predicación expositiva, temática o textual | RoBible",
+        "seo_description": "El manual paso a paso del método de RoBible: cómo se prepara una predicación expositiva, y qué cambia en una temática o textual.",
+        "eyebrow": "Guía de predicación",
+        "title": "Cómo se hace una predicación",
+        "lead": "El método detrás de los pasos de «Mis predicaciones», explicado de principio a fin — para una predicación expositiva, y qué cambia si es temática o textual.",
+        "types_title": "Tres clases, una sola regla",
+        "types_lead": "Lo que las distingue es de dónde salen las divisiones de la predicación, no cuán «seria» es una frente a otra.",
+        "timeline_title": "Los pasos del método, uno a uno",
+        "timeline_lead": "Los mismos ocho pasos de la aplicación, con la explicación completa de cada uno — incluido qué cambia en una predicación textual o temática.",
+        "cta_title": "Prepara tu predicación paso a paso",
+        "cta_text": "Todos estos pasos son un formulario guiado en «Mis predicaciones», con schiță imprimible para el púlpito.",
+        "cta_action": "Abrir Mis predicaciones"
+      }
     },
     "pulpit": {
       "mode": "Modo púlpito",
@@ -710,12 +735,8 @@
         "b4": "También puedes desarrollar por subdivisiones, haciéndole preguntas analíticas al concepto de la división: ¿cómo?, ¿cuál?, ¿por qué?, ¿qué supone?, ¿cuáles son las consecuencias?"
       },
       "final": {
-        "why": "La introducción se escribe al final, porque sólo ahora sabes adónde llevas la predicación.",
-        "b1": "La introducción tiene tres partes: la frase de inicio, las aplicaciones introductorias y la transición al texto.",
-        "b2": "La frase de inicio sale de la idea homilética o del tema, ligada a la vida diaria de los oyentes.",
-        "b3": "Las aplicaciones introductorias sacan a la luz la necesidad del oyente y crean la tensión positiva. Sin ella, la predicación es la respuesta a una pregunta que nadie ha hecho.",
-        "b4": "No empieces con detalles técnicos sobre el libro o sobre los destinatarios.",
-        "b5": "La conclusión tiene también tres partes: retomar la idea homilética, recapitular las divisiones y la visión: qué pasará si los oyentes aplican la idea."
+        "why": "La conclusión no resume la predicación, la cierra: retomando la idea y mirando a qué cambia si el oyente la aplica.",
+        "b1": "Tiene tres partes: retomar la idea homilética, recapitular las divisiones y la visión: qué pasará si los oyentes aplican la idea."
       },
       "transition": {
         "title": "¿Cómo se hace?",
@@ -733,7 +754,8 @@
           "idea": "La idea sale también de ese texto corto, no del tema que te sugiere. Si has llegado a una idea que el texto no sostiene, has pasado a una predicación temática.",
           "structure": "Las divisiones salen de las partes del texto corto —oraciones, palabras clave—, no de otros pasajes. Los demás versículos entran en Desarrollo, como apoyo.",
           "development": "Aquí entran los demás pasajes, como apoyo de lo que ya dice tu texto. Lo explican, no lo sustituyen.",
-          "final": "La conclusión vuelve al versículo del que partiste. El oyente tiene que irse sabiéndose de memoria el texto corto que le has predicado."
+          "final": "La conclusión vuelve al versículo del que partiste. El oyente tiene que irse sabiéndose de memoria el texto corto que le has predicado.",
+          "intro": "La introducción lleva hacia el versículo corto, no hacia un tema más amplio que se podría sacar de él."
         },
         "thematic": {
           "text": "Éste es el texto base. En una predicación temática cada división se apoya en otro pasaje: añádelos como referencias en el paso Desarrollo.",
@@ -742,8 +764,16 @@
           "idea": "La idea exegética sale del texto base; los demás pasajes la sostienen, no la cambian. Si la idea no se puede sacar de ningún texto, es tuya y no de la Escritura.",
           "structure": "Cada división tiene su pasaje. Comprueba cada versículo en su contexto: si allí no dice lo que tú dices, quítalo en vez de forzarlo.",
           "development": "El peligro aquí es la colección de versículos. Cada pasaje se explica brevemente en su contexto; si no, la predicación se queda en una lista de citas sin enseñanza.",
-          "final": "La conclusión recoge el tema en una sola frase. Si el oyente no sabe decir al salir de qué se ha hablado, el tema era demasiado amplio."
+          "final": "La conclusión recoge el tema en una sola frase. Si el oyente no sabe decir al salir de qué se ha hablado, el tema era demasiado amplio.",
+          "intro": "La introducción puede partir del tema, no necesariamente del texto base — pero las aplicaciones tienen que salir igual de la vida del oyente."
         }
+      },
+      "intro": {
+        "why": "Se escribe ahora, con la idea y la estructura ya claras — no al final, como enseña el curso. Tiene dos partes; la transición al primer punto es otro campo, ya escrito en Estructura.",
+        "b1": "La frase de inicio sale de la idea homilética o del tema, ligada a la vida diaria de los oyentes.",
+        "b2": "Las aplicaciones introductorias sacan a la luz la necesidad del oyente y crean la tensión positiva. Sin ella, la predicación es la respuesta a una pregunta que nadie ha hecho.",
+        "b3": "No empieces con detalles técnicos sobre el libro o sobre los destinatarios.",
+        "b4": "Si todavía no sabes hacia dónde vas, puedes dejar este paso y volver después de escribir el Desarrollo — nada es obligatorio."
       }
     },
     "profile": {

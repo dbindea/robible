@@ -26,11 +26,29 @@ export const sermonsStore = {
 
   get: (id) => sermonsService.getSermon(id),
 
+  /**
+   * Vuelve a leer las cabeceras del servidor e invalida el contenido de las
+   * que otro dispositivo haya cambiado desde la última vez. Se llama antes de
+   * `load()` para que un enlace directo o una recarga de página no se quede
+   * con el detalle cacheado: ver el comentario de `syncFromServer`.
+   */
+  sync: async () => {
+    await sermonsService.syncFromServer();
+    refresh();
+  },
+
   /** Descarga el detalle si hace falta; devuelve la predicación completa. */
   load: async (id) => {
     const s = await sermonsService.fetchDetail(id);
     refresh();
     return s;
+  },
+
+  /** Fuerza una nueva descarga del detalle, saltándose la cache. Ver `refreshDetail`. */
+  refreshOne: async (id) => {
+    const res = await sermonsService.refreshDetail(id);
+    refresh();
+    return res;
   },
 
   create: async (datos) => {

@@ -18,6 +18,7 @@
   import { _ } from '../../services/i18n.service';
   import { sermonsStore } from '../../store/sermonsStore';
   import { setSermonPublic, buildPublicSermonUrl } from '../../services/sermons.service';
+  import { USE_BACKEND } from '../../config.js';
   import { buildSnapshot } from '../../services/sermon-pulpit.service';
   import Icon from '../../components/Icon.svelte';
   import Ajutor from '../../components/Ajutor.svelte';
@@ -26,6 +27,7 @@
   import Sugestii from '../../components/Sugestii.svelte';
   import SeriesPicker from '../../components/SeriesPicker.svelte';
   import Modal from '../../components/Modal.svelte';
+  import TextoFormateado from '../../components/TextoFormateado.svelte';
   import { searchReferences } from '../../services/referenceSearch.service';
   import {
     STEPS,
@@ -33,6 +35,7 @@
     collectReferences,
     emptyContent,
     generateOutline,
+    insertarCita,
     movePoint,
     newPoint,
     newSubpoint,
@@ -58,6 +61,10 @@
   let estadoGuardado = ''; // '' | 'guardando' | 'guardado'
   let guardadoTimer;
   let etiquetaTimer;
+  // ¿Hay un guardado del retardo todavía en el aire? Sólo mientras esto sea
+  // `true` tiene sentido que «Actualizează» suba algo antes de pedir el
+  // detalle — ver el comentario de `actualizarDesdeServidor`.
+  let guardadoEnElAire = false;
 
   // Vista final y schiță
   let vista = 'prep'; // 'prep' | 'final' | 'outline'
@@ -94,13 +101,36 @@
   };
 
   // ── Referencias a otros pasajes ─────────────────────────────────────────
+  //
+  // El mismo buscador sirve para dos cosas, según `modoBuscador`:
+  //   - 'ref'  → añade la referencia al pie del punto (lo de siempre).
+  //   - 'cita' → inserta el versículo ENTERO dentro de un textarea, en el
+  //              cursor. Es la diferencia entre citar un pasaje y leerlo
+  //              en voz alta en mitad de la explicación.
   let buscadorAbierto = false;
+  let modoBuscador = 'ref';
   let puntoDeLaRef = '';
+  let campoDeLaCita = '';
   let consultaRef = '';
   let sugerenciasRef = [];
 
   const abrirBuscadorRefs = (puntoId) => {
+    modoBuscador = 'ref';
     puntoDeLaRef = puntoId;
+    consultaRef = '';
+    sugerenciasRef = [];
+    buscadorAbierto = true;
+  };
+
+  /**
+   * Abre el mismo buscador para insertar el versículo entero en un textarea.
+   * `clave` identifica el campo: `"<id>:<campo>"` para un punto o subpunto
+   * (p. ej. `"p_1:explain"`, `"s_2:text"`), o el nombre a secas para un campo
+   * de nivel superior (`"intro"`, `"conclusion"`) — ver `leerCampoTexto`.
+   */
+  const abrirInsertarCita = (clave) => {
+    modoBuscador = 'cita';
+    campoDeLaCita = clave;
     consultaRef = '';
     sugerenciasRef = [];
     buscadorAbierto = true;
@@ -108,6 +138,21 @@
 
   const buscarRef = () => {
     sugerenciasRef = consultaRef.trim() ? searchReferences(consultaRef, map, 5) : [];
+  };
+
+  /** Lee o escribe un campo de texto libre, sea del desarrollo (con `:`) o de
+   *  nivel superior (`intro`/`conclusion`). Un único punto de acceso para que
+   *  `insertarCitaEnCampo` no tenga que saber de antemano dónde vive cada uno. */
+  const leerCampoTexto = (clave) =>
+    clave.includes(':') ? (desarrolloDe(clave.split(':')[0])[clave.split(':')[1]] || '') : (content[clave] || '');
+
+  const escribirCampoTexto = (clave, valor) => {
+    if (clave.includes(':')) {
+      const [id, campo] = clave.split(':');
+      desarrolloDe(id)[campo] = valor;
+    } else {
+      content[clave] = valor;
+    }
   };
 
   /**
@@ -119,21 +164,40 @@
    */
   const añadirRef = (m) => {
     if (!m || !Number.isInteger(m.book) || !m.chapter || !m.verse) return;
-    const d = desarrolloDe(puntoDeLaRef);
-    d.refs = d.refs || [];
     const label = `${map[m.book] || ''} ${m.chapter}:${m.verse}`.trim();
-    if (!d.refs.some((r) => r.label === label)) {
-      d.refs = [...d.refs, {
-        book: m.book,
-        chapter: m.chapter,
-        verse: m.verse,
-        label,
-        text: bible?.[m.book]?.[m.chapter - 1]?.[m.verse - 1] || '',
-      }];
+    const texto = bible?.[m.book]?.[m.chapter - 1]?.[m.verse - 1] || '';
+
+    if (modoBuscador === 'cita') {
+      insertarCitaEnCampo(campoDeLaCita, { label, text: texto });
+    } else {
+      const d = desarrolloDe(puntoDeLaRef);
+      d.refs = d.refs || [];
+      if (!d.refs.some((r) => r.label === label)) {
+        d.refs = [...d.refs, { book: m.book, chapter: m.chapter, verse: m.verse, label, text: texto }];
+      }
+      content = content;
+      guardarContenido();
     }
+    buscadorAbierto = false;
+  };
+
+  /** Inserta la cita en el cursor del textarea que la pidió, y deja el foco
+   *  y el cursor justo después de lo insertado — es lo siguiente que hay que
+   *  tocar, y sin esto habría que ir a buscar el campo a mano. */
+  const insertarCitaEnCampo = async (clave, ref) => {
+    const el = areas[clave];
+    const actual = leerCampoTexto(clave);
+    const desde = el ? el.selectionStart : actual.length;
+    const hasta = el ? el.selectionEnd : desde;
+    const r = insertarCita(actual, desde, hasta, ref);
+    escribirCampoTexto(clave, r.texto);
     content = content;
     guardarContenido();
-    buscadorAbierto = false;
+    await tick();
+    if (el) {
+      el.focus();
+      el.setSelectionRange(r.cursor, r.cursor);
+    }
   };
 
   // ── Impresión ───────────────────────────────────────────────────────────
@@ -273,9 +337,11 @@
 
   const guardar = (cambios) => {
     estadoGuardado = 'guardando';
+    guardadoEnElAire = true;
     clearTimeout(guardadoTimer);
     guardadoTimer = setTimeout(async () => {
       await sermonsStore.update(sermonId, cambios);
+      guardadoEnElAire = false;
       estadoGuardado = 'guardado';
       clearTimeout(etiquetaTimer);
       etiquetaTimer = setTimeout(() => { estadoGuardado = ''; }, 2000);
@@ -287,11 +353,24 @@
     guardar({ content: JSON.stringify(content) });
   };
 
-  // Guardado inmediato, sin esperar al retardo. Se usa al salir de la pantalla
-  // y al cambiar de paso: son los momentos en que se puede perder lo tecleado.
+  // Guardado inmediato, sin esperar al retardo. Se usa al salir de la pantalla,
+  // al cambiar de paso y antes de un refresco manual: son los momentos en que
+  // dejar algo a medias significa perderlo.
+  //
+  // Manda `outline` SIEMPRE que exista, no sólo cuando se está mirando la
+  // schiță: `guardarSchita` comparte el mismo `guardadoTimer` que el
+  // contenido, así que cambiar de paso o salir a mitad del retardo de la
+  // schiță cancelaba su temporizador sin haber llegado a mandar el cambio —
+  // se perdía entero, y ni siquiera quedaba en el dispositivo, porque a
+  // diferencia del contenido, el `outline` no se escribe en ningún sitio
+  // hasta que el propio guardado lo hace. Mandarlo de más aquí no hace daño:
+  // si no cambió, el PATCH escribe lo mismo que ya había.
   const guardarYa = async () => {
     clearTimeout(guardadoTimer);
-    await sermonsStore.update(sermonId, { content: JSON.stringify(content) });
+    guardadoEnElAire = false;
+    const cambios = { content: JSON.stringify(content) };
+    if (outline) cambios.outline = JSON.stringify(outline);
+    await sermonsStore.update(sermonId, cambios);
   };
 
   const irAPaso = async (siguiente) => {
@@ -581,9 +660,11 @@
 
   const guardarSchita = () => {
     estadoGuardado = 'guardando';
+    guardadoEnElAire = true;
     clearTimeout(guardadoTimer);
     guardadoTimer = setTimeout(async () => {
       await sermonsStore.update(sermonId, { outline: JSON.stringify(outline) });
+      guardadoEnElAire = false;
       estadoGuardado = 'guardado';
       clearTimeout(etiquetaTimer);
       etiquetaTimer = setTimeout(() => { estadoGuardado = ''; }, 2000);
@@ -639,6 +720,14 @@
   };
 
   onMount(async () => {
+    // Antes de leer, se sincroniza la cabecera con el servidor: si otro
+    // dispositivo cambió esta predicación, el contenido cacheado en éste se
+    // marca obsoleto y `load` lo vuelve a descargar entero (ver el comentario
+    // de `syncFromServer`). Sin este await, en un enlace directo —recargar la
+    // página— esta llamada podía ganarle a la sincronización que dispara el
+    // arranque de la aplicación y leer la copia vieja de todos modos: es
+    // justo el fallo de «ni haciendo refresh se ve lo del otro dispositivo».
+    await sermonsStore.sync();
     sermon = await sermonsStore.load(sermonId);
     content = normalizeContent(sermon?.content);
     outline = normalizeOutline(sermon?.outline);
@@ -647,13 +736,62 @@
     cargando = false;
   });
 
+  // ── Actualizar manualmente desde el servidor ────────────────────────────
+  //
+  // La sincronización automática (al volver a la pestaña, al abrir esta
+  // pantalla) es silenciosa y no toca lo que ya está en el editor: por
+  // diseño, para no pisar una edición en curso. Este botón es lo contrario,
+  // a petición explícita — «tráeme ahora lo último, aunque esté editando».
+  //
+  // **Sólo sube lo local si `guardadoEnElAire` es cierto** — es decir, si hay un
+  // guardado del retardo todavía en el aire, de algo tecleado en el último
+  // segundo y pico. Subirlo SIEMPRE, sin mirar si hacía falta, fue un fallo
+  // real que sólo salió al probarlo: con el contenido ya sincronizado (nada
+  // pendiente), pulsar «Actualizează» reenviaba la copia de este dispositivo
+  // al servidor ANTES de pedir nada — y esa copia, aunque igual a la última
+  // vez que se guardó aquí, es más VIEJA que la que acaba de escribir el otro
+  // dispositivo. El resultado era pisar justo el cambio que se venía a buscar,
+  // con el propio botón que promete traerlo.
+  let actualizando = false;
+
+  const actualizarDesdeServidor = async () => {
+    if (actualizando) return;
+    actualizando = true;
+    try {
+      if (guardadoEnElAire) await guardarYa();
+      const res = await sermonsStore.refreshOne(sermonId);
+      if (res.ok) {
+        sermon = res.sermon;
+        content = normalizeContent(sermon.content);
+        outline = normalizeOutline(sermon.outline);
+        serie = sermon.series || '';
+        sincronizarTextos();
+        avisar($_('app.sermons.refresh_ok'));
+      } else if (res.reason === 'pending') {
+        avisar($_('app.sermons.refresh_pending'));
+      } else if (res.reason === 'offline') {
+        avisar($_('app.sermons.refresh_offline'));
+      } else {
+        avisar($_('app.sermons.refresh_failed'));
+      }
+    } finally {
+      actualizando = false;
+    }
+  };
+
   onDestroy(() => {
     clearTimeout(guardadoTimer);
     clearTimeout(etiquetaTimer);
     // Al salir se guarda sin esperar: el usuario puede estar navegando fuera
-    // justo después de teclear.
+    // justo después de teclear. Manda también `outline` si existe, por lo
+    // mismo que `guardarYa` — el mismo timer compartido significa que salir a
+    // media edición de la schiță podía perderla del todo, no sólo del
+    // servidor: no llega a escribirse en ningún sitio hasta que el guardado
+    // la manda.
     if (sermonId && !cargando) {
-      sermonsStore.update(sermonId, { content: JSON.stringify(content) });
+      const cambios = { content: JSON.stringify(content) };
+      if (outline) cambios.outline = JSON.stringify(outline);
+      sermonsStore.update(sermonId, cambios);
     }
   });
 </script>
@@ -673,12 +811,27 @@
         <Icon name="arrow-left" />
         <span>{$_('app.sermons.title')}</span>
       </button>
-      <div class="prep__guardado" aria-live="polite">
-        {#if estadoGuardado === 'guardando'}
-          <span class="prep__guardado-texto">{$_('app.sermons.saving')}</span>
-        {:else if estadoGuardado === 'guardado'}
-          <span class="prep__guardado-texto prep__guardado-texto--ok">{$_('app.sermons.saved')}</span>
+      <div class="prep__cabecera-derecha">
+        <!-- Al ghid, en pestaña nueva: es contenido para leer con calma, no
+             para interrumpir la preparación. -->
+        <a class="prep__guia" href="/ghid-predicare" target="_blank" rel="noopener">
+          {$_('app.sermons.guide_link')}
+          <Icon name="external" size="0.75rem" />
+        </a>
+        <!-- Sin sentido para una predicación creada sin conexión: nunca ha
+             llegado al servidor, así que no hay de dónde actualizarla. -->
+        {#if USE_BACKEND && !sermonId.startsWith('local_')}
+          <button type="button" class="prep__actualizar" disabled={actualizando} on:click={actualizarDesdeServidor}>
+            {actualizando ? $_('app.sermons.refresh_working') : $_('app.sermons.refresh')}
+          </button>
         {/if}
+        <div class="prep__guardado" aria-live="polite">
+          {#if estadoGuardado === 'guardando'}
+            <span class="prep__guardado-texto">{$_('app.sermons.saving')}</span>
+          {:else if estadoGuardado === 'guardado'}
+            <span class="prep__guardado-texto prep__guardado-texto--ok">{$_('app.sermons.saved')}</span>
+          {/if}
+        </div>
       </div>
     </header>
 
@@ -968,41 +1121,12 @@
                   {i + 1}. {quitarMarcas(punto.title) || $_('app.sermons.point_placeholder')}
                 </h3>
 
-                {#each ['explain', 'illustrate', 'apply'] as campo (campo)}
-                  <div class="campo">
-                    <div class="campo__cabecera">
-                      <span>{$_(`app.sermons.dev_${campo}`)}</span>
-                      <!-- Marca lo seleccionado para que salga en la schiță. Se
-                           deshabilita si no hay nada seleccionado, que es la
-                           forma más corta de explicar que hay que elegir antes. -->
-                      <button
-                        type="button"
-                        class="campo__marcar"
-                        disabled={!seleccion[`${punto.id}:${campo}`]}
-                        on:click={() => marcarSeleccion(punto.id, campo)}
-                        title={$_('app.sermons.mark_help')}
-                      >
-                        <Icon name="highlight" size="0.85rem" />
-                        {$_('app.sermons.mark_keyword')}
-                      </button>
-                    </div>
-                    <textarea spellcheck="false"
-                      rows="6"
-                      bind:this={areas[`${punto.id}:${campo}`]}
-                      bind:value={d[campo]}
-                      on:input={guardarContenido}
-                      on:select={() => refrescarSeleccion(punto.id, campo)}
-                      on:keyup={() => refrescarSeleccion(punto.id, campo)}
-                      on:mouseup={() => refrescarSeleccion(punto.id, campo)}
-                    ></textarea>
-                  </div>
-                {/each}
-
-                <!-- Los subpuntos escritos en STRUCTURĂ se desarrollan aquí,
-                     cada uno con su propio texto. Sin esto había que escribirlo
-                     todo dentro de las tres casillas del punto y las divisiones
-                     no llegaban ni al documento ni al PDF. Un solo campo por
-                     subpunto: es una división del punto, no un punto entero. -->
+                <!-- Los subpuntos van PRIMERO, justo después del título: son
+                     la división analítica del punto — de ahí sale lo que
+                     luego se explica, ilustra y aplica como un conjunto. Antes
+                     iban después de las tres casillas, y se leía como si la
+                     predicación volviera atrás a subdividir algo que ya se
+                     había cerrado. -->
                 {#each punto.subpoints || [] as sub, j (sub.id)}
                   {@const ds = desarrolloDe(sub.id)}
                   <div class="subdesarrollo">
@@ -1012,16 +1136,27 @@
                     <div class="campo">
                       <div class="campo__cabecera">
                         <span>{$_('app.sermons.dev_subpoint')}</span>
-                        <button
-                          type="button"
-                          class="campo__marcar"
-                          disabled={!seleccion[`${sub.id}:text`]}
-                          on:click={() => marcarSeleccion(sub.id, 'text')}
-                          title={$_('app.sermons.mark_help')}
-                        >
-                          <Icon name="highlight" size="0.85rem" />
-                          {$_('app.sermons.mark_keyword')}
-                        </button>
+                        <div class="campo__acciones">
+                          <button
+                            type="button"
+                            class="campo__marcar"
+                            on:click={() => abrirInsertarCita(`${sub.id}:text`)}
+                            title={$_('app.sermons.insert_verse_help')}
+                          >
+                            <Icon name="book-open" size="0.85rem" />
+                            {$_('app.sermons.insert_verse')}
+                          </button>
+                          <button
+                            type="button"
+                            class="campo__marcar"
+                            disabled={!seleccion[`${sub.id}:text`]}
+                            on:click={() => marcarSeleccion(sub.id, 'text')}
+                            title={$_('app.sermons.mark_help')}
+                          >
+                            <Icon name="highlight" size="0.85rem" />
+                            {$_('app.sermons.mark_keyword')}
+                          </button>
+                        </div>
                       </div>
                       <textarea spellcheck="false"
                         rows="5"
@@ -1060,6 +1195,55 @@
                   </div>
                 {/each}
 
+                <!-- Explicar y aplicar son obligatorios en el curso; ilustrar
+                     es opcional. Antes no se distinguía nada en pantalla y
+                     había que saberlo de memoria. -->
+                {#each ['explain', 'illustrate', 'apply'] as campo (campo)}
+                  <div class="campo">
+                    <div class="campo__cabecera">
+                      <span>
+                        {$_(`app.sermons.dev_${campo}`)}
+                        <em class="campo__marca" class:campo__marca--opcional={campo === 'illustrate'}>
+                          {campo === 'illustrate' ? $_('app.sermons.optional') : $_('app.sermons.required')}
+                        </em>
+                      </span>
+                      <div class="campo__acciones">
+                        <button
+                          type="button"
+                          class="campo__marcar"
+                          on:click={() => abrirInsertarCita(`${punto.id}:${campo}`)}
+                          title={$_('app.sermons.insert_verse_help')}
+                        >
+                          <Icon name="book-open" size="0.85rem" />
+                          {$_('app.sermons.insert_verse')}
+                        </button>
+                        <!-- Marca lo seleccionado para que salga en la schiță. Se
+                             deshabilita si no hay nada seleccionado, que es la
+                             forma más corta de explicar que hay que elegir antes. -->
+                        <button
+                          type="button"
+                          class="campo__marcar"
+                          disabled={!seleccion[`${punto.id}:${campo}`]}
+                          on:click={() => marcarSeleccion(punto.id, campo)}
+                          title={$_('app.sermons.mark_help')}
+                        >
+                          <Icon name="highlight" size="0.85rem" />
+                          {$_('app.sermons.mark_keyword')}
+                        </button>
+                      </div>
+                    </div>
+                    <textarea spellcheck="false"
+                      rows="6"
+                      bind:this={areas[`${punto.id}:${campo}`]}
+                      bind:value={d[campo]}
+                      on:input={guardarContenido}
+                      on:select={() => refrescarSeleccion(punto.id, campo)}
+                      on:keyup={() => refrescarSeleccion(punto.id, campo)}
+                      on:mouseup={() => refrescarSeleccion(punto.id, campo)}
+                    ></textarea>
+                  </div>
+                {/each}
+
                 <!-- Referencias a otros pasajes: en la schiță se ve sólo la
                      cita; en el púlpito, el texto entero. -->
                 <div class="refs">
@@ -1092,6 +1276,36 @@
           {/if}
         </div>
 
+      <!-- ── INTRODUCERE ──────────────────────────────────────────────── -->
+      {:else if paso === 'intro'}
+        <div class="bloque">
+          <h2>{$_('app.sermons.step_intro')}</h2>
+          <Ajutor paso="intro" tip={sermon?.type} />
+          <Recapitulare {content} paso="intro" {referencia} />
+          <Notite notes={content.notes} />
+          <div class="campo">
+            <div class="campo__cabecera">
+              <span>{$_('app.sermons.intro')}</span>
+              <button
+                type="button"
+                class="campo__marcar"
+                on:click={() => abrirInsertarCita('intro')}
+                title={$_('app.sermons.insert_verse_help')}
+              >
+                <Icon name="book-open" size="0.85rem" />
+                {$_('app.sermons.insert_verse')}
+              </button>
+            </div>
+            <small class="campo__pista">{$_('app.sermons.intro_help')}</small>
+            <textarea spellcheck="false"
+              rows="8"
+              bind:this={areas['intro']}
+              bind:value={content.intro}
+              on:input={guardarContenido}
+            ></textarea>
+          </div>
+        </div>
+
       <!-- ── FINALIZARE ───────────────────────────────────────────────── -->
       {:else if paso === 'final'}
         <div class="bloque">
@@ -1099,16 +1313,27 @@
           <Ajutor paso="final" tip={sermon?.type} />
           <Recapitulare {content} paso="final" {referencia} />
           <Notite notes={content.notes} />
-          <label class="campo">
-            <span>{$_('app.sermons.intro')}</span>
-            <small class="campo__pista">{$_('app.sermons.intro_help')}</small>
-            <textarea spellcheck="false" rows="8" bind:value={content.intro} on:input={guardarContenido}></textarea>
-          </label>
-          <label class="campo">
-            <span>{$_('app.sermons.conclusion')}</span>
+          <div class="campo">
+            <div class="campo__cabecera">
+              <span>{$_('app.sermons.conclusion')}</span>
+              <button
+                type="button"
+                class="campo__marcar"
+                on:click={() => abrirInsertarCita('conclusion')}
+                title={$_('app.sermons.insert_verse_help')}
+              >
+                <Icon name="book-open" size="0.85rem" />
+                {$_('app.sermons.insert_verse')}
+              </button>
+            </div>
             <small class="campo__pista">{$_('app.sermons.conclusion_help')}</small>
-            <textarea spellcheck="false" rows="8" bind:value={content.conclusion} on:input={guardarContenido}></textarea>
-          </label>
+            <textarea spellcheck="false"
+              rows="8"
+              bind:this={areas['conclusion']}
+              bind:value={content.conclusion}
+              on:input={guardarContenido}
+            ></textarea>
+          </div>
 
           <!-- La serie NO va en `content_json`: es una columna de la tabla,
                porque el listado público filtra por ella y filtrar por dentro de
@@ -1146,37 +1371,40 @@
 
         {#if content.intro.trim()}
           <h2>{$_('app.sermons.intro')}</h2>
-          <p class="documento__parrafo">{quitarMarcas(content.intro)}</p>
+          <p class="documento__parrafo"><TextoFormateado texto={content.intro} /></p>
         {/if}
 
         <!-- Sin encabezado propio y en su sitio: la transición no es una
              sección de la predicación, es la frase con la que se sale de la
              introducción y se entra en el primer punto. -->
         {#if content.transition.trim()}
-          <p class="documento__parrafo documento__parrafo--transicion">{quitarMarcas(content.transition)}</p>
+          <p class="documento__parrafo documento__parrafo--transicion"><TextoFormateado texto={content.transition} /></p>
         {/if}
 
         {#each content.structure as punto, i (punto.id)}
           {@const d = content.development[punto.id] || {}}
           <!-- El documento es la predicación en limpio: se lee y se imprime,
-               así que va sin la sintaxis de marcado. -->
+               así que va sin la sintaxis de marcado —salvo lo que el propio
+               formato del marcado da a entender: negrita para lo destacado,
+               cursiva para una cita en línea, ver `TextoFormateado`. -->
           <h2>{i + 1}. {quitarMarcas(punto.title) || $_('app.sermons.point_placeholder')}</h2>
-          {#if d.explain}<p class="documento__parrafo">{quitarMarcas(d.explain)}</p>{/if}
-          {#if d.illustrate}<p class="documento__parrafo documento__parrafo--ilustra">{quitarMarcas(d.illustrate)}</p>{/if}
-          {#if d.apply}<p class="documento__parrafo">{quitarMarcas(d.apply)}</p>{/if}
-          <!-- El subpunto va después del cuerpo del punto y con su propio
-               texto, igual que en el PDF: antes eran sólo titulares sueltos
-               apilados debajo del título, sin nada que los desarrollara. -->
+          <!-- El subpunto va justo después del título, antes de explicar,
+               ilustrar y aplicar: es su división analítica, no una vuelta
+               atrás después de haber cerrado el punto. Mismo orden que en
+               DEZVOLTARE y en el PDF. -->
           {#each punto.subpoints || [] as sub, j (sub.id)}
             {@const ds = content.development[sub.id] || {}}
             <h3>{i + 1}.{j + 1} {quitarMarcas(sub.title)}</h3>
-            {#if ds.text}<p class="documento__parrafo">{quitarMarcas(ds.text)}</p>{/if}
+            {#if ds.text}<p class="documento__parrafo"><TextoFormateado texto={ds.text} /></p>{/if}
           {/each}
+          {#if d.explain}<p class="documento__parrafo"><TextoFormateado texto={d.explain} /></p>{/if}
+          {#if d.illustrate}<p class="documento__parrafo documento__parrafo--ilustra"><TextoFormateado texto={d.illustrate} /></p>{/if}
+          {#if d.apply}<p class="documento__parrafo"><TextoFormateado texto={d.apply} /></p>{/if}
         {/each}
 
         {#if content.conclusion.trim()}
           <h2>{$_('app.sermons.conclusion')}</h2>
-          <p class="documento__parrafo">{quitarMarcas(content.conclusion)}</p>
+          <p class="documento__parrafo"><TextoFormateado texto={content.conclusion} /></p>
         {/if}
       </article>
 
@@ -1296,10 +1524,13 @@
 </section>
 
 <!-- Buscador de referencias. Reutiliza `searchReferences`, el mismo que el
-     buscador de la Biblia: escribiendo «ioan 3 16» salen las sugerencias. -->
+     buscador de la Biblia: escribiendo «ioan 3 16» salen las sugerencias.
+     Sirve para dos cosas —añadir una referencia al pie, o insertar el
+     versículo entero en el cursor—, según `modoBuscador`; sólo cambia el
+     título y qué hace `añadirRef` al elegir uno. -->
 <Modal
   open={buscadorAbierto}
-  title={$_('app.sermons.refs_add')}
+  title={modoBuscador === 'cita' ? $_('app.sermons.insert_verse') : $_('app.sermons.refs_add')}
   eyebrow={$_('app.sermons.refs_title')}
   size="sm"
   fitContent
@@ -1449,6 +1680,34 @@
     align-items: center;
     justify-content: space-between;
     gap: 0.75rem;
+    // Envuelve en pantallas estrechas: con dos botones a la derecha (insertar
+    // cita + marcar) y una etiqueta larga a la izquierda, a 360px no cabían
+    // en una sola fila sin desbordar.
+    flex-wrap: wrap;
+  }
+
+  // Distingue lo obligatorio de lo opcional en DEZVOLTARE, tal como lo dice
+  // el propio curso: explicar y aplicar son obligatorios, ilustrar no.
+  .campo__marca {
+    margin-left: 0.4rem;
+    color: var(--color-accent-ink);
+    font-size: 0.68rem;
+    font-style: normal;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+
+    &--opcional {
+      color: var(--color-ink-soft);
+      font-weight: 500;
+      text-transform: none;
+    }
+  }
+
+  .campo__acciones {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
   }
 
   .campo__marcar {
@@ -1614,6 +1873,41 @@
     justify-content: space-between;
     gap: 0.5rem;
     margin-bottom: 0.5rem;
+  }
+
+  .prep__cabecera-derecha {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .prep__guia {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    color: var(--color-link);
+    font-size: var(--font-size-tiny);
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+
+    &:hover { text-decoration: underline; }
+  }
+
+  .prep__actualizar {
+    padding: 0.3rem 0.6rem;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-pill);
+    background: transparent;
+    color: var(--color-ink-soft);
+    font-size: var(--font-size-tiny);
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    white-space: nowrap;
+
+    &:hover:not(:disabled) { border-color: var(--color-accent); color: var(--color-accent); }
+    &:disabled { opacity: 0.6; cursor: not-allowed; }
   }
 
   .prep__volver {

@@ -19,7 +19,7 @@
  *     del cuadernillo (4|1 delante, 2|3 detrás) — ver `definirSchita`.
  */
 
-import { normalizeContent, normalizeOutline, quitarMarcas, sermonWordCount, estimatedMinutes } from './sermon-content.service.js';
+import { normalizeContent, normalizeOutline, quitarMarcas, segmentarTexto, sermonWordCount, estimatedMinutes } from './sermon-content.service.js';
 
 // ── Tipografía ────────────────────────────────────────────────────────────
 //
@@ -87,14 +87,67 @@ const lineaSuave = () => ({
 
 // ── La predicación, en vertical ───────────────────────────────────────────
 
+/**
+ * Un texto libre (explicación, ilustración, aplicación, subpunto…) como array
+ * de `text` runs de pdfmake: cada `*marca*` sale en negrita y cada
+ * `{{cita}}` en cursiva, en el sitio exacto donde se escribieron — antes las
+ * dos se limpiaban con `quitarMarcas` sin más y el formato desaparecía.
+ */
+const runsDeTexto = (texto, opciones = {}) =>
+  segmentarTexto((texto || '').trim()).map((s) => ({
+    text: s.texto,
+    ...(s.bold || opciones.bold ? { bold: true } : {}),
+    ...(s.italica ? { italics: true } : {}),
+  }));
+
 const bloqueDeTexto = (etiqueta, texto) => {
-  const limpio = quitarMarcas(texto || '').trim();
-  if (!limpio) return [];
+  if (!(texto || '').trim()) return [];
   return [
     { text: etiqueta, fontSize: T.nota, color: GRIS, characterSpacing: 0.6, margin: [0, 8, 0, 2] },
-    { text: limpio, fontSize: T.cuerpo, lineHeight: 1.35, alignment: 'justify' },
+    { text: runsDeTexto(texto), fontSize: T.cuerpo, lineHeight: 1.35, alignment: 'justify' },
   ];
 };
+
+// ── ¿Cabe entero en una página? ────────────────────────────────────────────
+//
+// `unbreakable: true` le pide a pdfmake que no reparta un bloque entre dos
+// páginas — bien para un punto corto, que si no cabe al pie de una hoja se
+// mueve entero a la siguiente. El problema es cuando el bloque es más alto
+// que UNA PÁGINA ENTERA: pdfmake no tiene dónde ponerlo completo y el
+// resultado no es que lo reparta, es que el contenido se superpone con lo que
+// viene después y, a simple vista, el punto ha desaparecido del PDF.
+//
+// La condición que había antes —`grupo.length <= 8`— contaba ELEMENTOS del
+// array, no líneas impresas: una única explicación de doscientas palabras
+// contaba como "un elemento", igual que un titular de tres. Un punto normal
+// con explicación + ilustración + aplicación + un par de referencias con su
+// texto ya se queda corto de 8 elementos aunque cada uno ocupe media página,
+// y ahí es donde un punto entero se esfumaba.
+//
+// Esto es una estimación GRUESA a propósito: no hay forma de saber el alto
+// real sin que pdfmake ya lo haya compuesto. Se peca de conservador —mejor
+// partir un punto que arriesgarse a perderlo—.
+const ANCHO_UTIL = 495; // pt — A4 (595) menos 50pt de margen a cada lado.
+const ALTO_UTIL = 620; // pt — algo menos que el alto útil real (unos 700pt),
+                        // como colchón de seguridad.
+
+const textoDeRun = (n) => (Array.isArray(n.text) ? n.text.map((t) => t.text || '').join('') : (n.text || ''));
+
+const estimarAlto = (nodos) => {
+  let alto = 0;
+  for (const n of nodos) {
+    const texto = textoDeRun(n);
+    const tamano = n.fontSize || T.cuerpo;
+    // ~2 caracteres por punto de ancho a este tamaño, para 495pt de ancho útil.
+    const porLinea = Math.max(20, Math.round((ANCHO_UTIL / tamano) * 2));
+    const lineas = texto ? Math.ceil(texto.length / porLinea) : 1;
+    alto += lineas * tamano * 1.35;
+    alto += (n.margin?.[1] || 0) + (n.margin?.[3] || 0);
+  }
+  return alto;
+};
+
+const cabeEnUnaPagina = (nodos) => estimarAlto(nodos) < ALTO_UTIL;
 
 export const definirPredica = (sermon, contenido, etiquetas = {}) => {
   const c = normalizeContent(contenido);
@@ -132,7 +185,7 @@ export const definirPredica = (sermon, contenido, etiquetas = {}) => {
 
   if (c.intro.trim()) {
     cuerpo.push({ text: e.intro, fontSize: T.seccion, bold: true, color: ACENTO, margin: [0, 6, 0, 4] });
-    cuerpo.push({ text: quitarMarcas(c.intro).trim(), fontSize: T.cuerpo, lineHeight: 1.35, alignment: 'justify' });
+    cuerpo.push({ text: runsDeTexto(c.intro), fontSize: T.cuerpo, lineHeight: 1.35, alignment: 'justify' });
   }
 
   // La transición, entre la introducción y el primer punto: sin encabezado
@@ -140,9 +193,8 @@ export const definirPredica = (sermon, contenido, etiquetas = {}) => {
   // otro. En negrita para encontrarla de un golpe de vista desde el atril.
   if (c.transition.trim()) {
     cuerpo.push({
-      text: quitarMarcas(c.transition).trim(),
+      text: runsDeTexto(c.transition, { bold: true }),
       fontSize: T.cuerpo,
-      bold: true,
       lineHeight: 1.35,
       margin: [0, 10, 0, 0],
     });
@@ -151,24 +203,22 @@ export const definirPredica = (sermon, contenido, etiquetas = {}) => {
   c.structure.forEach((punto, i) => {
     const d = c.development[punto.id] || {};
     // Un punto no debería quedar partido entre el pie de una hoja y la
-    // siguiente: se agrupa para que pdfmake lo mueva entero si no cabe.
+    // siguiente: se agrupa para que pdfmake lo mueva entero si no cabe —salvo
+    // que sea más alto que una página entera, ver `cabeEnUnaPagina`.
     const grupo = [
       // Los asteriscos del marcado manual no se imprimen: en papel no hay nada
       // que puedan aportar y ensucian el título.
       { text: `${i + 1}. ${quitarMarcas(punto.title).trim()}`, fontSize: T.punto, bold: true, margin: [0, 14, 0, 2] },
     ];
 
-    grupo.push(...bloqueDeTexto(e.explain, d.explain));
-    grupo.push(...bloqueDeTexto(e.illustrate, d.illustrate));
-    grupo.push(...bloqueDeTexto(e.apply, d.apply));
-
-    // Un subpunto se imprime como el punto que lo contiene: un titular
-    // numerado (1.1, 1.2…) y debajo su texto en cuerpo normal. Antes era una
-    // línea gris con un guion, sin numerar y sin sitio para el desarrollo, y
-    // desde el atril no se distinguía de una nota al margen.
+    // Los subpuntos van PRIMERO, justo después del título: son la división
+    // analítica del punto, y explicación/ilustración/aplicación cierran ese
+    // punto ya dividido. Antes iban después de las tres casillas, y leído de
+    // corrido parecía que la predicación volvía atrás a subdividir algo que
+    // ya se había explicado, ilustrado y aplicado.
     (punto.subpoints || []).forEach((sub, j) => {
       const titulo = quitarMarcas(sub.title || '').trim();
-      const texto = quitarMarcas(c.development[sub.id]?.text || '').trim();
+      const texto = (c.development[sub.id]?.text || '').trim();
       if (!titulo && !texto) return;
       grupo.push({
         text: `${i + 1}.${j + 1} ${titulo}`.trim(),
@@ -176,8 +226,12 @@ export const definirPredica = (sermon, contenido, etiquetas = {}) => {
         bold: true,
         margin: [0, 10, 0, 3],
       });
-      if (texto) grupo.push({ text: texto, fontSize: T.cuerpo, lineHeight: 1.35, alignment: 'justify' });
+      if (texto) grupo.push({ text: runsDeTexto(texto), fontSize: T.cuerpo, lineHeight: 1.35, alignment: 'justify' });
     });
+
+    grupo.push(...bloqueDeTexto(e.explain, d.explain));
+    grupo.push(...bloqueDeTexto(e.illustrate, d.illustrate));
+    grupo.push(...bloqueDeTexto(e.apply, d.apply));
 
     const refs = [
       ...(punto.refs || []),
@@ -201,13 +255,13 @@ export const definirPredica = (sermon, contenido, etiquetas = {}) => {
       }
     }
 
-    cuerpo.push({ stack: grupo, unbreakable: grupo.length <= 8 });
+    cuerpo.push({ stack: grupo, unbreakable: cabeEnUnaPagina(grupo) });
   });
 
   if (c.conclusion.trim()) {
     cuerpo.push(lineaSuave());
     cuerpo.push({ text: e.conclusion, fontSize: T.seccion, bold: true, color: ACENTO, margin: [0, 4, 0, 4] });
-    cuerpo.push({ text: quitarMarcas(c.conclusion).trim(), fontSize: T.cuerpo, lineHeight: 1.35, alignment: 'justify' });
+    cuerpo.push({ text: runsDeTexto(c.conclusion), fontSize: T.cuerpo, lineHeight: 1.35, alignment: 'justify' });
   }
 
   return {

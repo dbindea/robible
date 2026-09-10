@@ -21,15 +21,19 @@ const SITE_URL = 'https://robible.com';
 const API_URL = 'https://robible-api.robible.workers.dev';
 
 /**
- * Quita los asteriscos del marcado manual de palabras clave.
+ * Quita el marcado manual de palabras clave y las citas en línea, dejando
+ * texto plano legible.
  *
  * Duplica a propósito `quitarMarcas` de sermon-content.service.js: esto es una
- * función de Netlify y no puede importar del bundle del frontend. Es un
- * `replace` de una línea sin estado; si algún día el marcado deja de ser
- * `*palabra*`, hay que tocar los dos sitios.
+ * función de Netlify y no puede importar del bundle del frontend. Si algún
+ * día cambia la sintaxis —`*palabra*` o `{{ref|texto}}`—, hay que tocar los
+ * dos sitios; si se olvida uno, lo peor que pasa es que el rastreador vea la
+ * sintaxis en crudo, no que se rompa nada para el usuario.
  */
 function sinMarcas(value = '') {
-  return String(value).replace(/\*([^*\n]+)\*/g, '$1');
+  return String(value)
+    .replace(/\*([^*\n]+)\*/g, '$1')
+    .replace(/\{\{([^{}|]+)\|([^{}]+)\}\}/g, '$1: $2');
 }
 
 function escapeHtml(value = '') {
@@ -98,6 +102,10 @@ function buildHtml({ sermon, canonicalUrl, redirectPath }) {
     url: canonicalUrl,
     isPartOf: { '@type': 'WebSite', name: 'RoBible', url: SITE_URL },
     about: referencia ? { '@type': 'Thing', name: referencia } : undefined,
+    // El autor es el nickname, que es lo único que el endpoint público manda
+    // (ver el comentario de `paraElPublico` en el worker). Puede faltar en
+    // predicaciones servidas por un worker anterior al 10 sep 2026.
+    author: sermon.author ? { '@type': 'Person', name: sermon.author } : undefined,
   };
 
   return `<!doctype html>
@@ -146,6 +154,10 @@ function buildHtml({ sermon, canonicalUrl, redirectPath }) {
           return `<h2>${escapeHtml(sinMarcas(p.title || ''))}</h2>${subs ? `\n      ${subs}` : ''}`;
         })
         .join('\n      ')}
+      ${sermon.author || sermon.publishedAt ? `<p>${[
+        sermon.author ? escapeHtml(sermon.author) : '',
+        sermon.publishedAt ? escapeHtml(String(sermon.publishedAt).slice(0, 10)) : '',
+      ].filter(Boolean).join(' — ')}</p>` : ''}
       <p><a href="${escapeHtml(redirectPath)}">${safeTitle}</a></p>
     </article>
   </body>

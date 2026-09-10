@@ -615,7 +615,32 @@
       "series_new": "New theme",
       "series_first": "Add a theme",
       "series_add": "Add",
-      "series_new_placeholder": "Theme name…"
+      "series_new_placeholder": "Theme name…",
+      "step_intro": "Introduction",
+      "optional": "optional",
+      "refresh": "Refresh",
+      "refresh_working": "Refreshing…",
+      "refresh_ok": "Refreshed from the server.",
+      "refresh_pending": "You have changes not uploaded yet; they will sync before refreshing.",
+      "refresh_offline": "This sermon has never synced yet; there is nothing to refresh it from.",
+      "refresh_failed": "Could not refresh. Check your connection and try again.",
+      "insert_verse": "Insert verse",
+      "insert_verse_help": "Pick a verse and its full text is pasted here, in italics when printed.",
+      "guide_link": "Preaching guide",
+      "guide": {
+        "seo_title": "How to prepare an expository, topical or textual sermon | RoBible",
+        "seo_description": "RoBible's step-by-step method: how to prepare an expository sermon, and what changes in a topical or textual one.",
+        "eyebrow": "Preaching guide",
+        "title": "How to prepare a sermon",
+        "lead": "The method behind the steps in \"My sermons\", explained start to finish — for an expository sermon, and what changes if it is topical or textual.",
+        "types_title": "Three kinds, one rule",
+        "types_lead": "What sets them apart is where the divisions of the sermon come from, not how \"serious\" one is compared to another.",
+        "timeline_title": "The steps of the method, one by one",
+        "timeline_lead": "The same eight steps from the app, with the full explanation of each — including what changes for a textual or topical sermon.",
+        "cta_title": "Prepare your sermon step by step",
+        "cta_text": "All these steps are a guided form in \"My sermons\", with a printable outline for the pulpit.",
+        "cta_action": "Open My sermons"
+      }
     },
     "pulpit": {
       "mode": "Pulpit mode",
@@ -710,12 +735,8 @@
         "b4": "You can also develop by subdivisions, putting analytical questions to the concept of the division: how? which? why? what does it involve? what are the consequences?"
       },
       "final": {
-        "why": "The introduction is written last, because only now do you know where the sermon is going.",
-        "b1": "The introduction has three parts: the opening sentence, the introductory applications and the transition to the text.",
-        "b2": "The opening sentence comes out of the homiletical idea or the subject, tied to the hearers’ everyday life.",
-        "b3": "The introductory applications bring the hearer’s need to the surface and create positive tension. Without it, the sermon is the answer to a question nobody asked.",
-        "b4": "Do not begin with technical detail about the book or about its recipients.",
-        "b5": "The conclusion also has three parts: restating the homiletical idea, recapping the divisions, and the vision — what will happen if the hearers apply the idea."
+        "why": "The conclusion does not summarize the sermon, it closes it: restating the idea and looking at what changes if the hearer applies it.",
+        "b1": "It has three parts: restating the homiletical idea, recapping the divisions, and the vision — what will happen if the hearers apply the idea."
       },
       "transition": {
         "title": "How to write it",
@@ -733,7 +754,8 @@
           "idea": "The idea also comes from that short text, not from the subject it suggests to you. If you have arrived at an idea the text does not support, you have moved to a thematic sermon.",
           "structure": "The divisions come from the parts of the short text — clauses, key words — not from other passages. Other verses belong in Development, as support.",
           "development": "This is where the other passages come in, as support for what your text already says. They explain it; they do not replace it.",
-          "final": "The conclusion returns to the verse you started from. The listener should leave knowing by heart the short text you preached."
+          "final": "The conclusion returns to the verse you started from. The listener should leave knowing by heart the short text you preached.",
+          "intro": "The introduction leads toward the short verse, not toward a broader subject you could draw from it."
         },
         "thematic": {
           "text": "This is the base text. In a thematic sermon each division rests on a different passage: add them as references in the Development step.",
@@ -742,8 +764,16 @@
           "idea": "The exegetical idea comes from the base text; the other passages support it, they do not change it. If the idea cannot be drawn from any text, it is yours and not Scripture’s.",
           "structure": "Each division has its own passage. Check every verse in its context: if it does not say there what you are saying, drop it rather than force it.",
           "development": "The danger here is the string of proof texts. Each passage gets a brief explanation in its own context; otherwise the sermon is a list of quotations with no teaching in it.",
-          "final": "The conclusion gathers the subject into a single sentence. If the listener cannot say on the way out what it was about, the subject was too broad."
+          "final": "The conclusion gathers the subject into a single sentence. If the listener cannot say on the way out what it was about, the subject was too broad.",
+          "intro": "The introduction can start from the subject, not necessarily from the base text — but the applications still have to come from the hearer’s life."
         }
+      },
+      "intro": {
+        "why": "It is written now, with the idea and structure already clear — not at the end, as the course teaches. It has two parts; the transition to the first point is a separate field, already written in Structure.",
+        "b1": "The opening sentence comes out of the homiletical idea or the subject, tied to the hearers’ everyday life.",
+        "b2": "The introductory applications bring the hearer’s need to the surface and create positive tension. Without it, the sermon is the answer to a question nobody asked.",
+        "b3": "Do not begin with technical detail about the book or about its recipients.",
+        "b4": "If you do not yet know where you are going, you can skip this step and come back after writing Development — nothing here is required."
       }
     },
     "profile": {

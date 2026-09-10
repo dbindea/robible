@@ -142,3 +142,82 @@ test('las referencias de un subpunto se imprimen con las del punto', () => {
   const trozos = trozosDe(definirPredica({ title: 'T' }, CONTENIDO_CON_SUBPUNTOS));
   assert.ok(trozos.some((t) => t.text.includes('Ioan 3:16')), 'se ha perdido la referencia del subpunto');
 });
+
+test('el subpunto sale ANTES de explicación/ilustración/aplicación', () => {
+  // Es la división analítica del punto: si va después de explicar, ilustrar y
+  // aplicar, leído de corrido parece que la predicación vuelve atrás a
+  // subdividir algo que ya se cerró.
+  const trozos = trozosDe(definirPredica({ title: 'T' }, CONTENIDO_CON_SUBPUNTOS));
+  const iSubpunto = trozos.findIndex((t) => t.text.startsWith('1.1'));
+  const iExplica = trozos.findIndex((t) => t.text.includes('Explicația punctului'));
+  assert.ok(iSubpunto !== -1 && iExplica !== -1, 'faltan piezas para comparar el orden');
+  assert.ok(iSubpunto < iExplica, `el subpunto (${iSubpunto}) debería ir antes que EXPLICĂ (${iExplica})`);
+});
+
+// ── Negrita para lo marcado, cursiva para la cita en línea (item 5 y 4) ────
+
+test('una *marca* sale en negrita en el PDF, no como asterisco plano', () => {
+  const contenido = {
+    version: 1,
+    structure: [{ id: 'p1', title: 'Punct', refs: [], subpoints: [] }],
+    development: { p1: { explain: 'Nu o *credință oarecare*, ci una vie.', illustrate: '', apply: '', refs: [] } },
+    intro: '', conclusion: '',
+  };
+  const trozos = trozosDe(definirPredica({ title: 'T' }, contenido));
+  const marca = trozos.find((t) => t.text === 'credință oarecare');
+  assert.ok(marca, 'no se encontró el segmento marcado');
+  assert.equal(marca.bold, true, 'lo marcado tiene que salir en negrita');
+  assert.ok(!trozos.some((t) => t.text.includes('*')), 'no debe quedar ningún asterisco suelto');
+});
+
+test('una {{cita}} en línea sale en cursiva, en el sitio donde se escribió', () => {
+  const contenido = {
+    version: 1,
+    structure: [{ id: 'p1', title: 'Punct', refs: [], subpoints: [] }],
+    development: {
+      p1: {
+        explain: 'Textul spune că {{Ioan 3:16|Fiindcă atât de mult a iubit Dumnezeu lumea}}, și asta schimbă tot.',
+        illustrate: '', apply: '', refs: [],
+      },
+    },
+    intro: '', conclusion: '',
+  };
+  const trozos = trozosDe(definirPredica({ title: 'T' }, contenido));
+  const cita = trozos.find((t) => t.text === 'Fiindcă atât de mult a iubit Dumnezeu lumea');
+  assert.ok(cita, 'no se encontró el texto de la cita');
+  assert.equal(cita.italica ?? cita.italics, true, 'la cita tiene que salir en cursiva');
+  const referencia = trozos.find((t) => t.text.startsWith('Ioan 3:16'));
+  assert.ok(referencia?.bold, 'la referencia de la cita tiene que destacarse');
+  assert.ok(!trozos.some((t) => t.text.includes('{{')), 'no debe quedar la sintaxis de llaves en el PDF');
+});
+
+// ── Un punto no puede desaparecer por ser demasiado largo (item 2) ─────────
+
+test('un punto corto se marca indivisible; uno larguísimo NO, para que no desaparezca', () => {
+  // Éste fue el fallo real: `unbreakable: true` sobre un bloque más alto que
+  // una página entera hace que pdfmake lo superponga con lo que viene
+  // después en vez de repartirlo, y a simple vista el punto se esfuma. La
+  // condición vieja contaba ELEMENTOS del array (`grupo.length <= 8`), no
+  // líneas impresas, así que un punto con una explicación de mil palabras
+  // seguía marcándose indivisible.
+  const parrafoLargo = 'palabra '.repeat(1200).trim(); // ~1200 palabras, varias páginas de A4.
+
+  const corto = {
+    version: 1,
+    structure: [{ id: 'p1', title: 'Punct scurt', refs: [], subpoints: [] }],
+    development: { p1: { explain: 'Una explicación breve.', illustrate: '', apply: '', refs: [] } },
+    intro: '', conclusion: '',
+  };
+  const largo = {
+    version: 1,
+    structure: [{ id: 'p1', title: 'Punct foarte lung', refs: [], subpoints: [] }],
+    development: { p1: { explain: parrafoLargo, illustrate: '', apply: '', refs: [] } },
+    intro: '', conclusion: '',
+  };
+
+  const bloqueCorto = definirPredica({ title: 'T' }, corto).content.find((n) => n.stack);
+  const bloqueLargo = definirPredica({ title: 'T' }, largo).content.find((n) => n.stack);
+
+  assert.equal(bloqueCorto.unbreakable, true, 'un punto corto debe seguir yendo entero si cabe');
+  assert.equal(bloqueLargo.unbreakable, false, 'un punto larguísimo NO debe marcarse indivisible: se perdería');
+});

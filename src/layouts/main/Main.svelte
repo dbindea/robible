@@ -20,6 +20,7 @@
   import Sermons from './Sermons.svelte';
   import SermonPrep from './SermonPrep.svelte';
   import SermonPulpit from './SermonPulpit.svelte';
+  import GuidePredicare from './GuidePredicare.svelte';
   import { getBibleVersionConfigOrDefault } from '../../store/stores';
 
   export let bible;
@@ -95,6 +96,15 @@
   const isMemorizePath = (path) => path === '/memorare' || path === '/memorare/';
   let isMemorizeMode = typeof window !== 'undefined' ? isMemorizePath(window.location.pathname) : false;
 
+  // Manual de predicación (`/ghid-predicare`). Público y se indexa a
+  // propósito, como `/predici`: es la respuesta a «cómo se hace una predicación
+  // expositiva», enlazada desde el menú de «Predicile mele» para quien todavía
+  // no sabe que la herramienta existe. No se traduce por idioma, igual que el
+  // resto de rutas públicas que se reparten e indexan: una sola URL para las
+  // cuatro versiones.
+  const isGuidePath = (path) => path === '/ghid-predicare' || path === '/ghid-predicare/';
+  let isGuideMode = typeof window !== 'undefined' ? isGuidePath(window.location.pathname) : false;
+
   // «Predicile mele»: el cuaderno privado. Vive en /predicile-mele desde que
   // /predici pasó a ser el blog público — el plural suelto describe mejor «todas
   // las publicadas» que «las mías», y así la ruta pública queda corta, que es la
@@ -151,6 +161,7 @@
     isProfileMode = isProfilePath(window.location.pathname);
     isCuratedMode = isCuratedPath(window.location.pathname);
     isMemorizeMode = isMemorizePath(window.location.pathname);
+    isGuideMode = isGuidePath(window.location.pathname);
     isSermonsMode = isSermonsPath(window.location.pathname);
     sermonId = sermonIdFromPath(window.location.pathname);
     pulpitId = pulpitIdFromPath(window.location.pathname);
@@ -183,8 +194,8 @@
 </script>
 
 <!-- La ruta /landing la resuelve App.svelte antes de montar Main. -->
-<div class="main" class:main--immersive={isImmersive} class:main--compare={isCompareMode} class:main--index={isIndexMode} class:main--favorites={isFavoritesMode} class:main--notes={isNotesMode || isPublicTopicMode || isPublicSermonMode || isSermonsMode || isPublicSermonsMode || isPublicTopicsMode || isProfileMode || isCuratedMode || isMemorizeMode}>
-  {#if !isImmersive && !isCompareMode && !isIndexMode && !isFavoritesMode && !isNotesMode && !isPublicTopicMode && !isPublicSermonMode && !isSermonsMode && !isPublicSermonsMode && !isPublicTopicsMode && !isProfileMode && !isCuratedMode && !isMemorizeMode}
+<div class="main" class:main--immersive={isImmersive} class:main--compare={isCompareMode} class:main--index={isIndexMode} class:main--favorites={isFavoritesMode} class:main--notes={isNotesMode || isPublicTopicMode || isPublicSermonMode || isSermonsMode || isPublicSermonsMode || isPublicTopicsMode || isProfileMode || isCuratedMode || isMemorizeMode || isGuideMode}>
+  {#if !isImmersive && !isCompareMode && !isIndexMode && !isFavoritesMode && !isNotesMode && !isPublicTopicMode && !isPublicSermonMode && !isSermonsMode && !isPublicSermonsMode && !isPublicTopicsMode && !isProfileMode && !isCuratedMode && !isMemorizeMode && !isGuideMode}
     <div class="sidebar">
       <Sidebar {map} {result} {count} />
     </div>
@@ -209,6 +220,8 @@
         <CuratedTopic {bible} {map} />
       {:else if isMemorizeMode}
         <Memorize {bible} {map} />
+      {:else if isGuideMode}
+        <GuidePredicare />
       {:else if isPublicSermonMode}
         <PublicSermon {map} />
       {:else if isPublicTopicMode}

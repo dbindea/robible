@@ -5,7 +5,7 @@
  * buscar «predică expozitivă» o «cum să fac o predică expozitivă». La aplicación
  * pinta ese contenido, pero lo pinta el navegador; un rastreador que no ejecute
  * JS —o que lo ejecute tarde— vería el `index.html` genérico. Aquí sale ya
- * escrito: título, descripción, los siete pasos del método y las predicaciones
+ * escrito: título, descripción, los ocho pasos del método y las predicaciones
  * publicadas, más los datos estructurados de tipo HowTo.
  *
  * Mismo par de reglas y mismo truco del `?app=1` que `/tema` y `/predica`: la
@@ -32,12 +32,16 @@ const DESCRIPCION =
   'Predici expozitive, tematice și textuale publicate de predicatori. Vezi cum se face o predică expozitivă, pas cu pas, și pregătește-o în RoBible.';
 
 /**
- * Los siete pasos, copiados de `app.homiletics.*` en rumano.
+ * Los ocho pasos, copiados de `app.homiletics.*` en rumano.
  *
  * Se duplican a propósito: esto es una función de Netlify y no puede importar
  * del bundle ni leer `public/lang/ro.json` sin empaquetarlo. Si cambian los
  * textos del guía, conviene repasar éstos — pero desincronizarse aquí sólo
  * afecta a lo que ve el rastreador, no a lo que lee el usuario.
+ *
+ * «Introducere» se añadió el 10 sep 2026, entre Structură y Dezvoltare: es una
+ * decisión del propietario, en contra de lo que enseña el curso (que la
+ * escribe al final). Ver la nota de `STEPS` en `sermon-content.service.js`.
  */
 const PASOS = [
   ['Text', 'Predica expozitivă expune învățătura acestui text. Tot ce vei spune trebuie să iasă de aici, nu din ce ai vrea tu să spui.'],
@@ -45,8 +49,9 @@ const PASOS = [
   ['Context', 'Un text scos din context ajunge pretext. Contextul îți arată ce a vrut să spună autorul, nu ce ne-ar conveni nouă să spună.'],
   ['Idee', 'Aici se decide predica, și se ajunge în trei pași: ce a spus textul atunci, ce vrea Dumnezeu să schimbe acum și cum se spune asta astăzi.'],
   ['Structură', 'Diviziunile argumentează, explică sau aplică ideea omiletică. Se obțin punând o întrebare analitică ideii omiletice: De ce? Cum? Când? Cu ce condiții? Ce înseamnă? Tot aici se scrie propoziția de tranziție: numărul diviziunilor, cuvântul cheie la plural și întrebarea analitică — fraza care duce de la introducere la primul punct.'],
+  ['Introducere', 'Se scrie acum, cu ideea și structura deja clare — nu la sfârșit, cum spune cursul. Are două părți: fraza de început și aplicațiile introductive.'],
   ['Dezvoltare', 'Fiecare diviziune se dezvoltă prin trei secțiuni: explicarea și aplicarea sunt obligatorii, ilustrarea este opțională.'],
-  ['Finalizare', 'Introducerea se scrie la sfârșit, pentru că abia acum știi unde duci predica.'],
+  ['Finalizare', 'Încheierea nu rezumă predica, o încheie: cu ideea reluată și privirea spre ce se schimbă dacă ascultătorul o aplică.'],
 ];
 
 const NOMBRES_LIBROS = [

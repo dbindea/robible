@@ -615,7 +615,32 @@
       "series_new": "Temă nouă",
       "series_first": "Adaugă o temă",
       "series_add": "Adaugă",
-      "series_new_placeholder": "Numele temei…"
+      "series_new_placeholder": "Numele temei…",
+      "step_intro": "Introducere",
+      "optional": "opțional",
+      "refresh": "Actualizează",
+      "refresh_working": "Se actualizează…",
+      "refresh_ok": "Actualizat de pe server.",
+      "refresh_pending": "Ai modificări încă neîncărcate; se vor sincroniza înainte de actualizare.",
+      "refresh_offline": "Predica nu s-a sincronizat încă niciodată; nu are de unde să se actualizeze.",
+      "refresh_failed": "Nu s-a putut actualiza. Verifică conexiunea și încearcă din nou.",
+      "insert_verse": "Inserează verset",
+      "insert_verse_help": "Alege un verset și textul lui întreg se lipește aici, în cursiv la tipărire.",
+      "guide_link": "Ghid de predicare",
+      "guide": {
+        "seo_title": "Cum se face o predică expozitivă, tematică sau textuală | RoBible",
+        "seo_description": "Manualul pas cu pas al metodei RoBible: cum se pregătește o predică expozitivă, și ce schimbă o predică tematică sau textuală.",
+        "eyebrow": "Ghid de predicare",
+        "title": "Cum se face o predică",
+        "lead": "Metoda din spatele pașilor din «Predicile mele», explicată de la un capăt la altul — pentru o predică expozitivă, și ce schimbă dacă e tematică sau textuală.",
+        "types_title": "Trei feluri, o singură regulă",
+        "types_lead": "Deosebirea dintre ele e de unde ies diviziunile predicii, nu cât de „serioasă” e una față de alta.",
+        "timeline_title": "Pașii metodei, unul câte unul",
+        "timeline_lead": "Aceiași opt pași din aplicație, cu explicația întreagă a fiecăruia — inclusiv ce se schimbă la o predică textuală sau tematică.",
+        "cta_title": "Pregătește-ți predica pas cu pas",
+        "cta_text": "Toți acești pași sunt un formular ghidat în „Predicile mele”, cu schiță tipăribilă pentru amvon.",
+        "cta_action": "Deschide Predicile mele"
+      }
     },
     "pulpit": {
       "mode": "Mod Amvon",
@@ -710,12 +735,8 @@
         "b4": "Poți dezvolta și prin subdiviziuni, punând întrebări analitice conceptului diviziunii: cum? care? de ce? ce presupune? care sunt consecințele?"
       },
       "final": {
-        "why": "Introducerea se scrie la sfârșit, pentru că abia acum știi unde duci predica.",
-        "b1": "Introducerea are trei părți: fraza de început, aplicațiile introductive și tranziția către text.",
-        "b2": "Fraza de început iese din ideea omiletică sau din temă, legată de viața de zi cu zi a ascultătorilor.",
-        "b3": "Aplicațiile introductive scot la iveală nevoia ascultătorului și creează tensiunea pozitivă. Fără ea, predica este răspunsul la o întrebare pe care n-a pus-o nimeni.",
-        "b4": "Nu începe cu detalii tehnice despre carte sau despre destinatari.",
-        "b5": "Încheierea are tot trei părți: reluarea ideii omiletice, recapitularea diviziunilor și viziunea — ce se va întâmpla dacă ascultătorii aplică ideea."
+        "why": "Încheierea nu rezumă predica, o încheie: cu ideea reluată și privirea spre ce se schimbă dacă ascultătorul o aplică.",
+        "b1": "Are trei părți: reluarea ideii omiletice, recapitularea diviziunilor și viziunea — ce se va întâmpla dacă ascultătorii aplică ideea."
       },
       "transition": {
         "title": "Cum se face?",
@@ -733,7 +754,8 @@
           "idea": "Ideea iese tot din acest text scurt, nu din tema pe care ți-o sugerează. Dacă ai ajuns la o idee pe care textul n-o susține, ai trecut la o predică tematică.",
           "structure": "Diviziunile ies din părțile textului scurt — propoziții, cuvinte cheie —, nu din alte pasaje. Alte versete intră la Dezvoltare, ca sprijin.",
           "development": "Aici intră celelalte pasaje, ca sprijin pentru ce spune deja textul tău. Ele explică versetul, nu îl înlocuiesc.",
-          "final": "Încheierea se întoarce la versetul de la care ai plecat. Ascultătorul trebuie să plece știind pe de rost textul scurt pe care l-ai predicat."
+          "final": "Încheierea se întoarce la versetul de la care ai plecat. Ascultătorul trebuie să plece știind pe de rost textul scurt pe care l-ai predicat.",
+          "intro": "Introducerea duce spre versetul scurt, nu spre o temă mai largă pe care ai putea s-o faci din el."
         },
         "thematic": {
           "text": "Acesta este textul de bază. Într-o predică tematică fiecare diviziune se sprijină pe alt pasaj: adaugă-le ca referințe la pasul Dezvoltare.",
@@ -742,8 +764,16 @@
           "idea": "Ideea exegetică iese din textul de bază; celelalte pasaje o susțin, nu o schimbă. Dacă ideea nu se poate scoate din niciun text, este a ta, nu a Scripturii.",
           "structure": "Fiecare diviziune are pasajul ei. Verifică fiecare verset în contextul lui: dacă acolo nu spune ce spui tu, scoate-l — nu-l forța.",
           "development": "Pericolul aici este colecția de versete. Fiecare pasaj se explică pe scurt în contextul lui, altfel predica devine o listă de citate fără învățătură.",
-          "final": "Încheierea strânge tema într-o singură propoziție. Dacă ascultătorul nu poate spune la ieșire despre ce a fost vorba, tema a fost prea largă."
+          "final": "Încheierea strânge tema într-o singură propoziție. Dacă ascultătorul nu poate spune la ieșire despre ce a fost vorba, tema a fost prea largă.",
+          "intro": "Introducerea poate porni de la temă, nu neapărat de la textul de bază — dar aplicațiile tot din viața ascultătorului trebuie să iasă."
         }
+      },
+      "intro": {
+        "why": "Se scrie acum, cu ideea și structura deja clare — nu la sfârșit, cum spune cursul. Are două părți; tranziția către primul punct e alt câmp, scris deja la Structură.",
+        "b1": "Fraza de început iese din ideea omiletică sau din temă, legată de viața de zi cu zi a ascultătorilor.",
+        "b2": "Aplicațiile introductive scot la iveală nevoia ascultătorului și creează tensiunea pozitivă. Fără ea, predica este răspunsul la o întrebare pe care n-a pus-o nimeni.",
+        "b3": "Nu începe cu detalii tehnice despre carte sau despre destinatari.",
+        "b4": "Dacă nu știi încă spre ce mergi, poți lăsa acest pas și te întorci după ce ai scris Dezvoltarea — nimic nu e obligatoriu."
       }
     },
     "profile": {

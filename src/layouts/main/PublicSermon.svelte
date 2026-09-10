@@ -2,10 +2,17 @@
   /**
    * Predicación compartida: lo que ve quien recibe el enlace `/predica/<slug>`.
    *
-   * Sólo lectura, sin cuenta y sin nada del autor. Lo que se muestra viene del
-   * endpoint público, que ya deja fuera el cuaderno de preparación —observación
-   * y contexto son apuntes personales, a menudo con dudas del propio predicador—
-   * y cualquier dato de la cuenta.
+   * Sólo lectura y sin cuenta. Lo que se muestra viene del endpoint público,
+   * que ya deja fuera el cuaderno de preparación —observación y contexto son
+   * apuntes personales, a menudo con dudas del propio predicador— y cualquier
+   * dato de la cuenta que no sea la firma.
+   *
+   * **La firma es la única excepción, y es reciente (10 sep 2026).** Antes no
+   * salía nada del autor a propósito; ahora sí, a petición explícita: el
+   * nickname y la fecha de publicación, bajo el texto. `sermon.author` hoy
+   * resuelve al nickname porque es lo único que hay — si el perfil gana un
+   * nombre para mostrar más adelante, cambia la consulta del worker y esta
+   * pantalla no tiene que enterarse.
    *
    * **A diferencia de los temas, esto sí se indexa.** Un tema compartido es un
    * enlace que se pasa a alguien concreto; una predicación publicada es algo que
@@ -19,6 +26,7 @@
   import { getBibleVersionConfigOrDefault, selectedBibleVersion } from '../../store/stores';
   import { quitarMarcas } from '../../services/sermon-content.service';
   import Icon from '../../components/Icon.svelte';
+  import TextoFormateado from '../../components/TextoFormateado.svelte';
 
   export let map = {};
 
@@ -83,6 +91,16 @@
       setTimeout(() => { copiado = false; }, 2200);
     } catch { /* sin portapapeles no se puede hacer más */ }
   };
+
+  /** Fecha larga para la firma, en el idioma del visitante. */
+  const fechaLarga = (iso) => {
+    if (!iso) return '';
+    try {
+      return new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+    } catch {
+      return '';
+    }
+  };
 </script>
 
 <section class="predica">
@@ -114,7 +132,7 @@
       {#if sermon.intro?.trim()}
         <section class="predica__seccion">
           <h2>{$_('app.sermons.intro')}</h2>
-          <p>{quitarMarcas(sermon.intro)}</p>
+          <p><TextoFormateado texto={sermon.intro} /></p>
         </section>
       {/if}
 
@@ -122,34 +140,40 @@
            no una sección. Puede faltar — las predicaciones publicadas antes de
            que existiera el campo no la traen. -->
       {#if sermon.transition?.trim()}
-        <p class="predica__transicion">{quitarMarcas(sermon.transition)}</p>
+        <p class="predica__transicion"><TextoFormateado texto={sermon.transition} /></p>
       {/if}
 
       {#each sermon.points as punto, i (i)}
         <section class="predica__punto">
           <!-- `quitarMarcas` también en títulos y subpuntos: los asteriscos
                son la sintaxis con la que el predicador marca las palabras que
-               quiere en la schiță, y quien lee esto no tiene por qué verlos. -->
+               quiere en la schiță, y quien lee esto no tiene por qué verlos.
+               El texto libre usa `TextoFormateado`, que además pone en
+               negrita lo destacado y en cursiva una cita en línea. -->
           <h2>{i + 1}. {quitarMarcas(punto.title)}</h2>
+
+          <!-- El subpunto va justo después del título, antes de explicar,
+               ilustrar y aplicar: es su división analítica, no una vuelta
+               atrás después de haber cerrado el punto — mismo orden que en
+               la preparación y en el PDF.
+               Pasó de ser una cadena suelta a `{ title, text }` cuando ganó
+               desarrollo propio; se aceptan las dos formas porque el worker y
+               esta página se despliegan por separado (trampa 36): entre un
+               despliegue y otro hay predicaciones servidas a la antigua, y
+               con una sola forma se quedarían sin subpuntos. -->
+          {#each punto.subpoints || [] as sub, j (j)}
+            {@const titulo = quitarMarcas(typeof sub === 'string' ? sub : sub?.title || '')}
+            {@const texto = typeof sub === 'string' ? '' : sub?.text || ''}
+            {#if titulo || texto}
+              <h3 class="predica__subpunto">{i + 1}.{j + 1} {titulo}</h3>
+              {#if texto}<p class="predica__texto"><TextoFormateado {texto} /></p>{/if}
+            {/if}
+          {/each}
 
           {#each [['explain', punto.explain], ['illustrate', punto.illustrate], ['apply', punto.apply]] as [clave, texto] (clave)}
             {#if texto?.trim()}
               <p class="predica__etiqueta">{$_(`app.sermons.dev_${clave}`)}</p>
-              <p class="predica__texto">{quitarMarcas(texto)}</p>
-            {/if}
-          {/each}
-
-          <!-- El subpunto pasó de ser una cadena suelta a `{ title, text }`
-               cuando ganó desarrollo propio. Se aceptan las dos formas porque
-               el worker y esta página se despliegan por separado (trampa 36):
-               entre un despliegue y otro hay predicaciones servidas a la
-               antigua, y con una sola forma se quedarían sin subpuntos. -->
-          {#each punto.subpoints || [] as sub, j (j)}
-            {@const titulo = quitarMarcas(typeof sub === 'string' ? sub : sub?.title || '')}
-            {@const texto = quitarMarcas(typeof sub === 'string' ? '' : sub?.text || '')}
-            {#if titulo || texto}
-              <h3 class="predica__subpunto">{i + 1}.{j + 1} {titulo}</h3>
-              {#if texto}<p class="predica__texto">{texto}</p>{/if}
+              <p class="predica__texto"><TextoFormateado {texto} /></p>
             {/if}
           {/each}
 
@@ -169,11 +193,22 @@
       {#if sermon.conclusion?.trim()}
         <section class="predica__seccion">
           <h2>{$_('app.sermons.conclusion')}</h2>
-          <p>{quitarMarcas(sermon.conclusion)}</p>
+          <p><TextoFormateado texto={sermon.conclusion} /></p>
         </section>
       {/if}
 
       <footer class="predica__pie">
+        <!-- La firma: nickname y fecha de publicación. Ver el comentario del
+             `<script>` sobre por qué es la única excepción a "nada del
+             autor". Puede faltar en predicaciones de antes del 10 sep 2026
+             servidas por un worker viejo (trampa 36), así que los dos son
+             opcionales. -->
+        {#if sermon.author || sermon.publishedAt}
+          <p class="predica__firma">
+            {#if sermon.author}<span class="predica__autor">{sermon.author}</span>{/if}
+            {#if sermon.publishedAt}<span class="predica__fecha">{fechaLarga(sermon.publishedAt)}</span>{/if}
+          </p>
+        {/if}
         <a class="predica__cta" href="/">{$_('app.sermons.share.go_home')}</a>
       </footer>
     </article>
@@ -330,6 +365,27 @@
     padding-top: 1.25rem;
     border-top: 1px solid var(--color-line);
     text-align: center;
+  }
+
+  .predica__firma {
+    margin: 0 0 0.9rem;
+    color: var(--color-ink-soft);
+    font-size: 0.85rem;
+  }
+
+  .predica__autor {
+    font-weight: 700;
+    color: var(--color-ink-strong);
+
+    &::after {
+      content: '·';
+      margin: 0 0.4rem;
+      color: var(--color-ink-soft);
+      font-weight: 400;
+    }
+
+    // Sin fecha no hace falta el separador.
+    &:last-child::after { content: none; }
   }
 
   .predica__cta {

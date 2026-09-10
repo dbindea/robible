@@ -16,6 +16,7 @@ import {
   emptyContent,
   estimatedMinutes,
   generateOutline,
+  insertarCita,
   marcadas,
   movePoint,
   newPoint,
@@ -24,14 +25,18 @@ import {
   normalizeContent,
   normalizeOutline,
   outlineWordCount,
+  segmentarTexto,
   sermonWordCount,
   stepCompletion,
 } from '../src/services/sermon-content.service.js';
 
 // ── Forma del documento ─────────────────────────────────
 
-test('los pasos son los siete previstos y en orden', () => {
-  assert.deepEqual(STEPS, ['text', 'observation', 'context', 'idea', 'structure', 'development', 'final']);
+test('los pasos son los ocho previstos y en orden', () => {
+  // 'intro' va antes de 'development' a propósito, y no es lo que enseña el
+  // curso (que dice escribirla al final): es una decisión del propietario
+  // para no perder el hilo del orden en que se predica. Ver la nota de STEPS.
+  assert.deepEqual(STEPS, ['text', 'observation', 'context', 'idea', 'structure', 'intro', 'development', 'final']);
 });
 
 test('el documento vacío trae todas las claves', () => {
@@ -85,6 +90,22 @@ test('los espacios en blanco no cuentan como progreso', () => {
   const c = emptyContent();
   c.observation.repeats = '   ';
   assert.equal(stepCompletion(c).observation, false);
+});
+
+test('intro y final son pasos independientes: uno no completa el otro', () => {
+  // Antes eran el mismo paso (FINALIZARE); separarlos y que uno diera por
+  // hecho al otro habría sido peor que no separarlos.
+  const c = emptyContent();
+  c.intro = 'Toți trecem prin încercări.';
+  let hecho = stepCompletion(c);
+  assert.equal(hecho.intro, true);
+  assert.equal(hecho.final, false, 'la introducción no debe marcar la conclusión como hecha');
+
+  const c2 = emptyContent();
+  c2.conclusion = 'Bucurați-vă.';
+  hecho = stepCompletion(c2);
+  assert.equal(hecho.final, true);
+  assert.equal(hecho.intro, false);
 });
 
 // ── Estructura ──────────────────────────────────────────
@@ -289,6 +310,73 @@ test('quitarMarcas devuelve el texto limpio para leerlo', () => {
   assert.equal(quitarMarcas('la *fe* que *obedece*'), 'la fe que obedece');
   assert.equal(quitarMarcas(''), '');
   assert.equal(quitarMarcas(null), '');
+});
+
+// ── Citas en línea ────────────────────────────────────────
+//
+// Distinto de la marca con asteriscos: aquí no se destaca una palabra, se
+// mete el VERSÍCULO ENTERO dentro del párrafo, en el sitio exacto donde se va
+// a leer. Cubrir esto importa porque es justo la clase de fallo que no se ve
+// hasta que se abre el PDF: si `quitarMarcas` no supiera de la sintaxis nueva,
+// `{{Ioan 3:16|texto}}` se colaría tal cual en el documento impreso.
+
+test('insertarCita mete la referencia y el versículo en el cursor', () => {
+  const r = insertarCita('Textul spune că ', 16, 16, { label: 'Ioan 3:16', text: 'Fiindcă atât de mult a iubit Dumnezeu lumea…' });
+  assert.equal(r.texto, 'Textul spune că {{Ioan 3:16|Fiindcă atât de mult a iubit Dumnezeu lumea…}}');
+  assert.equal(r.cursor, r.texto.length, 'el cursor queda al final de lo insertado');
+});
+
+test('insertarCita sustituye la selección en vez de sumarse a ella', () => {
+  // «la cita» ocupa los índices 9..16 de la frase de abajo.
+  const r = insertarCita('pon aquí la cita después', 9, 16, { label: 'X 1:1', text: 'texto' });
+  assert.equal(r.texto, 'pon aquí {{X 1:1|texto}} después');
+});
+
+test('quitarMarcas aplana una cita en línea a "referencia: versículo"', () => {
+  const t = 'Textul spune că {{Ioan 3:16|Fiindcă atât de mult a iubit Dumnezeu lumea}}, și asta schimbă totul.';
+  assert.equal(
+    quitarMarcas(t),
+    'Textul spune că Ioan 3:16: Fiindcă atât de mult a iubit Dumnezeu lumea, și asta schimbă totul.',
+  );
+});
+
+test('quitarMarcas no deja escapar la sintaxis de llaves en ningún caso', () => {
+  const t = 'Uno *marcado* y otro {{Rom 8:28|texto}} en la misma frase.';
+  const limpio = quitarMarcas(t);
+  assert.ok(!limpio.includes('{{') && !limpio.includes('}}'), `se coló la sintaxis: ${limpio}`);
+  assert.ok(!limpio.includes('*'), `se coló un asterisco: ${limpio}`);
+});
+
+test('segmentarTexto separa negrita (marca) y cursiva (cita) del resto', () => {
+  const t = 'Antes *destacado* y luego {{Ioan 3:16|Dumnezeu a iubit lumea}} y fin.';
+  const seg = segmentarTexto(t);
+  assert.deepEqual(seg, [
+    { texto: 'Antes ' },
+    { texto: 'destacado', bold: true },
+    { texto: ' y luego ' },
+    { texto: 'Ioan 3:16 ', bold: true },
+    { texto: 'Dumnezeu a iubit lumea', italica: true },
+    { texto: ' y fin.' },
+  ]);
+});
+
+test('segmentarTexto sobre texto plano devuelve un único segmento', () => {
+  assert.deepEqual(segmentarTexto('nada especial aquí'), [{ texto: 'nada especial aquí' }]);
+  assert.deepEqual(segmentarTexto(''), [{ texto: '' }]);
+});
+
+test('una cita en línea cuenta como palabras predicadas', () => {
+  const c = emptyContent();
+  const p = newPoint('Un punto');
+  c.structure.push(p);
+  c.development[p.id] = {
+    explain: 'Textul spune că {{Ioan 3:16|Fiindcă atât de mult a iubit Dumnezeu lumea}}.',
+    illustrate: '', apply: '', refs: [],
+  };
+  // El recuento de `sermonWordCount` opera sobre el texto en bruto (ver el
+  // comentario del propio archivo): no debe dar menos que las palabras que
+  // hay de verdad en la explicación completa.
+  assert.ok(sermonWordCount(c) >= 8, 'la cita insertada no está contando como predicada');
 });
 
 test('la schiță prefiere lo marcado antes que el corte automático', () => {
