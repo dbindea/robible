@@ -265,6 +265,14 @@
         </div>
       {/if}
 
+      <!-- La transición, justo antes del primer punto y sin etiqueta: es la
+           frase que se DICE al salir de la introducción, no un apartado de la
+           schiță. Es además la única línea de esta pantalla que se lee tal cual
+           está escrita, así que va entera y destacada. -->
+      {#if outline.transition}
+        <p class="amvon__transicion">{quitarMarcas(outline.transition)}</p>
+      {/if}
+
       {#each puntos as punto, i (punto.id || i)}
         <!-- Separador ancho entre puntos: en el púlpito hay que ver de un
              vistazo dónde empieza cada uno. -->
@@ -524,6 +532,18 @@
     border-left: 0.35rem solid var(--color-accent);
     font-size: var(--amvon-linea);
     font-weight: 600;
+    line-height: 1.4;
+  }
+
+  /* Como la idea, pero sin el filete de acento: la idea es de lo que cuelga
+     todo y se mira mil veces; la transición se dice una vez y se pasa. En
+     cursiva porque es la única línea de la pantalla que se pronuncia literal,
+     y en el púlpito eso hay que distinguirlo de un vistazo. */
+  .amvon__transicion {
+    margin: 0 0 1.5rem;
+    padding: 0 1rem;
+    font-size: var(--amvon-linea);
+    font-style: italic;
     line-height: 1.4;
   }
 
