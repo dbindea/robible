@@ -105,6 +105,10 @@ const trozosDe = (definicion) => {
     if (Array.isArray(n)) return n.forEach(recorrer);
     if (!n || typeof n !== 'object') return;
     if (n.stack) return recorrer(n.stack);
+    // `bloqueVersiculo` es una tabla de una celda (la barra a la izquierda es
+    // el borde de la tabla), no un `text` ni un `stack`: sin este caso el
+    // texto del versículo citado se volvía invisible para este recorrido.
+    if (n.table) return recorrer(n.table.body);
     if (typeof n.text === 'string') salida.push(n);
     else if (Array.isArray(n.text)) recorrer(n.text);
   };
@@ -220,4 +224,101 @@ test('un punto corto se marca indivisible; uno larguísimo NO, para que no desap
 
   assert.equal(bloqueCorto.unbreakable, true, 'un punto corto debe seguir yendo entero si cabe');
   assert.equal(bloqueLargo.unbreakable, false, 'un punto larguísimo NO debe marcarse indivisible: se perdería');
+});
+
+// ── Versículos citados: barra a la izquierda (item 3) ──────────────────────
+
+/** Todas las tablas de la definición, aplanadas (una tabla por versículo citado). */
+const tablasDe = (definicion) => {
+  const salida = [];
+  const recorrer = (n) => {
+    if (Array.isArray(n)) return n.forEach(recorrer);
+    if (!n || typeof n !== 'object') return;
+    if (n.table) { salida.push(n); return recorrer(n.table.body); }
+    if (n.stack) return recorrer(n.stack);
+  };
+  recorrer(definicion.content);
+  return salida;
+};
+
+test('un versículo citado se imprime en una tabla con barra a la izquierda', () => {
+  const contenido = {
+    version: 1,
+    structure: [{ id: 'p1', title: 'Punct', refs: [], subpoints: [] }],
+    development: {
+      p1: { explain: '', illustrate: '', apply: '', refs: [{ label: 'Ioan 3:16', text: 'Fiindcă atât de mult…' }] },
+    },
+    intro: '', conclusion: '',
+  };
+  const tablas = tablasDe(definirPredica({ title: 'T' }, contenido));
+  assert.equal(tablas.length, 1, 'debería haber una tabla por referencia citada');
+
+  const [tabla] = tablas;
+  // Sólo el borde izquierdo dibuja línea: `vLineWidth(0)` es la barra,
+  // `vLineWidth(1)` (el borde derecho de la única columna) tiene que ser 0 o
+  // no sería una barra, sería un recuadro completo.
+  assert.equal(tabla.layout.vLineWidth(0), 2.5);
+  assert.equal(tabla.layout.vLineWidth(1), 0);
+  assert.equal(tabla.layout.hLineWidth(), 0, 'sin líneas horizontales: no es una tabla con rejilla');
+
+  const trozos = trozosDe(definirPredica({ title: 'T' }, contenido));
+  const etiqueta = trozos.find((t) => t.text === 'Ioan 3:16');
+  const texto = trozos.find((t) => t.text === 'Fiindcă atât de mult…');
+  assert.ok(etiqueta?.bold, 'la referencia va en negrita');
+  assert.ok(texto?.italics, 'el texto del versículo va en cursiva');
+});
+
+test('varios versículos citados largos SÍ cuentan para decidir si el punto es indivisible', () => {
+  // Antes de contar el alto de la tabla, `estimarAlto` le daba 0 a cada
+  // versículo citado (no es un nodo `text`, es un nodo `table`), así que un
+  // punto con varias citas largas se declaraba «cabe entero» sin caber —el
+  // mismo bug que ya se arregló una vez para la explicación/ilustración.
+  const versiculoLargo = 'palabra '.repeat(150).trim();
+  const contenido = {
+    version: 1,
+    structure: [{ id: 'p1', title: 'Punct', refs: [], subpoints: [] }],
+    development: {
+      p1: {
+        explain: '', illustrate: '', apply: '',
+        refs: Array.from({ length: 8 }, (_, i) => ({ label: `Ref ${i + 1}`, text: versiculoLargo })),
+      },
+    },
+    intro: '', conclusion: '',
+  };
+  const bloque = definirPredica({ title: 'T' }, contenido).content.find((n) => n.stack);
+  assert.equal(bloque.unbreakable, false, 'ocho citas largas no caben en una página: no puede ser indivisible');
+});
+
+// ── Centrado y alineación (item 4 y 5) ──────────────────────────────────────
+
+test('la idea central del PDF va centrada, no a la izquierda', () => {
+  const contenido = {
+    version: 1,
+    idea: { exegetical: '', purpose: '', central: 'Dios cuida de los suyos', question: '' },
+    structure: [], development: {}, intro: '', conclusion: '',
+  };
+  const trozos = trozosDe(definirPredica({ title: 'T' }, contenido));
+  const idea = trozos.find((t) => t.text === 'Dios cuida de los suyos');
+  assert.equal(idea?.alignment, 'center');
+});
+
+test('el cuerpo de la predicación va a la izquierda, no justificado', () => {
+  const contenido = {
+    version: 1,
+    structure: [{ id: 'p1', title: 'Punct', refs: [], subpoints: [] }],
+    development: { p1: { explain: 'Un texto cualquiera de cuerpo.', illustrate: '', apply: '', refs: [] } },
+    intro: 'Una introducción cualquiera.',
+    conclusion: 'Una conclusión cualquiera.',
+  };
+  const definicion = definirPredica({ title: 'T' }, contenido);
+  const nodosConAlineacion = [];
+  const recorrer = (n) => {
+    if (Array.isArray(n)) return n.forEach(recorrer);
+    if (!n || typeof n !== 'object') return;
+    if (n.alignment) nodosConAlineacion.push(n.alignment);
+    if (n.stack) recorrer(n.stack);
+  };
+  recorrer(definicion.content);
+  assert.ok(nodosConAlineacion.length > 0, 'no se encontró ningún nodo con alineación para comprobar');
+  assert.ok(!nodosConAlineacion.includes('justify'), 'no debería quedar texto justificado en el PDF');
 });

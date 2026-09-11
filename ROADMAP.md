@@ -1,7 +1,7 @@
 # RoBible — Roadmap
 
 > Documento vivo. Actualizado en cada milestone.
-> Última actualización: **11 sep 2026** (Predicación: sincronización entre dispositivos, PDF completo, orden de pasos, citas en línea, autor al publicar y manual en `/ghid-predicare`)
+> Última actualización: **11 sep 2026** (Predicación: citas visibles en el púlpito, versículos con barra en PDF y página pública, alineación del PDF y una traducción mixta corregida)
 
 > Documentación de referencia: [CLAUDE.md](CLAUDE.md) · [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) · [docs/OPERACIONES.md](docs/OPERACIONES.md)
 > Deuda técnica detectada: [docs/AUDITORIA-2026-09-04.md](docs/AUDITORIA-2026-09-04.md)
@@ -942,6 +942,21 @@ editor tipo Word, ni roles más allá de Utilizator/Predicator.
 ---
 
 ## Historial de cambios recientes
+
+**2026-09-11 (tarde) — Predicación: citas visibles en el púlpito, versículos con barra y una traducción mixta**
+
+Segundo lote del día, sobre lo que dejó a medias el anterior: las citas
+insertadas se generaban pero no llegaban al púlpito, y el PDF y la página
+pública no las distinguían del resto del texto. Verificado con Playwright de
+punta a punta: preparación → schiță → Modo Amvon → PDF → publicación.
+
+- **Las citas ya se ven en el púlpito.** `generateOutline` no las recogía en ningún sitio; ahora `citasDe()` las añade como palabra clave propia (`*Referencia* primeras 5 palabras…`) en el desarrollo, la introducción y la conclusión (trampa 69)
+- **El comienzo de la frase y lo marcado ya no se excluyen.** Antes, en cuanto había algo marcado con asteriscos en un punto, la schiță enseñaba SÓLO eso y perdía el arranque de la frase; ahora van juntos en la misma línea, y una marca que cae justo en el corte de palabras se respeta entera en vez de partirse (`extenderHastaCerrarMarca`)
+- **Versículos con barra a la izquierda** en el PDF de la predicación (tabla de una celda con borde izquierdo, el truco de pdfmake — trampa 71) y, vía `TextoFormateado`, en el documento final y la página pública
+- **Idea central centrada y cuerpo del PDF alineado a la izquierda**, no justificado — justificar abría ríos de espacio en blanco con esta tipografía
+- **La página pública ya no «perdía frases».** Era `white-space: normal` por defecto en `.predica__texto`: los saltos de línea que el predicador escribe entre frases del mismo campo se colapsaban en un párrafo corrido. Ahora `pre-wrap`, igual que ya llevaba `SermonPrep` (trampa 73)
+- **Una traducción mixta corregida**: `es.json` tenía la palabra rumana «schiță» colada en tres frases en español (`mark_help`, `print_outline`, `guide.cta_text`) — ahora dicen «esquema» en los tres sitios
+- 331 tests (9 nuevos), 5 trampas nuevas en `CLAUDE.md`
 
 **2026-09-11 — Predicación: sincronización, PDF completo, orden de pasos y citas en línea**
 

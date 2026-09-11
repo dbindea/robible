@@ -534,7 +534,7 @@
       "action_view": "Ver la predicación",
       "action_preach_again": "Predicar de nuevo",
       "mark_keyword": "Marcar",
-      "mark_help": "Selecciona una palabra o expresión y márcala: aparecerá en la schiță.",
+      "mark_help": "Selecciona una palabra o expresión y márcala: aparecerá en el esquema.",
       "refs_title": "Referencias",
       "refs_add": "Referencia",
       "refs_remove": "Quitar la referencia",
@@ -542,7 +542,7 @@
       "refs_search": "Buscar la referencia",
       "refs_none": "No se ha encontrado ninguna referencia.",
       "print_sermon": "Imprimir la predicación",
-      "print_outline": "Imprimir la schiță",
+      "print_outline": "Imprimir el esquema",
       "pdf_working": "Generando…",
       "share": {
         "publish": "Publicar",
@@ -638,7 +638,7 @@
         "timeline_title": "Los pasos del método, uno a uno",
         "timeline_lead": "Los mismos ocho pasos de la aplicación, con la explicación completa de cada uno — incluido qué cambia en una predicación textual o temática.",
         "cta_title": "Prepara tu predicación paso a paso",
-        "cta_text": "Todos estos pasos son un formulario guiado en «Mis predicaciones», con schiță imprimible para el púlpito.",
+        "cta_text": "Todos estos pasos son un formulario guiado en «Mis predicaciones», con esquema imprimible para el púlpito.",
         "cta_action": "Abrir Mis predicaciones"
       }
     },

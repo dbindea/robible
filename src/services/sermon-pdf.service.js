@@ -104,9 +104,45 @@ const bloqueDeTexto = (etiqueta, texto) => {
   if (!(texto || '').trim()) return [];
   return [
     { text: etiqueta, fontSize: T.nota, color: GRIS, characterSpacing: 0.6, margin: [0, 8, 0, 2] },
-    { text: runsDeTexto(texto), fontSize: T.cuerpo, lineHeight: 1.35, alignment: 'justify' },
+    // Alineado a la izquierda, no justificado: justificar con la tipografía y
+    // el ancho de este documento abría ríos de espacio en blanco entre
+    // palabras, que se notaban más que la ganancia estética del margen recto.
+    { text: runsDeTexto(texto), fontSize: T.cuerpo, lineHeight: 1.35, alignment: 'left' },
   ];
 };
+
+/**
+ * Un versículo citado, con una barra vertical a la izquierda — la misma idea
+ * que `.predica__refs` en la página pública, pero en PDF: aquí no hay CSS, así
+ * que la barra se dibuja con el borde de una tabla de una sola celda, el
+ * truco habitual de pdfmake para simular un `border-left`.
+ */
+const bloqueVersiculo = (ref) => ({
+  table: {
+    widths: ['*'],
+    body: [[
+      {
+        stack: [
+          { text: ref.label, bold: true, color: ACENTO, fontSize: T.nota, margin: [0, 0, 0, 2] },
+          // El texto del versículo va impreso: en papel no se puede tocar
+          // para abrirlo, así que si no está aquí no está.
+          { text: ref.text || '', italics: true, color: GRIS, fontSize: T.nota, lineHeight: 1.3 },
+        ],
+        border: [false, false, false, false],
+      },
+    ]],
+  },
+  layout: {
+    hLineWidth: () => 0,
+    vLineWidth: (i) => (i === 0 ? 2.5 : 0),
+    vLineColor: () => ACENTO,
+    paddingLeft: () => 10,
+    paddingTop: () => 3,
+    paddingRight: () => 0,
+    paddingBottom: () => 3,
+  },
+  margin: [0, 4, 0, 4],
+});
 
 // ── ¿Cabe entero en una página? ────────────────────────────────────────────
 //
@@ -136,6 +172,15 @@ const textoDeRun = (n) => (Array.isArray(n.text) ? n.text.map((t) => t.text || '
 const estimarAlto = (nodos) => {
   let alto = 0;
   for (const n of nodos) {
+    // `bloqueVersiculo` es una tabla de una celda, no un `text`: sin este
+    // caso el alto de cada versículo citado contaba como 0 y un punto con
+    // varias citas largas se declaraba «cabe entero» sin caber, que es
+    // exactamente el bug que este heurístico existe para evitar (trampa 64).
+    if (n.table) {
+      const celdas = n.table.body.flat().flatMap((celda) => celda.stack || []);
+      alto += estimarAlto(celdas) + (n.margin?.[1] || 0) + (n.margin?.[3] || 0);
+      continue;
+    }
     const texto = textoDeRun(n);
     const tamano = n.fontSize || T.cuerpo;
     // ~2 caracteres por punto de ancho a este tamaño, para 495pt de ancho útil.
@@ -174,18 +219,22 @@ export const definirPredica = (sermon, contenido, etiquetas = {}) => {
   cuerpo.push(lineaSuave());
 
   if (c.idea.central.trim()) {
-    cuerpo.push({ text: e.idea, fontSize: T.nota, color: GRIS, characterSpacing: 0.6 });
+    // Centrada: es la frase de la que cuelga todo el sermón, y centrarla la
+    // distingue de un vistazo de las secciones normales, que van a la
+    // izquierda como el resto del cuerpo.
+    cuerpo.push({ text: e.idea, fontSize: T.nota, color: GRIS, characterSpacing: 0.6, alignment: 'center' });
     cuerpo.push({
       text: quitarMarcas(c.idea.central).trim(),
       fontSize: T.seccion,
       italics: true,
+      alignment: 'center',
       margin: [0, 2, 0, 10],
     });
   }
 
   if (c.intro.trim()) {
     cuerpo.push({ text: e.intro, fontSize: T.seccion, bold: true, color: ACENTO, margin: [0, 6, 0, 4] });
-    cuerpo.push({ text: runsDeTexto(c.intro), fontSize: T.cuerpo, lineHeight: 1.35, alignment: 'justify' });
+    cuerpo.push({ text: runsDeTexto(c.intro), fontSize: T.cuerpo, lineHeight: 1.35, alignment: 'left' });
   }
 
   // La transición, entre la introducción y el primer punto: sin encabezado
@@ -226,7 +275,7 @@ export const definirPredica = (sermon, contenido, etiquetas = {}) => {
         bold: true,
         margin: [0, 10, 0, 3],
       });
-      if (texto) grupo.push({ text: runsDeTexto(texto), fontSize: T.cuerpo, lineHeight: 1.35, alignment: 'justify' });
+      if (texto) grupo.push({ text: runsDeTexto(texto), fontSize: T.cuerpo, lineHeight: 1.35, alignment: 'left' });
     });
 
     grupo.push(...bloqueDeTexto(e.explain, d.explain));
@@ -240,19 +289,7 @@ export const definirPredica = (sermon, contenido, etiquetas = {}) => {
     ].filter((r) => r?.label);
     if (refs.length) {
       grupo.push({ text: e.refs, fontSize: T.nota, color: GRIS, characterSpacing: 0.6, margin: [0, 8, 0, 2] });
-      for (const r of refs) {
-        grupo.push({
-          text: [
-            { text: `${r.label}  `, bold: true, color: ACENTO },
-            // El texto del versículo va impreso: en papel no se puede tocar
-            // para abrirlo, así que si no está aquí no está.
-            { text: r.text || '', italics: true, color: GRIS },
-          ],
-          fontSize: T.nota,
-          lineHeight: 1.3,
-          margin: [10, 0, 0, 3],
-        });
-      }
+      for (const r of refs) grupo.push(bloqueVersiculo(r));
     }
 
     cuerpo.push({ stack: grupo, unbreakable: cabeEnUnaPagina(grupo) });
@@ -261,7 +298,7 @@ export const definirPredica = (sermon, contenido, etiquetas = {}) => {
   if (c.conclusion.trim()) {
     cuerpo.push(lineaSuave());
     cuerpo.push({ text: e.conclusion, fontSize: T.seccion, bold: true, color: ACENTO, margin: [0, 4, 0, 4] });
-    cuerpo.push({ text: runsDeTexto(c.conclusion), fontSize: T.cuerpo, lineHeight: 1.35, alignment: 'justify' });
+    cuerpo.push({ text: runsDeTexto(c.conclusion), fontSize: T.cuerpo, lineHeight: 1.35, alignment: 'left' });
   }
 
   return {
@@ -297,7 +334,10 @@ export const definirSchita = (sermon, esquema, etiquetas = {}) => {
   if (o.idea) trozos.push({ text: o.idea, fontSize: T.schitaClave, italics: true, color: GRIS, margin: [0, 4, 0, 6] });
 
   for (const linea of o.intro || []) {
-    trozos.push({ text: `- ${linea}`, fontSize: T.schitaClave, color: GRIS, margin: [0, 0, 0, 2] });
+    // `runsDeTexto` y no texto plano: una línea puede traer una cita
+    // insertada (`*Referencia* primeras palabras…`), y sin esto el asterisco
+    // saldría impreso tal cual en vez de en negrita.
+    trozos.push({ text: ['- ', ...runsDeTexto(linea)], fontSize: T.schitaClave, color: GRIS, margin: [0, 0, 0, 2] });
   }
 
   // La transición va entera y en negrita, sin el guion de las demás líneas: el
@@ -315,7 +355,10 @@ export const definirSchita = (sermon, esquema, etiquetas = {}) => {
     // columna. Con el punto medio y 8 pt de sangría se leían como una
     // continuación del título en vez de como una lista.
     for (const k of p.keywords || []) {
-      grupo.push({ text: `- ${k}`, fontSize: T.schitaClave, margin: [0, 0, 0, 2], lineHeight: 1.25 });
+      // Igual que en el Modo Amvon: una palabra clave puede traer lo marcado
+      // con asteriscos o una cita insertada, y `runsDeTexto` es quien lo
+      // convierte en negrita/cursiva en vez de imprimir el símbolo suelto.
+      grupo.push({ text: ['- ', ...runsDeTexto(k)], fontSize: T.schitaClave, margin: [0, 0, 0, 2], lineHeight: 1.25 });
     }
     if ((p.refs || []).length) {
       grupo.push({ text: (p.refs || []).join('  ·  '), fontSize: T.nota, color: ACENTO, bold: true, margin: [8, 2, 0, 0] });
@@ -331,7 +374,9 @@ export const definirSchita = (sermon, esquema, etiquetas = {}) => {
   }
   if (o.conclusion) {
     trozos.push({ text: e.conclusion, fontSize: T.nota, color: GRIS, characterSpacing: 0.6, margin: [0, 8, 0, 2] });
-    trozos.push({ text: o.conclusion, fontSize: T.schitaClave });
+    // Puede traer una cita insertada (ver `generateOutline`), de ahí
+    // `runsDeTexto` en vez del texto a secas.
+    trozos.push({ text: runsDeTexto(o.conclusion), fontSize: T.schitaClave });
   }
 
   // Reparto en caras. No se puede medir el alto antes de componer, así que se

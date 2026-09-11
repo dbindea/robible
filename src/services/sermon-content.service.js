@@ -286,6 +286,92 @@ export const insertarCita = (texto, desde, hasta, ref) => {
   return { texto: nuevo, cursor: desde + bloque.length };
 };
 
+const primerasPalabras = (texto, n = 5) => {
+  const palabras = texto.trim().split(/\s+/);
+  return palabras.length <= n ? palabras.join(' ') : `${palabras.slice(0, n).join(' ')}…`;
+};
+
+/**
+ * Las citas insertadas en un texto, listas para ir de palabra clave en la
+ * schiță: la referencia en negrita y las primeras palabras del versículo.
+ *
+ * Antes de esto una cita insertada en el desarrollo no llegaba NUNCA al
+ * púlpito: `generateOutline` sólo miraba lo marcado con asteriscos y, si no
+ * había nada marcado, el corte automático caía sobre el texto ya aplanado por
+ * `quitarMarcas` (que convierte la cita en «referencia: versículo» corrido) y
+ * normalmente ni siquiera sobrevivía al recorte. El predicador insertaba el
+ * versículo a propósito y desaparecía de la guía que se lleva al atril.
+ */
+export const citasDe = (texto) => {
+  if (!texto || typeof texto !== 'string') return [];
+  return [...texto.matchAll(CITA)].map(
+    (m) => `*${m[1].trim()}* ${primerasPalabras(m[2].trim())}`,
+  );
+};
+
+/**
+ * Alarga un recorte de palabras hasta no dejar una `*marca*` a medias.
+ *
+ * Cortar por número de palabras es ciego a los asteriscos: si la marca
+ * empieza dentro del recorte y cierra después, el resultado lleva un `*`
+ * suelto y `TextoFormateado` (o el PDF) leería negrita el resto del párrafo
+ * entero. Se alarga palabra a palabra hasta que el recuento de asteriscos
+ * vuelve a ser par.
+ */
+const extenderHastaCerrarMarca = (palabras, maxPalabras) => {
+  let n = Math.min(maxPalabras, palabras.length);
+  while (n < palabras.length) {
+    const asteriscos = (palabras.slice(0, n).join(' ').match(/\*/g) || []).length;
+    if (asteriscos % 2 === 0) break;
+    n += 1;
+  }
+  return n;
+};
+
+/**
+ * Resume una frase para el púlpito: el comienzo (unas pocas palabras) MÁS
+ * cualquier `*marca*` que tenga, aunque quede más allá del corte.
+ *
+ * Antes, en cuanto había algo marcado en el texto, `generateOutline`
+ * enseñaba SÓLO lo marcado y tiraba el comienzo de la frase; sin marcar nada
+ * hacía lo contrario, sólo el comienzo. El predicador quiere las dos cosas a
+ * la vez — el arranque de la frase para situarse, y la palabra que se marcó
+ * para no perder el matiz — así que las dos van en la misma línea.
+ */
+const resumenDeFrase = (frase, maxPalabras = 5) => {
+  const limpio = frase.trim();
+  if (!limpio) return '';
+  const palabras = limpio.split(/\s+/);
+  let abre = limpio;
+  if (palabras.length > maxPalabras) {
+    const n = extenderHastaCerrarMarca(palabras, maxPalabras);
+    abre = palabras.slice(0, n).join(' ');
+    if (n < palabras.length) abre += '…';
+  }
+  const marcasFuera = marcadas(limpio).filter((m) => !abre.includes(m));
+  return marcasFuera.length ? `${abre} ${marcasFuera.map((m) => `*${m}*`).join(' ')}` : abre;
+};
+
+/**
+ * Como `claves()`, pero conservando los asteriscos de lo marcado en vez de
+ * quitarlos: son las palabras clave de un punto, y `TextoFormateado` (en el
+ * púlpito, en el documento y en la página pública) y el PDF ya saben pintar
+ * esa negrita. Las citas se quitan antes de trocear en frases — van aparte,
+ * por `citasDe` — porque su texto tiene sus propios espacios y el corte por
+ * palabras las partiría a la mitad.
+ */
+const fraseClaves = (texto, maxLineas = 3, maxPalabras = 5) => {
+  if (!texto || typeof texto !== 'string') return [];
+  return texto
+    .replace(CITA, '')
+    .split(/[.;\n]+/)
+    .map((frase) => frase.trim())
+    .filter(Boolean)
+    .slice(0, maxLineas)
+    .map((frase) => resumenDeFrase(frase, maxPalabras))
+    .filter(Boolean);
+};
+
 /**
  * Divide un texto en segmentos con formato, para imprimirlo o mostrarlo sin
  * perder la negrita de un `*marca*` ni la cursiva de una `{{cita}}`.
@@ -313,9 +399,11 @@ export const segmentarTexto = (texto) => {
     } else {
       // {{ref|texto}} → la referencia en negrita, pegada al versículo en
       // cursiva. Así se lee como una cita dentro de la frase y no como un
-      // trozo de código suelto.
-      segmentos.push({ texto: `${m[2]} `, bold: true });
-      segmentos.push({ texto: m[3], italica: true });
+      // trozo de código suelto. `cita: true` en los dos marca que van juntos,
+      // para que quien pinte el texto (`TextoFormateado`) pueda envolverlos
+      // en un solo bloque con su propia barra a la izquierda.
+      segmentos.push({ texto: `${m[2]} `, bold: true, cita: true });
+      segmentos.push({ texto: m[3], italica: true, cita: true });
     }
     ultimo = m.index + m[0].length;
   }
@@ -369,7 +457,10 @@ export const generateOutline = (content) => {
     // el púlpito, en el PDF o en el enlace público—. Si se colaran, habría que
     // acordarse de quitarlos en cada uno de esos sitios.
     idea: quitarMarcas(c.idea.central).trim(),
-    intro: claves(c.intro),
+    // Las citas de la introducción se añaden aparte: `claves()` aplana la
+    // cita a texto corrido y el recorte por frases casi nunca la deja
+    // entera. `citasDe` la entrega ya lista como línea propia.
+    intro: [...claves(c.intro), ...citasDe(c.intro)],
     transition: quitarMarcas(c.transition).trim(),
     points: c.structure.map((punto) => {
       const d = c.development[punto.id] || {};
@@ -377,25 +468,28 @@ export const generateOutline = (content) => {
         .map((s) => quitarMarcas(s.title).trim())
         .filter(Boolean);
 
-      // Lo que el predicador ha marcado con asteriscos manda. El corte
-      // automático sólo entra cuando no ha marcado nada: adivinar es el peor
-      // resultado posible, pero es mejor que dejarle la schiță en blanco.
-      const suyas = [
-        ...marcadas(d.explain),
-        ...marcadas(d.illustrate),
-        ...marcadas(d.apply),
-        // El desarrollo de un subpunto se marca igual que el del punto, y lo
-        // marcado ahí es justo lo que se quiere ver desde el atril.
-        ...(punto.subpoints || []).flatMap((s) => marcadas(c.development[s.id]?.text)),
+      // El comienzo de cada frase (para situarse) MÁS lo marcado con
+      // asteriscos (para no perder el matiz que el predicador quiso
+      // destacar) y las citas insertadas (siempre, se haya marcado algo o
+      // no): las tres cosas conviven en la misma lista de palabras clave.
+      const desarrollo = [
+        ...fraseClaves(d.explain, 2, 5),
+        ...citasDe(d.explain),
+        ...fraseClaves(d.illustrate, 1, 5),
+        ...citasDe(d.illustrate),
+        ...fraseClaves(d.apply, 1, 5),
+        ...citasDe(d.apply),
+        // El desarrollo de un subpunto se trata igual que el del punto.
+        ...(punto.subpoints || []).flatMap((s) => [
+          ...fraseClaves(c.development[s.id]?.text, 1, 5),
+          ...citasDe(c.development[s.id]?.text),
+        ]),
       ];
-      const keywords = suyas.length
-        ? [...subpuntos, ...suyas]
-        : [...subpuntos, ...claves(d.explain, 2, 4), ...claves(d.illustrate, 1, 4)];
 
       return {
         id: punto.id,
         title: quitarMarcas(punto.title).trim().toUpperCase(),
-        keywords: keywords.filter(Boolean),
+        keywords: [...subpuntos, ...desarrollo].filter(Boolean),
         // Las del punto y las del desarrollo, en ese orden y sin repetir. En la
         // schiță sólo se ve la cita; el texto entero es cosa del Modo Amvon.
         refs: [
@@ -413,7 +507,7 @@ export const generateOutline = (content) => {
     // justamente no debe ser. Si el predicador quiere la frase completa, la
     // schiță es editable.
     application: claves(c.idea.purpose, 1, 8).join(' '),
-    conclusion: claves(c.conclusion, 2, 8).join(' · '),
+    conclusion: [...claves(c.conclusion, 2, 8), ...citasDe(c.conclusion)].join(' · '),
   };
 
   // Recién generada, todo lo que hay lo puso la aplicación: la referencia para
