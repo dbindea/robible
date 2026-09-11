@@ -11,6 +11,7 @@ import assert from 'node:assert/strict';
 import {
   STEPS,
   alternarMarca,
+  citasDe,
   collectReferences,
   countWords,
   emptyContent,
@@ -354,8 +355,8 @@ test('segmentarTexto separa negrita (marca) y cursiva (cita) del resto', () => {
     { texto: 'Antes ' },
     { texto: 'destacado', bold: true },
     { texto: ' y luego ' },
-    { texto: 'Ioan 3:16 ', bold: true },
-    { texto: 'Dumnezeu a iubit lumea', italica: true },
+    { texto: 'Ioan 3:16 ', bold: true, cita: true },
+    { texto: 'Dumnezeu a iubit lumea', italica: true, cita: true },
     { texto: ' y fin.' },
   ]);
 });
@@ -379,7 +380,14 @@ test('una cita en línea cuenta como palabras predicadas', () => {
   assert.ok(sermonWordCount(c) >= 8, 'la cita insertada no está contando como predicada');
 });
 
-test('la schiță prefiere lo marcado antes que el corte automático', () => {
+// El 11 sep 2026 se cambió a propósito: antes, en cuanto había algo marcado
+// en el desarrollo, la schiță enseñaba SÓLO lo marcado y tiraba el comienzo
+// de la frase; el predicador quiere las dos cosas — el arranque para
+// situarse, y lo marcado para no perder el matiz — así que van juntas en la
+// misma línea, y los asteriscos de lo marcado SÍ llegan a `keywords` (antes
+// se prohibía expresamente). Lo pintan `TextoFormateado` y `runsDeTexto`
+// (PDF) en negrita; no son texto plano suelto en ningún sitio.
+test('la schiță combina el comienzo de la frase con lo marcado, no uno u otro', () => {
   const c = emptyContent();
   const p = newPoint('Omul înțelept');
   c.structure.push(p);
@@ -389,22 +397,39 @@ test('la schiță prefiere lo marcado antes que el corte automático', () => {
   };
 
   const o = generateOutline(c);
-  assert.deepEqual(o.points[0].keywords, ['la roca'], 'sólo debe salir lo marcado');
+  assert.deepEqual(o.points[0].keywords, [
+    'Una primera frase larga que…',
+    'Pero lo que importa es… *la roca*',
+  ]);
+});
+
+test('una marca más allá del recorte de palabras se añade igualmente', () => {
+  const c = emptyContent();
+  const p = newPoint('Punct');
+  c.structure.push(p);
+  // La marca ("cuatro cinco seis siete") empieza dentro de las 5 primeras
+  // palabras y termina después: el recorte tiene que alargarse para no
+  // partirla por la mitad.
+  c.development[p.id] = {
+    explain: 'Uno dos tres *cuatro cinco seis siete* ocho.',
+    illustrate: '', apply: '', refs: [],
+  };
+
+  const o = generateOutline(c);
+  assert.deepEqual(o.points[0].keywords, ['Uno dos tres *cuatro cinco seis siete*…']);
 });
 
 test('sin nada marcado, la schiță sigue cortando como antes', () => {
-  // El comportamiento anterior es la red de seguridad: quien no marque nada no
-  // se encuentra la schiță vacía.
   const c = emptyContent();
   const p = newPoint('Punct');
   c.structure.push(p);
   c.development[p.id] = { explain: 'Prima frază. A doua frază.', illustrate: '', apply: '', refs: [] };
 
   const o = generateOutline(c);
-  assert.ok(o.points[0].keywords.length > 0, 'debería caer en el corte automático');
+  assert.deepEqual(o.points[0].keywords, ['Prima frază', 'A doua frază']);
 });
 
-test('los subpuntos salen siempre, se marque o no', () => {
+test('los subpuntos salen siempre, antes que el desarrollo del punto', () => {
   const c = emptyContent();
   const p = newPoint('Punct');
   p.subpoints = [newSubpoint('Ascultarea')];
@@ -412,7 +437,44 @@ test('los subpuntos salen siempre, se marque o no', () => {
   c.development[p.id] = { explain: 'texto con *marca*', illustrate: '', apply: '', refs: [] };
 
   const o = generateOutline(c);
-  assert.deepEqual(o.points[0].keywords, ['Ascultarea', 'marca']);
+  assert.deepEqual(o.points[0].keywords, ['Ascultarea', 'texto con *marca*']);
+});
+
+// ── Citas insertadas en la schiță ────────────────────────
+
+test('citasDe convierte una cita en referencia negrita + primeras 5 palabras', () => {
+  const t = 'Textul spune că {{Ioan 3:16|Fiindcă atât de mult a iubit Dumnezeu lumea, că a dat pe singurul Lui Fiu}}.';
+  assert.deepEqual(citasDe(t), ['*Ioan 3:16* Fiindcă atât de mult a…']);
+});
+
+test('citasDe no recorta un versículo ya corto', () => {
+  assert.deepEqual(citasDe('{{Ioan 11:35|Isus a plâns}}'), ['*Ioan 11:35* Isus a plâns']);
+});
+
+test('una cita insertada en el desarrollo llega a la schiță aunque no se marque nada', () => {
+  const c = emptyContent();
+  const p = newPoint('Punct');
+  c.structure.push(p);
+  c.development[p.id] = {
+    explain: 'Textul spune că {{Ioan 3:16|Fiindcă atât de mult a iubit Dumnezeu lumea}}.',
+    illustrate: '', apply: '', refs: [],
+  };
+
+  const o = generateOutline(c);
+  assert.ok(
+    o.points[0].keywords.includes('*Ioan 3:16* Fiindcă atât de mult a…'),
+    `la cita no llegó a la schiță: ${JSON.stringify(o.points[0].keywords)}`,
+  );
+});
+
+test('una cita en la introducción o la conclusión también llega a la schiță', () => {
+  const c = emptyContent();
+  c.intro = 'Empezamos con {{Ioan 1:1|La început era Cuvântul}}.';
+  c.conclusion = 'Terminamos con {{Apocalipsa 21:4|Dumnezeu va șterge orice lacrimă}}.';
+
+  const o = generateOutline(c);
+  assert.ok(o.intro.includes('*Ioan 1:1* La început era Cuvântul'), JSON.stringify(o.intro));
+  assert.ok(o.conclusion.includes('*Apocalipsa 21:4*'), o.conclusion);
 });
 
 // ── El botón de marcar ──────────────────────────────────
@@ -476,16 +538,20 @@ test('una referencia repetida no sale dos veces en la schiță', () => {
   assert.deepEqual(generateOutline(c).points[0].refs, ['Iacov 1:22']);
 });
 
-// ── La schiță nunca lleva la sintaxis de marcado ────────────────────────────
+// ── Los titulares de la schiță nunca llevan la sintaxis de marcado ─────────
 //
-// Los asteriscos son cómo el predicador señala en la preparación qué palabras
-// quiere en la schiță. A partir de generateOutline el texto sólo se lee: en el
-// púlpito, en el PDF y en el enlace público. Si se colaran, habría que quitarlos
-// en cada uno de esos sitios y bastaría con olvidarse de uno.
-//
-// El 8 sep 2026 salían literalmente ("1. Pastorul care poarta de *grija*") en la
+// El título del punto y la idea central son titulares: se leen enteros y de
+// un vistazo, así que los asteriscos no aportan nada y se quitan siempre. El
+// 8 sep 2026 salían literalmente ("1. Pastorul care poarta de *grija*") en la
 // predicación publicada.
-test('generateOutline deja fuera los asteriscos de títulos, subpuntos e idea', () => {
+//
+// Las palabras clave (`keywords`) son harina de otro costal, y cambió el 11
+// sep 2026: ahí el asterisco SÍ llega tal cual desde el 11 sep 2026, a
+// propósito, para que el púlpito y el PDF puedan pintar en negrita lo que el
+// predicador marcó. No es el mismo bug: quien pinta `keywords` (`SermonPulpit`,
+// `definirSchita`) pasa siempre por `TextoFormateado` o `runsDeTexto`, así que
+// el asterisco nunca llega a la pantalla como carácter literal.
+test('generateOutline deja el título y la idea limpios, pero conserva la marca en las palabras clave', () => {
   const outline = generateOutline({
     idea: { central: 'Cine tiene al Señor por *pastor* no carece de nada' },
     structure: [
@@ -502,10 +568,5 @@ test('generateOutline deja fuera los asteriscos de títulos, subpuntos e idea', 
   const punto = outline.points[0];
   assert.equal(punto.title, 'EL PASTOR QUE CUIDA');
   assert.ok(!outline.idea.includes('*'), `la idea conserva asteriscos: ${outline.idea}`);
-  assert.ok(
-    !punto.keywords.some((k) => k.includes('*')),
-    `hay palabras clave con asteriscos: ${JSON.stringify(punto.keywords)}`,
-  );
-  // Lo marcado sí manda: "pastor" viene de la marca del desarrollo.
-  assert.ok(punto.keywords.includes('pastor'), JSON.stringify(punto.keywords));
+  assert.deepEqual(punto.keywords, ['No me faltará nada', 'David escribe como *pastor*']);
 });

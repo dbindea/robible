@@ -19,6 +19,7 @@
   import { _ } from '../../services/i18n.service';
   import { sermonsStore } from '../../store/sermonsStore';
   import { normalizeOutline, quitarMarcas } from '../../services/sermon-content.service';
+  import TextoFormateado from '../../components/TextoFormateado.svelte';
   import {
     FONT_SIZES,
     clearActive,
@@ -259,8 +260,11 @@
       {#if outline.intro?.length}
         <div class="amvon__bloque">
           <p class="amvon__etiqueta">{$_('app.sermons.intro')}</p>
+          <!-- `TextoFormateado` y no texto plano: una línea puede traer una
+               cita insertada (`*Referencia* primeras palabras…`), y sin esto
+               el asterisco de la negrita saldría literal en pantalla. -->
           {#each outline.intro as linea, i (i)}
-            <p class="amvon__linea">{linea}</p>
+            <p class="amvon__linea"><TextoFormateado texto={linea} /></p>
           {/each}
         </div>
       {/if}
@@ -270,7 +274,7 @@
            schiță. Es además la única línea de esta pantalla que se lee tal cual
            está escrita, así que va entera y destacada. -->
       {#if outline.transition}
-        <p class="amvon__transicion">{quitarMarcas(outline.transition)}</p>
+        <p class="amvon__transicion"><TextoFormateado texto={outline.transition} /></p>
       {/if}
 
       {#each puntos as punto, i (punto.id || i)}
@@ -281,8 +285,11 @@
           <!-- Sin los asteriscos del marcado manual: son sintaxis de
                preparación y aquí el predicador está delante de la iglesia. -->
           <h2 class="amvon__punto">{i + 1}. {quitarMarcas(punto.title)}</h2>
+          <!-- Cada palabra clave puede traer el comienzo de la frase MÁS lo
+               marcado (o una cita insertada) en negrita: `TextoFormateado`
+               es quien lo pinta así, nunca texto plano con asteriscos. -->
           {#each punto.keywords || [] as clave, k (k)}
-            <p class="amvon__clave">{clave}</p>
+            <p class="amvon__clave"><TextoFormateado texto={clave} /></p>
           {/each}
           {#each punto.refs || [] as ref, r (r)}
             <button type="button" class="amvon__referencia" on:click={() => abrirReferencia(ref)}>
@@ -304,7 +311,7 @@
         <hr class="amvon__separador" />
         <div class="amvon__bloque">
           <p class="amvon__etiqueta">{$_('app.sermons.conclusion')}</p>
-          <p class="amvon__linea">{outline.conclusion}</p>
+          <p class="amvon__linea"><TextoFormateado texto={outline.conclusion} /></p>
         </div>
       {/if}
 

@@ -303,7 +303,11 @@
       font-size: 1.2rem;
     }
 
-    p { margin: 0 0 0.75rem; line-height: var(--line-height-body); }
+    // `pre-wrap` y no el `normal` por defecto: el predicador escribe estos
+    // campos con saltos de línea entre frases, y sin esto se pegaban todas en
+    // un único párrafo corrido — de ahí que "desaparecieran" a la vista. Es
+    // el mismo ajuste que ya lleva `.documento__parrafo` en `SermonPrep`.
+    p { margin: 0 0 0.9rem; line-height: var(--line-height-body); white-space: pre-wrap; }
   }
 
   .predica__punto h2 {
