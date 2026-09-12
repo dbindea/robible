@@ -74,6 +74,19 @@ const ERROR_KEYS = {
   missing_fields: 'auth.errors.missing_fields',
   missing_token: 'auth.errors.missing_token',
   invalid_or_expired_token: 'auth.errors.invalid_or_expired_token',
+  account_disabled: 'auth.errors.account_disabled',
+  // ── Perfil opcional (schema_version 13) ────────────────
+  invalid_full_name: 'auth.errors.invalid_full_name',
+  invalid_church: 'auth.errors.invalid_church',
+  invalid_country: 'auth.errors.invalid_country',
+  invalid_confession: 'auth.errors.invalid_confession',
+  invalid_birth_date: 'auth.errors.invalid_birth_date',
+  // ── Panel de admin ──────────────────────────────────────
+  not_admin: 'app.admin.errors.not_admin',
+  cannot_modify_self: 'app.admin.errors.cannot_modify_self',
+  cannot_disable_admin: 'app.admin.errors.cannot_disable_admin',
+  cannot_delete_self: 'app.admin.errors.cannot_delete_self',
+  sermon_not_found: 'app.admin.errors.sermon_not_found',
 };
 
 export const translateApiError = (code) => ERROR_KEYS[code] || 'auth.errors.unknown';

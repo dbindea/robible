@@ -1,10 +1,12 @@
 // Cloudflare Worker entry: routing + CORS + error handling
 import { Hono } from 'hono';
+import * as admin from './admin.js';
+import * as analytics from './analytics.js';
 import * as auth from './auth.js';
 import * as data from './data.js';
 import { sendPush } from './push.js';
 import * as sermons from './sermons.js';
-import { checkRateLimit, corsHeaders, requireAuth } from './utils.js';
+import { checkRateLimit, corsHeaders, requireAdmin, requireAuth } from './utils.js';
 
 const app = new Hono();
 
@@ -63,6 +65,19 @@ const requireAuthMw = async (c, next) => {
   if (!result.user) {
     applyCors(c);
     return c.json({ ok: false, error: result.error }, 401);
+  }
+  c.set('user', result.user);
+  await next();
+};
+
+// Igual que `requireAuthMw`, pero exige además `isAdmin`. El rol vive en la
+// columna `is_admin` de `users` (schema_version 13) — no hay ninguna
+// comparación de nickname aquí ni en `requireAdmin`.
+const requireAdminMw = async (c, next) => {
+  const result = await requireAdmin(c.req.raw, c.env.DB, c.env);
+  if (!result.user) {
+    applyCors(c);
+    return c.json({ ok: false, error: result.error }, result.error === 'not_admin' ? 403 : 401);
   }
   c.set('user', result.user);
   await next();
@@ -358,6 +373,57 @@ app.delete('/api/sermons/:id', requireAuthMw, async (c) => {
   const user = c.get('user');
   applyCors(c);
   return sermons.removeSermon(c.env.DB, user.id, c.req.param('id'), corsFor(c));
+});
+
+// ── Analíticas (beacon público, sin auth) ──────────────
+// Lo llama el navegador de cualquier visitante en cada cambio de ruta. Sin
+// IP guardada — ver analytics.js y schema.sql (tabla `page_views`).
+app.post('/api/analytics/pageview', async (c) => {
+  applyCors(c);
+  return analytics.recordPageView(c.req.raw, c.env.DB, c.env, corsFor(c));
+});
+
+// ── Panel de admin (requiere is_admin) ─────────────────
+app.get('/api/admin/stats', requireAuthMw, requireAdminMw, async (c) => {
+  applyCors(c);
+  return admin.getStats(c.env.DB, corsFor(c));
+});
+
+app.get('/api/admin/users', requireAuthMw, requireAdminMw, async (c) => {
+  applyCors(c);
+  return admin.searchUsers(c.req.raw, c.env.DB, corsFor(c));
+});
+
+app.patch('/api/admin/users/:id', requireAuthMw, requireAdminMw, async (c) => {
+  const adminUser = c.get('user');
+  applyCors(c);
+  return admin.patchUser(c.req.raw, c.env.DB, adminUser.id, c.req.param('id'), corsFor(c));
+});
+
+app.delete('/api/admin/users/:id', requireAuthMw, requireAdminMw, async (c) => {
+  const adminUser = c.get('user');
+  applyCors(c);
+  return admin.deleteUserAdmin(c.env.DB, adminUser.id, c.req.param('id'), corsFor(c));
+});
+
+app.post('/api/admin/users/:id/reset-password', requireAuthMw, requireAdminMw, async (c) => {
+  applyCors(c);
+  return admin.resetUserPasswordAdmin(c.env.DB, c.req.param('id'), corsFor(c));
+});
+
+app.get('/api/admin/sermons', requireAuthMw, requireAdminMw, async (c) => {
+  applyCors(c);
+  return admin.searchSermonsAdmin(c.req.raw, c.env.DB, corsFor(c));
+});
+
+app.patch('/api/admin/sermons/:id', requireAuthMw, requireAdminMw, async (c) => {
+  applyCors(c);
+  return admin.patchSermonAdmin(c.req.raw, c.env.DB, c.req.param('id'), corsFor(c));
+});
+
+app.delete('/api/admin/sermons/:id', requireAuthMw, requireAdminMw, async (c) => {
+  applyCors(c);
+  return admin.deleteSermonAdmin(c.env.DB, c.req.param('id'), corsFor(c));
 });
 
 // ── Export (sync) ──────────────────────────────────────

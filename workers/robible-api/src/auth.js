@@ -110,6 +110,12 @@ export async function register(request, db, env, cors) {
       nickname: normalized,
       userType: tipo,
       email: emailLimpio || null,
+      isAdmin: false,
+      fullName: null,
+      birthDate: null,
+      church: null,
+      country: null,
+      confession: null,
       createdAt: now,
       updatedAt: now,
     },
@@ -159,7 +165,9 @@ export async function login(request, db, env, cors) {
 
   const user = await db
     .prepare(
-      `SELECT id, nickname, password_salt, password_hash, user_type, email, created_at, updated_at
+      `SELECT id, nickname, password_salt, password_hash, user_type, email, is_admin,
+              is_disabled, full_name, birth_date, church, country, confession,
+              created_at, updated_at
        FROM users WHERE nickname = ?`,
     )
     .bind(nickname.trim().toLowerCase())
@@ -168,6 +176,12 @@ export async function login(request, db, env, cors) {
 
   const valid = await verifyHash(password, user.password_salt, user.password_hash);
   if (!valid) return error('invalid_credentials', 401, cors);
+
+  // Una cuenta desactivada no puede entrar aunque la contraseña sea correcta.
+  // No se distingue de otros errores de credenciales por descuido: el usuario
+  // necesita saber que tiene que contactar al admin, no que ha escrito mal la
+  // contraseña.
+  if (user.is_disabled) return error('account_disabled', 403, cors);
 
   const token = await makeToken(user.id, env.JWT_SECRET);
   await saveSession(db, token, user.id, request);
@@ -179,6 +193,12 @@ export async function login(request, db, env, cors) {
       nickname: user.nickname,
       userType: user.user_type || 'user',
       email: user.email || null,
+      isAdmin: !!user.is_admin,
+      fullName: user.full_name || null,
+      birthDate: user.birth_date || null,
+      church: user.church || null,
+      country: user.country || null,
+      confession: user.confession || null,
       createdAt: user.created_at,
       updatedAt: user.updated_at,
     },
@@ -272,7 +292,11 @@ export async function resetPassword(request, db, env, cors) {
   await saveSession(db, token, payload.sub, request);
 
   const user = await db
-    .prepare('SELECT id, nickname, created_at, updated_at FROM users WHERE id = ?')
+    .prepare(
+      `SELECT id, nickname, user_type, email, is_admin, full_name, birth_date, church,
+              country, confession, created_at, updated_at
+       FROM users WHERE id = ?`,
+    )
     .bind(payload.sub)
     .first();
 
@@ -281,6 +305,14 @@ export async function resetPassword(request, db, env, cors) {
     user: {
       id: user.id,
       nickname: user.nickname,
+      userType: user.user_type || 'user',
+      email: user.email || null,
+      isAdmin: !!user.is_admin,
+      fullName: user.full_name || null,
+      birthDate: user.birth_date || null,
+      church: user.church || null,
+      country: user.country || null,
+      confession: user.confession || null,
       createdAt: user.created_at,
       updatedAt: user.updated_at,
     },
@@ -348,7 +380,7 @@ export async function updateProfile(request, db, env, cors) {
 
   let body;
   try { body = await request.json(); } catch { return error('invalid_json', 400, cors); }
-  const { userType, email, securityQuestionText, securityAnswer } = body || {};
+  const { userType, email, securityQuestionText, securityAnswer, fullName, birthDate, church, country, confession } = body || {};
 
   const campos = [];
   const valores = [];
@@ -365,6 +397,28 @@ export async function updateProfile(request, db, env, cors) {
     if (limpio && !validators.email(limpio)) return error('invalid_email', 400, cors);
     campos.push('email = ?');
     valores.push(limpio || null);
+  }
+
+  // ── Perfil opcional (schema_version 13) ────────────────
+  // Los cinco son independientes entre sí y de todo lo demás: se tocan sólo
+  // los que vengan en el body, igual que el email de arriba.
+  const camposTexto = {
+    fullName: { columna: 'full_name', codigo: 'invalid_full_name' },
+    church: { columna: 'church', codigo: 'invalid_church' },
+    country: { columna: 'country', codigo: 'invalid_country' },
+    confession: { columna: 'confession', codigo: 'invalid_confession' },
+  };
+  for (const [clave, { columna, codigo }] of Object.entries(camposTexto)) {
+    const valor = { fullName, church, country, confession }[clave];
+    if (valor === undefined) continue;
+    if (!validators[clave](valor)) return error(codigo, 400, cors);
+    campos.push(`${columna} = ?`);
+    valores.push(valor.trim() || null);
+  }
+  if (birthDate !== undefined) {
+    if (!validators.birthDate(birthDate)) return error('invalid_birth_date', 400, cors);
+    campos.push('birth_date = ?');
+    valores.push(birthDate.trim() || null);
   }
 
   // La pregunta y la respuesta se cambian juntas o no se cambian: dejar una
@@ -395,7 +449,11 @@ export async function updateProfile(request, db, env, cors) {
     .run();
 
   const actualizado = await db
-    .prepare('SELECT id, nickname, user_type, email, created_at, updated_at FROM users WHERE id = ?')
+    .prepare(
+      `SELECT id, nickname, user_type, email, is_admin, full_name, birth_date, church,
+              country, confession, created_at, updated_at
+       FROM users WHERE id = ?`,
+    )
     .bind(auth.user.id)
     .first();
 
@@ -408,6 +466,12 @@ export async function updateProfile(request, db, env, cors) {
       nickname: actualizado.nickname,
       userType: actualizado.user_type || 'user',
       email: actualizado.email || null,
+      isAdmin: !!actualizado.is_admin,
+      fullName: actualizado.full_name || null,
+      birthDate: actualizado.birth_date || null,
+      church: actualizado.church || null,
+      country: actualizado.country || null,
+      confession: actualizado.confession || null,
       createdAt: actualizado.created_at,
       updatedAt: actualizado.updated_at,
     },

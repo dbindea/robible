@@ -25,12 +25,17 @@
     // ruta privada, no indexable, y no gana nada teniendo cuatro formas.
     { key: 'sermons', icon: 'sermons', enabled: true, defaultHref: '/predicile-mele', onlyPreacher: true },
     { key: 'user', icon: 'user', enabled: true, defaultHref: '/profil' },
+    // Sólo para administradores. El rol vive en `is_admin` (D1), no aquí: este
+    // filtro sólo decide si el item se VE, la autorización de verdad la hace
+    // el worker en cada petición (`requireAdminMw`).
+    { key: 'admin', icon: 'shield', enabled: true, defaultHref: '/admin', onlyAdmin: true },
   ];
 
   // El menú se recalcula con el usuario: al pasar de usuario a predicador (o al
   // revés) el item aparece o desaparece sin recargar.
   $: staticItems = staticItemDefs
     .filter((def) => !def.onlyPreacher || $currentUser?.userType === 'preacher')
+    .filter((def) => !def.onlyAdmin || $currentUser?.isAdmin)
     .map((def) => {
       if (def.key === 'home') return { ...def, href: '/' };
       const config = getBibleVersionConfigOrDefault($selectedBibleVersion);
@@ -126,6 +131,8 @@
                 <Icon name="lectern" />
               {:else if item.icon === 'user'}
                 <Icon name="user" />
+              {:else if item.icon === 'shield'}
+                <Icon name="shield" />
               {/if}
             </span>
             <span class="app-menu__text">

@@ -37,6 +37,22 @@ const isValidEmail = (e) => typeof e === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$
 export const USER_TYPES = ['user', 'preacher'];
 const isValidUserType = (t) => USER_TYPES.includes(t);
 
+// ── Perfil opcional (schema_version 13) ────────────────
+// Ninguno se pide en el alta; los cinco aceptan cadena vacía como "quitar el
+// dato". Mismos límites que valida el backend (utils.js).
+const isValidFullName = (t) => typeof t === 'string' && t.trim().length <= 120;
+const isValidChurch = (t) => typeof t === 'string' && t.trim().length <= 120;
+const isValidCountry = (t) => typeof t === 'string' && t.trim().length <= 60;
+const isValidConfession = (t) => typeof t === 'string' && t.trim().length <= 60;
+const isValidBirthDate = (d) => {
+  if (typeof d !== 'string') return false;
+  const v = d.trim();
+  if (!v) return true;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
+  const fecha = new Date(`${v}T00:00:00Z`);
+  return !Number.isNaN(fecha.getTime()) && fecha.getUTCFullYear() >= 1900 && fecha.getTime() <= Date.now();
+};
+
 export const validators = {
   isValidNickname,
   isValidPassword,
@@ -44,6 +60,11 @@ export const validators = {
   isValidSecurityQuestionText,
   isValidEmail,
   isValidUserType,
+  isValidFullName,
+  isValidChurch,
+  isValidCountry,
+  isValidConfession,
+  isValidBirthDate,
 };
 
 // Claves de las preguntas predefinidas de antes del schema 8.
@@ -309,6 +330,16 @@ export const updateProfile = async (cambios) => {
     if (!isValidSecurityAnswer(cambios.securityAnswer)) {
       return { ok: false, error: translateApiError('invalid_security_answer') };
     }
+  }
+
+  const camposTexto = { fullName: isValidFullName, church: isValidChurch, country: isValidCountry, confession: isValidConfession };
+  for (const [clave, valida] of Object.entries(camposTexto)) {
+    if (cambios[clave] !== undefined && !valida(cambios[clave])) {
+      return { ok: false, error: translateApiError(`invalid_${clave.replace(/([A-Z])/g, '_$1').toLowerCase()}`) };
+    }
+  }
+  if (cambios.birthDate !== undefined && !isValidBirthDate(cambios.birthDate)) {
+    return { ok: false, error: translateApiError('invalid_birth_date') };
   }
 
   try {

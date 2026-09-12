@@ -21,7 +21,9 @@
   import SermonPrep from './SermonPrep.svelte';
   import SermonPulpit from './SermonPulpit.svelte';
   import GuidePredicare from './GuidePredicare.svelte';
+  import Admin from './Admin.svelte';
   import { getBibleVersionConfigOrDefault } from '../../store/stores';
+  import { registrarVisita } from '../../services/analytics.service';
 
   export let bible;
   export let map;
@@ -105,6 +107,12 @@
   const isGuidePath = (path) => path === '/ghid-predicare' || path === '/ghid-predicare/';
   let isGuideMode = typeof window !== 'undefined' ? isGuidePath(window.location.pathname) : false;
 
+  // Panel de admin (`/admin`). Privado, sin traducir por idioma y con
+  // `noindex` (ver Admin.svelte): la guarda de verdad está en el rol
+  // `is_admin`, comprobado otra vez en el propio componente y en el worker.
+  const isAdminPath = (path) => path === '/admin' || path === '/admin/';
+  let isAdminMode = typeof window !== 'undefined' ? isAdminPath(window.location.pathname) : false;
+
   // «Predicile mele»: el cuaderno privado. Vive en /predicile-mele desde que
   // /predici pasó a ser el blog público — el plural suelto describe mejor «todas
   // las publicadas» que «las mías», y así la ruta pública queda corta, que es la
@@ -162,9 +170,17 @@
     isCuratedMode = isCuratedPath(window.location.pathname);
     isMemorizeMode = isMemorizePath(window.location.pathname);
     isGuideMode = isGuidePath(window.location.pathname);
+    isAdminMode = isAdminPath(window.location.pathname);
     isSermonsMode = isSermonsPath(window.location.pathname);
     sermonId = sermonIdFromPath(window.location.pathname);
     pulpitId = pulpitIdFromPath(window.location.pathname);
+  };
+
+  // Contador de visitas del panel de admin (analytics.service.js). Una
+  // llamada al montar más una por cada navegación — no hay recarga de página
+  // en una SPA, así que sin esto el worker nunca vería una sola visita.
+  const registrarVisitaActual = () => {
+    if (typeof window !== 'undefined') registrarVisita(window.location.pathname);
   };
 
   onMount(() => {
@@ -172,6 +188,7 @@
     updateIndexMode();
     updateFavoritesMode();
     updateNotesMode();
+    registrarVisitaActual();
     window.addEventListener('popstate', updateCompareMode);
     window.addEventListener('robibile:navigate', updateCompareMode);
     window.addEventListener('popstate', updateIndexMode);
@@ -180,6 +197,8 @@
     window.addEventListener('robibile:navigate', updateFavoritesMode);
     window.addEventListener('popstate', updateNotesMode);
     window.addEventListener('robibile:navigate', updateNotesMode);
+    window.addEventListener('popstate', registrarVisitaActual);
+    window.addEventListener('robibile:navigate', registrarVisitaActual);
     return () => {
       window.removeEventListener('popstate', updateCompareMode);
       window.removeEventListener('robibile:navigate', updateCompareMode);
@@ -189,13 +208,15 @@
       window.removeEventListener('robibile:navigate', updateFavoritesMode);
       window.removeEventListener('popstate', updateNotesMode);
       window.removeEventListener('robibile:navigate', updateNotesMode);
+      window.removeEventListener('popstate', registrarVisitaActual);
+      window.removeEventListener('robibile:navigate', registrarVisitaActual);
     };
   });
 </script>
 
 <!-- La ruta /landing la resuelve App.svelte antes de montar Main. -->
-<div class="main" class:main--immersive={isImmersive} class:main--compare={isCompareMode} class:main--index={isIndexMode} class:main--favorites={isFavoritesMode} class:main--notes={isNotesMode || isPublicTopicMode || isPublicSermonMode || isSermonsMode || isPublicSermonsMode || isPublicTopicsMode || isProfileMode || isCuratedMode || isMemorizeMode || isGuideMode}>
-  {#if !isImmersive && !isCompareMode && !isIndexMode && !isFavoritesMode && !isNotesMode && !isPublicTopicMode && !isPublicSermonMode && !isSermonsMode && !isPublicSermonsMode && !isPublicTopicsMode && !isProfileMode && !isCuratedMode && !isMemorizeMode && !isGuideMode}
+<div class="main" class:main--immersive={isImmersive} class:main--compare={isCompareMode} class:main--index={isIndexMode} class:main--favorites={isFavoritesMode} class:main--notes={isNotesMode || isPublicTopicMode || isPublicSermonMode || isSermonsMode || isPublicSermonsMode || isPublicTopicsMode || isProfileMode || isCuratedMode || isMemorizeMode || isGuideMode || isAdminMode}>
+  {#if !isImmersive && !isCompareMode && !isIndexMode && !isFavoritesMode && !isNotesMode && !isPublicTopicMode && !isPublicSermonMode && !isSermonsMode && !isPublicSermonsMode && !isPublicTopicsMode && !isProfileMode && !isCuratedMode && !isMemorizeMode && !isGuideMode && !isAdminMode}
     <div class="sidebar">
       <Sidebar {map} {result} {count} />
     </div>
@@ -222,6 +243,8 @@
         <Memorize {bible} {map} />
       {:else if isGuideMode}
         <GuidePredicare />
+      {:else if isAdminMode}
+        <Admin />
       {:else if isPublicSermonMode}
         <PublicSermon {map} />
       {:else if isPublicTopicMode}

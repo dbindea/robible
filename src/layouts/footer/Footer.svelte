@@ -7,6 +7,7 @@
   import Modal from '../../components/Modal.svelte';
   import { isAuthenticated, currentUser, logout } from '../../store/authStore';
   import { openAuthMenu } from '../../store/authMenuStore';
+  import { getBibleVersionConfigOrDefault, selectedBibleVersion } from '../../store/stores';
 
   let isAboutOpen = false;
   const appVersion = packageInfo.version;
@@ -26,12 +27,41 @@
    *
    * Para añadir otra sección basta con una línea más: la clave de traducción se
    * resuelve sola y el marcado no cambia.
+   *
+   * Ampliado el 12 sep 2026 para igualar al footer de la landing — antes sólo
+   * tenía estos tres y desde la parte privada no había forma rápida de llegar
+   * a comparar, al índice, a la guía o al mapa del sitio.
+   *
+   * `compara`/`indice` NO se pueden copiar tal cual de la landing: el segmento
+   * cambia por idioma (`comparePath`/`indexPath` en bible-versions.js — 'compara'
+   * en rumano, 'comparar' en español, 'compare' en inglés…), así que se
+   * calculan más abajo con la misma config que ya usa `AppMenu.svelte`. Un
+   * hardcode aquí habría mandado a un usuario en español a `/compara`, que
+   * `updateIndexMode`/`updateCompareMode` (Main.svelte) no reconocen como su
+   * propio idioma y dejan la pantalla en blanco.
+   *
+   * `externo: true` son los que NO pasan por `irA()`: `/sitemap.xml` es un
+   * XML estático, no una ruta de la SPA, y GitHub es un dominio ajeno — los
+   * dos rompían si se les aplicaba el `pushState` + evento de navegación.
    */
-  const ENLACES_PUBLICOS = [
+  const ENLACES_ESTATICOS = [
     { href: '/landing', clave: 'landing' },
     { href: '/predici', clave: 'sermons' },
     { href: '/teme', clave: 'topics' },
+    { href: '/ghid-predicare', clave: 'guide' },
+    { href: '/sitemap.xml', clave: 'sitemap', externo: true },
+    { href: 'https://github.com/dbindea/robible', clave: 'github', externo: true },
   ];
+
+  $: enlacesPublicos = (() => {
+    const config = getBibleVersionConfigOrDefault($selectedBibleVersion);
+    return [
+      { href: '/', clave: 'bible' },
+      { href: `/${config?.comparePath || 'compara'}`, clave: 'compare' },
+      { href: `/${config?.indexPath || 'indice'}`, clave: 'index' },
+      ...ENLACES_ESTATICOS,
+    ];
+  })();
 
   // Navegación del lado del cliente: son rutas que resuelve la propia SPA, así
   // que recargar la página entera sería tirar la Biblia de memoria y volverla a
@@ -93,10 +123,16 @@
 <div class="footer">
   <div class="footer__content">
     <nav class="footer__enlaces" aria-label={$_('app.footer.public_label')}>
-      {#each ENLACES_PUBLICOS as e (e.href)}
-        <a href={e.href} on:click|preventDefault={() => irA(e.href)}>
-          {$_(`app.footer.links.${e.clave}`)}
-        </a>
+      {#each enlacesPublicos as e (e.href)}
+        {#if e.externo}
+          <a href={e.href} target={e.href.startsWith('http') ? '_blank' : undefined} rel={e.href.startsWith('http') ? 'noopener' : undefined}>
+            {$_(`app.footer.links.${e.clave}`)}
+          </a>
+        {:else}
+          <a href={e.href} on:click|preventDefault={() => irA(e.href)}>
+            {$_(`app.footer.links.${e.clave}`)}
+          </a>
+        {/if}
       {/each}
     </nav>
     <p class="footer__meta">

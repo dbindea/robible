@@ -84,6 +84,18 @@ export async function verifyHash(value, saltHex, expectedHashHex) {
   return actual === expectedHashHex;
 }
 
+/**
+ * SHA-256 rápido, en hexadecimal. Deliberadamente NO es `hashValue` (PBKDF2,
+ * 100k iteraciones a propósito para que romper una contraseña sea caro): esto
+ * hashea el visitante de una página, no una contraseña, y con tráfico real un
+ * hash lento por petición sería un cuello de botella para nada.
+ */
+export async function sha256Hex(texto) {
+  const enc = new TextEncoder();
+  const digest = await crypto.subtle.digest('SHA-256', enc.encode(texto));
+  return toHex(digest);
+}
+
 // ── Tokens (HMAC-SHA256 firmado) ────────────────────────
 const b64urlEncode = (str) =>
   btoa(str).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
@@ -179,6 +191,21 @@ export const validators = {
     return limpia.length >= 1 && limpia.length <= 100;
   },
   publicSlug: (s) => typeof s === 'string' && s.length >= 1 && s.length <= 80 && !/[/?#\s]/.test(s),
+  // ── Perfil opcional (schema_version 13) ────────────────
+  // Ninguno de estos cinco se pide en el alta; todos aceptan cadena vacía
+  // como "quitar el dato", igual que ya hace `email` en `updateProfile`.
+  fullName: (t) => typeof t === 'string' && t.trim().length <= 120,
+  church: (t) => typeof t === 'string' && t.trim().length <= 120,
+  country: (t) => typeof t === 'string' && t.trim().length <= 60,
+  confession: (t) => typeof t === 'string' && t.trim().length <= 60,
+  birthDate: (d) => {
+    if (typeof d !== 'string') return false;
+    const v = d.trim();
+    if (!v) return true; // vacío = quitar la fecha
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
+    const fecha = new Date(`${v}T00:00:00Z`);
+    return !Number.isNaN(fecha.getTime()) && fecha.getUTCFullYear() >= 1900 && fecha.getTime() <= Date.now();
+  },
 };
 
 // ── Helpers de respuesta ────────────────────────────────
@@ -225,7 +252,7 @@ const RATE_WINDOWS = {
   hour: 60 * 60 * 1000,
 };
 
-const getClientIp = (request) => {
+export const getClientIp = (request) => {
   // Cloudflare añade el header real
   return (
     request.headers.get('cf-connecting-ip') ||
@@ -308,11 +335,18 @@ export async function requireAuth(request, db, env) {
   // 3) Cargar usuario
   const user = await db
     .prepare(
-      'SELECT id, nickname, user_type, email, created_at, updated_at FROM users WHERE id = ?',
+      `SELECT id, nickname, user_type, email, is_admin, is_disabled, full_name, birth_date,
+              church, country, confession, created_at, updated_at
+       FROM users WHERE id = ?`,
     )
     .bind(payload.sub)
     .first();
   if (!user) return { user: null, error: 'user_not_found' };
+
+  // Una cuenta desactivada no puede seguir usando la app aunque su sesión siga
+  // viva: no basta con bloquear el login (auth.js), hace falta negar también
+  // las peticiones que ya llevaban un token válido de antes de desactivarla.
+  if (user.is_disabled) return { user: null, error: 'account_disabled' };
 
   // Normalize snake_case (DB) → camelCase (API)
   return {
@@ -321,12 +355,32 @@ export async function requireAuth(request, db, env) {
       nickname: user.nickname,
       userType: user.user_type || 'user',
       email: user.email || null,
+      isAdmin: !!user.is_admin,
+      fullName: user.full_name || null,
+      birthDate: user.birth_date || null,
+      church: user.church || null,
+      country: user.country || null,
+      confession: user.confession || null,
       createdAt: user.created_at,
       updatedAt: user.updated_at,
     },
     token,
     error: null,
   };
+}
+
+/**
+ * Como `requireAuth`, pero exige además el rol de admin. El rol vive
+ * exclusivamente en la columna `is_admin` de `users` — aquí no hay ninguna
+ * comparación de nickname a mano, ni la puede haber: el primer admin se marca
+ * con un `UPDATE` una vez (ver schema.sql), y a partir de ahí un admin puede
+ * ascender a otros desde el propio panel (`admin.js`).
+ */
+export async function requireAdmin(request, db, env) {
+  const auth = await requireAuth(request, db, env);
+  if (!auth.user) return auth;
+  if (!auth.user.isAdmin) return { user: null, error: 'not_admin' };
+  return auth;
 }
 
 export async function saveSession(db, token, userId, request) {

@@ -30,6 +30,27 @@ CREATE TABLE IF NOT EXISTS users (
   -- decisión de producto explícita, sólo para recuperación y sin nada más de PII.
   -- El envío de correo NO está implementado: hoy el email sólo se almacena.
   email TEXT,
+  -- Rol de administración (schema_version 13). Vive en base de datos, no en
+  -- código: ningún sitio compara un nickname a mano, todo pasa por esta
+  -- columna. El primer alta es un `UPDATE` manual tras aplicar la migración;
+  -- a partir de ahí un admin puede ascender a otros desde el propio panel.
+  -- Revierte "ni roles más allá de Utilizator/Predicator" (ROADMAP.md,
+  -- "Fuera de alcance") — decisión explícita del propietario, igual que en
+  -- su día se revirtió "sin PII" al añadir `email`.
+  is_admin INTEGER NOT NULL DEFAULT 0,               -- 0/1
+  -- Cuenta desactivada por un admin (schema_version 13): no puede iniciar
+  -- sesión, y las sesiones que ya tuviera abiertas se revocan en el momento
+  -- de desactivarla (ver `auth.js`/`admin.js`). No es un borrado: los datos
+  -- del usuario siguen intactos por si se reactiva.
+  is_disabled INTEGER NOT NULL DEFAULT 0,            -- 0/1
+  -- Datos de perfil opcionales (schema_version 13). Ninguno se pide en el
+  -- alta ni la app insiste en rellenarlos: sólo existen para quien decide
+  -- añadirlos después, desde su perfil.
+  full_name TEXT,
+  birth_date TEXT,                                   -- 'YYYY-MM-DD'
+  church TEXT,
+  country TEXT,
+  confession TEXT,
   created_at TEXT NOT NULL,                          -- ISO 8601
   updated_at TEXT NOT NULL                           -- ISO 8601
 );
@@ -343,6 +364,31 @@ CREATE INDEX IF NOT EXISTS idx_sermons_public ON sermons(is_public, published_at
   WHERE is_public = 1;
 CREATE INDEX IF NOT EXISTS idx_sermons_user_status ON sermons(user_id, status);
 
+-- ============== VISITAS (analíticas del panel de admin, schema_version 13) ==============
+--
+-- Una fila por visita de página. Deliberadamente NO guarda la IP: `visitor_hash`
+-- es un SHA-256 de `día|IP|user-agent|secreto del servidor`, así que cambia cada
+-- día y no sirve para seguir a nadie entre sesiones ni se puede revertir a la IP
+-- original. Es el mismo compromiso que usan los analíticos "sin cookies" — sirve
+-- para contar visitantes únicos por día sin tratar la IP como dato persistido.
+--
+-- `country` sale de `request.cf.country`, que Cloudflare añade gratis a cada
+-- petición en el borde: no hace falta ningún servicio de geolocalización aparte.
+--
+-- No hay FOREIGN KEY a `users`: una visita no tiene por qué venir de una cuenta,
+-- y la tabla tiene que seguir funcionando igual para quien no ha iniciado sesión.
+CREATE TABLE IF NOT EXISTS page_views (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  day TEXT NOT NULL,                                -- 'YYYY-MM-DD' UTC
+  path TEXT NOT NULL,
+  country TEXT,                                     -- código de 2 letras, o NULL si Cloudflare no lo manda
+  visitor_hash TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_page_views_day ON page_views(day);
+CREATE INDEX IF NOT EXISTS idx_page_views_day_hash ON page_views(day, visitor_hash);
+CREATE INDEX IF NOT EXISTS idx_page_views_day_path ON page_views(day, path);
+
 -- ============== CLEANUP JOBS ==============
 -- Se ejecuta al inicio de cada request para limpiar sesiones/rate_limits expirados.
 -- (Cloudflare Workers no tiene cron, así que la limpieza es best-effort on-request.)
@@ -357,8 +403,18 @@ CREATE TABLE IF NOT EXISTS _meta (
 -- 7: topics gana is_public / public_slug / public_version / published_at
 -- 8: users gana user_type y email; la pregunta de seguridad pasa a ser libre
 -- 9: se añade sermons (módulo «Predicile mele»)
-INSERT OR IGNORE INTO _meta (key, value) VALUES ('schema_version', '9');
-UPDATE _meta SET value = '9' WHERE key = 'schema_version' AND value < '9';
+-- 10: sermons gana is_public / public_slug / published_at
+-- 11: se añaden memorizations y push_subscriptions
+-- 12: topics gana description y position
+-- 13: users gana is_admin / is_disabled / full_name / birth_date / church /
+--     country / confession; se añade page_views (analíticas del panel de admin)
+--
+-- El literal de abajo se había quedado en '9' aunque los comentarios de más
+-- abajo documentaban hasta la 12 (aplicadas a mano en producción sin bumpear
+-- este valor). Se corrige de una vez al llegar a la 13, en vez de arrastrar
+-- la deriva una migración más.
+INSERT OR IGNORE INTO _meta (key, value) VALUES ('schema_version', '13');
+UPDATE _meta SET value = '13' WHERE key = 'schema_version' AND value < '13';
 
 -- 10: sermons gana is_public / public_slug / published_at
 --   ALTER TABLE sermons ADD COLUMN is_public INTEGER NOT NULL DEFAULT 0;
@@ -407,3 +463,26 @@ UPDATE _meta SET value = '9' WHERE key = 'schema_version' AND value < '9';
 --
 -- Aplicado en producción el 10 sep 2026: 6 temas y 2 usuarios antes y después,
 -- 0 colisiones de posición.
+
+-- 13: rol de admin, cuenta desactivable, perfil opcional y analíticas propias
+--   ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0;
+--   ALTER TABLE users ADD COLUMN is_disabled INTEGER NOT NULL DEFAULT 0;
+--   ALTER TABLE users ADD COLUMN full_name TEXT;
+--   ALTER TABLE users ADD COLUMN birth_date TEXT;
+--   ALTER TABLE users ADD COLUMN church TEXT;
+--   ALTER TABLE users ADD COLUMN country TEXT;
+--   ALTER TABLE users ADD COLUMN confession TEXT;
+--
+--   CREATE TABLE IF NOT EXISTS page_views (
+--     id INTEGER PRIMARY KEY AUTOINCREMENT,
+--     day TEXT NOT NULL, path TEXT NOT NULL, country TEXT,
+--     visitor_hash TEXT NOT NULL, created_at TEXT NOT NULL);
+--   CREATE INDEX IF NOT EXISTS idx_page_views_day ON page_views(day);
+--   CREATE INDEX IF NOT EXISTS idx_page_views_day_hash ON page_views(day, visitor_hash);
+--   CREATE INDEX IF NOT EXISTS idx_page_views_day_path ON page_views(day, path);
+--
+--   -- Primer alta de administrador. A partir de aquí el rol se gestiona desde
+--   -- el propio panel (un admin puede ascender a otro), no con SQL a mano.
+--   UPDATE users SET is_admin = 1 WHERE nickname = 'dbindea';
+--
+-- Aplicado en producción el 12 sep 2026.

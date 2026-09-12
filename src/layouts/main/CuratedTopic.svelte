@@ -17,7 +17,7 @@
   import { _, currentLocale } from '../../services/i18n.service';
   import { applySeoMetadata } from '../../services/seo.service';
   import { getBibleVersionConfigOrDefault, selectedBibleVersion } from '../../store/stores';
-  import { getCuratedTopic, textoDe, loadCuratedTopics, buildCuratedPath } from '../../services/curated-topics.service';
+  import { getCuratedTopic, textoDe, loadCuratedTopics, buildCuratedPath, elegirVarias } from '../../services/curated-topics.service';
   import { resolveTopicIcon } from '../../config/topic-icons.js';
   import { buildBiblePath } from '../../services/bible-route.service';
   import Icon from '../../components/Icon.svelte';
@@ -109,7 +109,9 @@
     cargando = true;
     topic = slug ? await getCuratedTopic(slug) : null;
     // Las demás colecciones, para que la página no sea un callejón sin salida.
-    otros = (await loadCuratedTopics()).filter((t) => t.slug !== slug).slice(0, 5);
+    // Al azar y no las 5 primeras del JSON: si no, siempre son las mismas y las
+    // del final de la lista no se enlazan jamás desde ningún sitio.
+    otros = elegirVarias((await loadCuratedTopics()).filter((t) => t.slug !== slug), 5);
     cargando = false;
     // Al cambiar de colección se vuelve arriba: si no, se aterriza a media
     // lista de versículos de la anterior.
