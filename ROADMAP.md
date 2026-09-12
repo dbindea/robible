@@ -1,7 +1,7 @@
 # RoBible — Roadmap
 
 > Documento vivo. Actualizado en cada milestone.
-> Última actualización: **11 sep 2026** (Predicación: citas visibles en el púlpito, versículos con barra en PDF y página pública, alineación del PDF y una traducción mixta corregida)
+> Última actualización: **12 sep 2026** (Panel de administración, perfil ampliado con datos opcionales, analíticas propias sin IP, y tres retoques públicos: temas al azar, enlace a la guía y footer completo)
 
 > Documentación de referencia: [CLAUDE.md](CLAUDE.md) · [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) · [docs/OPERACIONES.md](docs/OPERACIONES.md)
 > Deuda técnica detectada: [docs/AUDITORIA-2026-09-04.md](docs/AUDITORIA-2026-09-04.md)
@@ -863,6 +863,13 @@ editor tipo Word, ni roles más allá de Utilizator/Predicator.
 > Lo que sigue fuera es todo lo *social* —comentarios, seguidores, «me gusta»—:
 > se publica un texto, no se abre un foro.
 
+> **El rol de admin también salió de esta lista, el 12 sep 2026.** El propietario
+> pidió un panel de administración explícito, con el rol guardado en base de
+> datos (`is_admin`, no una comparación de nickname en el código) y ascendible
+> desde el propio panel. Sigue sin haber roles intermedios: sólo `Utilizator` /
+> `Predicator` de cara al usuario, y `is_admin` como capacidad aparte, no un
+> tercer valor de `user_type`.
+
 ---
 
 ## Stack técnico
@@ -942,6 +949,22 @@ editor tipo Word, ni roles más allá de Utilizator/Predicator.
 ---
 
 ## Historial de cambios recientes
+
+**2026-09-12 — Panel de administración, perfil ampliado y tres retoques públicos**
+
+Lote grande, en dos mitades: gestión (admin) y descubrimiento (público). El
+backend se ha desplegado a Cloudflare; el frontend queda para revisión propia,
+como siempre.
+
+- **Panel de administración** (`/admin`, is_admin en D1 — trampa 74), sólo visible y accesible para quien tiene el rol. Tres secciones: analíticas, usuarios y predicaciones
+- **Gestión de usuarios**: buscar por nickname o email, resetear contraseña (se genera una y se enseña una sola vez), activar/desactivar (una cuenta desactivada no entra aunque tenga sesión abierta — trampa 75), ascender o quitar el rol de admin desde el propio panel, y borrar una cuenta con confirmación escribiendo el nickname
+- **Moderación de predicaciones**: buscar por título o autor, despublicar de oficio o borrar. Despublicar es la única vía — el admin no puede publicar en nombre de otro (trampa 79)
+- **Analíticas propias, sin IP**: tabla `page_views` nueva, con un hash de visitante que rota cada día (trampa 76) y el país vía cabecera de Cloudflare. Usuarios registrados, nuevos de la semana, predicciones/temas totales y públicos, visitas de hoy/acumuladas, únicos de hoy, top 5 países y top 5 páginas
+- **Perfil ampliado**: cinco campos opcionales nuevos (nombre y apellidos, fecha de nacimiento, iglesia, país, confesión), ninguno pedido en el alta
+- **Tres retoques públicos**: las "otras colecciones" de un tema curado ya no son siempre las cinco primeras del JSON (`elegirVarias`, al azar); `/predici` y una predicación pública enlazan a `/ghid-predicare`; el footer de la parte privada iguala al de la landing (de 3 enlaces a 9)
+- Migración de schema a la 13 (también se corrigió una deriva vieja: el archivo decía versión 9 aunque los comentarios documentaban hasta la 12, ya aplicadas a mano)
+- 340 tests (9 nuevos), 6 trampas nuevas en `CLAUDE.md`
+- **Dos fallos propios cazados al verificar en el navegador, ninguno detectable por `npm test`**: el ítem "Administrare" del menú lateral salía con la clave i18n en crudo, y el botón de confirmar "ascender a admin"/"quitar admin" también — las dos claves se construyen con una plantilla (`` `app.app_menu.items.${key}.label` ``, `` `app.admin.users.${tipo}` ``) que el test de paridad de idiomas no puede rastrear (trampa 77, misma familia que la 34)
 
 **2026-09-11 (tarde) — Predicación: citas visibles en el púlpito, versículos con barra y una traducción mixta**
 

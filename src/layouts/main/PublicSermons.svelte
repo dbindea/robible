@@ -354,7 +354,13 @@
       {/each}
     </ol>
 
-    <a class="metodo__cta" href="/predicile-mele">{$_('app.sermons.blog.guide_cta')} →</a>
+    <div class="metodo__acciones">
+      <a class="metodo__cta" href="/predicile-mele">{$_('app.sermons.blog.guide_cta')} →</a>
+      <!-- Enlace secundario a la guía completa: el CTA de arriba lleva a la
+           herramienta, éste al manual — dos intenciones distintas de quien
+           llega buscando «cómo se hace una predicación». -->
+      <a class="metodo__guia" href="/ghid-predicare">{$_('app.sermons.blog.guide_link')}</a>
+    </div>
   </section>
 </div>
 
@@ -773,6 +779,13 @@
     line-height: 1.45;
   }
 
+  .metodo__acciones {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 1.25rem;
+  }
+
   .metodo__cta {
     display: inline-flex;
     align-items: center;
@@ -782,5 +795,14 @@
     text-decoration: none;
 
     &:hover { text-decoration: underline; }
+  }
+
+  .metodo__guia {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.5rem;
+    color: var(--color-ink-soft);
+    font-weight: 600;
+    text-decoration: underline;
   }
 </style>

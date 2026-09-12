@@ -209,7 +209,10 @@
             {#if sermon.publishedAt}<span class="predica__fecha">{fechaLarga(sermon.publishedAt)}</span>{/if}
           </p>
         {/if}
-        <a class="predica__cta" href="/">{$_('app.sermons.share.go_home')}</a>
+        <div class="predica__pie-acciones">
+          <a class="predica__cta" href="/">{$_('app.sermons.share.go_home')}</a>
+          <a class="predica__guia" href="/ghid-predicare">{$_('app.sermons.blog.guide_link')}</a>
+        </div>
       </footer>
     </article>
   {/if}
@@ -392,6 +395,14 @@
     &:last-child::after { content: none; }
   }
 
+  .predica__pie-acciones {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.9rem;
+  }
+
   .predica__cta {
     display: inline-block;
     padding: 0.6rem 1.4rem;
@@ -402,5 +413,11 @@
     text-decoration: none;
 
     &:hover { background: var(--color-accent-solid-hover); text-decoration: none; }
+  }
+
+  .predica__guia {
+    color: var(--color-ink-soft);
+    font-weight: 600;
+    text-decoration: underline;
   }
 </style>

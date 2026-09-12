@@ -56,3 +56,22 @@ export const textoDe = (topic, campo, locale = 'ro') =>
   topic?.[campo]?.[locale] || topic?.[campo]?.ro || '';
 
 export const buildCuratedPath = (slug) => `/versete/${encodeURIComponent(slug)}`;
+
+/**
+ * `n` elementos al azar de `lista`, sin repetir. Fisher-Yates sobre una copia
+ * — no muta el array que se le pasa, que aquí es la caché compartida de
+ * `loadCuratedTopics()`.
+ *
+ * Antes de esto, "otras colecciones" en `CuratedTopic.svelte` era siempre
+ * `.slice(0, 5)`: quien entraba dos veces a la misma colección veía siempre
+ * la misma lista, en el mismo orden, y las colecciones del final del JSON no
+ * se enlazaban jamás desde ningún sitio.
+ */
+export const elegirVarias = (lista, n) => {
+  const copia = Array.isArray(lista) ? [...lista] : [];
+  for (let i = copia.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copia[i], copia[j]] = [copia[j], copia[i]];
+  }
+  return copia.slice(0, n);
+};

@@ -40,6 +40,13 @@
   let aviso = '';
   let avisoTimer;
 
+  // ── Datos personales (opcionales, schema_version 13) ─────────────────────
+  // Se leen UNA vez de `$currentUser` en `onMount`, no en un bloque reactivo:
+  // si se derivaran del store en caliente, cualquier otro cambio de sesión
+  // (p. ej. `cambiarTipo`) pisaría lo que el usuario esté escribiendo aquí.
+  let datosPersonales = { fullName: '', birthDate: '', church: '', country: '', confession: '' };
+  let guardandoDatos = false;
+
   $: versionConfig = getBibleVersionConfigOrDefault($selectedBibleVersion);
 
   $: applySeoMetadata({
@@ -212,6 +219,24 @@
     }
   };
 
+  const guardarDatosPersonales = async () => {
+    if (guardandoDatos) return;
+    guardandoDatos = true;
+    try {
+      const res = await updateProfile({ ...datosPersonales });
+      if (res.ok) {
+        currentUser.set(res.user);
+        mostrar($_('app.profile.personal.saved'));
+      } else {
+        mostrar($_(res.error || 'app.profile.personal.failed'));
+      }
+    } catch {
+      mostrar($_('app.profile.personal.failed'));
+    } finally {
+      guardandoDatos = false;
+    }
+  };
+
   const irA = (href) => {
     if (!href) return;
     window.history.pushState(null, '', href);
@@ -224,6 +249,13 @@
     avisoDiario = isEnabled();
     ultimaLectura = getLastRead();
     versetulZilei = await getTodayVerse();
+    datosPersonales = {
+      fullName: $currentUser?.fullName || '',
+      birthDate: $currentUser?.birthDate || '',
+      church: $currentUser?.church || '',
+      country: $currentUser?.country || '',
+      confession: $currentUser?.confession || '',
+    };
 
     // El soporte se comprueba una sola vez y no en un bloque reactivo: no
     // depende de nada que cambie y preguntarlo en cada repintado no aporta nada.
@@ -406,6 +438,44 @@
               <span class="tipo__pista">{$_(`auth.user_type_${tipo}_hint`)}</span>
             </button>
           {/each}
+        </div>
+      </article>
+
+      <!-- ── Datos personales (opcionales) ────────────────────────────── -->
+      <article class="tarjeta tarjeta--ancha">
+        <h2 class="tarjeta__titulo">
+          <span class="tarjeta__icono" aria-hidden="true"><Icon name="user" /></span>
+          {$_('app.profile.personal.title')}
+        </h2>
+        <p class="tarjeta__pista">{$_('app.profile.personal.hint')}</p>
+
+        <div class="datos-personales">
+          <label class="campo-perfil">
+            <span>{$_('app.profile.personal.full_name')}</span>
+            <input type="text" maxlength="120" bind:value={datosPersonales.fullName} disabled={guardandoDatos} />
+          </label>
+          <label class="campo-perfil">
+            <span>{$_('app.profile.personal.birth_date')}</span>
+            <input type="date" bind:value={datosPersonales.birthDate} disabled={guardandoDatos} />
+          </label>
+          <label class="campo-perfil">
+            <span>{$_('app.profile.personal.church')}</span>
+            <input type="text" maxlength="120" bind:value={datosPersonales.church} disabled={guardandoDatos} />
+          </label>
+          <label class="campo-perfil">
+            <span>{$_('app.profile.personal.country')}</span>
+            <input type="text" maxlength="60" bind:value={datosPersonales.country} disabled={guardandoDatos} />
+          </label>
+          <label class="campo-perfil">
+            <span>{$_('app.profile.personal.confession')}</span>
+            <input type="text" maxlength="60" bind:value={datosPersonales.confession} disabled={guardandoDatos} />
+          </label>
+        </div>
+
+        <div class="tarjeta__acciones">
+          <button type="button" class="boton boton--primario" on:click={guardarDatosPersonales} disabled={guardandoDatos}>
+            {$_(guardandoDatos ? 'app.profile.personal.saving' : 'app.profile.personal.save')}
+          </button>
         </div>
       </article>
     </div>
@@ -756,5 +826,32 @@
     color: var(--color-ink-soft);
     font-size: 0.8rem;
     line-height: 1.35;
+  }
+
+  // ── Datos personales ──────────────────────────────────────────────────────
+  .datos-personales {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    gap: 0.7rem;
+  }
+
+  .campo-perfil {
+    display: grid;
+    gap: 0.35rem;
+    font-size: var(--font-size-small);
+
+    span { font-weight: 600; color: var(--color-ink); }
+
+    input {
+      min-height: 2.4rem;
+      padding: 0.45rem 0.7rem;
+      border: 1px solid var(--color-line);
+      border-radius: var(--radius-sm);
+      background: var(--color-field);
+      color: var(--color-ink);
+      font: inherit;
+
+      &:disabled { opacity: 0.6; }
+    }
   }
 </style>

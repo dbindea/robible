@@ -32,7 +32,13 @@
       "links": {
         "landing": "About RoBible",
         "sermons": "Sermons",
-        "topics": "Topics"
+        "topics": "Topics",
+        "bible": "Bible",
+        "compare": "Compare",
+        "index": "Topic index",
+        "guide": "Preaching guide",
+        "sitemap": "Sitemap",
+        "github": "GitHub"
       }
     },
     "pwa": {
@@ -342,6 +348,10 @@
         "memorize": {
           "label": "Memorise",
           "hint": "Learn verses by heart"
+        },
+        "admin": {
+          "label": "Admin",
+          "hint": "The admin panel"
         }
       }
     },
@@ -599,7 +609,8 @@
         "page_of": "Page {current} of {total}",
         "guide_title": "How an expository sermon is prepared",
         "guide_lead": "Seven steps. You walk them in RoBible with a homiletics guide at each one, and end with the sermon and the pulpit outline.",
-        "guide_cta": "Start a sermon"
+        "guide_cta": "Start a sermon",
+        "guide_link": "The complete preaching guide"
       },
       "series": "Series / theme",
       "series_help": "The grouping this sermon appears under in the public list. Pick one or create a new one.",
@@ -804,7 +815,20 @@
       "type_hint": "You can change it whenever you like. Nothing is lost: your sermons stay yours even if you go back to a reader account.",
       "type_changed": "The account type has been changed.",
       "type_failed": "The account type could not be changed.",
-      "activity_memorize": "Memorising"
+      "activity_memorize": "Memorising",
+      "personal": {
+        "title": "Personal details",
+        "hint": "All optional. You can fill them in anytime, not just when you register.",
+        "full_name": "Full name",
+        "birth_date": "Date of birth",
+        "church": "Church you attend",
+        "country": "Country",
+        "confession": "Confession",
+        "save": "Save",
+        "saving": "Saving…",
+        "saved": "Your details have been saved.",
+        "failed": "Couldn't save your details."
+      }
     },
     "memorize": {
       "eyebrow": "Practice",
@@ -855,6 +879,84 @@
       "not_configured": "Notifications are not available yet. Come back later.",
       "notification_title": "Verse of the day",
       "notification_body": "Open RoBible for today’s verse."
+    },
+    "admin": {
+      "title": "Admin panel",
+      "eyebrow": "Administration",
+      "unauthorized": "You don't have access to this page.",
+      "search": "Search",
+      "no_results": "No results.",
+      "errors": {
+        "not_admin": "You don't have access to the admin panel.",
+        "cannot_modify_self": "You can't do this on your own account.",
+        "cannot_disable_admin": "You can't disable another admin. Remove their admin role first.",
+        "cannot_delete_self": "You can't delete your own account from the panel.",
+        "sermon_not_found": "Sermon not found."
+      },
+      "stats": {
+        "title": "Analytics",
+        "total_users": "Registered users",
+        "new_users_week": "New this week",
+        "disabled_users": "Disabled accounts",
+        "total_sermons": "Total sermons",
+        "public_sermons": "Published sermons",
+        "total_topics": "Total topics",
+        "public_topics": "Published topics",
+        "views_today": "Views today",
+        "unique_visitors_today": "Unique visitors today",
+        "views_total": "Total views",
+        "top_countries": "Countries, today",
+        "top_pages": "Most visited pages, today",
+        "no_data_today": "No data for today yet."
+      },
+      "users": {
+        "title": "Users",
+        "search_placeholder": "Search by nickname or email…",
+        "badge_admin": "Admin",
+        "badge_disabled": "Disabled",
+        "reset_password": "Reset password",
+        "enable": "Enable",
+        "disable": "Disable",
+        "make_admin": "Make admin",
+        "remove_admin": "Remove admin role",
+        "delete": "Delete",
+        "disable_done": "The account has been disabled.",
+        "enable_done": "The account has been re-enabled.",
+        "promote_done": "They are now an admin.",
+        "demote_done": "Their admin role has been removed.",
+        "delete_done": "The account has been deleted.",
+        "confirm_disable_title": "Disable account",
+        "confirm_disable_text": "{nickname} won't be able to log in. Their data stays intact and you can re-enable the account anytime.",
+        "confirm_enable_title": "Re-enable account",
+        "confirm_enable_text": "{nickname} will be able to log in again.",
+        "confirm_promote_title": "Make admin",
+        "confirm_promote_text": "{nickname} will have full access to this panel, including other users' data.",
+        "confirm_demote_title": "Remove admin role",
+        "confirm_demote_text": "{nickname} will no longer have access to this panel.",
+        "confirm_delete_title": "Delete account permanently",
+        "confirm_delete_warning": "This can't be undone. Their topics, sermons and everything else they saved will be deleted too.",
+        "confirm_delete_type": "Type \"{nickname}\" to confirm the deletion.",
+        "new_password_title": "New password generated",
+        "new_password_for": "New password for {nickname}:",
+        "new_password_warning": "Shown only once. Copy it now and pass it on to the user.",
+        "copy": "Copy",
+        "password_copied": "Password copied.",
+        "promote": "Make admin",
+        "demote": "Remove admin role"
+      },
+      "sermons": {
+        "title": "Sermons",
+        "search_placeholder": "Search by title or nickname…",
+        "badge_public": "Published",
+        "unpublish": "Unpublish",
+        "delete": "Delete",
+        "unpublish_done": "The sermon has been unpublished.",
+        "delete_done": "The sermon has been deleted.",
+        "confirm_unpublish_title": "Unpublish",
+        "confirm_unpublish_text": "\"{title}\" will no longer be visible at its public link.",
+        "confirm_delete_title": "Delete sermon permanently",
+        "confirm_delete_text": "\"{title}\" will be permanently deleted, for its author too. This can't be undone."
+      }
     }
   },
   "auth": {
@@ -937,7 +1039,13 @@
       "invalid_due_date": "Invalid review date.",
       "invalid_endpoint": "Invalid notification address.",
       "invalid_hour": "Invalid hour.",
-      "subscription_not_found": "Subscription not found."
+      "subscription_not_found": "Subscription not found.",
+      "account_disabled": "This account has been disabled. Contact the administrator.",
+      "invalid_full_name": "Full name can't be longer than 120 characters.",
+      "invalid_church": "Church name can't be longer than 120 characters.",
+      "invalid_country": "Country can't be longer than 60 characters.",
+      "invalid_confession": "Confession can't be longer than 60 characters.",
+      "invalid_birth_date": "Birth date is not valid."
     },
     "user_type": "Account type",
     "user_type_user": "User",

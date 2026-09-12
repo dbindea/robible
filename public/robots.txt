@@ -28,6 +28,9 @@ Disallow: /assets/
 Disallow: /.netlify/functions/
 Disallow: /api/
 
+# Panel de admin: privado, sin nada que rastrear (SPA tras autenticación)
+Disallow: /admin
+
 Sitemap: https://robible.com/sitemap.xml
 
 # ── Reglas para crawlers especificos ─────────────────────────────────────────

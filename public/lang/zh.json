@@ -32,7 +32,13 @@
       "links": {
         "landing": "关于 RoBible",
         "sermons": "讲章",
-        "topics": "主题"
+        "topics": "主题",
+        "bible": "圣经",
+        "compare": "对照",
+        "index": "主题索引",
+        "guide": "讲道指南",
+        "sitemap": "网站地图",
+        "github": "GitHub"
       }
     },
     "pwa": {
@@ -342,6 +348,10 @@
         "memorize": {
           "label": "背诵",
           "hint": "把经文熟记于心"
+        },
+        "admin": {
+          "label": "管理",
+          "hint": "管理面板"
         }
       }
     },
@@ -599,7 +609,8 @@
         "page_of": "第 {current} 页，共 {total} 页",
         "guide_title": "解经式讲章如何预备",
         "guide_lead": "七个步骤。你在 RoBible 中逐步完成，每一步都有讲道学指引，最后得到讲章与讲台纲要。",
-        "guide_cta": "开始预备讲章"
+        "guide_cta": "开始预备讲章",
+        "guide_link": "完整讲道指南"
       },
       "series": "系列／主题",
       "series_help": "这篇讲章在公开列表中所归属的分组。可选择已有的，或新建一个。",
@@ -804,7 +815,20 @@
       "type_hint": "随时可以更换。不会丢失任何内容：即使切换回读者账户，讲章仍然属于你。",
       "type_changed": "账户类型已更改。",
       "type_failed": "无法更改账户类型。",
-      "activity_memorize": "背诵"
+      "activity_memorize": "背诵",
+      "personal": {
+        "title": "个人资料",
+        "hint": "以下都是可选项，随时可以填写，并非注册时必填。",
+        "full_name": "姓名",
+        "birth_date": "出生日期",
+        "church": "所属教会",
+        "country": "国家",
+        "confession": "信仰宗派",
+        "save": "保存",
+        "saving": "保存中…",
+        "saved": "资料已保存。",
+        "failed": "资料保存失败。"
+      }
     },
     "memorize": {
       "eyebrow": "练习",
@@ -855,6 +879,84 @@
       "not_configured": "通知功能尚未开放，请稍后再来。",
       "notification_title": "每日经文",
       "notification_body": "打开 RoBible 查看今天的经文。"
+    },
+    "admin": {
+      "title": "管理面板",
+      "eyebrow": "管理",
+      "unauthorized": "你没有权限访问此页面。",
+      "search": "搜索",
+      "no_results": "没有结果。",
+      "errors": {
+        "not_admin": "你没有管理面板的访问权限。",
+        "cannot_modify_self": "不能对自己的账户执行此操作。",
+        "cannot_disable_admin": "不能禁用另一位管理员，请先移除其管理员身份。",
+        "cannot_delete_self": "不能在面板中删除自己的账户。",
+        "sermon_not_found": "未找到该讲道。"
+      },
+      "stats": {
+        "title": "统计数据",
+        "total_users": "注册用户数",
+        "new_users_week": "本周新增",
+        "disabled_users": "已禁用账户",
+        "total_sermons": "讲道总数",
+        "public_sermons": "已发布讲道",
+        "total_topics": "主题总数",
+        "public_topics": "已发布主题",
+        "views_today": "今日访问量",
+        "unique_visitors_today": "今日独立访客",
+        "views_total": "累计访问量",
+        "top_countries": "今日访客国家",
+        "top_pages": "今日热门页面",
+        "no_data_today": "今天还没有数据。"
+      },
+      "users": {
+        "title": "用户",
+        "search_placeholder": "按昵称或邮箱搜索…",
+        "badge_admin": "管理员",
+        "badge_disabled": "已禁用",
+        "reset_password": "重置密码",
+        "enable": "启用",
+        "disable": "禁用",
+        "make_admin": "设为管理员",
+        "remove_admin": "移除管理员身份",
+        "delete": "删除",
+        "disable_done": "账户已禁用。",
+        "enable_done": "账户已重新启用。",
+        "promote_done": "该用户现在是管理员。",
+        "demote_done": "已移除该用户的管理员身份。",
+        "delete_done": "账户已删除。",
+        "confirm_disable_title": "禁用账户",
+        "confirm_disable_text": "{nickname} 将无法登录。其数据保持不变，你可以随时重新启用该账户。",
+        "confirm_enable_title": "重新启用账户",
+        "confirm_enable_text": "{nickname} 将可以重新登录。",
+        "confirm_promote_title": "设为管理员",
+        "confirm_promote_text": "{nickname} 将拥有此面板的完全访问权限，包括其他用户的数据。",
+        "confirm_demote_title": "移除管理员身份",
+        "confirm_demote_text": "{nickname} 将不再拥有此面板的访问权限。",
+        "confirm_delete_title": "永久删除账户",
+        "confirm_delete_warning": "此操作无法撤销，该用户的主题、讲道及其保存的所有内容也会一并删除。",
+        "confirm_delete_type": "输入「{nickname}」以确认删除。",
+        "new_password_title": "已生成新密码",
+        "new_password_for": "{nickname} 的新密码：",
+        "new_password_warning": "此密码只显示一次，请立即复制并转告用户。",
+        "copy": "复制",
+        "password_copied": "密码已复制。",
+        "promote": "设为管理员",
+        "demote": "移除管理员身份"
+      },
+      "sermons": {
+        "title": "讲道",
+        "search_placeholder": "按标题或昵称搜索…",
+        "badge_public": "已发布",
+        "unpublish": "取消发布",
+        "delete": "删除",
+        "unpublish_done": "该讲道已取消发布。",
+        "delete_done": "该讲道已删除。",
+        "confirm_unpublish_title": "取消发布",
+        "confirm_unpublish_text": "「{title}」将无法通过公开链接访问。",
+        "confirm_delete_title": "永久删除讲道",
+        "confirm_delete_text": "「{title}」将被永久删除，作者也无法恢复。此操作无法撤销。"
+      }
     }
   },
   "auth": {
@@ -937,7 +1039,13 @@
       "invalid_due_date": "复习日期无效。",
       "invalid_endpoint": "通知地址无效。",
       "invalid_hour": "时间无效。",
-      "subscription_not_found": "未找到订阅。"
+      "subscription_not_found": "未找到订阅。",
+      "account_disabled": "账户已被禁用，请联系管理员。",
+      "invalid_full_name": "姓名不能超过120个字符。",
+      "invalid_church": "教会名称不能超过120个字符。",
+      "invalid_country": "国家不能超过60个字符。",
+      "invalid_confession": "信仰宗派不能超过60个字符。",
+      "invalid_birth_date": "出生日期无效。"
     },
     "user_type": "账号类型",
     "user_type_user": "普通用户",

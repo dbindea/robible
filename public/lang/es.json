@@ -32,7 +32,13 @@
       "links": {
         "landing": "Sobre RoBible",
         "sermons": "Predicaciones",
-        "topics": "Temas"
+        "topics": "Temas",
+        "bible": "Biblia",
+        "compare": "Comparar",
+        "index": "Índice temático",
+        "guide": "Guía de predicación",
+        "sitemap": "Mapa del sitio",
+        "github": "GitHub"
       }
     },
     "pwa": {
@@ -342,6 +348,10 @@
         "memorize": {
           "label": "Memorizar",
           "hint": "Aprende versículos de memoria"
+        },
+        "admin": {
+          "label": "Administración",
+          "hint": "El panel de administración"
         }
       }
     },
@@ -599,7 +609,8 @@
         "page_of": "Página {current} de {total}",
         "guide_title": "Cómo se prepara una predicación expositiva",
         "guide_lead": "Siete pasos. Los recorres en RoBible con guía de homilética en cada uno, y al final tienes la predicación y el esquema para el púlpito.",
-        "guide_cta": "Empieza una predicación"
+        "guide_cta": "Empieza una predicación",
+        "guide_link": "La guía completa de predicación"
       },
       "series": "Serie / tema",
       "series_help": "La agrupación bajo la que aparece la predicación en la lista pública. Elige una o crea una nueva.",
@@ -804,7 +815,20 @@
       "type_hint": "Puedes cambiarlo cuando quieras. No se pierde nada: tus predicaciones siguen siendo tuyas aunque vuelvas a cuenta de lector.",
       "type_changed": "Se ha cambiado el tipo de cuenta.",
       "type_failed": "No se ha podido cambiar el tipo de cuenta.",
-      "activity_memorize": "Memorización"
+      "activity_memorize": "Memorización",
+      "personal": {
+        "title": "Datos personales",
+        "hint": "Todos son opcionales. Puedes rellenarlos cuando quieras, no sólo al registrarte.",
+        "full_name": "Nombre y apellidos",
+        "birth_date": "Fecha de nacimiento",
+        "church": "Iglesia donde te congregas",
+        "country": "País",
+        "confession": "Confesión",
+        "save": "Guardar",
+        "saving": "Guardando…",
+        "saved": "Se han guardado los datos.",
+        "failed": "No se han podido guardar los datos."
+      }
     },
     "memorize": {
       "eyebrow": "Ejercicio",
@@ -855,6 +879,84 @@
       "not_configured": "Las notificaciones todavía no están disponibles. Vuelve más adelante.",
       "notification_title": "Versículo del día",
       "notification_body": "Abre RoBible para ver el versículo de hoy."
+    },
+    "admin": {
+      "title": "Panel de administración",
+      "eyebrow": "Administración",
+      "unauthorized": "No tienes acceso a esta página.",
+      "search": "Buscar",
+      "no_results": "Sin resultados.",
+      "errors": {
+        "not_admin": "No tienes acceso al panel de administración.",
+        "cannot_modify_self": "No puedes hacer esto sobre tu propia cuenta.",
+        "cannot_disable_admin": "No puedes desactivar a otro administrador. Quítale antes el rol.",
+        "cannot_delete_self": "No puedes borrar tu propia cuenta desde el panel.",
+        "sermon_not_found": "No se ha encontrado la predicación."
+      },
+      "stats": {
+        "title": "Analíticas",
+        "total_users": "Usuarios registrados",
+        "new_users_week": "Nuevos esta semana",
+        "disabled_users": "Cuentas desactivadas",
+        "total_sermons": "Predicaciones totales",
+        "public_sermons": "Predicaciones publicadas",
+        "total_topics": "Temas totales",
+        "public_topics": "Temas publicados",
+        "views_today": "Visitas hoy",
+        "unique_visitors_today": "Visitantes únicos hoy",
+        "views_total": "Visitas acumuladas",
+        "top_countries": "Países, hoy",
+        "top_pages": "Páginas más visitadas, hoy",
+        "no_data_today": "Todavía no hay datos de hoy."
+      },
+      "users": {
+        "title": "Usuarios",
+        "search_placeholder": "Busca por nickname o email…",
+        "badge_admin": "Admin",
+        "badge_disabled": "Desactivado",
+        "reset_password": "Resetear contraseña",
+        "enable": "Activar",
+        "disable": "Desactivar",
+        "make_admin": "Hacer admin",
+        "remove_admin": "Quitar rol de admin",
+        "delete": "Borrar",
+        "disable_done": "La cuenta ha sido desactivada.",
+        "enable_done": "La cuenta ha sido reactivada.",
+        "promote_done": "Ahora es administrador.",
+        "demote_done": "Se le ha quitado el rol de administrador.",
+        "delete_done": "La cuenta ha sido borrada.",
+        "confirm_disable_title": "Desactivar la cuenta",
+        "confirm_disable_text": "{nickname} no podrá volver a entrar. Sus datos quedan intactos y puedes reactivar la cuenta cuando quieras.",
+        "confirm_enable_title": "Reactivar la cuenta",
+        "confirm_enable_text": "{nickname} podrá volver a entrar en su cuenta.",
+        "confirm_promote_title": "Hacer administrador",
+        "confirm_promote_text": "{nickname} tendrá acceso completo a este panel, incluidos los datos del resto de usuarios.",
+        "confirm_demote_title": "Quitar el rol de administrador",
+        "confirm_demote_text": "{nickname} dejará de tener acceso a este panel.",
+        "confirm_delete_title": "Borrar la cuenta definitivamente",
+        "confirm_delete_warning": "Esta acción no se puede deshacer. Se borran también sus temas, predicaciones y todo lo que haya guardado.",
+        "confirm_delete_type": "Escribe «{nickname}» para confirmar el borrado.",
+        "new_password_title": "Contraseña nueva generada",
+        "new_password_for": "Contraseña nueva para {nickname}:",
+        "new_password_warning": "Se muestra una sola vez. Cópiala ahora y pásasela al usuario.",
+        "copy": "Copiar",
+        "password_copied": "Contraseña copiada.",
+        "promote": "Hacer admin",
+        "demote": "Quitar rol de admin"
+      },
+      "sermons": {
+        "title": "Predicaciones",
+        "search_placeholder": "Busca por título o nickname…",
+        "badge_public": "Publicada",
+        "unpublish": "Retirar de público",
+        "delete": "Borrar",
+        "unpublish_done": "La predicación se ha retirado de público.",
+        "delete_done": "La predicación ha sido borrada.",
+        "confirm_unpublish_title": "Retirar de público",
+        "confirm_unpublish_text": "«{title}» dejará de verse en el enlace público.",
+        "confirm_delete_title": "Borrar la predicación definitivamente",
+        "confirm_delete_text": "«{title}» se borrará definitivamente, también para su autor. Esta acción no se puede deshacer."
+      }
     }
   },
   "auth": {
@@ -937,7 +1039,13 @@
       "invalid_due_date": "Fecha de repaso no válida.",
       "invalid_endpoint": "Dirección de notificación no válida.",
       "invalid_hour": "Hora no válida.",
-      "subscription_not_found": "No se ha encontrado la suscripción."
+      "subscription_not_found": "No se ha encontrado la suscripción.",
+      "account_disabled": "La cuenta ha sido desactivada. Contacta con el administrador.",
+      "invalid_full_name": "El nombre completo no puede superar los 120 caracteres.",
+      "invalid_church": "El nombre de la iglesia no puede superar los 120 caracteres.",
+      "invalid_country": "El país no puede superar los 60 caracteres.",
+      "invalid_confession": "La confesión no puede superar los 60 caracteres.",
+      "invalid_birth_date": "La fecha de nacimiento no es válida."
     },
     "user_type": "Tipo de cuenta",
     "user_type_user": "Usuario",

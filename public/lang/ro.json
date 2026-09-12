@@ -32,7 +32,13 @@
       "links": {
         "landing": "Despre RoBible",
         "sermons": "Predici",
-        "topics": "Teme"
+        "topics": "Teme",
+        "bible": "Biblia",
+        "compare": "Compară",
+        "index": "Indice tematic",
+        "guide": "Ghid de predicare",
+        "sitemap": "Harta site-ului",
+        "github": "GitHub"
       }
     },
     "pwa": {
@@ -342,6 +348,10 @@
         "memorize": {
           "label": "Memorare",
           "hint": "Învață versete pe de rost"
+        },
+        "admin": {
+          "label": "Administrare",
+          "hint": "Panoul de administrare"
         }
       }
     },
@@ -599,7 +609,8 @@
         "page_of": "Pagina {current} din {total}",
         "guide_title": "Cum se face o predică expozitivă",
         "guide_lead": "Șapte pași. Îi parcurgi în RoBible cu ghid de omiletică la fiecare, iar la final ai predica și schița pentru amvon.",
-        "guide_cta": "Începe o predică"
+        "guide_cta": "Începe o predică",
+        "guide_link": "Ghidul complet de predicare"
       },
       "series": "Serie / temă",
       "series_help": "Gruparea sub care apare predica în lista publică. Alege una sau creează-ți una nouă.",
@@ -804,7 +815,20 @@
       "type_hint": "Poți schimba oricând. Nu pierzi nimic: predicile rămân ale tale chiar dacă revii la cont de cititor.",
       "type_changed": "Tipul contului a fost schimbat.",
       "type_failed": "Nu s-a putut schimba tipul contului.",
-      "activity_memorize": "Memorare"
+      "activity_memorize": "Memorare",
+      "personal": {
+        "title": "Date personale",
+        "hint": "Toate sunt opționale. Le poți completa oricând, nu doar la înregistrare.",
+        "full_name": "Nume și prenume",
+        "birth_date": "Data nașterii",
+        "church": "Biserica unde te congregi",
+        "country": "Țara",
+        "confession": "Confesiunea",
+        "save": "Salvează",
+        "saving": "Se salvează…",
+        "saved": "Datele au fost salvate.",
+        "failed": "Nu s-au putut salva datele."
+      }
     },
     "memorize": {
       "eyebrow": "Exercițiu",
@@ -855,6 +879,84 @@
       "not_configured": "Notificările nu sunt încă disponibile. Revino mai târziu.",
       "notification_title": "Versetul zilei",
       "notification_body": "Deschide RoBible pentru versetul de azi."
+    },
+    "admin": {
+      "title": "Panou de administrare",
+      "eyebrow": "Administrare",
+      "unauthorized": "Nu ai acces la această pagină.",
+      "search": "Caută",
+      "no_results": "Niciun rezultat.",
+      "errors": {
+        "not_admin": "Nu ai acces la panoul de administrare.",
+        "cannot_modify_self": "Nu poți face asta asupra propriului cont.",
+        "cannot_disable_admin": "Nu poți dezactiva un alt administrator. Scoate-i mai întâi rolul.",
+        "cannot_delete_self": "Nu îți poți șterge propriul cont din panou.",
+        "sermon_not_found": "Predica nu a fost găsită."
+      },
+      "stats": {
+        "title": "Analitice",
+        "total_users": "Utilizatori înregistrați",
+        "new_users_week": "Noi în ultima săptămână",
+        "disabled_users": "Conturi dezactivate",
+        "total_sermons": "Predici totale",
+        "public_sermons": "Predici publicate",
+        "total_topics": "Teme totale",
+        "public_topics": "Teme publicate",
+        "views_today": "Vizite azi",
+        "unique_visitors_today": "Vizitatori unici azi",
+        "views_total": "Vizite acumulate",
+        "top_countries": "Țări, azi",
+        "top_pages": "Pagini vizitate, azi",
+        "no_data_today": "Încă nu sunt date azi."
+      },
+      "users": {
+        "title": "Utilizatori",
+        "search_placeholder": "Caută după nickname sau email…",
+        "badge_admin": "Admin",
+        "badge_disabled": "Dezactivat",
+        "reset_password": "Resetează parola",
+        "enable": "Activează",
+        "disable": "Dezactivează",
+        "make_admin": "Fă-l admin",
+        "remove_admin": "Scoate rolul de admin",
+        "delete": "Șterge",
+        "disable_done": "Contul a fost dezactivat.",
+        "enable_done": "Contul a fost reactivat.",
+        "promote_done": "Acum este administrator.",
+        "demote_done": "I s-a scos rolul de administrator.",
+        "delete_done": "Contul a fost șters.",
+        "confirm_disable_title": "Dezactivează contul",
+        "confirm_disable_text": "{nickname} nu va mai putea intra în cont. Datele lui rămân intacte și poți reactiva contul oricând.",
+        "confirm_enable_title": "Reactivează contul",
+        "confirm_enable_text": "{nickname} va putea intra din nou în cont.",
+        "confirm_promote_title": "Fă-l administrator",
+        "confirm_promote_text": "{nickname} va avea acces complet la acest panou, inclusiv la datele celorlalți utilizatori.",
+        "confirm_demote_title": "Scoate rolul de administrator",
+        "confirm_demote_text": "{nickname} nu va mai avea acces la acest panou.",
+        "confirm_delete_title": "Șterge contul definitiv",
+        "confirm_delete_warning": "Această acțiune nu se poate anula. Se șterg și temele, predicile și tot ce a salvat acest utilizator.",
+        "confirm_delete_type": "Scrie „{nickname}” ca să confirmi ștergerea.",
+        "new_password_title": "Parolă nouă generată",
+        "new_password_for": "Parola nouă pentru {nickname}:",
+        "new_password_warning": "Se arată o singură dată. Copiaz-o acum și transmite-o utilizatorului.",
+        "copy": "Copiază",
+        "password_copied": "Parola a fost copiată.",
+        "promote": "Fă-l admin",
+        "demote": "Scoate rolul de admin"
+      },
+      "sermons": {
+        "title": "Predici",
+        "search_placeholder": "Caută după titlu sau nickname…",
+        "badge_public": "Publicată",
+        "unpublish": "Retrage din public",
+        "delete": "Șterge",
+        "unpublish_done": "Predica a fost retrasă din public.",
+        "delete_done": "Predica a fost ștearsă.",
+        "confirm_unpublish_title": "Retrage din public",
+        "confirm_unpublish_text": "„{title}” nu va mai fi vizibilă la linkul public.",
+        "confirm_delete_title": "Șterge predica definitiv",
+        "confirm_delete_text": "„{title}” va fi ștearsă definitiv, inclusiv pentru autorul ei. Această acțiune nu se poate anula."
+      }
     }
   },
   "auth": {
@@ -937,7 +1039,13 @@
       "invalid_due_date": "Dată de repetare invalidă.",
       "invalid_endpoint": "Adresă de notificare invalidă.",
       "invalid_hour": "Oră invalidă.",
-      "subscription_not_found": "Abonarea nu a fost găsită."
+      "subscription_not_found": "Abonarea nu a fost găsită.",
+      "account_disabled": "Contul a fost dezactivat. Contactează administratorul.",
+      "invalid_full_name": "Numele complet nu poate depăși 120 de caractere.",
+      "invalid_church": "Numele bisericii nu poate depăși 120 de caractere.",
+      "invalid_country": "Țara nu poate depăși 60 de caractere.",
+      "invalid_confession": "Confesiunea nu poate depăși 60 de caractere.",
+      "invalid_birth_date": "Data nașterii nu este validă."
     },
     "user_type": "Tipul contului",
     "user_type_user": "Utilizator",

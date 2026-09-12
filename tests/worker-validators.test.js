@@ -10,6 +10,7 @@ import {
   validators,
   hashValue,
   verifyHash,
+  sha256Hex,
   makeToken,
   readToken,
   genId,
@@ -147,6 +148,58 @@ test('topicDescription: opcional, pero acotada', () => {
   assert.ok(!validators.topicDescription('x'.repeat(201)));
   assert.ok(!validators.topicDescription(null));
   assert.ok(!validators.topicDescription(42));
+});
+
+// ── Perfil opcional (schema_version 13) ─────────────────────────────────────
+// Ninguno se pide en el alta; los cinco aceptan cadena vacía como "quitar el
+// dato" — igual que `topicDescription` ya hacía para las descripciones.
+
+test('fullName y church: hasta 120 caracteres, vacío incluido', () => {
+  assert.ok(validators.fullName(''));
+  assert.ok(validators.fullName('Ion Popescu'));
+  assert.ok(validators.fullName('x'.repeat(120)));
+  assert.ok(!validators.fullName('x'.repeat(121)));
+  assert.ok(!validators.fullName(null));
+
+  assert.ok(validators.church(''));
+  assert.ok(validators.church('x'.repeat(120)));
+  assert.ok(!validators.church('x'.repeat(121)));
+});
+
+test('country y confession: hasta 60 caracteres, vacío incluido', () => {
+  assert.ok(validators.country(''));
+  assert.ok(validators.country('România'));
+  assert.ok(validators.country('x'.repeat(60)));
+  assert.ok(!validators.country('x'.repeat(61)));
+
+  assert.ok(validators.confession(''));
+  assert.ok(validators.confession('x'.repeat(60)));
+  assert.ok(!validators.confession('x'.repeat(61)));
+  assert.ok(!validators.confession(42));
+});
+
+test('birthDate: YYYY-MM-DD, no futura, ni de antes de 1900', () => {
+  assert.ok(validators.birthDate(''), 'vacío quita la fecha');
+  assert.ok(validators.birthDate('1990-05-20'));
+  assert.ok(!validators.birthDate('20-05-1990'), 'formato distinto de YYYY-MM-DD');
+  assert.ok(!validators.birthDate('1899-12-31'), 'antes de 1900');
+  assert.ok(!validators.birthDate('2999-01-01'), 'fecha futura');
+  assert.ok(!validators.birthDate('no-es-una-fecha'));
+  assert.ok(!validators.birthDate(null));
+});
+
+// ── Hash de visitante (analíticas sin IP) ───────────────────────────────────
+
+test('sha256Hex es determinista y sensible a cualquier cambio', async () => {
+  const h1 = await sha256Hex('2026-09-12|203.0.113.5|Mozilla/5.0|secreto');
+  const h2 = await sha256Hex('2026-09-12|203.0.113.5|Mozilla/5.0|secreto');
+  assert.equal(h1, h2, 'la misma entrada da siempre el mismo hash');
+  assert.equal(h1.length, 64, 'SHA-256 en hexadecimal son 64 caracteres');
+
+  // Cambiar sólo el día (lo que hace que "único" se cuente por día y no para
+  // siempre) tiene que dar un hash completamente distinto.
+  const otroDia = await sha256Hex('2026-09-13|203.0.113.5|Mozilla/5.0|secreto');
+  assert.notEqual(h1, otroDia);
 });
 
 // ── Hashing ─────────────────────────────────────────────────────────────────
