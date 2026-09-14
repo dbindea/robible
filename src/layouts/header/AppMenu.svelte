@@ -24,6 +24,9 @@
     // Sólo para cuentas de tipo predicador. No se traduce por idioma: es una
     // ruta privada, no indexable, y no gana nada teniendo cuatro formas.
     { key: 'sermons', icon: 'sermons', enabled: true, defaultHref: '/predicile-mele', onlyPreacher: true },
+    // Proyectar en la pantalla de la iglesia. Sin path por idioma: es una
+    // herramienta del dispositivo que proyecta, no contenido que se comparta.
+    { key: 'projection', icon: 'projection', enabled: true, defaultHref: '/proiectie' },
     { key: 'user', icon: 'user', enabled: true, defaultHref: '/profil' },
     // Sólo para administradores. El rol vive en `is_admin` (D1), no aquí: este
     // filtro sólo decide si el item se VE, la autorización de verdad la hace
@@ -133,6 +136,9 @@
                 <Icon name="user" />
               {:else if item.icon === 'shield'}
                 <Icon name="shield" />
+              {:else if item.icon === 'projection'}
+                <!-- Pantalla completa: es lo que hace el modo proyección -->
+                <Icon name="expand" />
               {/if}
             </span>
             <span class="app-menu__text">

@@ -353,6 +353,10 @@
         "admin": {
           "label": "Admin",
           "hint": "The admin panel"
+        },
+        "projection": {
+          "label": "Projection",
+          "hint": "Verses on the church screen"
         }
       }
     },
@@ -979,6 +983,23 @@
         "confirm_delete_title": "Delete sermon permanently",
         "confirm_delete_text": "\"{title}\" will be permanently deleted, for its author too. This can't be undone."
       }
+    },
+    "projection": {
+      "seo_title": "Projection | RoBible",
+      "seo_description": "Project verses onto the church screen.",
+      "eyebrow": "Projection",
+      "title": "Verses on screen",
+      "lead": "Pick the passage, then advance with a presenter remote or the keyboard. It reads from the back row.",
+      "search_label": "What are we projecting?",
+      "search_placeholder": "john 3 or psalms 23",
+      "continue": "Continue from {reference}",
+      "keys_title": "Keys",
+      "key_next": "Next verse",
+      "key_prev": "Previous verse",
+      "key_black": "Blank the screen",
+      "key_fullscreen": "Full screen",
+      "key_size": "Text size",
+      "key_exit": "Leave projection"
     }
   },
   "auth": {

@@ -353,6 +353,10 @@
         "admin": {
           "label": "Administración",
           "hint": "El panel de administración"
+        },
+        "projection": {
+          "label": "Proyección",
+          "hint": "Versículos en la pantalla de la iglesia"
         }
       }
     },
@@ -979,6 +983,23 @@
         "confirm_delete_title": "Borrar la predicación definitivamente",
         "confirm_delete_text": "«{title}» se borrará definitivamente, también para su autor. Esta acción no se puede deshacer."
       }
+    },
+    "projection": {
+      "seo_title": "Proyección | RoBible",
+      "seo_description": "Proyecta versículos en la pantalla de la iglesia.",
+      "eyebrow": "Proyección",
+      "title": "Versículos en pantalla",
+      "lead": "Elige el pasaje y avanza con el mando o con el teclado. El texto se lee desde la última fila.",
+      "search_label": "¿Qué proyectamos?",
+      "search_placeholder": "juan 3 o salmos 23",
+      "continue": "Seguir desde {reference}",
+      "keys_title": "Teclas",
+      "key_next": "Versículo siguiente",
+      "key_prev": "Versículo anterior",
+      "key_black": "Pantalla en negro",
+      "key_fullscreen": "Pantalla completa",
+      "key_size": "Tamaño del texto",
+      "key_exit": "Salir de la proyección"
     }
   },
   "auth": {

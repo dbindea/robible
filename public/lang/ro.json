@@ -353,6 +353,10 @@
         "admin": {
           "label": "Administrare",
           "hint": "Panoul de administrare"
+        },
+        "projection": {
+          "label": "Proiecție",
+          "hint": "Versete pe ecranul bisericii"
         }
       }
     },
@@ -979,6 +983,23 @@
         "confirm_delete_title": "Șterge predica definitiv",
         "confirm_delete_text": "„{title}” va fi ștearsă definitiv, inclusiv pentru autorul ei. Această acțiune nu se poate anula."
       }
+    },
+    "projection": {
+      "seo_title": "Proiecție | RoBible",
+      "seo_description": "Proiectează versete pe ecranul bisericii.",
+      "eyebrow": "Proiecție",
+      "title": "Versete pe ecran",
+      "lead": "Alege pasajul, apoi avansează cu telecomanda sau cu tastele. Textul se vede de la ultimul rând.",
+      "search_label": "Ce proiectăm?",
+      "search_placeholder": "ioan 3 sau psalmii 23",
+      "continue": "Continuă de la {reference}",
+      "keys_title": "Taste",
+      "key_next": "Versetul următor",
+      "key_prev": "Versetul anterior",
+      "key_black": "Ecran negru",
+      "key_fullscreen": "Ecran complet",
+      "key_size": "Mărimea textului",
+      "key_exit": "Ieși din proiecție"
     }
   },
   "auth": {

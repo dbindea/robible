@@ -353,6 +353,10 @@
         "admin": {
           "label": "管理",
           "hint": "管理面板"
+        },
+        "projection": {
+          "label": "投影",
+          "hint": "在教会屏幕上显示经文"
         }
       }
     },
@@ -979,6 +983,23 @@
         "confirm_delete_title": "永久删除讲道",
         "confirm_delete_text": "「{title}」将被永久删除，作者也无法恢复。此操作无法撤销。"
       }
+    },
+    "projection": {
+      "seo_title": "投影 | RoBible",
+      "seo_description": "将经文投影到教会的屏幕上。",
+      "eyebrow": "投影",
+      "title": "屏幕经文",
+      "lead": "先选择经文，然后用遥控器或键盘翻页。最后一排也能看清。",
+      "search_label": "要投影什么？",
+      "search_placeholder": "约翰福音 3 或 诗篇 23",
+      "continue": "从 {reference} 继续",
+      "keys_title": "按键",
+      "key_next": "下一节",
+      "key_prev": "上一节",
+      "key_black": "黑屏",
+      "key_fullscreen": "全屏",
+      "key_size": "文字大小",
+      "key_exit": "退出投影"
     }
   },
   "auth": {
