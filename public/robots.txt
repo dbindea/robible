@@ -1,69 +1,162 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 # RoBible robots.txt
-# indica a los bots ethical que NO indexen datos ni hagan crawling agresivo
-# los scrapers maliciosos lo ignoran, pero Cloudflare los bloquea
+#
+# LO QUE HAY QUE SABER ANTES DE TOCAR ESTE FICHERO
+#
+# 1. Un rastreador obedece UN SOLO grupo: el más específico que le aplique, y
+#    **ignora el resto por completo**. No se suman. Hasta el 14 sep 2026 este
+#    fichero terminaba con:
+#
+#        User-agent: Googlebot
+#        Allow: /
+#
+#    …y eso, lejos de ser inofensivo, desactivaba para Googlebot TODOS los
+#    `Disallow` del grupo `*`. Googlebot tenía barra libre en `/data/` — donde
+#    vive una Biblia de 4,3 MB por versión — y en `/assets/`. Lo mismo Bingbot.
+#    Si añades un grupo para un bot concreto, tienes que repetirle dentro TODAS
+#    las reglas que quieras que cumpla.
+#
+# 2. Los versículos sueltos son 124.400 URLs (31.100 × 4 versiones) y ninguna
+#    aporta nada que no esté ya en la página de su capítulo. Peor: cada una
+#    manda al rastreador a la aplicación entera, que se descarga la Biblia
+#    completa para pintar una frase. Rastrearlas todas son ~597 GB, y eso es lo
+#    que reventó el ancho de banda de Netlify en septiembre de 2026.
+#    Los capítulos (4.756 URLs, las del sitemap) SÍ se rastrean: son la unidad
+#    de contenido real del sitio.
+#
+# 3. `Crawl-delay` no sirve con Google — lo ignora desde siempre. Bing sí lo
+#    respeta. No lo pongas esperando que frene a Googlebot.
+#
+# Nota: Cloudflare inyecta por su cuenta un bloque «Managed content» al
+# principio del fichero servido, con las señales de contenido para IA. No está
+# en este archivo y no hay que duplicarlo aquí.
 # ═══════════════════════════════════════════════════════════════════════════════
 
+# ── Regla general ────────────────────────────────────────────────────────────
 User-agent: *
 Allow: /
-Allow: /biblia/
-Allow: /compara/
-Allow: /indice/
-Allow: /temas/
-Allow: /favorites/
-Allow: /favoriti/
-Allow: /favoritos/
-Allow: /notes/
-Allow: /notite/
-Allow: /notas/
-Allow: /versete/
-Allow: /versiculos/
 
-# NO permitir acceso a datos biblicos crusos
-# (evita que Google indexe los JSON directamente)
+# Los datos en crudo y el bundle no son contenido: son el material con el que la
+# aplicación se dibuja. Un rastreador que no va a renderizar no tiene nada que
+# hacer aquí, y son los ficheros más pesados del sitio.
 Disallow: /data/
 Disallow: /assets/
 
-# No permitir crawling de API ni functions
+# Versículos sueltos: `/biblia/<versión>/<libro>/<capítulo>/<versículo>`.
+# El patrón exige cuatro segmentos, así que NO alcanza a los capítulos
+# (`/biblia/vdc/geneza/1`), que siguen abiertos a propósito.
+Disallow: /biblia/*/*/*/*
+
+# Las imágenes Open Graph se generan una por una en una función. Sirven para la
+# vista previa al compartir un enlace, no para el buscador de imágenes.
+Disallow: /og/
+
 Disallow: /.netlify/functions/
 Disallow: /api/
 
-# Panel de admin: privado, sin nada que rastrear (SPA tras autenticación)
+# Privado: no hay nada que rastrear detrás de la sesión.
 Disallow: /admin
+Disallow: /profil
+Disallow: /predicile-mele
 
 Sitemap: https://robible.com/sitemap.xml
 
-# ── Reglas para crawlers especificos ─────────────────────────────────────────
+# ── Google y Bing ────────────────────────────────────────────────────────────
+# Grupo propio porque a estos dos SÍ hay que dejarles `/assets/` y `/data/`.
+#
+# Puede parecer al revés —son los ficheros pesados—, pero las páginas de
+# capítulo las pinta la aplicación en el navegador: el texto sale de
+# `/data/<versión>/bible.json`. Bloqueárselo no ahorra nada, porque el
+# rastreador entonces ve una página en blanco y deja de posicionar las 4.756
+# URLs del sitemap, que son TODO el posicionamiento del sitio. El ahorro no
+# estaba ahí: estaba en los 124.400 versículos sueltos, que son los que
+# multiplicaban ese render por veintiséis.
+#
+# Todo lo demás de este grupo repite el de `*`: lo que no se repita aquí, a
+# estos dos no se les aplica (ver nota 1 de la cabecera).
+User-agent: Googlebot
+Allow: /assets/
+Allow: /data/
+Disallow: /biblia/*/*/*/*
+Disallow: /og/
+Disallow: /.netlify/functions/
+Disallow: /api/
+Disallow: /admin
+Disallow: /profil
+Disallow: /predicile-mele
+
+User-agent: Bingbot
+Allow: /assets/
+Allow: /data/
+Disallow: /biblia/*/*/*/*
+Disallow: /og/
+Disallow: /.netlify/functions/
+Disallow: /api/
+Disallow: /admin
+Disallow: /profil
+Disallow: /predicile-mele
+Crawl-delay: 5
+
+# ── Rastreadores de modelos de lenguaje ──────────────────────────────────────
+# Fuera del todo. No traen visitas y sí tráfico.
 User-agent: GPTBot
+Disallow: /
+
+User-agent: OAI-SearchBot
 Disallow: /
 
 User-agent: ChatGPT-User
 Disallow: /
 
-User-agent: Google-Extended
-Disallow: /data/
-Disallow: /assets/
-
-User-agent: anthropic-ai
-Disallow: /
-
-User-agent: Bytespider
+User-agent: ClaudeBot
 Disallow: /
 
 User-agent: Claude-Web
 Disallow: /
 
+User-agent: anthropic-ai
+Disallow: /
+
+User-agent: PerplexityBot
+Disallow: /
+
+User-agent: Google-Extended
+Disallow: /
+
+User-agent: Applebot-Extended
+Disallow: /
+
+User-agent: Bytespider
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
 User-agent: Diffbot
 Disallow: /
 
-User-agent: FacebookBot
-Disallow: /data/
+User-agent: meta-externalagent
+Disallow: /
 
-User-agent: Googlebot
-Allow: /
+User-agent: Amazonbot
+Disallow: /
 
-User-agent: Bingbot
-Allow: /
+# ── Rastreadores de SEO comercial ────────────────────────────────────────────
+# Recorren el sitio entero para vender informes a terceros. No aportan nada.
+User-agent: AhrefsBot
+Disallow: /
 
-User-agent: *
-Crawl-delay: 2
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+User-agent: DataForSeoBot
+Disallow: /
+
+User-agent: BLEXBot
+Disallow: /
