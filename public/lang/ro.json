@@ -1321,6 +1321,16 @@
         "cta": "Începe o predică",
         "note": "Modul Amvon funcționează complet offline: predica, schița și textul referințelor rămân pe telefon. Nicio cerere de rețea în timp ce predici."
       }
+    },
+    "projection": {
+      "badge": "Nou",
+      "title": "Versetele, pe ecranul bisericii",
+      "lead": "Deschizi o pagină, scrii referința și proiectezi. Fără program de instalat, fără abonament, fără cont.",
+      "p1": "Un verset pe ecran, cât de mare încape — se citește de la ultimul rând.",
+      "p2": "Două limbi deodată, cu una dintre ele mai mare.",
+      "p3": "Merge cu telecomanda de prezentare pe care o ai deja.",
+      "cta_detail": "Vezi cum funcționează",
+      "cta_open": "Deschide proiecția"
     }
   }
 }

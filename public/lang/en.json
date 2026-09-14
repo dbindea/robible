@@ -1321,6 +1321,16 @@
         "cta": "Start a sermon",
         "note": "Pulpit Mode works entirely offline: the sermon, the outline and the text of every reference stay on the phone. Not one network request while you preach."
       }
+    },
+    "projection": {
+      "badge": "New",
+      "title": "Verses, on the church screen",
+      "lead": "Open a page, type the reference, project. Nothing to install, no subscription, no account.",
+      "p1": "One verse per screen, as large as it fits — readable from the back row.",
+      "p2": "Two languages at once, one of them larger.",
+      "p3": "Works with the presenter remote you already own.",
+      "cta_detail": "See how it works",
+      "cta_open": "Open projection"
     }
   }
 }

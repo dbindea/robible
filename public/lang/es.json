@@ -1321,6 +1321,16 @@
         "cta": "Empieza una predicación",
         "note": "El Modo Púlpito funciona del todo sin conexión: la predicación, el esquema y el texto de las referencias se quedan en el móvil. Ni una petición de red mientras predicas."
       }
+    },
+    "projection": {
+      "badge": "Novedad",
+      "title": "Los versículos, en la pantalla de la iglesia",
+      "lead": "Abres una página, escribes la referencia y proyectas. Sin programa que instalar, sin cuota y sin cuenta.",
+      "p1": "Un versículo por pantalla, tan grande como quepa: se lee desde la última fila.",
+      "p2": "Dos idiomas a la vez, con uno de ellos más grande.",
+      "p3": "Funciona con el mando de presentación que ya tienes.",
+      "cta_detail": "Ver cómo funciona",
+      "cta_open": "Abrir la proyección"
     }
   }
 }

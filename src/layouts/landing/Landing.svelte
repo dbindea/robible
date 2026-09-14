@@ -566,6 +566,62 @@
     </div>
   </section>
 
+  <!-- ─── PROYECCIÓN ──────────────────────────────────────────
+       Va aquí, después de «para quién», porque es lo único de esta página que
+       no se dirige a una persona sino a una congregación entera: quien decide
+       qué se usa el domingo se reconoce justo después de leer los perfiles de
+       lector. El detalle vive en su propia página, `/proiectie-biserici`; aquí
+       sólo se enseña qué es y se enlaza. -->
+  <section class="proy" aria-labelledby="proy-title">
+    <div class="proy__caja" data-reveal>
+      <div class="proy__texto">
+        <p class="proy__badge">{$_('landing.projection.badge')}</p>
+        <h2 id="proy-title" class="section-title">{$_('landing.projection.title')}</h2>
+        <p class="proy__lead">{$_('landing.projection.lead')}</p>
+        <ul class="proy__lista">
+          {#each ['p1', 'p2', 'p3'] as p (p)}
+            <li>
+              <span class="proy__tick" aria-hidden="true"><Icon name="check" /></span>
+              {$_(`landing.projection.${p}`)}
+            </li>
+          {/each}
+        </ul>
+        <div class="proy__acciones">
+          <a class="btn btn--primary" href="/proiectie-biserici">{$_('landing.projection.cta_detail')}</a>
+          <a class="btn btn--ghost" href="/proiectie">{$_('landing.projection.cta_open')}</a>
+        </div>
+      </div>
+
+      <!-- Misma maqueta que la página de detalle: enseña lo que se verá —dos
+           idiomas, el principal grande— en vez de un dibujo abstracto. -->
+      <div class="proy__maqueta" aria-hidden="true">
+        <svg viewBox="0 0 520 330" class="proy__svg">
+          <defs>
+            <linearGradient id="proy-pantalla" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#1D3040" />
+              <stop offset="55%" stop-color="#131E29" />
+              <stop offset="100%" stop-color="#0A1017" />
+            </linearGradient>
+            <linearGradient id="proy-halo" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#7EC8E3" stop-opacity="0.22" />
+              <stop offset="100%" stop-color="#7EC8E3" stop-opacity="0" />
+            </linearGradient>
+          </defs>
+          <rect x="14" y="10" width="492" height="278" rx="12" fill="#0f1319" />
+          <rect x="22" y="18" width="476" height="262" rx="7" fill="url(#proy-pantalla)" />
+          <rect x="22" y="18" width="476" height="120" rx="7" fill="url(#proy-halo)" />
+          <rect x="70" y="86" width="380" height="15" rx="7.5" fill="#EDF3F7" opacity="0.93" />
+          <rect x="104" y="112" width="312" height="15" rx="7.5" fill="#EDF3F7" opacity="0.93" />
+          <rect x="128" y="152" width="264" height="9" rx="4.5" fill="#EDF3F7" opacity="0.5" />
+          <rect x="152" y="169" width="216" height="9" rx="4.5" fill="#EDF3F7" opacity="0.5" />
+          <rect x="206" y="206" width="108" height="11" rx="5.5" fill="#7EC8E3" opacity="0.92" />
+          <rect x="232" y="288" width="56" height="20" rx="3" fill="#0f1319" />
+          <rect x="186" y="308" width="148" height="9" rx="4.5" fill="#0f1319" />
+        </svg>
+      </div>
+    </div>
+  </section>
+
   <!-- ─── PERFILES ────────────────────────────────────────────
        Va después de «para quién» y antes de la comparación: primero te
        reconoces como lector, y justo entonces se te dice qué cuenta elegir. -->
@@ -1805,6 +1861,84 @@
     .why__photo img {
       transition: none;
     }
+  }
+
+  /* ── Proyección ───────────────────────────────────────────
+     Tokens semánticos, como todo lo demás de esta página: no existe ningún
+     `--landing-*` (ver la nota de Paletas al final), y `var()` de un token
+     inexistente no falla — deja el fondo transparente y parece «casi bien». */
+  .proy {
+    padding: clamp(2rem, 6vw, 4rem) clamp(1.25rem, 5vw, 4rem);
+    max-width: 78rem;
+    margin: 0 auto;
+  }
+
+  .proy__caja {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+    align-items: center;
+    gap: clamp(1.5rem, 4vw, 3rem);
+    padding: clamp(1.5rem, 4vw, 2.5rem);
+    border: 1px solid var(--color-line-accent);
+    border-radius: 1rem;
+    background: var(--wash-accent);
+  }
+
+  .proy__badge {
+    display: inline-block;
+    margin: 0 0 0.6rem;
+    padding: 0.2rem 0.7rem;
+    border-radius: var(--radius-pill);
+    background: var(--color-accent-solid);
+    color: var(--color-on-primary);
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: var(--letter-spacing-eyebrow);
+  }
+
+  .proy__lead {
+    margin: 0 0 1rem;
+    color: var(--color-ink-soft);
+    font-size: var(--font-size-lead);
+    line-height: var(--line-height-body);
+  }
+
+  .proy__lista {
+    display: grid;
+    gap: 0.5rem;
+    margin: 0 0 1.5rem;
+    padding: 0;
+    list-style: none;
+
+    li {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      align-items: start;
+      gap: 0.5rem;
+      color: var(--color-ink);
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+  }
+
+  .proy__tick {
+    display: inline-flex;
+    color: var(--color-success);
+    --icon-size: 1rem;
+  }
+
+  .proy__acciones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+
+  .proy__svg {
+    width: 100%;
+    height: auto;
+    max-width: none;
+    filter: drop-shadow(0 16px 30px rgba(0, 0, 0, 0.26));
   }
 
   /* ── Perfiles ─────────────────────────────────────────────
