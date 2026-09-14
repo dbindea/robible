@@ -38,7 +38,8 @@
         "index": "Topic index",
         "guide": "Preaching guide",
         "sitemap": "Sitemap",
-        "github": "GitHub"
+        "github": "GitHub",
+        "projection": "Projection for churches"
       }
     },
     "pwa": {
@@ -999,7 +1000,48 @@
       "key_black": "Blank the screen",
       "key_fullscreen": "Full screen",
       "key_size": "Text size",
-      "key_exit": "Leave projection"
+      "key_exit": "Leave projection",
+      "phrase_label": "Or search a phrase",
+      "phrase_placeholder": "contains the phrase…",
+      "phrase_count": "{count} verses found",
+      "phrase_empty": "No verse contains that phrase.",
+      "key_swap": "Swap languages",
+      "panel_background": "Background",
+      "panel_animation": "Animation",
+      "panel_language": "Second language",
+      "second_on": "Second language: on",
+      "second_off": "Second language: off",
+      "animation_none": "None",
+      "animation_fade": "Fade",
+      "animation_slide": "Slide",
+      "animation_zoom": "Zoom"
+    },
+    "projection_landing": {
+      "seo_title": "Projection for churches | RoBible",
+      "seo_description": "Put verses on your church screen, in two languages, with no subscription and nothing to install.",
+      "eyebrow": "New",
+      "title": "Verses, on the church screen",
+      "lead": "Open a page, type the reference, project. Nothing to install, no subscription, no account.",
+      "cta": "Open projection",
+      "cta_hint": "It works right now, on this device.",
+      "f1_title": "Readable from the back row",
+      "f1_text": "One verse per screen, as large as it fits. Two keys adjust the size, even mid-service.",
+      "f2_title": "Two languages at once",
+      "f2_text": "Main language large, the second below. One key swaps them — handy when there are visitors in the room.",
+      "f3_title": "Nine backgrounds",
+      "f3_text": "The same ones you use to share a verse as an image. Each brings its own text colour, already checked.",
+      "f4_title": "The remote you already own",
+      "f4_text": "Any presenter remote works: its buttons send exactly the keys projection listens for.",
+      "f5_title": "Search by phrase",
+      "f5_text": "Cannot recall the reference? Type the phrase and project the matches one after another.",
+      "f6_title": "Blank the screen with one key",
+      "f6_text": "Between songs, one key blanks the screen. Everything you lined up stays where it was.",
+      "how_title": "How it works",
+      "how_1": "Connect the laptop to the TV or the projector.",
+      "how_2": "Open robible.com/proiectie and type the reference.",
+      "how_3": "Press F for full screen and advance with the remote.",
+      "free_title": "Free, and staying free",
+      "free_text": "RoBible is free for any church. No subscription, no ads, and no account needed to project."
     }
   },
   "auth": {

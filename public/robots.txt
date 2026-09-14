@@ -65,6 +65,11 @@ Disallow: /admin
 Disallow: /profil
 Disallow: /predicile-mele
 
+# `/proiectie` (la herramienta) NO se bloquea aquí a propósito, aunque lleve
+# `noindex`: un `Disallow` impediría a Google leer justamente esa etiqueta, y
+# una sola URL no cuesta nada de rastreo. Su presentación,
+# `/proiectie-biserici`, sí se indexa y está en el sitemap.
+
 Sitemap: https://robible.com/sitemap.xml
 
 # ── Google y Bing ────────────────────────────────────────────────────────────

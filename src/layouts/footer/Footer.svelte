@@ -46,6 +46,11 @@
    */
   const ENLACES_ESTATICOS = [
     { href: '/landing', clave: 'landing' },
+    // Apunta a la página de presentación, no a la herramienta: este pie lista
+    // páginas públicas e indexables, y `/proiectie` va con `noindex` porque es
+    // una utilidad del dispositivo. El acceso directo a la herramienta está en
+    // la barra de arriba y en el menú.
+    { href: '/proiectie-biserici', clave: 'projection' },
     { href: '/predici', clave: 'sermons' },
     { href: '/teme', clave: 'topics' },
     { href: '/ghid-predicare', clave: 'guide' },

@@ -38,7 +38,8 @@
         "index": "Indice tematic",
         "guide": "Ghid de predicare",
         "sitemap": "Harta site-ului",
-        "github": "GitHub"
+        "github": "GitHub",
+        "projection": "Proiecție pentru biserici"
       }
     },
     "pwa": {
@@ -999,7 +1000,48 @@
       "key_black": "Ecran negru",
       "key_fullscreen": "Ecran complet",
       "key_size": "Mărimea textului",
-      "key_exit": "Ieși din proiecție"
+      "key_exit": "Ieși din proiecție",
+      "phrase_label": "Sau caută o expresie",
+      "phrase_placeholder": "conține expresia…",
+      "phrase_count": "{count} versete găsite",
+      "phrase_empty": "Niciun verset cu această expresie.",
+      "key_swap": "Schimbă limbile",
+      "panel_background": "Fundal",
+      "panel_animation": "Animație",
+      "panel_language": "A doua limbă",
+      "second_on": "A doua limbă: pornită",
+      "second_off": "A doua limbă: oprită",
+      "animation_none": "Fără",
+      "animation_fade": "Estompare",
+      "animation_slide": "Glisare",
+      "animation_zoom": "Apropiere"
+    },
+    "projection_landing": {
+      "seo_title": "Proiecție pentru biserici | RoBible",
+      "seo_description": "Pune versetele pe ecranul bisericii, în două limbi, fără abonament și fără instalare.",
+      "eyebrow": "Nou",
+      "title": "Versetele, pe ecranul bisericii",
+      "lead": "Deschizi o pagină, scrii referința și proiectezi. Fără program de instalat, fără abonament, fără cont.",
+      "cta": "Deschide proiecția",
+      "cta_hint": "Funcționează acum, pe acest dispozitiv.",
+      "f1_title": "Se citește de la ultimul rând",
+      "f1_text": "Un verset pe ecran, cât de mare încape. Mărimea se reglează din două taste, chiar în timpul slujbei.",
+      "f2_title": "Două limbi deodată",
+      "f2_text": "Limba principală mare, a doua dedesubt. Le schimbi între ele dintr-o tastă — util când în sală sunt și oaspeți.",
+      "f3_title": "Nouă fundaluri",
+      "f3_text": "Aceleași fundaluri cu care distribui un verset ca imagine. Fiecare vine cu culoarea lui de text, deja verificată.",
+      "f4_title": "Telecomanda pe care o ai",
+      "f4_text": "Orice telecomandă de prezentare merge: butoanele ei trimit exact tastele pe care le așteaptă proiecția.",
+      "f5_title": "Caută după o expresie",
+      "f5_text": "Nu știi referința? Scrie expresia și proiectează versetele găsite, unul după altul.",
+      "f6_title": "Ecran negru dintr-o tastă",
+      "f6_text": "Între cântări, o tastă stinge ecranul. Tot ce ai pregătit rămâne acolo, la locul lui.",
+      "how_title": "Cum se face",
+      "how_1": "Conectează laptopul la televizor sau la videoproiector.",
+      "how_2": "Deschide robible.com/proiectie și scrie referința.",
+      "how_3": "Apasă F pentru ecran complet și avansează cu telecomanda.",
+      "free_title": "Gratuit, și rămâne gratuit",
+      "free_text": "RoBible este gratuit pentru orice biserică. Nu are abonament, nu are reclame și nu cere cont pentru proiecție."
     }
   },
   "auth": {

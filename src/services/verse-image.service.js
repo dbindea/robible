@@ -118,6 +118,28 @@ export const IMAGE_BACKGROUNDS = [
 export const getBackground = (key) =>
   IMAGE_BACKGROUNDS.find((b) => b.key === key) || IMAGE_BACKGROUNDS[0];
 
+/**
+ * El mismo fondo, pero como valor CSS en vez de dibujado en un canvas.
+ *
+ * Lo usa el Modo Proyección, que no genera una imagen: pinta un `<div>` a
+ * pantalla completa. Vive aquí y no allí para que los fondos sigan teniendo un
+ * solo dueño — si alguien añade uno nuevo a `IMAGE_BACKGROUNDS`, aparece en los
+ * dos sitios sin tocar nada más.
+ *
+ * Los tres con dibujo propio (`aurora`, `rays`, `arcs`) ya traen `swatch`, que
+ * es exactamente esto: la aproximación en CSS de lo que su pintor dibuja en el
+ * canvas. Los seis de degradado no lo necesitan, se construye de `stops`.
+ *
+ * El ángulo es 150° igual que en el canvas, para que la muestra del selector y
+ * la pantalla real no se vean distintas.
+ */
+export const backgroundCss = (background) => {
+  const bg = typeof background === 'string' ? getBackground(background) : background;
+  if (!bg) return '';
+  if (bg.swatch) return bg.swatch;
+  return `linear-gradient(150deg, ${bg.stops.join(', ')})`;
+};
+
 // ── Maquetación del texto (pura, sin canvas) ────────────
 
 // ── Dónde se puede cortar una línea ─────────────────────

@@ -749,6 +749,10 @@ async function main() {
     // necesita una función de Netlify como `/predici`: la SPA la resuelve
     // igual que `/indice` o `/favorites`.
     { loc: absoluteUrl('/ghid-predicare'), lastmod: TODAY, changefreq: 'monthly', priority: '0.7' },
+    // Presentación del Modo Proyección. SÍ se indexa, al revés que `/proiectie`,
+    // que es la herramienta: la búsqueda que se quiere capturar es «proiecție
+    // versete biserică» y va dirigida a quien no sabe que la función existe.
+    { loc: absoluteUrl('/proiectie-biserici'), lastmod: TODAY, changefreq: 'monthly', priority: '0.8' },
   ];
 
   // ── Colecciones curadas (/versete/<slug>) ─────────────────────────────────

@@ -22,7 +22,7 @@
 
   // Helpers para detectar ruta activa
   $: isOnCompare = currentPath.startsWith('/compara');
-  $: isOnIndex = currentPath.startsWith('/indice');
+  $: isOnProjection = currentPath.startsWith('/proiectie');
 
   const selectVersion = (version) => {
     selectedBibleVersion.set(version.value);
@@ -117,16 +117,20 @@
       <span class="nav-link__label">{$_('app.compare.title')}</span>
     </a>
 
+    <!-- Proyección en lugar del índice temático (14 sep 2026).
+         El índice sigue en el menú lateral y en el pie; aquí arriba sólo caben
+         dos enlaces sin estrujar el selector de versión, y proyectar en la
+         iglesia es una acción que se hace con prisa y delante de gente. -->
     <a
       class="nav-link"
-      class:nav-link--active={isOnIndex}
-      href="/indice"
-      title={isOnIndex ? $_('app.nav.back_to_home') : $_('app.topics.title')}
-      aria-current={isOnIndex ? 'page' : undefined}
-      on:click={(e) => navigate(e, '/indice')}
+      class:nav-link--active={isOnProjection}
+      href="/proiectie"
+      title={isOnProjection ? $_('app.nav.back_to_home') : $_('app.projection.title')}
+      aria-current={isOnProjection ? 'page' : undefined}
+      on:click={(e) => navigate(e, '/proiectie')}
     >
-      <Icon name="bookmark" />
-      <span class="nav-link__label">{$_('app.topics.title')}</span>
+      <Icon name="expand" />
+      <span class="nav-link__label">{$_('app.app_menu.items.projection.label')}</span>
     </a>
 
     <div class="version-picker" bind:this={versionPickerElement}>
