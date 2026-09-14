@@ -302,7 +302,8 @@
       "open_verse": "在上下文中打开经文",
       "remove": "删除笔记",
       "remove_reference": "删除{reference}的笔记",
-      "login_prompt_action": "登录"
+      "login_prompt_action": "登录",
+      "edit_reference": "编辑 {reference} 的笔记"
     },
     "app_menu": {
       "aria_label": "应用菜单",
@@ -828,6 +829,27 @@
         "saving": "保存中…",
         "saved": "资料已保存。",
         "failed": "资料保存失败。"
+      },
+      "motto": {
+        "edit": "修改我的箴言",
+        "add": "添加你的箴言",
+        "placeholder": "一节经文或一句代表你的话……",
+        "save": "保存箴言",
+        "saved": "箴言已保存。",
+        "failed": "无法保存箴言。"
+      },
+      "password": {
+        "title": "密码",
+        "hint": "需要输入当前密码，以免他人通过你忘记退出的会话更改密码。",
+        "current": "当前密码",
+        "new": "新密码",
+        "repeat": "再次输入新密码",
+        "save": "更改密码",
+        "saving": "正在更改……",
+        "changed": "密码已更改。",
+        "failed": "无法更改密码。",
+        "mismatch": "两次输入的新密码不一致。",
+        "too_short": "新密码至少需要 6 个字符。"
       }
     },
     "memorize": {
@@ -1045,7 +1067,8 @@
       "invalid_church": "教会名称不能超过120个字符。",
       "invalid_country": "国家不能超过60个字符。",
       "invalid_confession": "信仰宗派不能超过60个字符。",
-      "invalid_birth_date": "出生日期无效。"
+      "invalid_birth_date": "出生日期无效。",
+      "invalid_motto": "箴言不能超过 200 个字符。"
     },
     "user_type": "账号类型",
     "user_type_user": "普通用户",

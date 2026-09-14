@@ -144,6 +144,9 @@
                 <Icon name={resolveTopicIcon(t.icon)} />
               </span>
               <span class="tema__nombre">{t.name}</span>
+              {#if t.description}
+                <span class="tema__desc">{t.description}</span>
+              {/if}
               <span class="tema__cuenta">
                 {t.verseCount === 1
                   ? $_('app.topics.verse_count', { count: t.verseCount })
@@ -395,7 +398,10 @@
 
   .tema__icono {
     display: inline-flex;
-    grid-row: span 2;
+    // `1 / -1` y no `span 2`: la tarjeta tiene dos o tres filas según el tema
+    // traiga descripción o no, y con un número fijo el icono se quedaba corto
+    // justo en las que sí la tienen.
+    grid-row: 1 / -1;
     /* El color lo pone el tema; si no tiene, hereda el acento. */
     color: var(--color-accent);
     --icon-size: 1.4rem;
@@ -405,6 +411,20 @@
     color: var(--color-ink-strong);
     font-weight: 700;
     line-height: 1.25;
+  }
+
+  // La descripción del autor, si la escribió. Se corta a dos líneas para que
+  // una larga no descuadre la rejilla: aquí es un anticipo, el texto entero se
+  // lee en la página del tema.
+  .tema__desc {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+    color: var(--color-ink-soft);
+    font-size: 0.82rem;
+    line-height: 1.4;
   }
 
   .tema__cuenta {

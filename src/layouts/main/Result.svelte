@@ -128,6 +128,11 @@
   let noteModalItem = null;
   let noteText = '';
   let noteColor = '#3B82F6';
+  // Tope de la nota. Tiene que ser el mismo que valida el worker
+  // (`validators.noteText`, hoy 1000): si aquí se deja escribir más, el
+  // guardado se rechaza al final y el usuario pierde lo escrito sin entender
+  // por qué. También está escrito en Notes.svelte, que edita las mismas notas.
+  const NOTE_MAX = 1000;
   let noteSaving = false;
 
   // Highlight (subrayado de color) y compartir como imagen
@@ -1404,7 +1409,7 @@
       class="note-modal__textarea"
       bind:value={noteText}
       placeholder={$_('app.notes.placeholder')}
-      maxlength="500"
+      maxlength={NOTE_MAX}
       rows="12"
       autofocus
       on:click|stopPropagation

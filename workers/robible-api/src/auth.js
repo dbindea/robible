@@ -116,6 +116,7 @@ export async function register(request, db, env, cors) {
       church: null,
       country: null,
       confession: null,
+      motto: null,
       createdAt: now,
       updatedAt: now,
     },
@@ -166,7 +167,7 @@ export async function login(request, db, env, cors) {
   const user = await db
     .prepare(
       `SELECT id, nickname, password_salt, password_hash, user_type, email, is_admin,
-              is_disabled, full_name, birth_date, church, country, confession,
+              is_disabled, full_name, birth_date, church, country, confession, motto,
               created_at, updated_at
        FROM users WHERE nickname = ?`,
     )
@@ -199,6 +200,7 @@ export async function login(request, db, env, cors) {
       church: user.church || null,
       country: user.country || null,
       confession: user.confession || null,
+      motto: user.motto || null,
       createdAt: user.created_at,
       updatedAt: user.updated_at,
     },
@@ -294,7 +296,7 @@ export async function resetPassword(request, db, env, cors) {
   const user = await db
     .prepare(
       `SELECT id, nickname, user_type, email, is_admin, full_name, birth_date, church,
-              country, confession, created_at, updated_at
+              country, confession, motto, created_at, updated_at
        FROM users WHERE id = ?`,
     )
     .bind(payload.sub)
@@ -313,6 +315,7 @@ export async function resetPassword(request, db, env, cors) {
       church: user.church || null,
       country: user.country || null,
       confession: user.confession || null,
+      motto: user.motto || null,
       createdAt: user.created_at,
       updatedAt: user.updated_at,
     },
@@ -380,7 +383,7 @@ export async function updateProfile(request, db, env, cors) {
 
   let body;
   try { body = await request.json(); } catch { return error('invalid_json', 400, cors); }
-  const { userType, email, securityQuestionText, securityAnswer, fullName, birthDate, church, country, confession } = body || {};
+  const { userType, email, securityQuestionText, securityAnswer, fullName, birthDate, church, country, confession, motto } = body || {};
 
   const campos = [];
   const valores = [];
@@ -407,9 +410,12 @@ export async function updateProfile(request, db, env, cors) {
     church: { columna: 'church', codigo: 'invalid_church' },
     country: { columna: 'country', codigo: 'invalid_country' },
     confession: { columna: 'confession', codigo: 'invalid_confession' },
+    // Lema personal (schema_version 14). Entra por la misma puerta que los
+    // otros cuatro: opcional, independiente y con '' como "quítamelo".
+    motto: { columna: 'motto', codigo: 'invalid_motto' },
   };
   for (const [clave, { columna, codigo }] of Object.entries(camposTexto)) {
-    const valor = { fullName, church, country, confession }[clave];
+    const valor = { fullName, church, country, confession, motto }[clave];
     if (valor === undefined) continue;
     if (!validators[clave](valor)) return error(codigo, 400, cors);
     campos.push(`${columna} = ?`);
@@ -451,7 +457,7 @@ export async function updateProfile(request, db, env, cors) {
   const actualizado = await db
     .prepare(
       `SELECT id, nickname, user_type, email, is_admin, full_name, birth_date, church,
-              country, confession, created_at, updated_at
+              country, confession, motto, created_at, updated_at
        FROM users WHERE id = ?`,
     )
     .bind(auth.user.id)
@@ -472,6 +478,7 @@ export async function updateProfile(request, db, env, cors) {
       church: actualizado.church || null,
       country: actualizado.country || null,
       confession: actualizado.confession || null,
+      motto: actualizado.motto || null,
       createdAt: actualizado.created_at,
       updatedAt: actualizado.updated_at,
     },

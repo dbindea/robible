@@ -338,7 +338,7 @@ export async function getPublicTopic(db, slug, cors) {
 
   const topic = await db
     .prepare(
-      `SELECT id, name, icon, color, public_slug, public_version, published_at
+      `SELECT id, name, description, icon, color, public_slug, public_version, published_at
        FROM topics WHERE public_slug = ? AND is_public = 1`,
     )
     .bind(slug)
@@ -360,6 +360,12 @@ export async function getPublicTopic(db, slug, cors) {
     ok: true,
     topic: {
       name: topic.name,
+      // La descripción la escribe el usuario para explicar de qué va el tema, y
+      // es justo lo que quien recibe el enlace necesita leer antes que la lista
+      // de referencias. Se guardaba desde schema 12 y no salía por aquí, así que
+      // la página compartida enseñaba el título pelado. No es un dato de la
+      // cuenta: sigue sin salir ni el id ni el nickname de quien lo publicó.
+      description: topic.description || '',
       icon: topic.icon,
       color: topic.color,
       slug: topic.public_slug,
@@ -380,7 +386,7 @@ export async function getPublicTopic(db, slug, cors) {
 export async function listPublicTopics(db, cors) {
   const rows = await db
     .prepare(
-      `SELECT t.name, t.icon, t.color, t.public_slug, t.public_version, t.published_at,
+      `SELECT t.name, t.description, t.icon, t.color, t.public_slug, t.public_version, t.published_at,
               COUNT(v.id) AS total
        FROM topics t
        JOIN verse_refs v ON v.topic_id = t.id
@@ -396,6 +402,7 @@ export async function listPublicTopics(db, cors) {
     ok: true,
     topics: (rows.results || []).map((r) => ({
       name: r.name,
+      description: r.description || '',
       icon: r.icon,
       color: r.color,
       slug: r.public_slug,

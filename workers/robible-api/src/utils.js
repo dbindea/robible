@@ -169,7 +169,12 @@ export const validators = {
     Number.isInteger(r.chapter) && r.chapter >= 1 &&
     Number.isInteger(r.verse) && r.verse >= 1
   ),
-  noteText: (t) => typeof t === 'string' && t.trim().length >= 1 && t.trim().length <= 500,
+  // 1000 desde el 14 sep 2026 (antes 500). Una nota sobre un versículo acabó
+  // siendo el sitio donde se apunta el estudio entero, no una frase suelta.
+  // Si vuelve a subir, acuérdate del `maxlength` del textarea de Result.svelte:
+  // el tope del cliente y el del servidor tienen que decir lo mismo, o el
+  // usuario escribe hasta el suyo y el guardado falla sin explicación.
+  noteText: (t) => typeof t === 'string' && t.trim().length >= 1 && t.trim().length <= 1000,
   bibleVersion: (v) => typeof v === 'string' && /^[a-z0-9_]{2,12}$/.test(v),
   email: VALID_EMAIL,
   userType: (t) => typeof t === 'string' && USER_TYPES.includes(t),
@@ -198,6 +203,11 @@ export const validators = {
   church: (t) => typeof t === 'string' && t.trim().length <= 120,
   country: (t) => typeof t === 'string' && t.trim().length <= 60,
   confession: (t) => typeof t === 'string' && t.trim().length <= 60,
+  // Lema personal (schema_version 14): la frase o el versículo que el usuario
+  // pone en la cabecera de su perfil. 200 caracteres porque lo normal es pegar
+  // un versículo entero, y los hay largos —Juan 3:16 ronda los 140—; con 120 se
+  // habría cortado justo el caso de uso para el que se pidió.
+  motto: (t) => typeof t === 'string' && t.trim().length <= 200,
   birthDate: (d) => {
     if (typeof d !== 'string') return false;
     const v = d.trim();
@@ -336,7 +346,7 @@ export async function requireAuth(request, db, env) {
   const user = await db
     .prepare(
       `SELECT id, nickname, user_type, email, is_admin, is_disabled, full_name, birth_date,
-              church, country, confession, created_at, updated_at
+              church, country, confession, motto, created_at, updated_at
        FROM users WHERE id = ?`,
     )
     .bind(payload.sub)
@@ -361,6 +371,7 @@ export async function requireAuth(request, db, env) {
       church: user.church || null,
       country: user.country || null,
       confession: user.confession || null,
+      motto: user.motto || null,
       createdAt: user.created_at,
       updatedAt: user.updated_at,
     },

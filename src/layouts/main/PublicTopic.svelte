@@ -85,7 +85,10 @@
   $: if (topic) {
     applySeoMetadata({
       title: $_('app.topics.share.seo_title', { topic: topic.name }),
-      description: $_('app.topics.share.seo_description', {
+      // Si el autor escribió una descripción, es mejor resumen que el que
+      // podamos generar nosotros — y es la que verá quien pegue el enlace en un
+      // chat. La frase automática se queda como respaldo.
+      description: topic.description || $_('app.topics.share.seo_description', {
         topic: topic.name,
         count: versiculos.length,
       }),
@@ -122,6 +125,13 @@
     <header class="tema-publico__cabecera" style:--topic-color={topic.color}>
       <p class="tema-publico__eyebrow">{$_('app.topics.share.eyebrow')}</p>
       <h1>{topic.name}</h1>
+      <!-- La descripción que escribió quien publicó el tema: es lo que explica
+           por qué están juntos estos versículos, y sin ella la página era una
+           lista de referencias sin contexto. Se guardaba desde el schema 12 y
+           no llegaba a salir por ningún lado de la vista pública. -->
+      {#if topic.description}
+        <p class="tema-publico__descripcion">{topic.description}</p>
+      {/if}
       <p class="tema-publico__lead">
         {versiculos.length === 1
           ? $_('app.topics.verse_count', { count: versiculos.length })
@@ -203,6 +213,18 @@
     letter-spacing: var(--letter-spacing-eyebrow);
     text-transform: uppercase;
     color: var(--topic-color, var(--color-accent));
+  }
+
+  // La descripción va por delante del recuento y con más peso: es texto del
+  // autor, no un dato de la lista. `pre-wrap` porque se escribe en un textarea
+  // y los saltos de línea que ponga tienen que respetarse — sin él, `normal` se
+  // los come y todo queda en un párrafo corrido (trampa 73).
+  .tema-publico__descripcion {
+    margin: 0 0 0.5rem;
+    color: var(--color-ink);
+    font-size: var(--font-size-lead);
+    line-height: var(--line-height-body);
+    white-space: pre-wrap;
   }
 
   .tema-publico__lead {
