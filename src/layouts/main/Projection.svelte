@@ -28,6 +28,7 @@
    */
   import { onDestroy, onMount } from 'svelte';
   import { fade, fly, scale } from 'svelte/transition';
+  import { cubicOut } from 'svelte/easing';
   import { _ } from '../../services/i18n.service';
   import { applySeoMetadata } from '../../services/seo.service';
   import {
@@ -116,6 +117,29 @@
     : { texto: textoSecundario, referencia: referenciaSecundaria, version: versionSecundariaConfig?.bibleName || '' };
 
   const persistir = () => guardarPreferencias(prefs);
+
+  /**
+   * Una sola transición para las cuatro opciones, elegida en tiempo de
+   * ejecución. Antes había un `in:fade` en la lámina y otro `in:fly`/`in:scale`
+   * en un `<div>` interior según el ajuste; con una sola función no hay dos
+   * capas que puedan discrepar.
+   *
+   * **Tiene que usarse con `|global`.** En Svelte las transiciones son locales
+   * por defecto, y «local» significa que NO se reproducen cuando quien crea el
+   * elemento es un bloque contenedor — que es justo el caso: lo recrea el
+   * `{#key indice}` al cambiar de versículo. El síntoma era exacto: animaba el
+   * primer versículo (montaje) y ninguno de los siguientes.
+   */
+  const animarEntrada = (node, { tipo }) => {
+    switch (tipo) {
+      case 'fade': return fade(node, { duration: 260, easing: cubicOut });
+      // Sube un poco al entrar: leído de lejos, el movimiento vertical se nota
+      // más que el horizontal y no arrastra la vista fuera de la pantalla.
+      case 'slide': return fly(node, { y: 34, duration: 320, easing: cubicOut });
+      case 'zoom': return scale(node, { start: 0.94, duration: 300, easing: cubicOut, opacity: 0 });
+      default: return { duration: 0 };
+    }
+  };
 
   // ── Preparación: qué se proyecta ──────────────────────────────────────────
   //
@@ -245,6 +269,7 @@
     compareWithVersion.set(valor);
     prefs.segundoIdioma = true;
     persistir();
+    cerrarPanel();
   };
 
   const intercambiarIdiomas = () => {
@@ -253,15 +278,50 @@
   };
 
   // ── Ajustes ───────────────────────────────────────────────────────────────
-  const elegirFondo = (key) => { prefs.fondo = key; persistir(); };
-  const elegirAnimacion = (key) => { prefs.animacion = key; persistir(); };
+  //
+  // Elegir una opción CIERRA el panel. Antes se quedaba abierto hasta que lo
+  // cerrabas a mano, y como los controles tampoco se ocultan con un panel
+  // abierto, bastaba con mirar un fondo para dejar dos cajas encendidas en la
+  // pantalla de la iglesia durante el resto del culto.
+  const elegirFondo = (key) => { prefs.fondo = key; persistir(); cerrarPanel(); };
+  const elegirAnimacion = (key) => { prefs.animacion = key; persistir(); cerrarPanel(); };
   const masGrande = () => { prefs.escala = Math.min(prefs.escala + 0.1, 2); persistir(); };
   const masPequeno = () => { prefs.escala = Math.max(prefs.escala - 0.1, 0.5); persistir(); };
-  const alternarPanel = (cual) => { panelAbierto = panelAbierto === cual ? '' : cual; mostrarControles(); };
+
+  const cerrarPanel = () => {
+    panelAbierto = '';
+    mostrarControles();
+  };
+
+  const alternarPanel = (cual) => {
+    panelAbierto = panelAbierto === cual ? '' : cual;
+    mostrarControles();
+  };
+
+  /**
+   * La rueda del ratón cambia el tamaño del texto.
+   *
+   * Es el reflejo de cualquiera que se sienta delante de una pantalla, y aquí
+   * no compite con nada: la proyección no tiene scroll. `preventDefault` evita
+   * que el gesto se lo quede la página de debajo.
+   *
+   * El paso es la mitad que el de los botones: con la rueda se hacen varios
+   * clics seguidos sin querer, y a 0,1 por muesca se pasaba de largo.
+   */
+  const alGirarRueda = (e) => {
+    e.preventDefault();
+    const paso = e.deltaY < 0 ? 0.05 : -0.05;
+    prefs.escala = Math.min(Math.max(prefs.escala + paso, 0.5), 2);
+    persistir();
+    mostrarControles();
+  };
 
   // ── Navegación ────────────────────────────────────────────────────────────
-  const siguiente = () => { if (haySiguiente) indice += 1; };
-  const anterior = () => { if (hayAnterior) indice -= 1; };
+  //
+  // Avanzar cierra cualquier panel abierto: si el operador estaba mirando los
+  // fondos y pasa al versículo siguiente, ya no está eligiendo.
+  const siguiente = () => { panelAbierto = ''; if (haySiguiente) indice += 1; };
+  const anterior = () => { panelAbierto = ''; if (hayAnterior) indice -= 1; };
   const alternarNegro = () => { enNegro = !enNegro; };
 
   const salir = () => {
@@ -337,15 +397,21 @@
   const ESPERA_CONTROLES_MS = 4000;
   let punteroEncima = false;
 
+  // Un panel abierto aguanta más —se está leyendo— pero acaba cerrándose. Sin
+  // este segundo plazo, abrir el menú y no elegir nada dejaba la caja encendida
+  // en la pantalla de la iglesia hasta el final del culto.
+  const ESPERA_PANEL_MS = 9000;
+
   const mostrarControles = () => {
     controlesVisibles = true;
     clearTimeout(ocultarControlesTimer);
-    // No se ocultan con un panel abierto ni con el puntero encima: en los dos
-    // casos el operador está usándolos, y que se desvanezcan mientras los miras
-    // es de las cosas que más enfadan.
+    // No se ocultan con el puntero encima: el operador está usándolos, y que se
+    // desvanezcan mientras los miras es de las cosas que más enfadan.
     ocultarControlesTimer = setTimeout(() => {
-      if (!panelAbierto && !punteroEncima) controlesVisibles = false;
-    }, ESPERA_CONTROLES_MS);
+      if (punteroEncima) return;
+      panelAbierto = '';
+      controlesVisibles = false;
+    }, panelAbierto ? ESPERA_PANEL_MS : ESPERA_CONTROLES_MS);
   };
 
   const entrarEnControles = () => {
@@ -512,6 +578,7 @@
     style="--escala: {prefs.escala}; --fondo: {fondoCss}; --tinta: {fondo.ink}; --acento: {fondo.accent}"
     on:mousemove={mostrarControles}
     on:touchstart={mostrarControles}
+    on:wheel={alGirarRueda}
   >
     {#if !enNegro && actual}
       <!-- `{#key}` vuelve a montar la lámina en cada versículo, que es lo que
@@ -521,28 +588,19 @@
         <figure
           class="lamina"
           class:lamina--dos={!!secundario.texto}
-          in:fade={{ duration: prefs.animacion === 'fade' ? 260 : 0 }}
+          in:animarEntrada|global={{ tipo: prefs.animacion }}
         >
-          {#if prefs.animacion === 'slide'}
-            <div in:fly={{ y: 28, duration: 300 }}>
-              <blockquote class="lamina__texto">{principal.texto}</blockquote>
-            </div>
-          {:else if prefs.animacion === 'zoom'}
-            <div in:scale={{ start: 0.94, duration: 280 }}>
-              <blockquote class="lamina__texto">{principal.texto}</blockquote>
-            </div>
-          {:else}
-            <blockquote class="lamina__texto">{principal.texto}</blockquote>
-          {/if}
+          <blockquote class="lamina__texto">{principal.texto}</blockquote>
 
           {#if secundario.texto}
             <blockquote class="lamina__texto lamina__texto--secundario">{secundario.texto}</blockquote>
           {/if}
 
-          <figcaption class="lamina__ref">
-            {principal.referencia}
-            <span class="lamina__version">{principal.version}</span>
-          </figcaption>
+          <!-- Sólo la referencia. El nombre de la versión no pinta nada en una
+               pantalla de iglesia: la congregación sabe qué Biblia se usa, y
+               ocupaba sitio al lado de lo único que de verdad hay que leer
+               ahí. Sigue estando en la antesala, donde se elige. -->
+          <figcaption class="lamina__ref">{principal.referencia}</figcaption>
         </figure>
       {/key}
     {/if}
@@ -917,11 +975,6 @@
     font-weight: 700;
   }
 
-  .lamina__version {
-    font-size: 0.72em;
-    font-weight: 600;
-    opacity: 0.75;
-  }
 
   // Mitades invisibles para avanzar con el ratón o el dedo. Van por debajo de
   // los controles y los paneles, que necesitan sus propios clics.
@@ -934,6 +987,17 @@
     border: 0;
     background: transparent;
     cursor: pointer;
+    // Sin contorno de foco. Al hacer clic para avanzar, el botón se quedaba
+    // enfocado y el navegador le pintaba su `outline`: como ocupa media
+    // pantalla, el borde interior salía como una raya vertical oscura **en
+    // mitad de la proyección**, por encima del texto. En cualquier otra
+    // pantalla quitar el foco visible sería un error de accesibilidad; aquí el
+    // teclado tiene sus propios atajos para todo y estos dos botones son un
+    // atajo táctil, no la vía principal.
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+
+    &::-moz-focus-inner { border: 0; }
   }
 
   .zona--anterior { left: 0; }
