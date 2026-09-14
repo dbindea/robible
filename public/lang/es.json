@@ -302,7 +302,8 @@
       "open_verse": "Abrir el versículo en su contexto",
       "remove": "Eliminar la nota",
       "remove_reference": "Eliminar la nota de {reference}",
-      "login_prompt_action": "Iniciar sesión"
+      "login_prompt_action": "Iniciar sesión",
+      "edit_reference": "Editar la nota de {reference}"
     },
     "app_menu": {
       "aria_label": "Menú de la aplicación",
@@ -828,6 +829,27 @@
         "saving": "Guardando…",
         "saved": "Se han guardado los datos.",
         "failed": "No se han podido guardar los datos."
+      },
+      "motto": {
+        "edit": "Cambiar mi lema",
+        "add": "Poner mi lema",
+        "placeholder": "Un versículo o una frase que te represente…",
+        "save": "Guardar el lema",
+        "saved": "Se ha guardado tu lema.",
+        "failed": "No se ha podido guardar el lema."
+      },
+      "password": {
+        "title": "Contraseña",
+        "hint": "Se te pide la actual para que nadie pueda cambiarla desde una sesión que te hayas dejado abierta.",
+        "current": "Contraseña actual",
+        "new": "Contraseña nueva",
+        "repeat": "Repite la contraseña nueva",
+        "save": "Cambiar la contraseña",
+        "saving": "Cambiando…",
+        "changed": "Se ha cambiado la contraseña.",
+        "failed": "No se ha podido cambiar la contraseña.",
+        "mismatch": "Las dos contraseñas nuevas no coinciden.",
+        "too_short": "La contraseña nueva necesita al menos 6 caracteres."
       }
     },
     "memorize": {
@@ -1045,7 +1067,8 @@
       "invalid_church": "El nombre de la iglesia no puede superar los 120 caracteres.",
       "invalid_country": "El país no puede superar los 60 caracteres.",
       "invalid_confession": "La confesión no puede superar los 60 caracteres.",
-      "invalid_birth_date": "La fecha de nacimiento no es válida."
+      "invalid_birth_date": "La fecha de nacimiento no es válida.",
+      "invalid_motto": "El lema no puede pasar de 200 caracteres."
     },
     "user_type": "Tipo de cuenta",
     "user_type_user": "Usuario",

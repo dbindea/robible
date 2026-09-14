@@ -44,7 +44,14 @@ function getSlug(event) {
 
 function buildHtml({ topic, canonicalUrl, redirectPath, verseCount }) {
   const title = `${topic.name} — RoBible`;
-  const description = `${verseCount} ${verseCount === 1 ? 'versículo' : 'versículos'} sobre ${topic.name}, listos para leer y compartir.`;
+  // La descripción que escribió el autor manda sobre la frase automática: es la
+  // que explica de qué va el tema y la que se verá en la vista previa al pegar
+  // el enlace en un chat. Se acota a 200 porque es lo que el validador del
+  // worker permite guardar y lo que cabe en una meta description.
+  const propia = typeof topic.description === 'string' ? topic.description.trim().replace(/\s+/g, ' ') : '';
+  const description = propia
+    ? propia.slice(0, 200)
+    : `${verseCount} ${verseCount === 1 ? 'versículo' : 'versículos'} sobre ${topic.name}, listos para leer y compartir.`;
   const safeTitle = escapeHtml(title);
   const safeDescription = escapeHtml(description);
   const safeCanonicalUrl = escapeHtml(canonicalUrl);

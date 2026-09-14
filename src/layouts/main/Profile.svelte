@@ -17,7 +17,7 @@
   import { getBibleVersionConfigOrDefault, selectedBibleVersion } from '../../store/stores';
   import { isAuthenticated, currentUser } from '../../store/authStore';
   import { openAuthMenu } from '../../store/authMenuStore';
-  import { updateProfile } from '../../services/auth.service';
+  import { updateProfile, changePassword } from '../../services/auth.service';
   import { getTodayVerse, isEnabled, setEnabled } from '../../services/daily-verse.service';
   import { getLastRead } from '../../services/reading-progress.service';
   import * as pushService from '../../services/push.service';
@@ -46,6 +46,19 @@
   // (p. ej. `cambiarTipo`) pisaría lo que el usuario esté escribiendo aquí.
   let datosPersonales = { fullName: '', birthDate: '', church: '', country: '', confession: '' };
   let guardandoDatos = false;
+
+  // ── Lema personal (schema_version 14) ────────────────────────────────────
+  // Sustituye la presentación genérica de la aplicación por la frase o el
+  // versículo que el usuario elija. Es suyo y sólo lo ve él: no sale por
+  // ninguna respuesta pública.
+  const LEMA_MAX = 200;
+  let editandoLema = false;
+  let textoLema = '';
+  let guardandoLema = false;
+
+  // ── Cambiar la contraseña ────────────────────────────────────────────────
+  let contrasenas = { actual: '', nueva: '', repetida: '' };
+  let cambiandoContrasena = false;
 
   $: versionConfig = getBibleVersionConfigOrDefault($selectedBibleVersion);
 
@@ -219,6 +232,77 @@
     }
   };
 
+  // ── Lema personal ───────────────────────────────────────────────────────
+  //
+  // El editor se abre y se cierra con botones explícitos, y NO se guarda al
+  // perder el foco. Es a propósito: al cerrar un editor en línea, el navegador
+  // dispara el `blur` del campo mientras Svelte lo saca del DOM, así que
+  // guardar ahí convierte «cancelar» en «guardar» (trampa 60).
+  const abrirLema = () => {
+    textoLema = $currentUser?.motto || '';
+    editandoLema = true;
+  };
+
+  const cancelarLema = () => {
+    editandoLema = false;
+    textoLema = '';
+  };
+
+  const guardarLema = async () => {
+    if (guardandoLema) return;
+    guardandoLema = true;
+    try {
+      // Cadena vacía es «quítamelo»: vuelve a salir la presentación por defecto.
+      const res = await updateProfile({ motto: textoLema.trim() });
+      if (res.ok) {
+        currentUser.set(res.user);
+        editandoLema = false;
+        mostrar($_('app.profile.motto.saved'));
+      } else {
+        mostrar($_(res.error || 'app.profile.motto.failed'));
+      }
+    } catch {
+      mostrar($_('app.profile.motto.failed'));
+    } finally {
+      guardandoLema = false;
+    }
+  };
+
+  // ── Contraseña ──────────────────────────────────────────────────────────
+  //
+  // Se pide la actual: sin eso, quien encuentre una sesión abierta —un móvil
+  // desbloqueado, el ordenador de la iglesia— se queda con la cuenta.
+  // La comprobación de que las dos nuevas coinciden es del cliente; el servidor
+  // sólo recibe una.
+  $: contrasenaListaParaGuardar =
+    !!contrasenas.actual &&
+    contrasenas.nueva.length >= 6 &&
+    contrasenas.nueva === contrasenas.repetida;
+
+  const guardarContrasena = async () => {
+    if (cambiandoContrasena) return;
+    if (contrasenas.nueva !== contrasenas.repetida) {
+      mostrar($_('app.profile.password.mismatch'));
+      return;
+    }
+    cambiandoContrasena = true;
+    try {
+      const res = await changePassword(contrasenas.actual, contrasenas.nueva);
+      if (res.ok) {
+        // Se vacían los tres campos: dejarlos escritos en pantalla después de
+        // cambiarla es justo lo que no interesa en un dispositivo compartido.
+        contrasenas = { actual: '', nueva: '', repetida: '' };
+        mostrar($_('app.profile.password.changed'));
+      } else {
+        mostrar($_(res.error || 'app.profile.password.failed'));
+      }
+    } catch {
+      mostrar($_('app.profile.password.failed'));
+    } finally {
+      cambiandoContrasena = false;
+    }
+  };
+
   const guardarDatosPersonales = async () => {
     if (guardandoDatos) return;
     guardandoDatos = true;
@@ -286,9 +370,49 @@
       <div class="portada__texto">
         <p class="portada__eyebrow">{$_('app.profile.eyebrow')}</p>
         <h1 class="portada__titulo">{$currentUser?.nickname}</h1>
-        <p class="portada__lead">
-          {esPredicator ? $_('app.profile.lead_preacher') : $_('app.profile.lead_user')}
-        </p>
+
+        <!-- Lema personal. Si el usuario no ha puesto ninguno sale la
+             presentación de siempre, que sigue explicando qué hay en esta
+             pantalla a quien entra por primera vez. -->
+        {#if editandoLema}
+          <div class="lema-editor">
+            <textarea
+              class="lema-editor__campo"
+              bind:value={textoLema}
+              maxlength={LEMA_MAX}
+              rows="3"
+              spellcheck="false"
+              placeholder={$_('app.profile.motto.placeholder')}
+              disabled={guardandoLema}
+              on:keydown={(e) => { if (e.key === 'Escape') cancelarLema(); }}
+            ></textarea>
+            <div class="lema-editor__pie">
+              <span class="lema-editor__contador">{textoLema.length}/{LEMA_MAX}</span>
+              <div class="lema-editor__acciones">
+                <button type="button" class="boton" on:click={cancelarLema} disabled={guardandoLema}>
+                  {$_('app.topics.cancel')}
+                </button>
+                <button type="button" class="boton boton--primario" on:click={guardarLema} disabled={guardandoLema}>
+                  {$_(guardandoLema ? 'app.profile.personal.saving' : 'app.profile.motto.save')}
+                </button>
+              </div>
+            </div>
+          </div>
+        {:else if $currentUser?.motto}
+          <blockquote class="portada__lema">{$currentUser.motto}</blockquote>
+          <button type="button" class="portada__editar-lema" on:click={abrirLema}>
+            <Icon name="pencil" size="0.85rem" />
+            {$_('app.profile.motto.edit')}
+          </button>
+        {:else}
+          <p class="portada__lead">
+            {esPredicator ? $_('app.profile.lead_preacher') : $_('app.profile.lead_user')}
+          </p>
+          <button type="button" class="portada__editar-lema" on:click={abrirLema}>
+            <Icon name="pencil" size="0.85rem" />
+            {$_('app.profile.motto.add')}
+          </button>
+        {/if}
         <p class="portada__insignia" class:portada__insignia--predicator={esPredicator}>
           <Icon name={esPredicator ? 'lectern' : 'user'} size="0.9rem" />
           {$_(esPredicator ? 'auth.user_type_preacher' : 'auth.user_type_user')}
@@ -478,6 +602,73 @@
           </button>
         </div>
       </article>
+
+      <!-- ── Contraseña ──────────────────────────────────────────────── -->
+      <!-- `autocomplete` es lo que hace que el gestor de contraseñas del
+           navegador ofrezca la guardada y actualice la nueva al enviarla. Sin
+           `current-password`/`new-password` rellena las tres casillas con lo
+           mismo y el cambio falla sin que el usuario entienda por qué. -->
+      <article class="tarjeta tarjeta--ancha">
+        <h2 class="tarjeta__titulo">
+          <span class="tarjeta__icono" aria-hidden="true"><Icon name="lock" /></span>
+          {$_('app.profile.password.title')}
+        </h2>
+        <p class="tarjeta__pista">{$_('app.profile.password.hint')}</p>
+
+        <form class="datos-personales" on:submit|preventDefault={guardarContrasena}>
+          <label class="campo-perfil">
+            <span>{$_('app.profile.password.current')}</span>
+            <input
+              type="password"
+              autocomplete="current-password"
+              bind:value={contrasenas.actual}
+              disabled={cambiandoContrasena}
+            />
+          </label>
+          <label class="campo-perfil">
+            <span>{$_('app.profile.password.new')}</span>
+            <input
+              type="password"
+              autocomplete="new-password"
+              minlength="6"
+              maxlength="128"
+              bind:value={contrasenas.nueva}
+              disabled={cambiandoContrasena}
+            />
+          </label>
+          <label class="campo-perfil">
+            <span>{$_('app.profile.password.repeat')}</span>
+            <input
+              type="password"
+              autocomplete="new-password"
+              minlength="6"
+              maxlength="128"
+              bind:value={contrasenas.repetida}
+              disabled={cambiandoContrasena}
+            />
+          </label>
+        </form>
+
+        <!-- Los dos avisos se comparan contra las variables directamente y no
+             a través de un helper: envuelto en una función, el compilador no ve
+             la dependencia y el mensaje se queda pegado (trampa 23). -->
+        {#if contrasenas.nueva && contrasenas.nueva.length < 6}
+          <p class="contrasena__aviso">{$_('app.profile.password.too_short')}</p>
+        {:else if contrasenas.repetida && contrasenas.nueva !== contrasenas.repetida}
+          <p class="contrasena__aviso">{$_('app.profile.password.mismatch')}</p>
+        {/if}
+
+        <div class="tarjeta__acciones">
+          <button
+            type="button"
+            class="boton boton--primario"
+            on:click={guardarContrasena}
+            disabled={cambiandoContrasena || !contrasenaListaParaGuardar}
+          >
+            {$_(cambiandoContrasena ? 'app.profile.password.saving' : 'app.profile.password.save')}
+          </button>
+        </div>
+      </article>
     </div>
   {/if}
 </section>
@@ -606,6 +797,83 @@
     color: var(--color-ink-soft);
     font-size: var(--font-size-lead);
     line-height: var(--line-height-body);
+  }
+
+  // ── Lema personal ─────────────────────────────────────────────────────────
+  // Ocupa el sitio de `.portada__lead`, así que hereda su hueco vertical. Va en
+  // cursiva y con filete de acento a la izquierda para que se lea como una cita
+  // y no como una frase de la aplicación.
+  .portada__lema {
+    margin: 0 0 0.6rem;
+    padding: 0.15rem 0 0.15rem 0.85rem;
+    border-left: 3px solid var(--color-accent);
+    color: var(--color-ink-strong);
+    font-size: var(--font-size-lead);
+    font-style: italic;
+    line-height: var(--line-height-body);
+    white-space: pre-wrap;
+  }
+
+  .portada__editar-lema {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    // 24px de alto mínimo: es la norma de objetivo táctil (WCAG 2.5.8) que ya
+    // se aplicó al pie y a las migas de pan.
+    min-height: 1.5rem;
+    margin: 0 0 0.9rem;
+    padding: 0.15rem 0;
+    border: 0;
+    background: none;
+    color: var(--color-accent-ink);
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    --icon-size: 0.85rem;
+
+    &:hover { text-decoration: underline; text-underline-offset: 0.18em; }
+  }
+
+  .lema-editor {
+    display: grid;
+    gap: 0.5rem;
+    margin: 0 0 0.9rem;
+  }
+
+  .lema-editor__campo {
+    width: 100%;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-sm);
+    background: var(--color-field);
+    color: var(--color-ink);
+    font: inherit;
+    font-size: var(--font-size-small);
+    line-height: var(--line-height-body);
+    resize: vertical;
+
+    &:disabled { opacity: 0.6; }
+  }
+
+  .lema-editor__pie {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .lema-editor__contador {
+    color: var(--color-ink-soft);
+    font-size: 0.75rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .lema-editor__acciones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
   }
 
   .portada__insignia {
@@ -833,6 +1101,16 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
     gap: 0.7rem;
+  }
+
+  // ── Contraseña ────────────────────────────────────────────────────────────
+  // Ámbar y no rojo: no es un error de la aplicación, es que todavía falta algo
+  // por escribir. El rojo está reservado para lo destructivo.
+  .contrasena__aviso {
+    margin: 0;
+    color: var(--color-marked-favorite);
+    font-size: var(--font-size-small);
+    font-weight: 600;
   }
 
   .campo-perfil {

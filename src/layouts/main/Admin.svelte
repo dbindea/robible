@@ -203,7 +203,7 @@
             {#if stats.topCountriesToday?.length}
               <ol>
                 {#each stats.topCountriesToday as p (p.country)}
-                  <li><span>{p.country}</span><span>{p.count}</span></li>
+                  <li><span>{p.country}</span><span class="lista-stat__total">{p.count}</span></li>
                 {/each}
               </ol>
             {:else}
@@ -215,7 +215,10 @@
             {#if stats.topPagesToday?.length}
               <ol>
                 {#each stats.topPagesToday as p (p.path)}
-                  <li><span class="lista-stat__ruta">{p.path}</span><span>{p.count}</span></li>
+                  <li>
+                    <span class="lista-stat__ruta">{p.path}</span>
+                    <span class="lista-stat__total">{p.count}</span>
+                  </li>
                 {/each}
               </ol>
             {:else}
@@ -478,16 +481,41 @@
 
     li {
       display: flex;
+      // `baseline` y no el `center` implícito: con la ruta a dos o tres líneas,
+      // centrada dejaba el número flotando a media altura del bloque.
+      align-items: baseline;
       justify-content: space-between;
       gap: 0.5rem;
       font-size: var(--font-size-small);
     }
   }
 
+  // La ruta se enseña ENTERA. Antes se cortaba con puntos suspensivos y las
+  // direcciones largas —que son casi todas: `/biblia/vdc/matei/5/3`— acababan
+  // indistinguibles unas de otras, que es justo lo contrario de lo que sirve
+  // esta lista.
+  //
+  // `min-width: 0` es imprescindible: un hijo flex no baja de su ancho de
+  // contenido por defecto, así que sin esto la ruta empuja al contador fuera de
+  // la tarjeta en vez de partirse. `overflow-wrap: anywhere` porque una ruta no
+  // tiene espacios donde partir y `break-word` solo no la rompe.
   .lista-stat__ruta {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    // `monospace` a secas, como `.admin__contrasena`: no hay token de fuente
+    // monoespaciada en global.css y escribir `var(--font-mono, …)` fingiría que
+    // sí lo hay (trampa 15).
+    font-family: monospace;
+    font-size: 0.78rem;
+    line-height: 1.45;
+  }
+
+  .lista-stat__total {
+    flex: 0 0 auto;
+    color: var(--color-ink-soft);
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
   }
 
   // ── Buscador y listas ─────────────────────────────────────────────────────

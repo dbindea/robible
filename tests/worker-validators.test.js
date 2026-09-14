@@ -127,8 +127,12 @@ test('color: solo hexadecimal de 6 dígitos con almohadilla', () => {
 
 test('noteText y topicName: longitud acotada', () => {
   assert.ok(validators.noteText('a'));
-  assert.ok(validators.noteText('x'.repeat(500)));
-  assert.ok(!validators.noteText('x'.repeat(501)));
+  // 1000 desde el 14 sep 2026. El `maxlength` del textarea de Result.svelte y
+  // del panel de notas tiene que decir este mismo número: si el cliente deja
+  // escribir más de lo que el servidor acepta, el guardado falla al final y el
+  // usuario pierde lo escrito sin saber por qué.
+  assert.ok(validators.noteText('x'.repeat(1000)));
+  assert.ok(!validators.noteText('x'.repeat(1001)));
   assert.ok(!validators.noteText('   '), 'espacios en blanco no cuentan');
 
   assert.ok(validators.topicName('Fe'));
@@ -176,6 +180,23 @@ test('country y confession: hasta 60 caracteres, vacío incluido', () => {
   assert.ok(validators.confession('x'.repeat(60)));
   assert.ok(!validators.confession('x'.repeat(61)));
   assert.ok(!validators.confession(42));
+});
+
+// ── Lema personal (schema_version 14) ───────────────────────────────────────
+
+test('motto: hasta 200 caracteres, vacío incluido', () => {
+  assert.ok(validators.motto(''), 'vacío quita el lema');
+  assert.ok(validators.motto('   '), 'sólo espacios equivale a vacío');
+  // El caso de uso literal: pegar un versículo entero. Con un tope de 120 se
+  // habría cortado justo esto.
+  assert.ok(validators.motto(
+    'Fiindcă atât de mult a iubit Dumnezeu lumea, că a dat pe singurul Lui Fiu, '
+    + 'pentru ca oricine crede în El să nu piară, ci să aibă viața veșnică. — Ioan 3:16',
+  ));
+  assert.ok(validators.motto('x'.repeat(200)));
+  assert.ok(!validators.motto('x'.repeat(201)));
+  assert.ok(!validators.motto(null));
+  assert.ok(!validators.motto(42));
 });
 
 test('birthDate: YYYY-MM-DD, no futura, ni de antes de 1900', () => {

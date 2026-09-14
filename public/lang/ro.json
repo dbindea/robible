@@ -302,7 +302,8 @@
       "open_verse": "Deschide versetul în context",
       "remove": "Șterge notița",
       "remove_reference": "Șterge notița de la {reference}",
-      "login_prompt_action": "Autentificare"
+      "login_prompt_action": "Autentificare",
+      "edit_reference": "Editează notița de la {reference}"
     },
     "app_menu": {
       "aria_label": "Meniul aplicației",
@@ -828,6 +829,27 @@
         "saving": "Se salvează…",
         "saved": "Datele au fost salvate.",
         "failed": "Nu s-au putut salva datele."
+      },
+      "motto": {
+        "edit": "Schimbă deviza mea",
+        "add": "Pune deviza ta",
+        "placeholder": "Un verset sau o frază care te reprezintă…",
+        "save": "Salvează deviza",
+        "saved": "Deviza a fost salvată.",
+        "failed": "Deviza nu a putut fi salvată."
+      },
+      "password": {
+        "title": "Parola",
+        "hint": "Ți se cere parola actuală pentru ca nimeni să nu o poată schimba dintr-o sesiune rămasă deschisă.",
+        "current": "Parola actuală",
+        "new": "Parola nouă",
+        "repeat": "Repetă parola nouă",
+        "save": "Schimbă parola",
+        "saving": "Se schimbă…",
+        "changed": "Parola a fost schimbată.",
+        "failed": "Parola nu a putut fi schimbată.",
+        "mismatch": "Cele două parole noi nu coincid.",
+        "too_short": "Parola nouă are nevoie de cel puțin 6 caractere."
       }
     },
     "memorize": {
@@ -1045,7 +1067,8 @@
       "invalid_church": "Numele bisericii nu poate depăși 120 de caractere.",
       "invalid_country": "Țara nu poate depăși 60 de caractere.",
       "invalid_confession": "Confesiunea nu poate depăși 60 de caractere.",
-      "invalid_birth_date": "Data nașterii nu este validă."
+      "invalid_birth_date": "Data nașterii nu este validă.",
+      "invalid_motto": "Deviza nu poate depăși 200 de caractere."
     },
     "user_type": "Tipul contului",
     "user_type_user": "Utilizator",

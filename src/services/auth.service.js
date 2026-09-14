@@ -44,6 +44,9 @@ const isValidFullName = (t) => typeof t === 'string' && t.trim().length <= 120;
 const isValidChurch = (t) => typeof t === 'string' && t.trim().length <= 120;
 const isValidCountry = (t) => typeof t === 'string' && t.trim().length <= 60;
 const isValidConfession = (t) => typeof t === 'string' && t.trim().length <= 60;
+// Lema personal (schema_version 14). 200 porque lo normal es pegar un versículo
+// entero; mismo tope que valida el backend.
+const isValidMotto = (t) => typeof t === 'string' && t.trim().length <= 200;
 const isValidBirthDate = (d) => {
   if (typeof d !== 'string') return false;
   const v = d.trim();
@@ -64,6 +67,7 @@ export const validators = {
   isValidChurch,
   isValidCountry,
   isValidConfession,
+  isValidMotto,
   isValidBirthDate,
 };
 
@@ -332,7 +336,7 @@ export const updateProfile = async (cambios) => {
     }
   }
 
-  const camposTexto = { fullName: isValidFullName, church: isValidChurch, country: isValidCountry, confession: isValidConfession };
+  const camposTexto = { fullName: isValidFullName, church: isValidChurch, country: isValidCountry, confession: isValidConfession, motto: isValidMotto };
   for (const [clave, valida] of Object.entries(camposTexto)) {
     if (cambios[clave] !== undefined && !valida(cambios[clave])) {
       return { ok: false, error: translateApiError(`invalid_${clave.replace(/([A-Z])/g, '_$1').toLowerCase()}`) };
@@ -347,6 +351,39 @@ export const updateProfile = async (cambios) => {
     // Refrescar el usuario guardado: el tipo decide qué menús se ven.
     tokenStore.set(null, res.user);
     return { ok: true, user: res.user };
+  } catch (e) {
+    if (e instanceof ApiError && e.status >= 400 && e.status < 500) {
+      return { ok: false, error: translateApiError(e.code) };
+    }
+    return { ok: false, error: 'auth.errors.unknown' };
+  }
+};
+
+/**
+ * Cambia la contraseña del usuario que ha iniciado sesión.
+ *
+ * Pide la actual a propósito: sin eso, cualquiera que encuentre una sesión
+ * abierta —un móvil desbloqueado, un ordenador compartido en la iglesia— podría
+ * quedarse con la cuenta cambiando la contraseña sin conocerla.
+ *
+ * Necesita backend, igual que `updateProfile`: el hash vive en D1 y el modo sin
+ * conexión no tiene forma de cambiarlo. Devolver aquí un `ok: true` de mentira
+ * sería peor que el error — el usuario creería que la ha cambiado.
+ *
+ * El servidor NO invalida las demás sesiones al cambiarla. Es deliberado: el
+ * caso normal es "quiero una contraseña mejor", no "me han entrado", y cerrarle
+ * la sesión del móvil a alguien que sólo quería ordenar sus cosas es una
+ * sorpresa desagradable. Para el otro caso está el panel de admin, que sí las
+ * revoca todas.
+ */
+export const changePassword = async (currentPassword, newPassword) => {
+  if (!USE_BACKEND) return { ok: false, error: 'auth.errors.unknown' };
+  if (!currentPassword) return { ok: false, error: 'auth.errors.invalid_current_password' };
+  if (!isValidPassword(newPassword)) return { ok: false, error: 'auth.errors.invalid_password' };
+
+  try {
+    await api.post('/api/auth/change-password', { currentPassword, newPassword });
+    return { ok: true };
   } catch (e) {
     if (e instanceof ApiError && e.status >= 400 && e.status < 500) {
       return { ok: false, error: translateApiError(e.code) };

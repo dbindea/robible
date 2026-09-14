@@ -51,6 +51,12 @@ CREATE TABLE IF NOT EXISTS users (
   church TEXT,
   country TEXT,
   confession TEXT,
+  -- Lema personal (schema_version 14): la frase o el versículo que el usuario
+  -- pone en la cabecera de su perfil, en lugar de la presentación genérica de
+  -- la aplicación. Es PRIVADO: no sale por ninguna respuesta pública, ni
+  -- siquiera por la del autor de una predicación publicada, que sigue llevando
+  -- sólo el nickname (ver `paraElPublico` en sermons.js).
+  motto TEXT,
   created_at TEXT NOT NULL,                          -- ISO 8601
   updated_at TEXT NOT NULL                           -- ISO 8601
 );
@@ -408,13 +414,14 @@ CREATE TABLE IF NOT EXISTS _meta (
 -- 12: topics gana description y position
 -- 13: users gana is_admin / is_disabled / full_name / birth_date / church /
 --     country / confession; se añade page_views (analíticas del panel de admin)
+-- 14: users gana motto (lema personal del perfil)
 --
 -- El literal de abajo se había quedado en '9' aunque los comentarios de más
 -- abajo documentaban hasta la 12 (aplicadas a mano en producción sin bumpear
 -- este valor). Se corrige de una vez al llegar a la 13, en vez de arrastrar
 -- la deriva una migración más.
-INSERT OR IGNORE INTO _meta (key, value) VALUES ('schema_version', '13');
-UPDATE _meta SET value = '13' WHERE key = 'schema_version' AND value < '13';
+INSERT OR IGNORE INTO _meta (key, value) VALUES ('schema_version', '14');
+UPDATE _meta SET value = '14' WHERE key = 'schema_version' AND value < '14';
 
 -- 10: sermons gana is_public / public_slug / published_at
 --   ALTER TABLE sermons ADD COLUMN is_public INTEGER NOT NULL DEFAULT 0;
@@ -486,3 +493,8 @@ UPDATE _meta SET value = '13' WHERE key = 'schema_version' AND value < '13';
 --   UPDATE users SET is_admin = 1 WHERE nickname = 'dbindea';
 --
 -- Aplicado en producción el 12 sep 2026.
+
+-- 14: lema personal del perfil
+--   ALTER TABLE users ADD COLUMN motto TEXT;
+--
+-- Aplicado en producción el 14 sep 2026.

@@ -302,7 +302,8 @@
       "open_verse": "Open verse in context",
       "remove": "Delete note",
       "remove_reference": "Delete note from {reference}",
-      "login_prompt_action": "Sign in"
+      "login_prompt_action": "Sign in",
+      "edit_reference": "Edit the note on {reference}"
     },
     "app_menu": {
       "aria_label": "App menu",
@@ -828,6 +829,27 @@
         "saving": "Saving…",
         "saved": "Your details have been saved.",
         "failed": "Couldn't save your details."
+      },
+      "motto": {
+        "edit": "Change my motto",
+        "add": "Add your motto",
+        "placeholder": "A verse or a line that speaks for you…",
+        "save": "Save motto",
+        "saved": "Your motto has been saved.",
+        "failed": "The motto could not be saved."
+      },
+      "password": {
+        "title": "Password",
+        "hint": "Your current password is required so nobody can change it from a session you left open.",
+        "current": "Current password",
+        "new": "New password",
+        "repeat": "Repeat the new password",
+        "save": "Change password",
+        "saving": "Changing…",
+        "changed": "Your password has been changed.",
+        "failed": "The password could not be changed.",
+        "mismatch": "The two new passwords do not match.",
+        "too_short": "The new password needs at least 6 characters."
       }
     },
     "memorize": {
@@ -1045,7 +1067,8 @@
       "invalid_church": "Church name can't be longer than 120 characters.",
       "invalid_country": "Country can't be longer than 60 characters.",
       "invalid_confession": "Confession can't be longer than 60 characters.",
-      "invalid_birth_date": "Birth date is not valid."
+      "invalid_birth_date": "Birth date is not valid.",
+      "invalid_motto": "The motto cannot be longer than 200 characters."
     },
     "user_type": "Account type",
     "user_type_user": "User",

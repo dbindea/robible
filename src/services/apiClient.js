@@ -81,6 +81,8 @@ const ERROR_KEYS = {
   invalid_country: 'auth.errors.invalid_country',
   invalid_confession: 'auth.errors.invalid_confession',
   invalid_birth_date: 'auth.errors.invalid_birth_date',
+  // ── Lema personal (schema_version 14) ──────────────────
+  invalid_motto: 'auth.errors.invalid_motto',
   // ── Panel de admin ──────────────────────────────────────
   not_admin: 'app.admin.errors.not_admin',
   cannot_modify_self: 'app.admin.errors.cannot_modify_self',
