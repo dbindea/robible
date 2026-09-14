@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { BIBLE_VERSIONS } from '../src/config/bible-versions.js';
 import { buildBiblePath } from '../src/services/bible-route.service.js';
+import { GOLDEN_VERSES, MAXIMO_INDEXABLES } from '../src/config/golden-verses.js';
 
 const ROOT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DIST_DIR = path.join(ROOT_DIR, 'dist');
@@ -461,6 +462,98 @@ async function loadVersionData() {
   );
 }
 
+/**
+ * Escribe el `Allow` de cada versículo indexable en `dist/robots.txt` y
+ * devuelve sus URLs para el sitemap.
+ *
+ * Por qué se genera y no se escribe a mano: son ~400 referencias × 4 versiones
+ * = ~1.600 líneas. Mantenerlas a mano es garantía de que un día el `Allow`, el
+ * sitemap y el `noindex` de la función dejen de coincidir — y cuando eso pasa
+ * nadie se entera, porque el síntoma es una página que Google simplemente no
+ * visita.
+ *
+ * El marcador de `public/robots.txt` se sustituye aquí. Si este script no
+ * llegara a ejecutarse, el fichero se queda con el marcador como comentario y
+ * el sitio sigue funcionando: los versículos quedarían todos cerrados, que es
+ * el estado seguro.
+ */
+async function escribirVersiculosIndexables(versionDataList) {
+  // Aquí van SÓLO los de oro, no los 283 del versículo del día.
+  //
+  // El motivo es el tamaño y es tonto pero real: como Googlebot y Bingbot
+  // tienen grupo propio en robots.txt e ignoran el de `*`, cada `Allow` hay que
+  // escribirlo TRES veces. Con los diarios incluidos serían ~4.800 líneas y
+  // 200 KB de robots.txt; sólo con los de oro son ~1.300 y unos 55 KB.
+  //
+  // Los diarios no se pierden: `verse-meta` los marca `index, follow` igual
+  // (usa la lista combinada), así que el día que se levante el `Disallow`
+  // general se indexarán solos, sin tocar nada aquí.
+  const referencias = GOLDEN_VERSES;
+  if (referencias.length > MAXIMO_INDEXABLES) {
+    throw new Error(
+      `Hay ${referencias.length} versículos de oro y el tope es ${MAXIMO_INDEXABLES}. `
+      + 'Cada uno son doce líneas de Allow en un robots.txt que Google se lee entero: '
+      + 'si la lista crece sin freno deja de ser una lista blanca. Ver src/config/golden-verses.js.',
+    );
+  }
+
+  const lineas = [];
+  const urls = [];
+
+  for (const versionData of versionDataList) {
+    for (const ref of referencias) {
+      // Una referencia puede no existir en una versión concreta (numeración
+      // distinta en los Salmos, versículos partidos). Se comprueba contra el
+      // texto real en vez de darlo por hecho: un `Allow` a una URL que devuelve
+      // 404 no rompe nada, pero un sitemap lleno de 404 sí penaliza.
+      const texto = versionData.bible?.[ref.book]?.[ref.chapter - 1]?.[ref.verse - 1];
+      if (!texto) continue;
+
+      const ruta = buildBiblePath({
+        version: versionData.config.value,
+        map: versionData.map,
+        book: ref.book,
+        chapter: ref.chapter,
+        verse: ref.verse,
+      });
+      if (!ruta) continue;
+
+      lineas.push(`Allow: ${ruta}`);
+      urls.push({
+        loc: absoluteUrl(ruta),
+        lastmod: TODAY,
+        changefreq: 'monthly',
+        priority: '0.6',
+        alternates: getAlternates(versionDataList, { book: ref.book, chapter: ref.chapter, verse: ref.verse }),
+      });
+    }
+  }
+
+  const MARCADOR = '# {{VERSICULOS_INDEXABLES}}';
+  const plantilla = await readFile(path.join(ROOT_DIR, 'public', 'robots.txt'), 'utf8');
+  // Tres marcadores, uno por grupo (`*`, Googlebot, Bingbot): un bot obedece un
+  // solo grupo, así que un `Allow` escrito únicamente en `*` no le llega a
+  // Googlebot, que es justo a quien va dirigido.
+  const marcadores = plantilla.split(MARCADOR).length - 1;
+  if (marcadores !== 3) {
+    throw new Error(
+      `public/robots.txt tiene ${marcadores} marcadores ${MARCADOR} y deberían ser 3, uno por `
+      + 'grupo (*, Googlebot, Bingbot). Un bot con grupo propio ignora el de `*`, así que si le '
+      + 'falta su bloque no verá ni uno de los versículos indexables y no habrá forma de notarlo.',
+    );
+  }
+
+  const bloque = [
+    `# ${lineas.length} versículos indexables, generados por scripts/generate-seo.mjs.`,
+    '# NO los edites aquí: salen de src/config/golden-verses.js. Cualquier cambio',
+    '# a mano se pierde en el siguiente build.',
+    ...lineas,
+  ].join('\n');
+
+  await writeFile(path.join(DIST_DIR, 'robots.txt'), plantilla.replaceAll(MARCADOR, bloque), 'utf8');
+  return urls;
+}
+
 async function main() {
   const indexHtml = await readFile(path.join(DIST_DIR, 'index.html'), 'utf8');
   const versionDataList = await loadVersionData();
@@ -733,19 +826,27 @@ async function main() {
     console.warn(`Colecciones curadas: no se han generado (${error.message})`);
   }
 
+  // ── Versículos indexables ───────────────────────────────────────────────
+  // Las 124.400 URLs de versículo están cerradas en robots.txt; estas pocas
+  // son la excepción. Las tres salidas —el `Allow`, el sitemap y el `index,
+  // follow` de verse-meta— se calculan de la MISMA lista, así que no pueden
+  // decir cosas distintas.
+  const verseUrls = await escribirVersiculosIndexables(versionDataList);
+
   await writeSitemap('sitemaps/static.xml', staticRoutes);
   await writeSitemap('sitemaps/books.xml', bookUrls);
   await writeSitemap('sitemaps/chapters.xml', chapterUrls);
   await writeSitemap('sitemaps/topics.xml', topicUrls);
+  await writeSitemap('sitemaps/verses.xml', verseUrls);
 
   // sitemaps/sermons.xml se referencia en el índice pero NO se escribe aquí: lo
   // sirve una función de Netlify, porque las predicaciones se publican entre
   // despliegues y un sitemap estático las dejaría fuera hasta el siguiente.
   // Ver netlify/functions/sermons-sitemap.mjs y la redirección de netlify.toml.
-  await writeSitemapIndex(['/sitemaps/static.xml', '/sitemaps/books.xml', '/sitemaps/chapters.xml', '/sitemaps/topics.xml', '/sitemaps/sermons.xml']);
+  await writeSitemapIndex(['/sitemaps/static.xml', '/sitemaps/books.xml', '/sitemaps/chapters.xml', '/sitemaps/topics.xml', '/sitemaps/verses.xml', '/sitemaps/sermons.xml']);
 
   console.log(
-    `Generated SEO pages: ${bookUrls.length} books, ${chapterUrls.length} chapters, ${topicUrls.length} topics.`,
+    `Generated SEO pages: ${bookUrls.length} books, ${chapterUrls.length} chapters, ${topicUrls.length} topics, ${verseUrls.length} verse URLs.`,
   );
 }
 

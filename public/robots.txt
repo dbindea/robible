@@ -45,7 +45,13 @@ Disallow: /assets/
 # Versículos sueltos: `/biblia/<versión>/<libro>/<capítulo>/<versículo>`.
 # El patrón exige cuatro segmentos, así que NO alcanza a los capítulos
 # (`/biblia/vdc/geneza/1`), que siguen abiertos a propósito.
+#
+# Los conocidos son la excepción y van más abajo, uno a uno: cerrarlos todos
+# tiraba también la cola larga que sí vale (quien busca «Ioan 3:16» quiere esa
+# página). El `Allow` gana al `Disallow` cuando su patrón es más largo, que es
+# el caso de una ruta completa frente a este comodín.
 Disallow: /biblia/*/*/*/*
+# {{VERSICULOS_INDEXABLES}}
 
 # Las imágenes Open Graph se generan una por una en una función. Sirven para la
 # vista previa al compartir un enlace, no para el buscador de imágenes.
@@ -78,6 +84,7 @@ User-agent: Googlebot
 Allow: /assets/
 Allow: /data/
 Disallow: /biblia/*/*/*/*
+# {{VERSICULOS_INDEXABLES}}
 Disallow: /og/
 Disallow: /.netlify/functions/
 Disallow: /api/
@@ -89,6 +96,7 @@ User-agent: Bingbot
 Allow: /assets/
 Allow: /data/
 Disallow: /biblia/*/*/*/*
+# {{VERSICULOS_INDEXABLES}}
 Disallow: /og/
 Disallow: /.netlify/functions/
 Disallow: /api/

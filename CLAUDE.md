@@ -13,11 +13,12 @@ PWA de lectura bíblica multiidioma con lectura acompañada de música, comparac
 
 ## Reglas de trabajo
 
-**Git — regla heredada, sigue vigente:**
+**Git — cambiada el 14 sep 2026:**
 
-- El agente **NO** hace `git commit` / `push` / `PR` / `merge` de archivos del frontend. Se dejan los cambios en el working tree y el usuario los revisa y commitea.
-- El agente **sí** gestiona: backend (`workers/`), deploys a Cloudflare, queries a D1, scripts de mantenimiento.
-- Nunca trabajar directamente sobre `master`. `master` solo recibe merges hechos por el usuario.
+- El agente **sí** hace `git commit` y `git push` a `develop`, del frontend también. Mensaje descriptivo, en castellano.
+- Antes era al revés: los cambios de frontend se dejaban en el working tree para que el usuario los revisara y commiteara. Se levantó porque el control editorial lo ejerce en el merge a `master`, no en cada commit, y retenerlos solo añadía un paso manual.
+- **`master` sigue siendo suyo**: solo recibe merges hechos por el usuario. El agente no abre PR, no mergea y nunca trabaja directamente sobre `master`.
+- El agente gestiona además: backend (`workers/`), deploys a Cloudflare, queries a D1, scripts de mantenimiento.
 
 **Alcance:** este proyecto está en producción con usuarios reales. Antes de cambiar comportamiento de auth, service worker o datos bíblicos, avisar del impacto.
 

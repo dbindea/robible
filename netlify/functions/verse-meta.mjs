@@ -2,34 +2,63 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { getBibleVersionConfig } from '../../src/config/bible-versions.js';
 import { buildBiblePath, getBookIdFromSlug, parseBiblePath } from '../../src/services/bible-route.service.js';
+import { combinarIndexables, crearIndice, esIndexable } from '../../src/config/golden-verses.js';
 
 const SITE_URL = 'https://robible.com';
 
 /**
- * `noindex, follow` desde el 14 sep 2026; antes era `index, follow`.
+ * Un versículo se indexa sólo si está en la lista blanca; el resto van
+ * `noindex`. Antes del 14 sep 2026 se indexaban los 124.400.
  *
- * Un versículo suelto es la definición de contenido fino: una frase que ya está
- * entera en la página de su capítulo, multiplicada por 124.400 URLs (31.100 ×
- * 4 versiones). Y pedir que se indexaran salía carísimo, porque esta página
- * manda al visitante a la aplicación completa, que se descarga la Biblia de
- * 4,3 MB para pintar esa frase: rastrear el conjunto son unos 600 GB. Es lo que
- * agotó el ancho de banda del plan de Netlify en quince días.
+ * Por qué: un versículo suelto es la definición de contenido fino —una frase
+ * que ya está entera en la página de su capítulo— y esta página manda al
+ * visitante a la aplicación completa, que se descarga la Biblia de 4,3 MB para
+ * pintar esa frase. Rastrear el conjunto son unos 600 GB, y eso agotó el ancho
+ * de banda del plan de Netlify en quince días.
  *
- * `follow` se mantiene — los enlaces siguen contando— y el enlace sigue
- * sirviendo para compartir, que es su función real: las etiquetas Open Graph no
- * dependen de que la página se indexe.
+ * Pero cerrarlos todos tiraba también la cola larga que sí vale —quien busca
+ * «Ioan 3:16» quiere esa página—, así que los conocidos siguen indexándose.
+ * Quiénes son, en `src/config/golden-verses.js`.
  *
- * Ojo: mientras `robots.txt` mantenga cerradas las rutas de versículo (las de
- * cuatro segmentos bajo `/biblia/`), Google no llegará a leer esta etiqueta.
- * Las dos cosas se pusieron a la vez a propósito — el `Disallow` corta el gasto
- * hoy, y este `noindex` es lo que desindexa si algún día se levanta el bloqueo.
+ * `follow` se mantiene en los dos casos: los enlaces siguen contando. Y el
+ * enlace sigue sirviendo para compartir aunque no se indexe — las etiquetas
+ * Open Graph no dependen de eso.
  */
-const ROBOTS = 'noindex, follow, max-image-preview:large';
+const ROBOTS_NOINDEX = 'noindex, follow, max-image-preview:large';
+const ROBOTS_INDEX = 'index, follow, max-image-preview:large';
 
 const DATA_DIRECTORIES = [
   path.resolve(process.cwd(), 'public', 'data'),
   path.resolve(process.env.LAMBDA_TASK_ROOT || process.cwd(), 'public', 'data'),
 ];
+
+// ── Lista blanca de versículos indexables ───────────────────────────────────
+//
+// Se construye una sola vez por contenedor, no en cada invocación: son ~400
+// referencias y leer el JSON de los versículos del día en cada petición sería
+// trabajo repetido para siempre. Netlify reutiliza el contenedor entre
+// invocaciones, así que el coste es del primer arranque en frío.
+//
+// Si el fichero de los diarios no se puede leer, se sigue con la lista curada
+// en vez de reventar: un versículo de más o de menos en el índice de Google no
+// justifica devolver un 500 a quien abrió el enlace.
+let indiceIndexables = null;
+
+async function cargarIndiceIndexables() {
+  if (indiceIndexables) return indiceIndexables;
+  let diarios = [];
+  try {
+    for (const dataDirectory of [...new Set(DATA_DIRECTORIES)]) {
+      try {
+        const crudo = JSON.parse(await readFile(path.join(dataDirectory, 'daily-verses.json'), 'utf8'));
+        diarios = Array.isArray(crudo?.verses) ? crudo.verses : [];
+        break;
+      } catch { /* se prueba el siguiente directorio */ }
+    }
+  } catch { /* nos quedamos con la lista curada */ }
+  indiceIndexables = crearIndice(combinarIndexables(diarios));
+  return indiceIndexables;
+}
 
 function isValidBibleVersion(value) {
   return typeof value === 'string' && /^[a-z0-9][a-z0-9_-]*$/i.test(value);
@@ -122,6 +151,7 @@ function buildHtml({
   reference,
   bibleName,
   ogImage,
+  indexable,
 }) {
   const safeTitle = escapeHtml(title);
   const safeDescription = escapeHtml(description);
@@ -151,7 +181,7 @@ function buildHtml({
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="robots" content="${ROBOTS}" />
+    <meta name="robots" content="${indexable ? ROBOTS_INDEX : ROBOTS_NOINDEX}" />
     <meta name="theme-color" content="#3f5867" />
     <title>${safeTitle}</title>
     <meta name="description" content="${safeDescription}" />
@@ -252,6 +282,7 @@ export async function handler(event) {
         verseText,
         reference,
         bibleName: versionConfig.bibleName,
+        indexable: esIndexable(await cargarIndiceIndexables(), book, params.chapter, params.verse),
         ogImage,
       }),
     };
