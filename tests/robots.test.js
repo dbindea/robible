@@ -164,7 +164,14 @@ test('las Biblias en crudo están cerradas a todos MENOS a Google y Bing', () =>
 });
 
 test('las páginas públicas que se quieren posicionar siguen abiertas', () => {
-  const publicas = ['/', '/predici', '/predica/una-predica-abc1', '/teme', '/versete/dragoste', '/landing'];
+  const publicas = [
+    '/', '/predici', '/predica/una-predica-abc1', '/teme', '/versete/dragoste', '/landing',
+    // La presentación del Modo Proyección. Va aquí porque el patrón que la
+    // podría romper es fácil de escribir sin querer: un `Disallow: /proiectie`
+    // sin ancla se llevaría también `/proiectie-biserici`, que es la página con
+    // la que se quiere aparecer en el buscador.
+    '/proiectie-biserici',
+  ];
   for (const ruta of publicas) {
     assert.equal(puedeRastrear('googlebot', ruta), true, `Googlebot debería poder pedir ${ruta}`);
   }

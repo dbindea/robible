@@ -22,6 +22,8 @@
   import SermonPulpit from './SermonPulpit.svelte';
   import GuidePredicare from './GuidePredicare.svelte';
   import Admin from './Admin.svelte';
+  import Projection from './Projection.svelte';
+  import ProjectionLanding from './ProjectionLanding.svelte';
   import { getBibleVersionConfigOrDefault } from '../../store/stores';
   import { registrarVisita } from '../../services/analytics.service';
 
@@ -113,6 +115,22 @@
   const isAdminPath = (path) => path === '/admin' || path === '/admin/';
   let isAdminMode = typeof window !== 'undefined' ? isAdminPath(window.location.pathname) : false;
 
+  // Modo Proyección (`/proiectie`). Sin traducir por idioma y con `noindex`: es
+  // una herramienta del dispositivo que proyecta, no contenido que se comparta,
+  // así que cuatro URLs distintas no aportarían nada. Mientras proyecta se pinta
+  // como capa propia a pantalla completa, igual que el Amvon.
+  const isProjectionPath = (path) => path === '/proiectie' || path === '/proiectie/';
+  let isProjectionMode = typeof window !== 'undefined' ? isProjectionPath(window.location.pathname) : false;
+
+  // Presentación del Modo Proyección (`/proiectie-biserici`). Al revés que la
+  // herramienta, ésta SÍ se indexa: es la página con la que se quiere aparecer
+  // al buscar «proiecție versete biserică», y va dirigida a quien todavía no
+  // sabe que la función existe. Tampoco se traduce por idioma — es pública y se
+  // reparte, así que una sola URL.
+  const isProjectionLandingPath = (path) => path === '/proiectie-biserici' || path === '/proiectie-biserici/';
+  let isProjectionLandingMode =
+    typeof window !== 'undefined' ? isProjectionLandingPath(window.location.pathname) : false;
+
   // «Predicile mele»: el cuaderno privado. Vive en /predicile-mele desde que
   // /predici pasó a ser el blog público — el plural suelto describe mejor «todas
   // las publicadas» que «las mías», y así la ruta pública queda corta, que es la
@@ -171,6 +189,8 @@
     isMemorizeMode = isMemorizePath(window.location.pathname);
     isGuideMode = isGuidePath(window.location.pathname);
     isAdminMode = isAdminPath(window.location.pathname);
+    isProjectionMode = isProjectionPath(window.location.pathname);
+    isProjectionLandingMode = isProjectionLandingPath(window.location.pathname);
     isSermonsMode = isSermonsPath(window.location.pathname);
     sermonId = sermonIdFromPath(window.location.pathname);
     pulpitId = pulpitIdFromPath(window.location.pathname);
@@ -215,8 +235,8 @@
 </script>
 
 <!-- La ruta /landing la resuelve App.svelte antes de montar Main. -->
-<div class="main" class:main--immersive={isImmersive} class:main--compare={isCompareMode} class:main--index={isIndexMode} class:main--favorites={isFavoritesMode} class:main--notes={isNotesMode || isPublicTopicMode || isPublicSermonMode || isSermonsMode || isPublicSermonsMode || isPublicTopicsMode || isProfileMode || isCuratedMode || isMemorizeMode || isGuideMode || isAdminMode}>
-  {#if !isImmersive && !isCompareMode && !isIndexMode && !isFavoritesMode && !isNotesMode && !isPublicTopicMode && !isPublicSermonMode && !isSermonsMode && !isPublicSermonsMode && !isPublicTopicsMode && !isProfileMode && !isCuratedMode && !isMemorizeMode && !isGuideMode && !isAdminMode}
+<div class="main" class:main--immersive={isImmersive} class:main--compare={isCompareMode} class:main--index={isIndexMode} class:main--favorites={isFavoritesMode} class:main--notes={isNotesMode || isPublicTopicMode || isPublicSermonMode || isSermonsMode || isPublicSermonsMode || isPublicTopicsMode || isProfileMode || isCuratedMode || isMemorizeMode || isGuideMode || isAdminMode || isProjectionMode || isProjectionLandingMode}>
+  {#if !isImmersive && !isCompareMode && !isIndexMode && !isFavoritesMode && !isNotesMode && !isPublicTopicMode && !isPublicSermonMode && !isSermonsMode && !isPublicSermonsMode && !isPublicTopicsMode && !isProfileMode && !isCuratedMode && !isMemorizeMode && !isGuideMode && !isAdminMode && !isProjectionMode && !isProjectionLandingMode}
     <div class="sidebar">
       <Sidebar {map} {result} {count} />
     </div>
@@ -245,6 +265,13 @@
         <GuidePredicare />
       {:else if isAdminMode}
         <Admin />
+      {:else if isProjectionMode}
+        <!-- `compareBible` y `compareMap` son el segundo idioma. Llegan vacíos
+             hasta que el usuario lo enciende: App.svelte sólo baja esa Biblia
+             cuando `compareWithVersion` deja de ser null (son ~4 MB). -->
+        <Projection {bible} {map} {compareBible} {compareMap} />
+      {:else if isProjectionLandingMode}
+        <ProjectionLanding />
       {:else if isPublicSermonMode}
         <PublicSermon {map} />
       {:else if isPublicTopicMode}
@@ -270,7 +297,7 @@
      Biblia, y sobre un formulario de preparación no significa nada. Además se
      plantaba encima del texto del guía de homilética, que es contenido que hay
      que poder leer entero. El Modo Amvon tiene su propia pantalla completa. -->
-{#if !isImmersive && !isCompareMode && !isSermonsMode}
+{#if !isImmersive && !isCompareMode && !isSermonsMode && !isProjectionMode && !isProjectionLandingMode}
   <button
     type="button"
     class="immersive-toggle"

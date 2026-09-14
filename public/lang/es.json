@@ -38,7 +38,8 @@
         "index": "Índice temático",
         "guide": "Guía de predicación",
         "sitemap": "Mapa del sitio",
-        "github": "GitHub"
+        "github": "GitHub",
+        "projection": "Proyección para iglesias"
       }
     },
     "pwa": {
@@ -353,6 +354,10 @@
         "admin": {
           "label": "Administración",
           "hint": "El panel de administración"
+        },
+        "projection": {
+          "label": "Proyección",
+          "hint": "Versículos en la pantalla de la iglesia"
         }
       }
     },
@@ -979,6 +984,64 @@
         "confirm_delete_title": "Borrar la predicación definitivamente",
         "confirm_delete_text": "«{title}» se borrará definitivamente, también para su autor. Esta acción no se puede deshacer."
       }
+    },
+    "projection": {
+      "seo_title": "Proyección | RoBible",
+      "seo_description": "Proyecta versículos en la pantalla de la iglesia.",
+      "eyebrow": "Proyección",
+      "title": "Versículos en pantalla",
+      "lead": "Elige el pasaje y avanza con el mando o con el teclado. El texto se lee desde la última fila.",
+      "search_label": "¿Qué proyectamos?",
+      "search_placeholder": "juan 3 o salmos 23",
+      "continue": "Seguir desde {reference}",
+      "keys_title": "Teclas",
+      "key_next": "Versículo siguiente",
+      "key_prev": "Versículo anterior",
+      "key_black": "Pantalla en negro",
+      "key_fullscreen": "Pantalla completa",
+      "key_size": "Tamaño del texto",
+      "key_exit": "Salir de la proyección",
+      "phrase_label": "O busca una expresión",
+      "phrase_placeholder": "contiene la expresión…",
+      "phrase_count": "{count} versículos encontrados",
+      "phrase_empty": "Ningún versículo con esa expresión.",
+      "key_swap": "Intercambiar idiomas",
+      "panel_background": "Fondo",
+      "panel_animation": "Animación",
+      "panel_language": "Segundo idioma",
+      "second_on": "Segundo idioma: activado",
+      "second_off": "Segundo idioma: desactivado",
+      "animation_none": "Ninguna",
+      "animation_fade": "Fundido",
+      "animation_slide": "Deslizar",
+      "animation_zoom": "Acercar"
+    },
+    "projection_landing": {
+      "seo_title": "Proyección para iglesias | RoBible",
+      "seo_description": "Pon los versículos en la pantalla de tu iglesia, en dos idiomas, sin cuota y sin instalar nada.",
+      "eyebrow": "Novedad",
+      "title": "Los versículos, en la pantalla de la iglesia",
+      "lead": "Abres una página, escribes la referencia y proyectas. Sin programa que instalar, sin cuota y sin cuenta.",
+      "cta": "Abrir la proyección",
+      "cta_hint": "Funciona ahora mismo, en este dispositivo.",
+      "f1_title": "Se lee desde la última fila",
+      "f1_text": "Un versículo por pantalla, tan grande como quepa. El tamaño se ajusta con dos teclas, incluso durante el culto.",
+      "f2_title": "Dos idiomas a la vez",
+      "f2_text": "El principal grande y el segundo debajo. Se intercambian con una tecla: útil cuando hay visitas en la sala.",
+      "f3_title": "Nueve fondos",
+      "f3_text": "Los mismos con los que compartes un versículo como imagen. Cada uno trae su color de texto ya comprobado.",
+      "f4_title": "El mando que ya tienes",
+      "f4_text": "Cualquier mando de presentación vale: sus botones envían justo las teclas que la proyección espera.",
+      "f5_title": "Busca por expresión",
+      "f5_text": "¿No recuerdas la referencia? Escribe la expresión y proyecta los versículos encontrados, uno tras otro.",
+      "f6_title": "Pantalla en negro con una tecla",
+      "f6_text": "Entre canto y canto, una tecla apaga la pantalla. Lo que tenías preparado sigue donde estaba.",
+      "how_title": "Cómo se hace",
+      "how_1": "Conecta el portátil al televisor o al proyector.",
+      "how_2": "Abre robible.com/proiectie y escribe la referencia.",
+      "how_3": "Pulsa F para pantalla completa y avanza con el mando.",
+      "free_title": "Gratis, y seguirá siéndolo",
+      "free_text": "RoBible es gratuito para cualquier iglesia. Sin cuota, sin anuncios y sin pedir cuenta para proyectar."
     }
   },
   "auth": {

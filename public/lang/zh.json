@@ -38,7 +38,8 @@
         "index": "主题索引",
         "guide": "讲道指南",
         "sitemap": "网站地图",
-        "github": "GitHub"
+        "github": "GitHub",
+        "projection": "教会投影"
       }
     },
     "pwa": {
@@ -353,6 +354,10 @@
         "admin": {
           "label": "管理",
           "hint": "管理面板"
+        },
+        "projection": {
+          "label": "投影",
+          "hint": "在教会屏幕上显示经文"
         }
       }
     },
@@ -979,6 +984,64 @@
         "confirm_delete_title": "永久删除讲道",
         "confirm_delete_text": "「{title}」将被永久删除，作者也无法恢复。此操作无法撤销。"
       }
+    },
+    "projection": {
+      "seo_title": "投影 | RoBible",
+      "seo_description": "将经文投影到教会的屏幕上。",
+      "eyebrow": "投影",
+      "title": "屏幕经文",
+      "lead": "先选择经文，然后用遥控器或键盘翻页。最后一排也能看清。",
+      "search_label": "要投影什么？",
+      "search_placeholder": "约翰福音 3 或 诗篇 23",
+      "continue": "从 {reference} 继续",
+      "keys_title": "按键",
+      "key_next": "下一节",
+      "key_prev": "上一节",
+      "key_black": "黑屏",
+      "key_fullscreen": "全屏",
+      "key_size": "文字大小",
+      "key_exit": "退出投影",
+      "phrase_label": "或搜索词句",
+      "phrase_placeholder": "包含词句……",
+      "phrase_count": "找到 {count} 节经文",
+      "phrase_empty": "没有包含该词句的经文。",
+      "key_swap": "互换语言",
+      "panel_background": "背景",
+      "panel_animation": "动画",
+      "panel_language": "第二语言",
+      "second_on": "第二语言：已开启",
+      "second_off": "第二语言：已关闭",
+      "animation_none": "无",
+      "animation_fade": "淡入",
+      "animation_slide": "滑入",
+      "animation_zoom": "缩放"
+    },
+    "projection_landing": {
+      "seo_title": "教会投影 | RoBible",
+      "seo_description": "把经文投到教会的屏幕上，可同时显示两种语言，无需订阅、无需安装。",
+      "eyebrow": "新功能",
+      "title": "把经文放上教会的屏幕",
+      "lead": "打开网页，输入经文出处，即可投影。无需安装、无需订阅、无需账号。",
+      "cta": "打开投影",
+      "cta_hint": "现在就能在这台设备上使用。",
+      "f1_title": "最后一排也看得清",
+      "f1_text": "一屏一节，尽可能放大。两个按键即可调整字号，聚会中也能改。",
+      "f2_title": "同屏两种语言",
+      "f2_text": "主语言在上方放大，第二语言在下方。一个按键即可互换——有访客时很实用。",
+      "f3_title": "九种背景",
+      "f3_text": "与分享经文图片时相同的背景。每种都自带已校验过的文字颜色。",
+      "f4_title": "用你已有的遥控器",
+      "f4_text": "任何演示遥控器都可以：它的按键正是投影所监听的按键。",
+      "f5_title": "按词句搜索",
+      "f5_text": "记不住出处？输入词句，然后逐节投影搜索结果。",
+      "f6_title": "一键黑屏",
+      "f6_text": "诗歌之间，一个按键即可黑屏。你准备好的内容仍在原处。",
+      "how_title": "使用方法",
+      "how_1": "把笔记本电脑连接到电视或投影仪。",
+      "how_2": "打开 robible.com/proiectie 并输入经文出处。",
+      "how_3": "按 F 进入全屏，用遥控器翻页。",
+      "free_title": "免费，而且会一直免费",
+      "free_text": "RoBible 对任何教会都免费。没有订阅、没有广告，投影也不需要账号。"
     }
   },
   "auth": {

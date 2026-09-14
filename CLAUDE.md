@@ -13,11 +13,12 @@ PWA de lectura bíblica multiidioma con lectura acompañada de música, comparac
 
 ## Reglas de trabajo
 
-**Git — regla heredada, sigue vigente:**
+**Git — cambiada el 14 sep 2026:**
 
-- El agente **NO** hace `git commit` / `push` / `PR` / `merge` de archivos del frontend. Se dejan los cambios en el working tree y el usuario los revisa y commitea.
-- El agente **sí** gestiona: backend (`workers/`), deploys a Cloudflare, queries a D1, scripts de mantenimiento.
-- Nunca trabajar directamente sobre `master`. `master` solo recibe merges hechos por el usuario.
+- El agente **sí** hace `git commit` y `git push` a `develop`, del frontend también. Mensaje descriptivo, en castellano.
+- Antes era al revés: los cambios de frontend se dejaban en el working tree para que el usuario los revisara y commiteara. Se levantó porque el control editorial lo ejerce en el merge a `master`, no en cada commit, y retenerlos solo añadía un paso manual.
+- **`master` sigue siendo suyo**: solo recibe merges hechos por el usuario. El agente no abre PR, no mergea y nunca trabaja directamente sobre `master`.
+- El agente gestiona además: backend (`workers/`), deploys a Cloudflare, queries a D1, scripts de mantenimiento.
 
 **Alcance:** este proyecto está en producción con usuarios reales. Antes de cambiar comportamiento de auth, service worker o datos bíblicos, avisar del impacto.
 
@@ -186,7 +187,16 @@ Cosas que rompen si no se saben:
 85. **Un store con datos del servidor que no se apunta a `registrarSincronizacion` enseña datos viejos para siempre, y no da ningún síntoma.** `authStore` era el único de los ocho que no lo hacía: `currentUser` se hidrataba **una vez** de la copia de localStorage y no se volvía a preguntar nunca — `verifySession()` existía en `auth.service.js` y no la llamaba nadie. Con dos dispositivos, el lema, el nombre o el tipo de cuenta cambiados en uno no aparecían en el otro hasta cerrar sesión y volver a entrar, mientras que las notas y los favoritos sí se ponían al día. No falla nada ni sale un error: simplemente ves lo de antes. Cubierto en `tests/store-resync-registro.test.js`, que recorre `src/store/` y exige el registro a todo el que mencione `syncFromServer` o `verifySession`.
     - El par que se registra es siempre el mismo: `sync` trae del servidor y escribe la caché, `refresh` vuelca la caché al store. Para el perfil, el `refresh` es `currentUser.set(authService.me())`, porque `me()` lee justo esa caché.
     - El registro **no basta**: los tres disparadores (volver a la pestaña, recuperar el foco, reconectar) no llegan a producirse si alguien abre la aplicación y se queda leyendo. Por eso `authStore` hace además una verificación al arrancar.
-86. **`users.motto` (lema del perfil, schema_version 14) es PRIVADO.** Sustituye la presentación genérica de `/profil` por la frase o el versículo que el usuario elija, y no sale por ninguna respuesta pública — tampoco por la del autor de una predicación publicada, que sigue llevando sólo el nickname (trampa 68). El editor se abre y se cierra con botones y **no guarda en `blur`**: por qué, en la trampa 60.
+86. **El Modo Proyección (`/proiectie`, `Projection.svelte`) es la única pantalla que NO usa la paleta del usuario.** Fija sus colores a mano —fondo casi negro, texto casi blanco— porque la pantalla de una iglesia los necesita tenga el operador puesta Sepia, Lumină o Nocturn. Como fija su fondo, fija también su color de texto: si lo heredara del `body`, en las paletas claras saldría tinta oscura sobre fondo oscuro. Ni negro ni blanco puros, a propósito: en un proyector el contraste máximo produce halo alrededor de las letras. Es capa propia (`fixed inset:0; z-index:200`) por lo mismo que el Amvon (trampa 30).
+    - **Bloquea el scroll del documento con la clase `drawer-open`** mientras proyecta. Sin eso, la página de debajo sigue siendo alta y el navegador pinta su barra de desplazamiento **encima** de la proyección: una franja gris a la derecha de la pantalla de la iglesia. Se vio en la primera prueba con navegador, no en los tests.
+    - **El atajo de teclado ignora lo que se escribe en un `input`.** El Enter que arranca la proyección desde el buscador seguía burbujeando hasta el listener de `window`, y como para entonces `proyectando` ya era `true`, avanzaba un versículo en el mismo gesto: se empezaba siempre en el segundo versículo del capítulo sin que nada lo explicara.
+    - Hay varias teclas para cada acción porque los mandos de presentación emiten unas u otras (→ o AvPág para avanzar, ← o RePág para retroceder). No es indecisión.
+    - **El segundo idioma se resuelve por REFERENCIA, no por posición.** Las versiones no numeran igual —Salmos con encabezamiento, versículos partidos—, así que pintar lo que caiga en el mismo índice pondría dos textos distintos uno debajo del otro delante de toda la congregación. Si esa versión no tiene ese versículo, no se pinta nada: mejor un hueco que una línea equivocada. Sale de `compareBible`, que ya es perezosa (~4 MB), así que no se descarga hasta que se enciende.
+    - **`getFilterResult` necesita `searchType` sí o sí.** Decide con un `switch` y sin ese campo cae en el caso por defecto y devuelve lista vacía: el buscador por expresión no encontraba nada y no había ningún error que lo explicara. Para «contiene la expresión» es `'match'`, el mismo valor que usa el panel lateral.
+    - Los controles flotantes se ocultan a los **4 s**, no a los 2,6: con el temporizador corto, quien movía el ratón hacia el botón y titubeaba se lo encontraba desvanecido justo al ir a pulsarlo. Tampoco se ocultan con el puntero encima ni con un panel abierto.
+87. **La página de presentación del Modo Proyección (`/proiectie-biserici`) SÍ se indexa; la herramienta (`/proiectie`) no.** Son dos cosas distintas y es fácil confundirlas: una es contenido público dirigido a iglesias que no saben que la función existe, la otra es una utilidad del dispositivo sin nada que indexar. Por eso `/proiectie` no lleva `Disallow` en `robots.txt` —lo impediría leer su propio `noindex`— y sí está en el test de rutas públicas: un `Disallow: /proiectie` sin ancla se llevaría por delante la landing, que es justo la que se quiere posicionar.
+    - Sus ilustraciones son SVG escritos a mano dentro del componente, no imágenes. El diagrama usa `currentColor` y funciona en las cinco paletas sin una sola regla por tema; la maqueta del televisor lleva colores propios porque representa una pantalla encendida en una sala a oscuras.
+87. **`users.motto` (lema del perfil, schema_version 14) es PRIVADO.** Sustituye la presentación genérica de `/profil` por la frase o el versículo que el usuario elija, y no sale por ninguna respuesta pública — tampoco por la del autor de una predicación publicada, que sigue llevando sólo el nickname (trampa 68). El editor se abre y se cierra con botones y **no guarda en `blur`**: por qué, en la trampa 60.
 
 ## Mapa rápido
 
