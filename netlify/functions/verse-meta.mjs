@@ -5,6 +5,27 @@ import { buildBiblePath, getBookIdFromSlug, parseBiblePath } from '../../src/ser
 
 const SITE_URL = 'https://robible.com';
 
+/**
+ * `noindex, follow` desde el 14 sep 2026; antes era `index, follow`.
+ *
+ * Un versículo suelto es la definición de contenido fino: una frase que ya está
+ * entera en la página de su capítulo, multiplicada por 124.400 URLs (31.100 ×
+ * 4 versiones). Y pedir que se indexaran salía carísimo, porque esta página
+ * manda al visitante a la aplicación completa, que se descarga la Biblia de
+ * 4,3 MB para pintar esa frase: rastrear el conjunto son unos 600 GB. Es lo que
+ * agotó el ancho de banda del plan de Netlify en quince días.
+ *
+ * `follow` se mantiene — los enlaces siguen contando— y el enlace sigue
+ * sirviendo para compartir, que es su función real: las etiquetas Open Graph no
+ * dependen de que la página se indexe.
+ *
+ * Ojo: mientras `robots.txt` mantenga cerradas las rutas de versículo (las de
+ * cuatro segmentos bajo `/biblia/`), Google no llegará a leer esta etiqueta.
+ * Las dos cosas se pusieron a la vez a propósito — el `Disallow` corta el gasto
+ * hoy, y este `noindex` es lo que desindexa si algún día se levanta el bloqueo.
+ */
+const ROBOTS = 'noindex, follow, max-image-preview:large';
+
 const DATA_DIRECTORIES = [
   path.resolve(process.cwd(), 'public', 'data'),
   path.resolve(process.env.LAMBDA_TASK_ROOT || process.cwd(), 'public', 'data'),
@@ -123,12 +144,14 @@ function buildHtml({
   };
   const safeSchema = JSON.stringify(schema).replaceAll('<', '\\u003c');
 
+  // El comentario va aquí fuera y no dentro del HTML a propósito: esta cadena se
+  // sirve 124.400 veces y no hay por qué mandar la explicación con cada una.
   return `<!doctype html>
 <html lang="${safeLocale}">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta name="robots" content="${ROBOTS}" />
     <meta name="theme-color" content="#3f5867" />
     <title>${safeTitle}</title>
     <meta name="description" content="${safeDescription}" />
@@ -210,7 +233,13 @@ export async function handler(event) {
     return {
       statusCode: 200,
       headers: {
-        'Cache-Control': 'public, max-age=3600',
+        // Un versículo no cambia. Lo que se genera aquí sólo se mueve si se
+        // toca esta función, así que la única razón para una caché corta sería
+        // el miedo — y la cara es real: cada fallo de caché es una invocación
+        // de función y tráfico de salida contra el plan.
+        // `s-maxage` es para el CDN, `max-age` para el navegador; separados
+        // porque el edge puede guardarlo mucho más tiempo sin riesgo.
+        'Cache-Control': 'public, max-age=3600, s-maxage=604800, stale-while-revalidate=86400',
         'Content-Type': 'text/html; charset=utf-8',
       },
       body: buildHtml({
