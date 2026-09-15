@@ -1056,7 +1056,10 @@
       "notice_title": "Before you start",
       "notice_text": "On desktop, Chrome sends the audio to Google servers to recognise it. It does not go through RoBible and nothing is stored here. On phones the recognition happens on the device itself.",
       "notice_accept": "Got it, start",
-      "plan_needed": "Dictation is part of a subscription."
+      "plan_needed": "Dictation is part of a subscription.",
+      "no_service": "This browser does not allow dictation. Try Chrome or Edge.",
+      "no_mic": "No microphone found.",
+      "offline": "Dictation needs an internet connection."
     }
   },
   "auth": {

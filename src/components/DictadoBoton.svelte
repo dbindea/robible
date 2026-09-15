@@ -15,11 +15,18 @@
    * que no te sigue», así que eso se dice al lado del botón la primera vez y no
    * se esconde en una política que nadie abre.
    */
-  import { onDestroy } from 'svelte';
+  import { onDestroy, onMount } from 'svelte';
   import { _ } from '../services/i18n.service';
   import { currentUser } from '../store/authStore';
   import { puedeUsar, esDePago } from '../services/features.service';
-  import { dictar, soportado, usaServidorExterno, localeDeReconocimiento } from '../services/speech.service';
+  import {
+    dictar,
+    soportado,
+    usaServidorExterno,
+    localeDeReconocimiento,
+    pedirPermiso,
+    esBrave,
+  } from '../services/speech.service';
   import { normalizarDictado, normalizarDictadoLibre } from '../services/speech-reference.service';
   import Icon from './Icon.svelte';
 
@@ -49,14 +56,30 @@
     try { localStorage.setItem(CLAVE_AVISO, '1'); } catch { /* da igual */ }
   };
 
+  // Brave desactiva el reconocimiento de voz a propósito, pero deja el objeto
+  // `webkitSpeechRecognition` en su sitio: `soportado()` dice que sí y luego no
+  // pasa nada de nada. Se comprueba al montar para poder decirlo en vez de
+  // dejar un botón muerto.
+  let navegadorSinServicio = false;
+  onMount(async () => { navegadorSinServicio = await esBrave(); });
+
   const parar = () => {
     sesion?.parar();
     sesion = null;
     escuchando = false;
   };
 
-  const arrancar = () => {
+  const arrancar = async () => {
     error = '';
+
+    // El permiso se pide ANTES y de forma explícita. `start()` debería hacerlo
+    // solo, y en Chrome lo hace, pero cuando no lo hace el botón se queda
+    // quieto: ni escucha, ni falla, ni pregunta. Así el diálogo sale siempre y
+    // la respuesta se puede leer.
+    const permiso = await pedirPermiso();
+    if (permiso === 'denegado') { error = 'not-allowed'; return; }
+    if (permiso === 'sin-microfono') { error = 'audio-capture'; return; }
+
     escuchando = true;
     sesion = dictar({
       locale: localeDeReconocimiento(locale),
@@ -113,17 +136,39 @@
       <Icon name="microphone" weight={escuchando ? 'fill' : 'regular'} />
     </button>
 
-    {#if escuchando}
-      <!-- Sin esto no hay forma de saber si el micrófono está abierto: el
-           navegador enseña su propio indicador, pero en una pestaña de fondo o
-           en un televisor no se ve. -->
-      <span class="dictado__estado" role="status">{$_('app.speech.listening')}</span>
-    {:else if error}
-      <span class="dictado__estado dictado__estado--error" role="status">
-        {$_(error === 'not-allowed' ? 'app.speech.denied' : 'app.speech.failed')}
-      </span>
-    {/if}
   </div>
+
+  <!-- El estado va DEBAJO del campo y no al lado.
+       Al lado, el mensaje empujaba el input y lo dejaba a un tercio de su
+       ancho: el texto cambia de longitud según la causa, así que la caja de
+       búsqueda se encogía sola en cuanto algo fallaba. -->
+  {#if escuchando}
+    <!-- Sin esto no hay forma de saber si el micrófono está abierto: el
+         navegador enseña su propio indicador, pero en una pestaña de fondo o
+         en un televisor no se ve. -->
+    <p class="dictado__estado" role="status">{$_('app.speech.listening')}</p>
+  {:else if error}
+    <!-- Cada causa pide una respuesta distinta del usuario: dar permiso,
+         cambiar de navegador o conectarse. Un «no te he entendido» para las
+         tres deja a la gente probando otra vez para nada. -->
+    <p class="dictado__estado dictado__estado--error" role="status">
+      {#if error === 'not-allowed'}
+        {$_('app.speech.denied')}
+      {:else if error === 'service-not-allowed' || navegadorSinServicio}
+        {$_('app.speech.no_service')}
+      {:else if error === 'audio-capture'}
+        {$_('app.speech.no_mic')}
+      {:else if error === 'network'}
+        {$_('app.speech.offline')}
+      {:else}
+        {$_('app.speech.failed')}
+      {/if}
+    </p>
+  {:else if navegadorSinServicio}
+    <!-- Brave: el botón existe pero no va a funcionar nunca. Mejor decirlo
+         antes de que alguien lo pulse tres veces. -->
+    <p class="dictado__estado dictado__estado--error">{$_('app.speech.no_service')}</p>
+  {/if}
 
   {#if avisoVisible}
     <div class="aviso" role="dialog" aria-label={$_('app.speech.notice_title')}>
@@ -151,7 +196,6 @@
   .dictado {
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
   }
 
   .dictado__boton {
@@ -195,10 +239,17 @@
     .dictado__boton--activo { animation: none; }
   }
 
+  // Ocupa su propia línea, debajo del campo. `flex-basis: 100%` es lo que la
+  // obliga a bajar cuando el contenedor es una fila flex, que es el caso en los
+  // dos sitios donde se usa.
   .dictado__estado {
+    flex-basis: 100%;
+    width: 100%;
+    margin: 0.35rem 0 0;
     color: var(--color-ink-soft);
     font-size: 0.75rem;
     font-weight: 600;
+    line-height: 1.4;
   }
 
   .dictado__estado--error { color: var(--color-marked-favorite); }

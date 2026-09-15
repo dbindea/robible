@@ -1056,7 +1056,10 @@
       "notice_title": "Antes de empezar",
       "notice_text": "En el ordenador, Chrome envía el audio a los servidores de Google para reconocerlo. No pasa por RoBible y aquí no se guarda nada. En el móvil el reconocimiento se hace en el propio dispositivo.",
       "notice_accept": "Entendido, empezar",
-      "plan_needed": "El dictado forma parte de una suscripción."
+      "plan_needed": "El dictado forma parte de una suscripción.",
+      "no_service": "Este navegador no permite dictar. Prueba en Chrome o Edge.",
+      "no_mic": "No se encuentra ningún micrófono.",
+      "offline": "El dictado necesita conexión a internet."
     }
   },
   "auth": {
