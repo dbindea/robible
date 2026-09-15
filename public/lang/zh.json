@@ -1042,6 +1042,19 @@
       "how_3": "按 F 进入全屏，用遥控器翻页。",
       "free_title": "免费，而且会一直免费",
       "free_text": "RoBible 对任何教会都免费。没有订阅、没有广告，投影也不需要账号。"
+    },
+    "speech": {
+      "start": "语音输入",
+      "start_reference": "语音输入经文出处",
+      "start_phrase": "语音输入词句",
+      "stop": "停止语音输入",
+      "listening": "正在聆听……",
+      "denied": "浏览器已阻止使用麦克风。",
+      "failed": "没有听清，请再试一次。",
+      "notice_title": "开始之前",
+      "notice_text": "在电脑上，Chrome 会将语音发送到 Google 的服务器进行识别。这些语音不经过 RoBible，我们也不会保存任何内容。在手机上，识别在设备本机完成。",
+      "notice_accept": "明白了，开始",
+      "plan_needed": "语音输入属于订阅功能。"
     }
   },
   "auth": {

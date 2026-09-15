@@ -45,6 +45,7 @@
   import { IMAGE_BACKGROUNDS, backgroundCss, getBackground } from '../../services/verse-image.service';
   import { ANIMACIONES, cargarPreferencias, guardarPreferencias } from '../../services/projection.service';
   import Icon from '../../components/Icon.svelte';
+  import DictadoBoton from '../../components/DictadoBoton.svelte';
 
   export let bible = [];
   export let map = {};
@@ -151,6 +152,28 @@
   let sugerencias = [];
   let resultadosTexto = [];
   let buscandoTexto = false;
+
+  /**
+   * Lo dictado entra en el campo como si se hubiera tecleado.
+   *
+   * Sólo se busca cuando el reconocedor da la frase por terminada: con los
+   * resultados parciales, la lista de sugerencias parpadeaba entera en cada
+   * sílaba. Mientras tanto el texto sí se va escribiendo, para que se vea que
+   * está entendiendo algo.
+   */
+  const dictadoReferencia = (texto, final) => {
+    consultaRef = texto;
+    consultaTexto = '';
+    resultadosTexto = [];
+    if (final) buscarReferencia();
+  };
+
+  const dictadoFrase = (texto, final) => {
+    consultaTexto = texto;
+    consultaRef = '';
+    sugerencias = [];
+    if (final) buscarPorTexto();
+  };
 
   const buscarReferencia = () => {
     consultaTexto = '';
@@ -487,28 +510,46 @@
     <div class="buscadores">
       <label class="campo">
         <span>{$_('app.projection.search_label')}</span>
-        <input
-          type="search"
-          bind:value={consultaRef}
-          on:input={buscarReferencia}
-          on:keydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); empezarDesdeConsulta(); } }}
-          placeholder={$_('app.projection.search_placeholder')}
-          autocomplete="off"
-          spellcheck="false"
-        />
+        <span class="campo__fila">
+          <input
+            type="search"
+            bind:value={consultaRef}
+            on:input={buscarReferencia}
+            on:keydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); empezarDesdeConsulta(); } }}
+            placeholder={$_('app.projection.search_placeholder')}
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <!-- Dictar la referencia. Es el motivo por el que existe esto: en el
+               púlpito no se teclea. -->
+          <DictadoBoton
+            modo="referencia"
+            locale={versionConfig?.locale}
+            etiqueta={$_('app.speech.start_reference')}
+            alDictar={dictadoReferencia}
+          />
+        </span>
       </label>
 
       <label class="campo">
         <span>{$_('app.projection.phrase_label')}</span>
-        <input
-          type="search"
-          bind:value={consultaTexto}
-          on:input={buscarPorTexto}
-          on:keydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); buscarPorTexto(); } }}
-          placeholder={$_('app.projection.phrase_placeholder')}
-          autocomplete="off"
-          spellcheck="false"
-        />
+        <span class="campo__fila">
+          <input
+            type="search"
+            bind:value={consultaTexto}
+            on:input={buscarPorTexto}
+            on:keydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); buscarPorTexto(); } }}
+            placeholder={$_('app.projection.phrase_placeholder')}
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <DictadoBoton
+            modo="libre"
+            locale={versionConfig?.locale}
+            etiqueta={$_('app.speech.start_phrase')}
+            alDictar={dictadoFrase}
+          />
+        </span>
       </label>
     </div>
 
@@ -776,9 +817,12 @@
     gap: 0.35rem;
     font-size: var(--font-size-small);
 
-    span { font-weight: 600; color: var(--color-ink); }
+    > span { font-weight: 600; color: var(--color-ink); }
 
     input {
+      // Dentro de la fila con el micrófono, el campo se queda con el resto.
+      flex: 1;
+      min-width: 0;
       min-height: 2.8rem;
       padding: 0.55rem 0.8rem;
       border: 1px solid var(--color-line);
@@ -788,6 +832,15 @@
       font: inherit;
       font-size: 1.05rem;
     }
+  }
+
+  // El campo y su micrófono, en línea. `position: relative` porque el aviso de
+  // privacidad del dictado se posiciona contra esta fila.
+  .campo__fila {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
   }
 
   .resultados {

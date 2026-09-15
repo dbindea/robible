@@ -71,6 +71,9 @@ const ICONOS = {
   // `expand` («pantalla completa»), que ya significa otra cosa en esta misma
   // aplicación — el modo inmersivo.
   projection: 'projector-screen',
+  // Dictado por voz. `microphone` con relleno cuando está escuchando, que es el
+  // patrón de iOS que ya usa el resto de la aplicación.
+  microphone: 'microphone',
   lock: 'lock-simple',
   'sign-in': 'sign-in',
   'file-text': 'file-text',
@@ -98,6 +101,8 @@ const ICONOS = {
 const CON_RELLENO = new Set([
   'heart', 'bookmark', 'star', 'note', 'cross', 'sun', 'moon', 'shield', 'crown',
   'dove', 'hands', 'flame', 'water', 'home', 'light', 'peace', 'play', 'pause', 'stop',
+  // El micrófono tiene estado: contorno en reposo, macizo mientras escucha.
+  'microphone',
 ]);
 
 const contenido = (peso, nombre) => {

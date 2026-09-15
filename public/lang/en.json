@@ -1042,6 +1042,19 @@
       "how_3": "Press F for full screen and advance with the remote.",
       "free_title": "Free, and staying free",
       "free_text": "RoBible is free for any church. No subscription, no ads, and no account needed to project."
+    },
+    "speech": {
+      "start": "Dictate",
+      "start_reference": "Dictate the reference",
+      "start_phrase": "Dictate the phrase",
+      "stop": "Stop dictating",
+      "listening": "Listening…",
+      "denied": "The microphone is blocked in the browser.",
+      "failed": "I didn't catch that. Try again.",
+      "notice_title": "Before you start",
+      "notice_text": "On desktop, Chrome sends the audio to Google servers to recognise it. It does not go through RoBible and nothing is stored here. On phones the recognition happens on the device itself.",
+      "notice_accept": "Got it, start",
+      "plan_needed": "Dictation is part of a subscription."
     }
   },
   "auth": {
