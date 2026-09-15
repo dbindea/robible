@@ -78,7 +78,9 @@
         "all": "Toată Biblia",
         "ot": "Vechiul testament",
         "nt": "Noul Testament"
-      }
+      },
+      "no_results_in_book": "Niciun rezultat în {book}. Căutarea este limitată la această carte.",
+      "search_whole_bible": "Caută în toată Biblia"
     },
     "book_drawer": {
       "aria_label": "Cărțile Bibliei",

@@ -78,7 +78,9 @@
         "all": "Whole Bible",
         "ot": "Old Testament",
         "nt": "New Testament"
-      }
+      },
+      "no_results_in_book": "No results in {book}. The search is limited to that book.",
+      "search_whole_bible": "Search the whole Bible"
     },
     "book_drawer": {
       "aria_label": "Books of the Bible",

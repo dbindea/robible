@@ -394,6 +394,17 @@
     if (searchForm.searchType !== 'reference') updateFilter(searchForm);
   };
 
+  /**
+   * Quita el libro y el capítulo y repite la búsqueda en toda la Biblia.
+   *
+   * Es la salida del callejón: el usuario ve «0 resultados en Ioan» y con un
+   * clic busca en los 66 libros, sin tener que averiguar dónde se quita ese
+   * filtro ni entender que lo tenía puesto.
+   */
+  const buscarEnTodaLaBiblia = () => {
+    updateFilter({ ...searchForm, testament: 'all', book: [], chapter: [] });
+  };
+
   const handleInputBlur = () => {
     // Delay para permitir click en los items del dropdown
     setTimeout(() => {
@@ -439,18 +450,22 @@
         on:input={handleSearchInput}
         on:keydown={searchForm.searchType === 'reference' ? handleReferenceKeydown : undefined}
       />
+      <!-- Dictar la búsqueda, DENTRO del campo y a la izquierda, donde empieza
+           el texto: es lo que se hace antes de escribir. El aspa de borrar va
+           al otro extremo, que es lo que se hace después. El modo lo decide el
+           tipo activo: en «referencia» hay que convertir «trei șaisprezece» en
+           «3 16»; en los demás el texto va tal cual. -->
+      <span class="input-search__micro">
+        <DictadoBoton
+          modo={searchForm.searchType === 'reference' ? 'referencia' : 'libre'}
+          locale={getBibleVersionConfigOrDefault($selectedBibleVersion)?.locale}
+          etiqueta={searchForm.searchType === 'reference' ? $_('app.speech.start_reference') : $_('app.speech.start_phrase')}
+          alDictar={alDictarBusqueda}
+        />
+      </span>
       <button class="clear-search" type="button" aria-label={$_('app.sidebar.clear_search_text')} on:click={clearInput}>
         <span class="icon-error icon--input" aria-hidden="true"></span>
       </button>
-      <!-- Dictar la búsqueda. El modo lo decide el tipo activo: en «referencia»
-           hay que convertir «trei șaisprezece» en «3 16»; en los demás el texto
-           va tal cual, porque quien dicta una frase quiere esas palabras. -->
-      <DictadoBoton
-        modo={searchForm.searchType === 'reference' ? 'referencia' : 'libre'}
-        locale={getBibleVersionConfigOrDefault($selectedBibleVersion)?.locale}
-        etiqueta={searchForm.searchType === 'reference' ? $_('app.speech.start_reference') : $_('app.speech.start_phrase')}
-        alDictar={alDictarBusqueda}
-      />
     </div>
 
     <!-- Reference search dropdown -->
@@ -541,6 +556,22 @@
         <span>{result.length}</span>
         {$_('app.result.result_count_end', { total: count })}
       </p>
+
+      <!-- Cero resultados con un libro puesto: casi siempre es que el ámbito se
+           quedó de una búsqueda anterior. Pasaba sobre todo al venir de una
+           búsqueda por referencia, que deja el libro seleccionado: escribías una
+           palabra, no salía nada, y no había forma de ver que estabas buscando
+           dentro de un solo libro.
+           Se compara contra las variables directamente y no con un helper: el
+           compilador no ve la dependencia envuelta en una función (trampa 23). -->
+      {#if count === 0 && selectedBook !== null && selectedBook !== undefined}
+        <div class="sin-resultados" role="status">
+          <p>{$_('app.sidebar.no_results_in_book', { book: map[selectedBook] || '' })}</p>
+          <button type="button" on:click={buscarEnTodaLaBiblia}>
+            {$_('app.sidebar.search_whole_bible')}
+          </button>
+        </div>
+      {/if}
     {/if}
 
     <div class="margin-up">{$_('app.sidebar.search_type_label')}</div>
@@ -627,7 +658,9 @@
 
   input[type='text'] {
     height: var(--input-height);
-    padding: 0 2.5rem 0 0.5rem;
+    // Hueco a los dos lados: micrófono a la izquierda, aspa de borrar a la
+    // derecha. Sin esto, el texto pasa por debajo de los dos.
+    padding: 0 2.5rem 0 2.4rem;
     border: solid 1px color-mix(in srgb, var(--color-on-sidebar) 38%, transparent);
     background-color: var(--color-sidebar);
     color: var(--color-on-sidebar);
@@ -853,6 +886,57 @@
     position: relative;
   }
 
+  // El micrófono va DENTRO del campo, pegado al borde izquierdo, y el texto
+  // empieza después. Antes colgaba fuera, a la derecha, y se leía como un botón
+  // suelto del formulario en vez de como parte del buscador.
+  //
+  // El hueco se lo hace el `padding-left` del propio input, más abajo: un
+  // control sobre el campo sin ese hueco acaba tapando las primeras letras en
+  // cuanto alguien escribe.
+  .input-search__micro {
+    position: absolute;
+    left: 0.3rem;
+    display: inline-flex;
+    z-index: 1;
+
+    // El botón pierde su marco aquí: dentro del campo, un círculo con borde
+    // propio parece un segundo campo. Se queda el icono a secas.
+    :global(.dictado__boton) {
+      width: 1.85rem;
+      height: 1.85rem;
+      border-color: transparent;
+      background: transparent;
+      color: color-mix(in srgb, var(--color-on-sidebar) 80%, transparent);
+      --icon-size: 0.95rem;
+    }
+
+    :global(.dictado__boton:hover) {
+      border-color: transparent;
+      background: color-mix(in srgb, var(--color-on-sidebar) 12%, transparent);
+      color: var(--color-on-sidebar);
+    }
+
+    // Mientras escucha sí se ve el relleno de acento: es la única señal de que
+    // el micrófono está abierto.
+    :global(.dictado__boton--activo) {
+      background: var(--color-accent-solid);
+      color: var(--color-on-primary);
+    }
+
+    // El aviso de privacidad se ancla a este contenedor, que está en el borde
+    // izquierdo: desde aquí abre hacia la derecha, no hacia fuera de la pantalla.
+    :global(.aviso) {
+      right: auto;
+      left: 0;
+    }
+  }
+
+  // El estado «Ascult…» no cabe dentro del campo: en el panel lateral estorbaría
+  // al texto que se está dictando. El latido del botón ya lo dice.
+  .input-search__micro :global(.dictado__estado) {
+    display: none;
+  }
+
   .clear-search {
     display: grid;
     place-items: center;
@@ -867,6 +951,42 @@
     &:focus-visible {
       outline: 2px solid color-mix(in srgb, var(--color-on-sidebar) 70%, transparent);
       outline-offset: 2px;
+    }
+  }
+
+  // El aviso de «cero resultados, y es porque tienes un libro puesto». Lleva
+  // filete de acento a la izquierda para que se lea como una explicación y no
+  // como un error del buscador.
+  .sin-resultados {
+    margin: 0.5rem 0 0;
+    padding: 0.55rem 0.7rem;
+    border-left: 3px solid var(--color-accent);
+    border-radius: 0.25rem;
+    background: color-mix(in srgb, var(--color-on-sidebar) 10%, transparent);
+
+    p {
+      margin: 0 0 0.45rem;
+      color: var(--color-on-sidebar);
+      font-size: 0.78rem;
+      line-height: 1.4;
+    }
+
+    button {
+      // 2rem de alto: por encima del objetivo táctil mínimo, y el ancho
+      // completo porque es la acción que se espera pulsar.
+      width: 100%;
+      min-height: 2rem;
+      padding: 0.35rem 0.7rem;
+      border: 1px solid var(--color-accent);
+      border-radius: 0.25rem;
+      background: var(--color-accent-solid);
+      color: var(--color-on-primary);
+      font: inherit;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+
+      &:hover { background: var(--color-accent-solid-hover); }
     }
   }
 
