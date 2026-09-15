@@ -78,7 +78,9 @@
         "all": "全本圣经",
         "ot": "旧约",
         "nt": "新约"
-      }
+      },
+      "no_results_in_book": "在{book}中没有结果。搜索范围仅限该卷书。",
+      "search_whole_bible": "搜索整本圣经"
     },
     "book_drawer": {
       "aria_label": "圣经书卷",

@@ -78,7 +78,9 @@
         "all": "Toda la Biblia",
         "ot": "Antiguo Testamento",
         "nt": "Nuevo Testamento"
-      }
+      },
+      "no_results_in_book": "Ningún resultado en {book}. La búsqueda está limitada a ese libro.",
+      "search_whole_bible": "Buscar en toda la Biblia"
     },
     "book_drawer": {
       "aria_label": "Libros de la Biblia",

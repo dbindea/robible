@@ -214,6 +214,10 @@ Cosas que rompen si no se saben:
     - En chino, 篇 es clasificador de capítulo **y** la segunda mitad de 诗篇 (Salmos): sólo se borra cuando va detrás de un número, o «诗篇二十三篇» se quedaba en «诗 23».
     - Donde el navegador no lo soporta (Firefox), el botón **no se pinta**. Mismo criterio que la tarjeta de notificaciones del perfil: un control que no puede funcionar es peor que no tenerlo.
 
+93. **En el buscador, un libro elegido MANDA sobre el testamento; no se cruzan.** `getFilterResult` hacía la intersección de los dos (`librosDelTestamento.filter(b => seleccionados.includes(b))`) y esa intersección puede ser **vacía**: con Geneza puesta y el ámbito en Nuevo Testamento, la búsqueda devolvía cero resultados para una palabra que está en media Biblia. Sin error y sin aviso — que es el peor fallo posible en un buscador, porque cero es una respuesta legítima y no hay forma de distinguir «no existe» de «lo estás buscando donde no está». Cubierto en `tests/filter-combinaciones.test.js`, que barre `testament` × `book` y exige que ninguna combinación se quede sin resultados con una palabra que está en los dos testamentos.
+    - El otro camino al mismo silencio es el **ámbito que se queda pegado**: eliges un libro en el panel, luego buscas una palabra que no está en él y no hay nada en pantalla que recuerde que sigues dentro de un solo libro. Por eso, cuando hay texto, cero resultados y un libro seleccionado, el panel lo dice y ofrece **«buscar en toda la Biblia»**. No quites ese aviso: sin él, el fallo es invisible aunque el filtro funcione perfectamente.
+    - `getFilterResult` **exige `searchType`** (trampa del Modo Proyección, arriba): sin ese campo cae en el `default` del `switch` y devuelve lista vacía.
+
 ## Mapa rápido
 
 ```
