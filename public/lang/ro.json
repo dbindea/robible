@@ -659,7 +659,8 @@
         "cta_title": "Pregătește-ți predica pas cu pas",
         "cta_text": "Toți acești pași sunt un formular ghidat în „Predicile mele”, cu schiță tipăribilă pentru amvon.",
         "cta_action": "Deschide Predicile mele"
-      }
+      },
+      "add_point_hint": "Aici construiești scheletul predicii: fiecare punct este o diviziune a ideii centrale."
     },
     "pulpit": {
       "mode": "Mod Amvon",

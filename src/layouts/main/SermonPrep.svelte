@@ -979,8 +979,12 @@
           <Ajutor paso="context" tip={sermon?.type} />
           <Notite notes={content.notes} />
 
+          <!-- Abiertos de salida. Leer lo que va antes y después del pasaje es
+               parte del trabajo de este paso, no un extra: plegados había que
+               acordarse de abrirlos, y lo que no se ve no se lee. Se pueden
+               cerrar, que para eso siguen siendo `<details>`. -->
           {#if contextoAntes.length}
-            <details class="contexto">
+            <details class="contexto" open>
               <summary>{$_('app.sermons.context_before')}</summary>
               {#each contextoAntes as v (v.numero)}
                 <p class="contexto__verso"><span class="texto__num">{v.numero}</span>{v.texto}</p>
@@ -988,7 +992,7 @@
             </details>
           {/if}
           {#if contextoDespues.length}
-            <details class="contexto">
+            <details class="contexto" open>
               <summary>{$_('app.sermons.context_after')}</summary>
               {#each contextoDespues as v (v.numero)}
                 <p class="contexto__verso"><span class="texto__num">{v.numero}</span>{v.texto}</p>
@@ -1094,9 +1098,17 @@
             </div>
           {/each}
 
-          <button type="button" class="bloque__añadir" on:click={añadirPunto}>
-            + {$_('app.sermons.add_point')}
-          </button>
+          <!-- Añadir un punto es LA acción de este paso: aquí se levanta el
+               esqueleto del sermón. Estaba como un enlace discreto al final de
+               la lista y se pasaba de largo sin verlo. Va centrado, en el color
+               de la casa y con una línea debajo que dice qué se está haciendo. -->
+          <div class="añadir-punto">
+            <button type="button" class="añadir-punto__boton" on:click={añadirPunto}>
+              <Icon name="plus" />
+              {$_('app.sermons.add_point')}
+            </button>
+            <p class="añadir-punto__pista">{$_('app.sermons.add_point_hint')}</p>
+          </div>
         </div>
 
       <!-- ── DEZVOLTARE ───────────────────────────────────────────────── -->
@@ -1704,10 +1716,14 @@
     }
   }
 
+  /* Los botones de marcar e insertar cita, separados del campo.
+     Pegados al borde del `textarea` parecían parte de la caja de escritura, y
+     al escribir la última línea el cursor quedaba justo debajo de ellos. */
   .campo__acciones {
     display: flex;
     align-items: center;
     gap: 0.4rem;
+    margin: 0.45rem 0 0.15rem;
   }
 
   .campo__marcar {
@@ -2147,6 +2163,8 @@
     color: var(--color-accent);
   }
 
+  /* El discreto se queda para añadir un SUBpunto y para el enlace de volver a
+     la estructura: son acciones secundarias. La de añadir un punto ya no. */
   .bloque__añadir,
   .punto__añadir-sub {
     justify-self: start;
@@ -2160,6 +2178,53 @@
     cursor: pointer;
 
     &:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  }
+
+  /* Añadir un punto: la acción principal del paso.
+     Era un botón de borde discontinuo y texto gris al final de la lista, con la
+     misma pinta que «añadir subpunto» — y es lo que levanta el esqueleto del
+     sermón. Se pasaba de largo sin verlo. */
+  .añadir-punto {
+    display: grid;
+    justify-items: center;
+    gap: 0.4rem;
+    margin-top: 0.8rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--color-line-soft, var(--color-line));
+  }
+
+  .añadir-punto__boton {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-height: 2.8rem;
+    padding: 0.65rem 1.6rem;
+    border: 1px solid var(--color-accent);
+    border-radius: var(--radius-pill);
+    /* Relleno de acento: lleva texto encima y `--color-accent` sólo da 3.30:1. */
+    background: var(--color-accent-solid);
+    color: var(--color-on-primary);
+    font: inherit;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: var(--transition);
+    --icon-size: 1.05rem;
+
+    &:hover { background: var(--color-accent-solid-hover); transform: translateY(-1px); }
+  }
+
+  .añadir-punto__pista {
+    margin: 0;
+    max-width: 32rem;
+    color: var(--color-ink-soft);
+    font-size: 0.82rem;
+    line-height: 1.45;
+    text-align: center;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .añadir-punto__boton:hover { transform: none; }
   }
 
   .campo {

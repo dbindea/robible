@@ -659,7 +659,8 @@
         "cta_title": "Prepara tu predicación paso a paso",
         "cta_text": "Todos estos pasos son un formulario guiado en «Mis predicaciones», con esquema imprimible para el púlpito.",
         "cta_action": "Abrir Mis predicaciones"
-      }
+      },
+      "add_point_hint": "Aquí construyes el esqueleto de la predicación: cada punto es una división de la idea central."
     },
     "pulpit": {
       "mode": "Modo púlpito",

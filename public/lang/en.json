@@ -659,7 +659,8 @@
         "cta_title": "Prepare your sermon step by step",
         "cta_text": "All these steps are a guided form in \"My sermons\", with a printable outline for the pulpit.",
         "cta_action": "Open My sermons"
-      }
+      },
+      "add_point_hint": "This is where you build the skeleton of the sermon: each point is a division of the central idea."
     },
     "pulpit": {
       "mode": "Pulpit mode",
