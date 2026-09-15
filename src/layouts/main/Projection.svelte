@@ -652,6 +652,15 @@
     <button type="button" class="zona zona--anterior" aria-label={$_('app.projection.key_prev')} on:click={anterior}></button>
     <button type="button" class="zona zona--siguiente" aria-label={$_('app.projection.key_next')} on:click={siguiente}></button>
 
+    <!-- Marca de agua. La aplicación es gratuita y esto es toda su publicidad:
+         quien vea el versículo en la pantalla de la iglesia sabe de dónde sale.
+         Va tenue a propósito — compite con el texto si se nota demasiado— y
+         desaparece con la pantalla en negro, que existe justamente para que no
+         se vea nada. -->
+    {#if !enNegro}
+      <p class="marca" aria-hidden="true">robible.com</p>
+    {/if}
+
     <!-- ── Paneles de ajuste ──────────────────────────────────────────── -->
     {#if panelAbierto === 'fondo'}
       <div class="panel">
@@ -1060,6 +1069,36 @@
 
   .zona--anterior { left: 0; }
   .zona--siguiente { right: 0; }
+
+  // ── Marca de agua ─────────────────────────────────────────────────────────
+  //
+  // Hereda la tinta del fondo elegido, así que se lee sobre los nueve sin
+  // comprobarlo a mano. Al 38 %: suficiente para reconocerla de cerca, poco
+  // para que compita con el versículo desde la última fila.
+  .marca {
+    position: absolute;
+    right: 1rem;
+    bottom: 0.9rem;
+    margin: 0;
+    color: var(--tinta, #f2f4f7);
+    opacity: 0.38;
+    font-size: clamp(0.7rem, 0.9vw, 1rem);
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    // No recibe clics: está justo donde la mitad derecha avanza de versículo.
+    pointer-events: none;
+    transition: opacity var(--motion-base, 200ms) ease;
+  }
+
+  // Con los controles a la vista, la marca se aparta: comparten esquina y
+  // superpuestas no se entiende ninguna de las dos.
+  .proyeccion:has(.controles:not(.controles--ocultos)) .marca {
+    opacity: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .marca { transition: none; }
+  }
 
   // ── Paneles y controles ───────────────────────────────────────────────────
   .panel {

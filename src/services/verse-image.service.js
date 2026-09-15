@@ -577,15 +577,23 @@ export const drawVerseImage = (canvas, {
   }
   ctx.restore();
 
-  // Pie de marca.
+  // Marca de agua, abajo a la DERECHA.
+  //
+  // Estaba centrada y se movió el 15 sep 2026. En un estado de WhatsApp, el
+  // centro inferior es donde caen los controles de la propia aplicación y donde
+  // mira el pulgar para pasar al siguiente: la marca quedaba tapada justo en la
+  // pantalla para la que se hizo la imagen. En la esquina se ve entera.
+  //
+  // Hereda la tinta del fondo, así que se lee sobre los nueve sin comprobarlo
+  // a mano, y va al 60 % para que acompañe al versículo en vez de competir.
   const footerSize = Math.round(w * 0.026);
   ctx.save();
   ctx.font = `600 ${footerSize}px ${FONT_FAMILY}`;
   ctx.fillStyle = bg.ink;
   ctx.globalAlpha = 0.6;
-  ctx.textAlign = 'center';
+  ctx.textAlign = 'right';
   ctx.textBaseline = 'alphabetic';
-  ctx.fillText(footer, w / 2, h - padding * 0.55);
+  ctx.fillText(footer, w - padding, h - padding * 0.55);
   ctx.restore();
 
   return format;

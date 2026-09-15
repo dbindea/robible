@@ -307,15 +307,30 @@ export const definirPredica = (sermon, contenido, etiquetas = {}) => {
     pageMargins: [50, 45, 50, 50],
     defaultStyle: { font: 'Roboto', fontSize: T.cuerpo },
     content: cuerpo,
-    footer: (pagina, total) => ({
-      text: `${pagina} / ${total}`,
-      alignment: 'center',
-      fontSize: T.nota,
-      color: GRIS,
-      margin: [0, 12, 0, 0],
-    }),
+    footer: pieDePagina,
   };
 };
+
+/**
+ * Pie de página de los dos PDF: la numeración y la marca.
+ *
+ * `robible.com` va a la derecha y el número al centro. Es toda la publicidad
+ * que lleva la aplicación: es gratuita, y un PDF de predicación se imprime, se
+ * reparte y se reenvía — quien lo recibe debería poder saber de dónde salió.
+ *
+ * Gris y pequeño a propósito: en la hoja que el predicador tiene delante en el
+ * púlpito, nada que no sea su texto puede llamar la atención.
+ */
+const pieDePagina = (pagina, total) => ({
+  columns: [
+    { text: '', width: '*' },
+    { text: `${pagina} / ${total}`, alignment: 'center', width: 'auto' },
+    { text: 'robible.com', alignment: 'right', width: '*' },
+  ],
+  fontSize: T.nota,
+  color: GRIS,
+  margin: [50, 12, 50, 0],
+});
 
 // ── La schiță, apaisada y para doblar ─────────────────────────────────────
 
@@ -437,6 +452,16 @@ export const definirSchita = (sermon, esquema, etiquetas = {}) => {
     // La línea del doblez, por el medio exacto de la hoja apaisada.
     background: () => ({
       canvas: [{ type: 'line', x1: 421, y1: 24, x2: 421, y2: 571, lineWidth: 0.5, dash: { length: 3 }, lineColor: '#cccccc' }],
+    }),
+    // La marca va sólo a la derecha del todo, que en la hoja doblada es el
+    // borde exterior de la mitad derecha. Sin número de página: la schiță es
+    // una hoja que se dobla y se lleva al púlpito, no un documento paginado.
+    footer: () => ({
+      text: 'robible.com',
+      alignment: 'right',
+      fontSize: T.nota,
+      color: GRIS,
+      margin: [0, 6, 34, 0],
     }),
   };
 };
