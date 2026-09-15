@@ -4,7 +4,7 @@
   import { _ } from '../../services/i18n.service';
   import { appMenuOpen, closeAppMenu } from '../../store/appMenuStore';
   import { openAuthMenu } from '../../store/authMenuStore';
-  import { isAuthenticated, currentUser } from '../../store/authStore';
+  import { isAuthenticated, currentUser, nombreVisible, apodoSecundario } from '../../store/authStore';
   import { selectedBibleVersion } from '../../store/stores';
   import { getBibleVersionConfigOrDefault } from '../../config/bible-versions';
 
@@ -137,8 +137,9 @@
               {:else if item.icon === 'shield'}
                 <Icon name="shield" />
               {:else if item.icon === 'projection'}
-                <!-- Pantalla completa: es lo que hace el modo proyección -->
-                <Icon name="expand" />
+                <!-- Pantalla de proyección con trípode, no el icono de «pantalla
+                     completa»: ese ya significa el modo inmersivo. -->
+                <Icon name="projection" />
               {/if}
             </span>
             <span class="app-menu__text">
@@ -176,13 +177,17 @@
           <span class="app-menu__text">
             <span class="app-menu__label">
               {#if $isAuthenticated}
-                {$currentUser?.nickname}
+                {nombreVisible($currentUser)}
               {:else}
                 {$_('app.app_menu.items.auth.label')}
               {/if}
             </span>
             <span class="app-menu__hint">
-              {#if $isAuthenticated}
+              {#if $isAuthenticated && apodoSecundario($currentUser)}
+                <!-- Con nombre puesto, el apodo pasa aquí abajo: identifica la
+                     cuenta, que es para lo que sirve la pista de este ítem. -->
+                @{apodoSecundario($currentUser)}
+              {:else if $isAuthenticated}
                 {$_('app.app_menu.items.auth.signed_in_hint')}
               {:else}
                 {$_('app.app_menu.items.auth.hint')}

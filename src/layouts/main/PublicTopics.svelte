@@ -21,6 +21,7 @@
   import { getBibleVersionConfigOrDefault, selectedBibleVersion } from '../../store/stores';
   import { resolveTopicIcon } from '../../config/topic-icons.js';
   import { loadCuratedTopics, textoDe, buildCuratedPath } from '../../services/curated-topics.service';
+  import { navegarA } from '../../services/navigation.service';
   import Icon from '../../components/Icon.svelte';
 
   let temas = [];
@@ -46,12 +47,9 @@
     ? temas.filter((t) => t.name.toLowerCase().includes(busqueda.trim().toLowerCase()))
     : temas;
 
-  const irA = (href) => {
-    window.history.pushState(null, '', href);
-    // La errata `robibile` es la del resto del proyecto (CLAUDE.md, trampa 1).
-    window.dispatchEvent(new CustomEvent('robibile:navigate'));
-    window.dispatchEvent(new PopStateEvent('popstate'));
-  };
+  // El helper sube al principio de la página: sin eso se llega a la página
+  // nueva a media altura, con el scroll heredado de la lista.
+  const irA = (href) => navegarA(href);
 
   const abrir = (slug) => irA(`/tema/${encodeURIComponent(slug)}`);
 
@@ -143,14 +141,22 @@
               <span class="tema__icono" aria-hidden="true" style={t.color ? `color: ${t.color}` : ''}>
                 <Icon name={resolveTopicIcon(t.icon)} />
               </span>
-              <span class="tema__nombre">{t.name}</span>
-              {#if t.description}
-                <span class="tema__desc">{t.description}</span>
-              {/if}
-              <span class="tema__cuenta">
-                {t.verseCount === 1
-                  ? $_('app.topics.verse_count', { count: t.verseCount })
-                  : $_('app.topics.verses_count_plural', { count: t.verseCount })}
+              <!-- El texto va envuelto a propósito: así la tarjeta es siempre
+                   una rejilla de dos columnas y una fila, tenga el tema
+                   descripción o no. Cuando los tres textos eran hijos directos,
+                   el auto-placement metía la descripción en la columna del
+                   icono, la ensanchaba, y al nombre le quedaba un carril de una
+                   letra de ancho: el título salía en vertical. -->
+              <span class="tema__cuerpo">
+                <span class="tema__nombre">{t.name}</span>
+                {#if t.description}
+                  <span class="tema__desc">{t.description}</span>
+                {/if}
+                <span class="tema__cuenta">
+                  {t.verseCount === 1
+                    ? $_('app.topics.verse_count', { count: t.verseCount })
+                    : $_('app.topics.verses_count_plural', { count: t.verseCount })}
+                </span>
               </span>
             </a>
           </li>
@@ -377,9 +383,9 @@
 
   .tema {
     display: grid;
-    grid-template-columns: auto 1fr;
-    align-items: center;
-    gap: 0.3rem 0.65rem;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    gap: 0.65rem;
     height: 100%;
     padding: 0.85rem 1rem;
     border: 1px solid var(--color-line);
@@ -396,15 +402,27 @@
     }
   }
 
+  // Ya no hace falta `grid-row`: el icono es el primero de los DOS hijos de una
+  // rejilla de una sola fila. El `grid-row: 1 / -1` que hubo aquí fue justo el
+  // fallo — sin `grid-template-rows` explícito, `-1` no es «la última fila»
+  // sino la última línea del grid EXPLÍCITO, que no existe, así que el resto de
+  // elementos se auto-colocaban donde podían.
   .tema__icono {
     display: inline-flex;
-    // `1 / -1` y no `span 2`: la tarjeta tiene dos o tres filas según el tema
-    // traiga descripción o no, y con un número fijo el icono se quedaba corto
-    // justo en las que sí la tienen.
-    grid-row: 1 / -1;
+    align-self: start;
+    // Alinea el icono con la primera línea del título en vez de con el borde.
+    margin-top: 0.1rem;
     /* El color lo pone el tema; si no tiene, hereda el acento. */
     color: var(--color-accent);
     --icon-size: 1.4rem;
+  }
+
+  .tema__cuerpo {
+    display: grid;
+    gap: 0.2rem;
+    // Imprescindible en una rejilla: sin esto, un texto largo sin espacios no
+    // deja que la columna baje de su ancho de contenido y desborda la tarjeta.
+    min-width: 0;
   }
 
   .tema__nombre {

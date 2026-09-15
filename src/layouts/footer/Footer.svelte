@@ -5,9 +5,10 @@
   import { themeMode, setThemeMode, PALETTES } from '../../store/stores';
   import { getPalette } from '../../config/palettes';
   import Modal from '../../components/Modal.svelte';
-  import { isAuthenticated, currentUser, logout } from '../../store/authStore';
+  import { isAuthenticated, currentUser, logout, nombreVisible } from '../../store/authStore';
   import { openAuthMenu } from '../../store/authMenuStore';
   import { getBibleVersionConfigOrDefault, selectedBibleVersion } from '../../store/stores';
+  import { navegarA } from '../../services/navigation.service';
 
   let isAboutOpen = false;
   const appVersion = packageInfo.version;
@@ -72,16 +73,10 @@
   // que recargar la página entera sería tirar la Biblia de memoria y volverla a
   // pedir. `/landing` es la excepción, porque la resuelve App.svelte antes de
   // montar Main y necesita la recarga.
-  const irA = (href) => {
-    if (href === '/landing') {
-      window.location.href = href;
-      return;
-    }
-    window.history.pushState(null, '', href);
-    // La errata `robibile` es la del resto del proyecto (CLAUDE.md, trampa 1).
-    window.dispatchEvent(new CustomEvent('robibile:navigate'));
-    window.dispatchEvent(new PopStateEvent('popstate'));
-  };
+  // El helper sube al principio de la página. Sin eso, ir de una página larga a
+  // otra por estos enlaces te dejaba a media altura en la nueva —el scroll se
+  // hereda— y parecía que el enlace del pie no había hecho nada.
+  const irA = (href) => navegarA(href);
 
   // Botón auth del footer: muestra nickname o "Login" según estado
   const handleAuthClick = () => {
@@ -157,7 +152,9 @@
     >
       {#if $isAuthenticated}
         <span class="online-dot online-dot--inline" aria-hidden="true"></span>
-        {$currentUser?.nickname}
+        <!-- Aquí sólo el nombre, sin el apodo debajo: es un botón de una línea
+             en la barra del pie y no hay un «debajo» donde ponerlo. -->
+        {nombreVisible($currentUser)}
         <span class="footer__auth-action">· {$_('auth.logout')}</span>
       {:else}
         {$_('app.app_menu.items.auth.label')}

@@ -58,6 +58,22 @@ export const resetPassword = async (resetToken, newPassword) => {
 /** Snapshot del usuario actual (no reactivo, para usar en handlers). */
 export const snapshotUser = () => get(currentUser);
 
+/**
+ * Cómo se llama el usuario en pantalla.
+ *
+ * Si ha rellenado su nombre, manda el nombre; si no, el apodo con el que se
+ * registró. Quien pone su nombre completo espera verlo, no un identificador.
+ *
+ * **Sólo para las pantallas propias.** El nickname sigue siendo lo único que
+ * sale del lado público —la firma de una predicación publicada (trampa 68)—, y
+ * eso NO se cambia aquí: el nombre real de alguien no se publica porque haya
+ * rellenado un campo opcional de su perfil.
+ */
+export const nombreVisible = (user) => user?.fullName?.trim() || user?.nickname || '';
+
+/** El apodo, sólo cuando aporta algo: si no hay nombre, ya se enseña arriba. */
+export const apodoSecundario = (user) => (user?.fullName?.trim() ? user?.nickname || '' : '');
+
 // ── El perfil también se resincroniza ───────────────────────────────────────
 //
 // `currentUser` se hidrataba UNA sola vez, de la copia que quedó en

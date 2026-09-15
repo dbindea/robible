@@ -129,7 +129,7 @@
       aria-current={isOnProjection ? 'page' : undefined}
       on:click={(e) => navigate(e, '/proiectie')}
     >
-      <Icon name="expand" />
+      <Icon name="projection" />
       <span class="nav-link__label">{$_('app.app_menu.items.projection.label')}</span>
     </a>
 

@@ -23,6 +23,7 @@
   import { applySeoMetadata } from '../../services/seo.service';
   import { getBibleVersionConfigOrDefault, selectedBibleVersion } from '../../store/stores';
   import { STEPS } from '../../services/sermon-content.service';
+  import { navegarA } from '../../services/navigation.service';
   import Icon from '../../components/Icon.svelte';
 
   export let map = {};
@@ -163,12 +164,7 @@
     document.querySelector('.blog__lista')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  const abrir = (slug) => {
-    window.history.pushState(null, '', `/predica/${encodeURIComponent(slug)}`);
-    // La errata `robibile` es la del resto del proyecto (CLAUDE.md, trampa 1).
-    window.dispatchEvent(new CustomEvent('robibile:navigate'));
-    window.dispatchEvent(new PopStateEvent('popstate'));
-  };
+  const abrir = (slug) => navegarA(`/predica/${encodeURIComponent(slug)}`);
 
   onMount(async () => {
     predicas = (await fetchPublicSermons()) || [];

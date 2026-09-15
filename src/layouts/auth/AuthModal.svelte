@@ -10,6 +10,8 @@
     getSecurityQuestion,
     verifySecurityAnswer,
     resetPassword,
+    nombreVisible,
+    apodoSecundario,
   } from '../../store/authStore';
   import { closeAuthMenu } from '../../store/authMenuStore';
   import { LEGACY_SECURITY_QUESTIONS, USER_TYPES, validators } from '../../services/auth.service';
@@ -181,7 +183,10 @@
       {#if $isAuthenticated && view === 'login'}
         <!-- PERFIL LOGUEADO -->
         <p class="auth-modal__eyebrow">{$_('auth.signed_in')}</p>
-        <h2 id="auth-title" class="auth-modal__title">{$currentUser?.nickname}</h2>
+        <h2 id="auth-title" class="auth-modal__title">{nombreVisible($currentUser)}</h2>
+        {#if apodoSecundario($currentUser)}
+          <p class="auth-modal__apodo">@{apodoSecundario($currentUser)}</p>
+        {/if}
         <p class="auth-modal__lead">{$_('auth.profile_lead')}</p>
         <dl class="auth-modal__meta">
           <div>
@@ -503,6 +508,15 @@
   .auth-modal__lead {
     margin: 0;
     font-size: 0.85rem;
+    color: var(--color-ink-soft);
+  }
+
+  /* El apodo bajo el nombre. Sólo aparece cuando hay nombre puesto: si no, el
+     título ya ES el apodo. */
+  .auth-modal__apodo {
+    margin: -0.15rem 0 0.4rem;
+    font-size: 0.85rem;
+    font-weight: 600;
     color: var(--color-ink-soft);
   }
 

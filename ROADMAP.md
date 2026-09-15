@@ -320,6 +320,11 @@ Estado a **9 sep 2026**. La aplicación está desplegada y funcionando; esto es 
 
 Sin fecha ni compromiso. Por orden de valor aparente:
 
+0. **Dictado por voz al buscador de la proyección** (pedido el 15 sep 2026). La idea: que el predicador diga «Ioan trei șaisprezece» y la referencia se proyecte, sin soltar el micrófono ni mirar el teclado. Es de las pocas cosas que no se pueden hacer con una mano desde el púlpito.
+   - Se hace con `SpeechRecognition` (Web Speech API), sin dependencias ni backend. Va bien en Chrome y Edge de escritorio y en Android.
+   - **Lo que hay que resolver antes de prometerlo**: en Chrome de escritorio el reconocimiento **viaja a los servidores de Google**, así que hay que decirlo — «no te seguimos» es de las primeras frases de la landing y no puede haber una excepción callada. Firefox no lo implementa. En iOS sólo desde Safari y con permiso por gesto cada vez.
+   - Y el reconocimiento **no entiende referencias**: devuelve texto corrido en el idioma del reconocedor, con los números escritos con letra y el nombre del libro declinado. Hace falta una capa que normalice eso antes de dárselo a `parseReference`, y probarla con los 66 libros en rumano y en español.
+   - Empezaría por un botón de micrófono en el campo de referencia, visible sólo donde el navegador lo soporta — un control que no puede funcionar es peor que no tenerlo (mismo criterio que la tarjeta de push en el perfil).
 1. **Uso del email**, cuando haya volumen: validación de la cuenta o aviso al autor cuando su predicación recibe visitas. Hoy no se envía nada y no hay proveedor elegido.
 2. **Estadísticas de repaso** en memorización: la columna `correct` llega al worker y **no se guarda**, a propósito, porque no hay pantalla que la lea. Si algún día se quiere una racha o un histórico, se añade la columna entonces.
 3. **Sonido o vibración del aviso diario**, y poder elegir varios días de la semana en vez de todos.

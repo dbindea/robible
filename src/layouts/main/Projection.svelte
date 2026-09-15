@@ -1118,6 +1118,52 @@
     pointer-events: none;
   }
 
+  // ── Móvil ─────────────────────────────────────────────────────────────────
+  //
+  // En el teléfono esto no es «el equipo que proyecta»: es alguien leyendo
+  // versículo a versículo en la mano, y la proyección resulta ser una forma
+  // muy cómoda de hacerlo. Con los controles en la esquina derecha hacían falta
+  // dos manos y aun así quedaban fuera del alcance del pulgar.
+  //
+  // Centrados y algo más arriba: sobre esa franja inferior es donde el
+  // navegador móvil enseña y esconde su propia barra de direcciones.
+  @media (max-width: 40rem) {
+    .controles {
+      right: auto;
+      left: 50%;
+      bottom: 1.5rem;
+      transform: translateX(-50%);
+      // Caben ocho botones justos en una pantalla estrecha; si no, se parten en
+      // dos filas en vez de salirse por los lados.
+      flex-wrap: wrap;
+      justify-content: center;
+      max-width: calc(100vw - 1.5rem);
+
+      button {
+        // 2.6rem = 42px: por encima del objetivo táctil mínimo y cómodo para el
+        // pulgar, que es con lo que se usa aquí.
+        width: 2.6rem;
+        height: 2.6rem;
+        --icon-size: 1.15rem;
+      }
+    }
+
+    // El panel se apoya justo encima de los controles, también centrado.
+    .panel {
+      right: auto;
+      left: 50%;
+      bottom: 5.25rem;
+      transform: translateX(-50%);
+      width: calc(100vw - 2rem);
+    }
+
+    // Y el texto respira: en vertical, el relleno lateral de escritorio se
+    // comía media línea por lado.
+    .proyeccion { padding: 1.25rem 1rem 5.5rem; }
+
+    .lamina { max-width: 100%; }
+  }
+
   .controles__posicion {
     padding: 0 0.35rem;
     color: #98a2b3;
