@@ -312,7 +312,7 @@
     <p>{$_(`app.admin.users.confirm_${accionUsuario.tipo}_text`, { nickname: accionUsuario.user.nickname })}</p>
     <svelte:fragment slot="footer">
       <button type="button" on:click={() => (accionUsuario = null)}>{$_('app.topics.cancel')}</button>
-      <button type="button" disabled={procesando} on:click={confirmarAccionUsuario}>
+      <button type="button" class="accion-principal" disabled={procesando} on:click={confirmarAccionUsuario}>
         {procesando ? $_('auth.working') : $_(`app.admin.users.${accionUsuario.tipo}`)}
       </button>
     </svelte:fragment>
@@ -346,7 +346,7 @@
     <p class="admin__contrasena">{contrasenaGenerada.password}</p>
     <p class="admin__aviso-fuerte">{$_('app.admin.users.new_password_warning')}</p>
     <svelte:fragment slot="footer">
-      <button type="button" on:click={copiarContrasena}>
+      <button type="button" class="accion-principal" on:click={copiarContrasena}>
         <Icon name="copy" size="0.9rem" />
         {$_('app.admin.users.copy')}
       </button>
@@ -593,9 +593,30 @@
     }
   }
 
+  // Rojo en el borde y en el texto, no de relleno: estos botones borran cuentas
+  // y predicaciones para siempre, y tienen que distinguirse de un vistazo del
+  // que sólo cancela.
+  //
+  // El `!important` es para ganarle a la regla `.fila__acciones button`, que va
+  // después en la hoja. En el pie de los diálogos no haría falta —el estilo
+  // base de `Modal.svelte` va con especificidad cero a propósito—, pero la
+  // clase se usa en los dos sitios.
   .fila__borrar {
     border-color: var(--color-marked-favorite) !important;
     color: var(--color-marked-favorite) !important;
+  }
+
+  // La acción que confirma el diálogo. Relleno de acento porque lleva texto
+  // encima: `--color-accent` a secas sólo da 3.30:1 y AA pide 4.5:1.
+  .accion-principal {
+    border-color: var(--color-accent) !important;
+    background: var(--color-accent-solid) !important;
+    color: var(--color-on-primary) !important;
+
+    &:hover:not(:disabled) {
+      background: var(--color-accent-solid-hover) !important;
+      color: var(--color-on-primary) !important;
+    }
   }
 
   .insignia {

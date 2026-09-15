@@ -215,6 +215,52 @@
     border-top: 1px solid var(--color-line-soft);
   }
 
+  /* Estilo BASE de los botones del pie.
+   *
+   * Existe porque este componente daba la disposición del pie pero ningún
+   * aspecto a los botones: cada pantalla tenía que ponérselo, y donde no se
+   * hacía salían los botones grises del navegador, con su borde `outset` — el
+   * panel de administración enseñaba así sus cuatro diálogos de confirmación,
+   * incluido el de borrar una predicación para siempre. Un botón destructivo
+   * con pinta de formulario de 1998 no transmite lo que hace.
+   *
+   * `:where()` es la clave: deja la especificidad de la regla en 0, así que
+   * CUALQUIER clase que el componente le ponga a su botón gana sin tener que
+   * pelearse con `!important`. Es un suelo, no una imposición — los modales que
+   * ya traen sus estilos (la nota, la schiță, el púlpito) siguen exactamente
+   * igual.
+   *
+   * `:global` porque los botones llegan por el slot: los pinta el componente
+   * padre y no esta plantilla, así que Svelte no los ve al compilar. */
+  :where(.modal__footer) :global(button) {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    /* 2.4rem de alto: por encima del mínimo de objetivo táctil (WCAG 2.5.8). */
+    min-height: 2.4rem;
+    padding: 0.5rem 1.1rem;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-pill);
+    background: var(--color-surface);
+    color: var(--color-ink);
+    font: inherit;
+    font-size: var(--font-size-small);
+    font-weight: 700;
+    cursor: pointer;
+    transition: var(--transition);
+    --icon-size: 0.95rem;
+  }
+
+  :where(.modal__footer) :global(button:hover:not(:disabled)) {
+    border-color: var(--color-accent);
+    color: var(--color-accent-ink);
+  }
+
+  :where(.modal__footer) :global(button:disabled) {
+    opacity: 0.5;
+    cursor: default;
+  }
+
   // En móvil ocupa casi toda la pantalla: da sitio para escribir una nota o
   // recorrer una lista larga de categorías sin pelearse con el teclado.
   @media (max-width: 40rem) {

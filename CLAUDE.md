@@ -228,6 +228,11 @@ Cosas que rompen si no se saben:
     - En la imagen va a la **derecha** y no centrada desde el 15 sep 2026: en un estado de WhatsApp, el centro inferior es donde caen los controles de la propia aplicación y donde mira el pulgar para pasar al siguiente, así que la marca quedaba tapada justo en la pantalla para la que se hizo la imagen.
     - La schiță lleva marca pero **no** número de página: es una hoja que se dobla y se lleva al púlpito, no un documento paginado. Cubierto en `tests/sermon-pdf.test.js`.
 
+95. **`Modal.svelte` da un estilo BASE a los botones de su pie, con especificidad cero.** Antes sólo daba la disposición, así que cada pantalla tenía que vestir sus propios botones — y donde no se hacía salían los grises del navegador, con borde `outset`. El panel de administración enseñaba así sus cuatro diálogos de confirmación, incluido el de borrar una predicación para siempre.
+    - La regla es `:where(.modal__footer) :global(button)`. **El `:where()` no es adorno**: deja la especificidad en 0, así que cualquier clase propia gana sin `!important`. Si alguien lo quita, la regla sube a 0-2-1 y empieza a pisar los seis diálogos que sí traen sus estilos (versículo del día, compartir imagen, nota, borrar tema y los dos de predicaciones). Y el `:global` es obligatorio porque los botones llegan por el slot: los pinta el padre, así que Svelte no los ve al compilar.
+    - Es un **suelo, no un uniforme**: con dos botones en un pie, al menos uno debe llevar clase propia, o «confirmar» y «cancelar» se ven idénticos. Lo vigila `tests/modal-botones.test.js`.
+    - Para encontrar botones sin estilo, lo que funciona es mirar el DOM renderizado, no el código: un botón sin reglas de autor computa `border-style: outset` y fondo `rgb(239,239,239)`. Buscar `<button>` sin `class` da 37 falsos positivos, porque muchos los viste una regla del contenedor.
+
 ## Mapa rápido
 
 ```
