@@ -29,6 +29,30 @@ const Reconocedor =
 export const soportado = () => !!Reconocedor;
 
 /**
+ * ¿La política de permisos del propio sitio deja usar el micrófono?
+ *
+ * Existe por un fallo real: `netlify.toml` mandaba `Permissions-Policy:
+ * microphone=()`, y la lista vacía no significa «restringido» sino *ningún
+ * origen, ni siquiera el propio*. Con eso el navegador no pide permiso — lo
+ * deniega en el acto—, y el mensaje que veía el usuario era «el micrófono está
+ * bloqueado en el navegador»: culpaba a su navegador de algo que hacía nuestra
+ * propia cabecera.
+ *
+ * `featurePolicy` no es estándar y sólo está en Chromium; cuando no existe se
+ * responde `true` y ya lo dirá `getUserMedia`. Aquí no se busca certeza, se
+ * busca poder dar el mensaje correcto cuando se puede.
+ */
+export const politicaPermiteMicrofono = () => {
+  try {
+    const fp = typeof document !== 'undefined' ? document.featurePolicy : null;
+    if (!fp?.allowsFeature) return true;
+    return fp.allowsFeature('microphone');
+  } catch {
+    return true;
+  }
+};
+
+/**
  * Pide permiso de micrófono de forma explícita.
  *
  * `SpeechRecognition.start()` debería pedirlo solo, y en Chrome lo hace — pero
@@ -45,6 +69,10 @@ export const soportado = () => !!Reconocedor;
  */
 export const pedirPermiso = async () => {
   if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) return 'sin-api';
+  // Si la política del sitio lo prohíbe, `getUserMedia` va a fallar igual pero
+  // con `NotAllowedError`, que es indistinguible de «el usuario ha dicho que
+  // no». Se comprueba antes para poder decir la verdad.
+  if (!politicaPermiteMicrofono()) return 'bloqueado-por-el-sitio';
   try {
     const pista = await navigator.mediaDevices.getUserMedia({ audio: true });
     pista.getTracks().forEach((t) => t.stop());

@@ -994,7 +994,7 @@
       "title": "Versete pe ecran",
       "lead": "Alege pasajul, apoi avansează cu telecomanda sau cu tastele. Textul se vede de la ultimul rând.",
       "search_label": "Ce proiectăm?",
-      "search_placeholder": "ioan 3 sau psalmii 23",
+      "search_placeholder": "ioan 3 sau psalmii 23 3",
       "continue": "Continuă de la {reference}",
       "keys_title": "Taste",
       "key_next": "Versetul următor",
@@ -1004,7 +1004,7 @@
       "key_size": "Mărimea textului",
       "key_exit": "Ieși din proiecție",
       "phrase_label": "Sau caută o expresie",
-      "phrase_placeholder": "conține expresia…",
+      "phrase_placeholder": "Conține expresia…",
       "phrase_count": "{count} versete găsite",
       "phrase_empty": "Niciun verset cu această expresie.",
       "key_swap": "Schimbă limbile",
@@ -1059,7 +1059,8 @@
       "plan_needed": "Dictarea face parte dintr-un abonament.",
       "no_service": "Acest browser nu permite dictarea. Încearcă în Chrome sau Edge.",
       "no_mic": "Nu se găsește niciun microfon.",
-      "offline": "Dictarea are nevoie de conexiune la internet."
+      "offline": "Dictarea are nevoie de conexiune la internet.",
+      "site_blocked": "Dictarea este blocată de o setare a site-ului. O reparăm noi, nu e de la tine."
     }
   },
   "auth": {
