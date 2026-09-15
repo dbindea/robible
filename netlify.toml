@@ -14,7 +14,18 @@
     X-Content-Type-Options = "nosniff"
     X-XSS-Protection = "1; mode=block"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    # `microphone=(self)` y no `microphone=()`.
+    #
+    # La lista vacía no significa «restringido»: significa **ningún origen, ni
+    # siquiera el propio**. Con ella, el dictado por voz no fallaba al pedir
+    # permiso — es que el navegador ni llegaba a preguntar: `getUserMedia`
+    # devolvía `NotAllowedError` en el acto y `SpeechRecognition` quedaba muerto.
+    # El síntoma era desconcertante porque en desarrollo funcionaba: Vite no
+    # manda esta cabecera, así que sólo se rompía en producción.
+    #
+    # `camera` y `geolocation` siguen cerradas del todo: no se usan, y una
+    # política abierta para algo que no existe sólo amplía la superficie.
+    Permissions-Policy = "camera=(), microphone=(self), geolocation=()"
     # Ojo con Clarity: el tag se pide a www.clarity.ms pero el script real se
     # carga desde scripts.clarity.ms. Con solo `www` en script-src, el navegador
     # bloqueaba la carga y Clarity no recogía nada en producción. Por eso va el

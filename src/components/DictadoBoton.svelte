@@ -79,6 +79,10 @@
     const permiso = await pedirPermiso();
     if (permiso === 'denegado') { error = 'not-allowed'; return; }
     if (permiso === 'sin-microfono') { error = 'audio-capture'; return; }
+    // La cabecera `Permissions-Policy` del propio sitio lo prohíbe. Es un fallo
+    // NUESTRO, no del usuario, y el mensaje tiene que decirlo: culparle a él de
+    // esto le manda a revisar unos ajustes que están perfectamente.
+    if (permiso === 'bloqueado-por-el-sitio') { error = 'site-blocked'; return; }
 
     escuchando = true;
     sesion = dictar({
@@ -152,7 +156,9 @@
          cambiar de navegador o conectarse. Un «no te he entendido» para las
          tres deja a la gente probando otra vez para nada. -->
     <p class="dictado__estado dictado__estado--error" role="status">
-      {#if error === 'not-allowed'}
+      {#if error === 'site-blocked'}
+        {$_('app.speech.site_blocked')}
+      {:else if error === 'not-allowed'}
         {$_('app.speech.denied')}
       {:else if error === 'service-not-allowed' || navegadorSinServicio}
         {$_('app.speech.no_service')}
