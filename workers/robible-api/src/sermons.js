@@ -304,8 +304,10 @@ const paraElPublico = (r) => {
     idea: contenido?.idea?.central || '',
     intro: contenido?.intro || '',
     // La frase que enlaza la introducción con las divisiones. Se predica, así
-    // que se publica. `notes` en cambio NO sale nunca: es el cuaderno de
-    // trabajo del predicador, con dudas y material a medio pensar.
+    // que se publica. `notes` y `diagram` en cambio NO salen nunca: son el
+    // material de trabajo del predicador —dudas, apuntes a medio pensar y el
+    // pasaje sangrado a mano— y esta respuesta se arma campo a campo justo
+    // para que añadir uno nuevo al documento no los arrastre consigo.
     transition: contenido?.transition || '',
     conclusion: contenido?.conclusion || '',
     points: puntos,

@@ -8,10 +8,13 @@
    * las divisiones, y estaba tres pasos atrás. Volver a TEXT a leerlo perdía el
    * hilo de lo que se estaba escribiendo.
    *
-   * Es de **sólo lectura** a propósito. El sitio donde se escribe es TEXT, con
-   * una hoja entera para escribir a gusto; si además se pudiera editar desde
-   * aquí habría dos campos vivos sobre el mismo texto y ninguno de los dos
-   * sería el bueno. Aquí se viene a mirar, no a apuntar.
+   * **Se puede escribir desde aquí** (15 sep 2026). Antes era de sólo lectura,
+   * con el argumento de que el sitio para escribir era TEXT y dos campos vivos
+   * sobre el mismo texto confundirían. En la práctica el argumento no se
+   * sostuvo: mientras se desarrolla un punto salen ideas que hay que apuntar en
+   * el momento, y obligar a retroceder cuatro pasos para anotar media frase
+   * hacía que no se anotara. No hay dos campos vivos a la vez porque nunca se
+   * ven dos pasos en la misma pantalla.
    *
    * Se pliega como [Ajutor] y [Recapitulare] y recuerda la preferencia, con su
    * propia clave: son tres bloques distintos —uno enseña, otro recuerda lo
@@ -22,6 +25,8 @@
   import { _ } from '../services/i18n.service';
 
   export let notes = '';
+  /** Se llama con el texto nuevo. Sin él, el bloque sigue siendo de lectura. */
+  export let onChange = null;
 
   const CLAVE = 'robible:sermons:notes-open';
 
@@ -39,9 +44,13 @@
   };
 
   $: hayNotas = typeof notes === 'string' && notes.trim().length > 0;
+  // Con `onChange` el bloque aparece aunque no haya nada escrito: es el sitio
+  // donde apuntar, y si sólo saliera con notas previas no habría forma de
+  // escribir la primera desde aquí.
+  $: visible = hayNotas || !!onChange;
 </script>
 
-{#if hayNotas}
+{#if visible}
   <div class="notite" class:notite--abierta={abierta}>
     <button type="button" class="notite__boton" aria-expanded={abierta} on:click={alternar}>
       <span class="notite__icono"><Icon name="note" weight={abierta ? 'fill' : 'regular'} /></span>
@@ -52,7 +61,18 @@
 
     {#if abierta}
       <div class="notite__cuerpo">
-        <p class="notite__texto">{notes}</p>
+        {#if onChange}
+          <textarea
+            class="notite__campo"
+            spellcheck="false"
+            rows="6"
+            placeholder={$_('app.sermons.notes_placeholder')}
+            value={notes}
+            on:input={(e) => onChange(e.target.value)}
+          ></textarea>
+        {:else}
+          <p class="notite__texto">{notes}</p>
+        {/if}
       </div>
     {/if}
   </div>
@@ -110,6 +130,23 @@
 
   .notite__cuerpo {
     padding: 0 0.8rem 0.85rem;
+  }
+
+  /* El cuaderno, cuando se puede escribir en él. Sin marco propio: el bloque ya
+     es una caja, y una caja dentro de otra caja para un campo de apuntes es
+     ruido. Sólo un filete arriba para separarlo de la cabecera. */
+  .notite__campo {
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--color-ink);
+    font: inherit;
+    font-size: 0.88rem;
+    line-height: 1.5;
+    resize: vertical;
+
+    &:focus { outline: none; }
   }
 
   .notite__texto {

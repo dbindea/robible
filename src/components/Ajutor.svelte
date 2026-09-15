@@ -18,6 +18,14 @@
   export let paso = '';
   /** Tipo de predicación. Sólo cambia el aviso; la guía es la misma. */
   export let tip = 'expositive';
+  /**
+   * Qué pone en la barra. Por defecto, «Ghid de omiletică».
+   *
+   * Hace falta desde que DEZVOLTARE lleva dentro la introducción: en esa
+   * pantalla hay dos guías, y con la misma etiqueta las dos barras eran
+   * indistinguibles — no había forma de saber cuál explicaba qué.
+   */
+  export let etiqueta = '';
 
   const CLAVE = 'robible:sermons:guide-open';
 
@@ -43,7 +51,7 @@
   <div class="ajutor" class:ajutor--abierta={abierta}>
     <button type="button" class="ajutor__boton" aria-expanded={abierta} on:click={alternar}>
       <span class="ajutor__icono"><Icon name="light" weight={abierta ? 'fill' : 'regular'} /></span>
-      <span class="ajutor__etiqueta">{$_('app.homiletics.open')}</span>
+      <span class="ajutor__etiqueta">{etiqueta || $_('app.homiletics.open')}</span>
       <!-- `class:` no compila sobre <Icon> (es una directiva de elemento):
            el chevron gira desde el <span> que lo envuelve. -->
       <span class="ajutor__chevron"><Icon name="chevron-up" /></span>

@@ -25,6 +25,11 @@ export const emptyContent = () => ({
   // el recuento de palabras, ni en el documento, ni en el PDF, ni en la página
   // pública. Se escribe aquí y se relee plegado en los pasos siguientes.
   notes: '',
+  // Paso TEXT: el diagrama del pasaje. La perícopa volcada y sangrada a mano
+  // con el tabulador para ver cómo está construida —qué depende de qué—, que
+  // es un trabajo distinto del de apuntar ocurrencias. Como `notes`, es
+  // material de trabajo: no se predica ni se publica.
+  diagram: '',
   // Paso OBSERVARE: cinco preguntas, todas opcionales.
   observation: { repeats: '', contrasts: '', actions: '', tension: '', truth: '' },
   // Paso CONTEXT.
@@ -55,7 +60,8 @@ export const emptyContent = () => ({
   // formulario interminable. Los ids no chocan porque `newPoint` y
   // `newSubpoint` los prefijan distinto.
   development: {},
-  // Paso FINALIZARE.
+  // La introducción se escribe dentro de DEZVOLTARE, antes de los puntos; la
+  // conclusión, en FINALIZARE.
   intro: '',
   conclusion: '',
 });
@@ -82,6 +88,11 @@ export const normalizeContent = (raw) => {
     version: CONTENT_VERSION,
     marks: Array.isArray(obj.marks) ? obj.marks : base.marks,
     notes: typeof obj.notes === 'string' ? obj.notes : '',
+    // El diagrama del texto: la perícope volcada y tabulada a mano para ver la
+    // estructura del pasaje. Campo aparte de `notes` porque son dos cosas
+    // distintas — uno es el texto bíblico ordenado, el otro los apuntes — y
+    // mezclados en el mismo campo el diagrama se pierde entre las ideas.
+    diagram: typeof obj.diagram === 'string' ? obj.diagram : '',
     observation: { ...base.observation, ...(obj.observation || {}) },
     context: { ...base.context, ...(obj.context || {}) },
     idea: { ...base.idea, ...(obj.idea || {}) },
@@ -97,14 +108,20 @@ export const normalizeContent = (raw) => {
 // El orden importa: es el recorrido que propone la aplicación. Se puede
 // retroceder y saltar, pero no reordenar.
 //
-// `intro` va ANTES de `development` por decisión explícita del propietario, y
-// no es lo que enseña el curso: el curso dice que la introducción se escribe
-// AL FINAL, cuando ya se sabe adónde lleva la predicación (era el texto de
-// `final.why` hasta el 10 sep 2026). Se cambia a propósito, para escribirla en
-// el hueco entre STRUCTURĂ y DEZVOLTARE y no perder el hilo del orden en que
-// se predica. `final` se queda sólo con la conclusión y la serie — sigue
-// siendo el último paso, pero ya no combina las dos cosas.
-export const STEPS = ['text', 'observation', 'context', 'idea', 'structure', 'intro', 'development', 'final'];
+// **Siete pasos desde el 15 sep 2026; antes eran ocho.** La introducción dejó
+// de ser un paso propio y se escribe dentro de DEZVOLTARE, en la misma pantalla
+// y antes de los puntos.
+//
+// Por qué: como paso suelto, entre STRUCTURĂ y DEZVOLTARE, obligaba a parar el
+// trabajo de las divisiones para redactar un texto que depende justamente de
+// ellas. Juntas se ve la predicación entera de un vistazo — se entra, se
+// desarrolla — que es como se predica.
+//
+// El campo `content.intro` NO se toca: sigue existiendo, con lo que ya haya
+// escrito cada uno. Lo que cambia es dónde se edita, no dónde se guarda, así
+// que no hace falta migrar nada. `GUIA.intro` tampoco se toca: su guía se
+// enseña ahora al lado del campo, dentro de DEZVOLTARE.
+export const STEPS = ['text', 'observation', 'context', 'idea', 'structure', 'development', 'final'];
 
 /**
  * Cuánto hay hecho de cada paso. Alimenta la línea de progreso.
@@ -116,15 +133,18 @@ export const stepCompletion = (content) => {
   return {
     // Las notas cuentan tanto como las marcas: hay quien llega al texto con una
     // página de apuntes y todavía ninguna palabra subrayada.
-    text: c.marks.length > 0 || c.notes.trim().length > 0,
+    text: c.marks.length > 0 || c.notes.trim().length > 0 || c.diagram.trim().length > 0,
     observation: algo(c.observation),
     context: algo(c.context),
     idea: algo(c.idea),
     structure: c.structure.length > 0 || c.transition.trim().length > 0,
+    // La introducción ya no es un paso, pero su clave se conserva: la leen el
+    // PDF y la vista pública para saber si hay algo que imprimir.
     intro: c.intro.trim().length > 0,
     // `algo` recorre los valores del objeto, así que vale igual para el
     // desarrollo de un punto (tres casillas) y para el de un subpunto (una).
-    development: Object.values(c.development).some((d) => algo(d || {})),
+    // Cuenta también la introducción, que ahora se escribe en este paso.
+    development: c.intro.trim().length > 0 || Object.values(c.development).some((d) => algo(d || {})),
     final: c.conclusion.trim().length > 0,
   };
 };
