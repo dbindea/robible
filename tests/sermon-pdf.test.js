@@ -322,3 +322,33 @@ test('el cuerpo de la predicación va a la izquierda, no justificado', () => {
   assert.ok(nodosConAlineacion.length > 0, 'no se encontró ningún nodo con alineación para comprobar');
   assert.ok(!nodosConAlineacion.includes('justify'), 'no debería quedar texto justificado en el PDF');
 });
+
+// ── Marca de agua ───────────────────────────────────────────────────────────
+//
+// RoBible es gratis, y un PDF de predicación se imprime, se reparte y se
+// reenvía: quien lo recibe debería poder saber de dónde salió. Es toda la
+// publicidad que lleva la aplicación, así que si alguien la quita conviene que
+// sea a propósito y no de rebote al tocar el pie.
+
+test('el documento lleva robible.com en el pie, junto a la numeración', () => {
+  const pie = definirPredica(SERMON, CONTENIDO_CON_SUBPUNTOS).footer(2, 5);
+  const textos = pie.columns.map((c) => c.text);
+  assert.ok(textos.includes('robible.com'), `el pie no lleva la marca: ${JSON.stringify(textos)}`);
+  assert.ok(textos.includes('2 / 5'), 'y tiene que seguir numerando las páginas');
+
+  // La marca a la derecha y el número al centro: en una hoja que se lee de pie,
+  // lo que se busca de un vistazo es en qué página vas.
+  const marca = pie.columns.find((c) => c.text === 'robible.com');
+  const numero = pie.columns.find((c) => c.text === '2 / 5');
+  assert.equal(marca.alignment, 'right');
+  assert.equal(numero.alignment, 'center');
+});
+
+test('la schiță lleva la marca pero NO número de página', () => {
+  // Es una hoja que se dobla y se lleva al púlpito, no un documento paginado.
+  const definicion = definirSchita(SERMON, { points: [] }, {});
+  assert.ok(definicion.footer, 'la schiță también tiene que llevar marca');
+  const pie = definicion.footer(1, 1);
+  assert.equal(pie.text, 'robible.com');
+  assert.equal(pie.alignment, 'right');
+});

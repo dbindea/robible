@@ -957,11 +957,31 @@
     position: absolute;
     top: 100%;
     left: 0;
-    width: max-content;
-    max-width: 16rem;
-    // Va posicionado, así que no empuja nada: el margen es sólo aire para que
-    // no se pegue al borde del campo.
+    // Todo el ancho del campo, no `max-content`: el mensaje más largo —el de
+    // «este navegador no permite dictar»— se salía por la derecha del panel.
+    width: calc(100vw - 3rem);
+    max-width: 17rem;
     margin: 0.45rem 0 0;
+  }
+
+  // Al ir posicionado, el mensaje NO ocupa espacio, así que se pintaba ENCIMA
+  // de «Cum se face căutarea?». Se le reserva sitio al contenedor cuando lo hay.
+  //
+  // `:has()` es lo que permite reaccionar a un hijo que aparece y desaparece
+  // sin tener que subir ese estado al componente padre. Donde no esté soportado
+  // (navegadores de antes de 2023) simplemente no se reserva el hueco y se
+  // vuelve al solapamiento, que es un fallo visual y no funcional.
+  // La clase va en `:global()` porque la pinta el componente hijo y no esta
+  // plantilla: sin eso Svelte poda las dos reglas como CSS muerto y el hueco no
+  // se reserva nunca. Es la misma trampa que la landing con `.is-visible`.
+  .input-search:has(:global(.dictado__estado)) {
+    margin-bottom: 2.6rem;
+  }
+
+  // Dos líneas de mensaje necesitan más aire: el de «no permite dictar» ocupa
+  // dos renglones en el ancho del panel.
+  .input-search:has(:global(.dictado__estado--error)) {
+    margin-bottom: 3.4rem;
   }
 
   .clear-search {

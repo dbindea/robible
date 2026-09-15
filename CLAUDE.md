@@ -223,6 +223,11 @@ Cosas que rompen si no se saben:
     - El otro camino al mismo silencio es el **ámbito que se queda pegado**: eliges un libro en el panel, luego buscas una palabra que no está en él y no hay nada en pantalla que recuerde que sigues dentro de un solo libro. Por eso, cuando hay texto, cero resultados y un libro seleccionado, el panel lo dice y ofrece **«buscar en toda la Biblia»**. No quites ese aviso: sin él, el fallo es invisible aunque el filtro funcione perfectamente.
     - `getFilterResult` **exige `searchType`** (trampa del Modo Proyección, arriba): sin ese campo cae en el `default` del `switch` y devuelve lista vacía.
 
+94. **La marca `robible.com` es toda la publicidad que lleva la aplicación, y está en cuatro salidas**: la proyección (abajo a la derecha), la imagen para compartir un versículo, el PDF de la predicación y el de la schiță. La razón es de producto: RoBible es gratis y esas cuatro cosas salen del dispositivo —se proyectan, se mandan por WhatsApp, se imprimen y se reparten—, así que quien las recibe debería poder saber de dónde vienen. Si añades otra salida, acuérdate de ella.
+    - En la proyección se **desvanece cuando aparecen los controles** (comparten esquina) y desaparece con la pantalla en negro, que existe justamente para que no se vea nada. Hereda la tinta del fondo elegido, así que se lee sobre los nueve sin comprobarlo a mano.
+    - En la imagen va a la **derecha** y no centrada desde el 15 sep 2026: en un estado de WhatsApp, el centro inferior es donde caen los controles de la propia aplicación y donde mira el pulgar para pasar al siguiente, así que la marca quedaba tapada justo en la pantalla para la que se hizo la imagen.
+    - La schiță lleva marca pero **no** número de página: es una hoja que se dobla y se lleva al púlpito, no un documento paginado. Cubierto en `tests/sermon-pdf.test.js`.
+
 ## Mapa rápido
 
 ```
