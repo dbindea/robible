@@ -66,6 +66,11 @@ const ICONOS = {
   expand: 'corners-out',
   collapse: 'corners-in',
   globe: 'globe',
+  // Modo Proyección. Una pantalla de proyección con su trípode: se reconoce de
+  // un vistazo en la barra superior, que es donde vive. Antes se reutilizaba
+  // `expand` («pantalla completa»), que ya significa otra cosa en esta misma
+  // aplicación — el modo inmersivo.
+  projection: 'projector-screen',
   lock: 'lock-simple',
   'sign-in': 'sign-in',
   'file-text': 'file-text',

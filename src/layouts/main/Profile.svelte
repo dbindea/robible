@@ -15,7 +15,7 @@
   import { _ } from '../../services/i18n.service';
   import { applySeoMetadata } from '../../services/seo.service';
   import { getBibleVersionConfigOrDefault, selectedBibleVersion } from '../../store/stores';
-  import { isAuthenticated, currentUser } from '../../store/authStore';
+  import { isAuthenticated, currentUser, nombreVisible, apodoSecundario } from '../../store/authStore';
   import { openAuthMenu } from '../../store/authMenuStore';
   import { updateProfile, changePassword } from '../../services/auth.service';
   import { getTodayVerse, isEnabled, setEnabled } from '../../services/daily-verse.service';
@@ -369,7 +369,12 @@
     <header class="portada">
       <div class="portada__texto">
         <p class="portada__eyebrow">{$_('app.profile.eyebrow')}</p>
-        <h1 class="portada__titulo">{$currentUser?.nickname}</h1>
+        <h1 class="portada__titulo">{nombreVisible($currentUser)}</h1>
+        <!-- El apodo sólo aparece si arriba hay un nombre: cuando no lo hay, el
+             título YA es el apodo y repetirlo debajo sobra. -->
+        {#if apodoSecundario($currentUser)}
+          <p class="portada__apodo">@{apodoSecundario($currentUser)}</p>
+        {/if}
 
         <!-- Lema personal. Si el usuario no ha puesto ninguno sale la
              presentación de siempre, que sigue explicando qué hay en esta
@@ -782,6 +787,13 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: var(--letter-spacing-eyebrow);
+  }
+
+  .portada__apodo {
+    margin: -0.25rem 0 0.6rem;
+    color: var(--color-ink-soft);
+    font-size: 0.92rem;
+    font-weight: 600;
   }
 
   .portada__titulo {

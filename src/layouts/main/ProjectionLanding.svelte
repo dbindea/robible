@@ -23,6 +23,7 @@
   import { applySeoMetadata } from '../../services/seo.service';
   import { getBibleVersionConfigOrDefault, selectedBibleVersion } from '../../store/stores';
   import { IMAGE_BACKGROUNDS, backgroundCss } from '../../services/verse-image.service';
+  import { navegarA } from '../../services/navigation.service';
   import Icon from '../../components/Icon.svelte';
 
   $: versionConfig = getBibleVersionConfigOrDefault($selectedBibleVersion);
@@ -35,12 +36,7 @@
     robots: 'index, follow',
   });
 
-  const irAProyeccion = () => {
-    window.history.pushState(null, '', '/proiectie');
-    // La errata `robibile` es la del resto del proyecto (CLAUDE.md, trampa 1).
-    window.dispatchEvent(new CustomEvent('robibile:navigate'));
-    window.dispatchEvent(new PopStateEvent('popstate'));
-  };
+  const irAProyeccion = () => navegarA('/proiectie');
 
   // Las seis tarjetas. En un array y no escritas a mano en la plantilla para
   // que añadir una sea una línea y no un bloque copiado.

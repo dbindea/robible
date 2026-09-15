@@ -20,6 +20,7 @@
   import { STEPS } from '../../services/sermon-content.service';
   import { GUIA, vinetasDe, ejemploDe, tieneNotaDeTipo } from '../../config/homiletics';
   import Icon from '../../components/Icon.svelte';
+  import { navegarA } from '../../services/navigation.service';
 
   const TIPOS = ['expositive', 'textual', 'thematic'];
   const TIPOS_CON_NOTA = ['textual', 'thematic'];
@@ -50,11 +51,7 @@
     schema: [esquemaMetodo],
   });
 
-  const irA = (ruta) => {
-    window.history.pushState(null, '', ruta);
-    window.dispatchEvent(new CustomEvent('robibile:navigate'));
-    window.dispatchEvent(new PopStateEvent('popstate'));
-  };
+  const irA = (ruta) => navegarA(ruta);
 </script>
 
 <section class="ghid">
