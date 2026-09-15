@@ -959,7 +959,9 @@
     left: 0;
     width: max-content;
     max-width: 16rem;
-    margin-top: 0.3rem;
+    // Va posicionado, así que no empuja nada: el margen es sólo aire para que
+    // no se pegue al borde del campo.
+    margin: 0.45rem 0 0;
   }
 
   .clear-search {

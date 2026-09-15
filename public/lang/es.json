@@ -1060,7 +1060,8 @@
       "no_service": "Este navegador no permite dictar. Prueba en Chrome o Edge.",
       "no_mic": "No se encuentra ningún micrófono.",
       "offline": "El dictado necesita conexión a internet.",
-      "site_blocked": "El dictado está bloqueado por un ajuste del sitio. Lo arreglamos nosotros, no es cosa tuya."
+      "site_blocked": "El dictado está bloqueado por un ajuste del sitio. Lo arreglamos nosotros, no es cosa tuya.",
+      "listening_stop": "Escuchando… toca el micrófono para parar."
     }
   },
   "auth": {
