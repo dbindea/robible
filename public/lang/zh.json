@@ -1056,7 +1056,10 @@
       "notice_title": "开始之前",
       "notice_text": "在电脑上，Chrome 会将语音发送到 Google 的服务器进行识别。这些语音不经过 RoBible，我们也不会保存任何内容。在手机上，识别在设备本机完成。",
       "notice_accept": "明白了，开始",
-      "plan_needed": "语音输入属于订阅功能。"
+      "plan_needed": "语音输入属于订阅功能。",
+      "no_service": "此浏览器不支持语音输入。请尝试 Chrome 或 Edge。",
+      "no_mic": "找不到麦克风。",
+      "offline": "语音输入需要联网。"
     }
   },
   "auth": {

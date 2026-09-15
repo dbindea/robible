@@ -1056,7 +1056,10 @@
       "notice_title": "Înainte de a începe",
       "notice_text": "Pe calculator, Chrome trimite sunetul la serverele Google pentru a-l recunoaște. Nu trece prin RoBible și nu se păstrează nimic la noi. Pe telefon recunoașterea se face chiar pe dispozitiv.",
       "notice_accept": "Am înțeles, pornește",
-      "plan_needed": "Dictarea face parte dintr-un abonament."
+      "plan_needed": "Dictarea face parte dintr-un abonament.",
+      "no_service": "Acest browser nu permite dictarea. Încearcă în Chrome sau Edge.",
+      "no_mic": "Nu se găsește niciun microfon.",
+      "offline": "Dictarea are nevoie de conexiune la internet."
     }
   },
   "auth": {

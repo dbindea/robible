@@ -840,6 +840,11 @@
     position: relative;
     display: flex;
     align-items: center;
+    // `wrap` para que el mensaje de estado del dictado baje a su propia línea.
+    // Sin esto se colocaba al lado del campo y lo estrujaba a un tercio de su
+    // ancho: el texto cambia de longitud según la causa del fallo, así que la
+    // caja de búsqueda se encogía sola en cuanto algo iba mal.
+    flex-wrap: wrap;
     gap: 0.5rem;
   }
 

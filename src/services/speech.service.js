@@ -29,6 +29,53 @@ const Reconocedor =
 export const soportado = () => !!Reconocedor;
 
 /**
+ * Pide permiso de micrófono de forma explícita.
+ *
+ * `SpeechRecognition.start()` debería pedirlo solo, y en Chrome lo hace — pero
+ * no en todos los navegadores ni en todas las versiones, y cuando no lo hace el
+ * botón se queda quieto sin decir nada: ni escucha, ni falla, ni pregunta. Con
+ * `getUserMedia` el diálogo del navegador sale siempre y, sobre todo, la
+ * respuesta se puede leer.
+ *
+ * El micro se suelta inmediatamente: aquí sólo interesa la respuesta al
+ * permiso, no el audio. Dejar la pista abierta encendería el indicador de
+ * grabación del sistema para nada.
+ *
+ * @returns {Promise<'ok'|'denegado'|'sin-microfono'|'sin-api'>}
+ */
+export const pedirPermiso = async () => {
+  if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) return 'sin-api';
+  try {
+    const pista = await navigator.mediaDevices.getUserMedia({ audio: true });
+    pista.getTracks().forEach((t) => t.stop());
+    return 'ok';
+  } catch (e) {
+    if (e?.name === 'NotAllowedError' || e?.name === 'SecurityError') return 'denegado';
+    if (e?.name === 'NotFoundError' || e?.name === 'DevicesNotFoundError') return 'sin-microfono';
+    return 'denegado';
+  }
+};
+
+/**
+ * ¿Es Brave?
+ *
+ * Importa porque **Brave desactiva el reconocimiento de voz a propósito**: por
+ * privacidad, quita el acceso al servicio de Google que hay detrás de esta API.
+ * El objeto `webkitSpeechRecognition` sigue existiendo —por compatibilidad—,
+ * así que `soportado()` dice que sí y luego no pasa absolutamente nada: el
+ * botón no escucha, no pide permiso y no da error.
+ *
+ * Es asíncrono porque así lo expone Brave (`navigator.brave.isBrave()`).
+ */
+export const esBrave = async () => {
+  try {
+    return typeof navigator !== 'undefined' && !!(await navigator.brave?.isBrave?.());
+  } catch {
+    return false;
+  }
+};
+
+/**
  * En Chrome de escritorio el audio sale a un servidor de Google; en el móvil lo
  * resuelve el sistema operativo. Sirve para decidir si hace falta el aviso.
  *
@@ -101,6 +148,10 @@ export function dictar({ locale = 'ro-RO', alEscuchar, alFallar, alTerminar } = 
     // `aborted` es lo que emite el propio `stop()`: no es un fallo y avisar de
     // él enseñaría un error cada vez que el usuario suelta el botón.
     if (evento.error === 'aborted' && parado) return;
+    // Los códigos importan porque piden respuestas distintas del usuario:
+    // `not-allowed` es dar permiso, `service-not-allowed` es cambiar de
+    // navegador (Brave), `network` es tener conexión. Un único «no te he
+    // entendido» para los tres deja a la gente probando otra vez para nada.
     alFallar?.(evento.error || 'unknown');
   };
 

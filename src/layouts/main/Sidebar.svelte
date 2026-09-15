@@ -586,10 +586,19 @@
       <span>{$_('app.sidebar.search_type.every')}</span></label
     >
 
+    <!-- «Oricare cuvânt» (searchType: 'some') queda fuera del formulario desde
+         el 15 sep 2026. No se ha borrado nada: el tipo sigue existiendo en
+         `filter.service.js` y las búsquedas guardadas que lo usen siguen
+         funcionando. Sólo se ha retirado de la lista, porque con cuatro
+         opciones el formulario pesaba mucho y ésta es la que menos se entiende
+         —devuelve miles de resultados: «dragoste Dumnezeu» con ella son 4.090
+         versículos, contra 44 con «conține cuvintele»—.
+         Para volver a ofrecerla basta con descomentar este bloque.
     <label class="radio__label" for="any">
       <input type="radio" id="any" name="searchType" value="some" bind:group={searchForm.searchType} on:change={onSearchTypeChange} />
       <span>{$_('app.sidebar.search_type.some')}</span>
     </label>
+    -->
 
     <label class="radio__label radio__label--with-badge" for="reference">
       <input type="radio" id="reference" name="searchType" value="reference" bind:group={searchForm.searchType} on:change={onSearchTypeChange} />
@@ -896,7 +905,14 @@
   .input-search__micro {
     position: absolute;
     left: 0.3rem;
+    // Ocupa TODO el alto del campo, aunque el botón sea más pequeño y vaya
+    // centrado dentro. Es lo que hace que el `top: 100%` del mensaje de estado
+    // caiga en el borde inferior del input y no a media altura, dentro de la
+    // caja y encima del texto.
+    top: 0;
+    bottom: 0;
     display: inline-flex;
+    align-items: center;
     z-index: 1;
 
     // El botón pierde su marco aquí: dentro del campo, un círculo con borde
@@ -931,10 +947,19 @@
     }
   }
 
-  // El estado «Ascult…» no cabe dentro del campo: en el panel lateral estorbaría
-  // al texto que se está dictando. El latido del botón ya lo dice.
+  // El mensaje de estado cuelga DEBAJO del campo. Va posicionado porque su
+  // contenedor es el micrófono, que está absolutamente colocado dentro del
+  // input: sin esto quedaría dentro de la caja, encima del texto.
+  //
+  // No se oculta —se probó y fue un error—: si el micrófono está bloqueado o el
+  // navegador no ofrece el servicio, ese mensaje es lo único que lo explica.
   .input-search__micro :global(.dictado__estado) {
-    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: max-content;
+    max-width: 16rem;
+    margin-top: 0.3rem;
   }
 
   .clear-search {
