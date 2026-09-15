@@ -144,7 +144,7 @@ export const localeDeReconocimiento = (locale) => {
  * @param {(codigo: string) => void} [opciones.alFallar]
  * @param {() => void} [opciones.alTerminar]
  */
-export function dictar({ locale = 'ro-RO', alEscuchar, alFallar, alTerminar } = {}) {
+export function dictar({ locale = 'ro-RO', alEscuchar, alFallar, alTerminar, topeMs = 15000 } = {}) {
   if (!Reconocedor) {
     alFallar?.('not_supported');
     return { parar: () => {} };
@@ -160,6 +160,29 @@ export function dictar({ locale = 'ro-RO', alEscuchar, alFallar, alTerminar } = 
 
   let parado = false;
 
+  /**
+   * Tope duro de escucha.
+   *
+   * `continuous = false` debería apagar el reconocedor en cuanto detecta que
+   * has terminado de hablar, y normalmente lo hace. Pero no siempre: con ruido
+   * de sala —que es justo donde se va a usar esto— el detector de silencio no
+   * llega a dispararse y la sesión se queda abierta indefinidamente. Un
+   * micrófono abierto que nadie sabe que está abierto no es aceptable, así que
+   * aquí se corta pase lo que pase.
+   *
+   * Quince segundos: de sobra para decir «primul Samuel douăzeci opt» varias
+   * veces, y poco para quedarse escuchando la reunión entera.
+   */
+  let temporizador = setTimeout(() => {
+    parado = true;
+    try { rec.stop(); } catch { /* ya estaba parado */ }
+  }, topeMs);
+
+  const limpiarTemporizador = () => {
+    clearTimeout(temporizador);
+    temporizador = null;
+  };
+
   rec.onresult = (evento) => {
     // Se concatenan todos los tramos: Chrome va troceando la frase y quedarse
     // sólo con el último daba «șaisprezece» en vez de «Ioan trei șaisprezece».
@@ -170,6 +193,16 @@ export function dictar({ locale = 'ro-RO', alEscuchar, alFallar, alTerminar } = 
       if (evento.results[i].isFinal) final = true;
     }
     alEscuchar?.(texto.trim(), final);
+
+    // Con la frase ya cerrada no hay nada más que escuchar. Se para aquí en vez
+    // de esperar a que el reconocedor lo decida: en algunos navegadores tarda
+    // varios segundos más, y durante ese rato el indicador de grabación sigue
+    // encendido sin motivo.
+    if (final) {
+      parado = true;
+      limpiarTemporizador();
+      try { rec.stop(); } catch { /* ya estaba parado */ }
+    }
   };
 
   rec.onerror = (evento) => {
@@ -183,7 +216,10 @@ export function dictar({ locale = 'ro-RO', alEscuchar, alFallar, alTerminar } = 
     alFallar?.(evento.error || 'unknown');
   };
 
-  rec.onend = () => alTerminar?.();
+  rec.onend = () => {
+    limpiarTemporizador();
+    alTerminar?.();
+  };
 
   try {
     rec.start();
@@ -196,6 +232,7 @@ export function dictar({ locale = 'ro-RO', alEscuchar, alFallar, alTerminar } = 
   return {
     parar: () => {
       parado = true;
+      limpiarTemporizador();
       try { rec.stop(); } catch { /* ya estaba parado */ }
     },
   };

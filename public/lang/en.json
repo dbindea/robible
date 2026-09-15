@@ -1060,7 +1060,8 @@
       "no_service": "This browser does not allow dictation. Try Chrome or Edge.",
       "no_mic": "No microphone found.",
       "offline": "Dictation needs an internet connection.",
-      "site_blocked": "Dictation is blocked by a site setting. That is on us to fix, not on you."
+      "site_blocked": "Dictation is blocked by a site setting. That is on us to fix, not on you.",
+      "listening_stop": "Listening… tap the microphone to stop."
     }
   },
   "auth": {

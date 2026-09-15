@@ -138,6 +138,12 @@
       on:click|stopPropagation={alPulsar}
     >
       <Icon name="microphone" weight={escuchando ? 'fill' : 'regular'} />
+      {#if escuchando}
+        <!-- Punto rojo, el lenguaje universal de «esto está grabando». El
+             latido del botón solo no bastaba: sobre fondo de acento se lee como
+             «botón activo», no como «micrófono abierto». -->
+        <span class="dictado__punto" aria-hidden="true"></span>
+      {/if}
     </button>
 
   </div>
@@ -149,8 +155,14 @@
   {#if escuchando}
     <!-- Sin esto no hay forma de saber si el micrófono está abierto: el
          navegador enseña su propio indicador, pero en una pestaña de fondo o
-         en un televisor no se ve. -->
-    <p class="dictado__estado" role="status">{$_('app.speech.listening')}</p>
+         en un televisor no se ve.
+         El texto dice además CÓMO se apaga: el reconocedor se cierra solo al
+         terminar la frase, pero con ruido de sala —que es donde se va a usar—
+         a veces no detecta el silencio, y entonces hay que pararlo a mano. -->
+    <p class="dictado__estado dictado__estado--escuchando" role="status">
+      <span class="dictado__onda" aria-hidden="true"><i></i><i></i><i></i></span>
+      {$_('app.speech.listening_stop')}
+    </p>
   {:else if error}
     <!-- Cada causa pide una respuesta distinta del usuario: dar permiso,
          cambiar de navegador o conectarse. Un «no te he entendido» para las
@@ -205,6 +217,7 @@
   }
 
   .dictado__boton {
+    position: relative;
     display: inline-grid;
     place-items: center;
     // 2.25rem = 36px: por encima del mínimo de objetivo táctil (WCAG 2.5.8).
@@ -241,21 +254,85 @@
     50% { box-shadow: 0 0 0 0.35rem color-mix(in srgb, var(--color-accent) 0%, transparent); }
   }
 
+  // El punto de grabación. Rojo fijo y no un token de la paleta: es la
+  // convención universal de «esto está capturando», y aquí significa lo mismo
+  // en las cinco paletas.
+  .dictado__punto {
+    position: absolute;
+    top: 0.1rem;
+    right: 0.1rem;
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 50%;
+    background: #e5484d;
+    box-shadow: 0 0 0 2px var(--color-surface);
+    animation: parpadeo 1.1s steps(1, end) infinite;
+  }
+
+  @keyframes parpadeo {
+    0%, 49% { opacity: 1; }
+    50%, 100% { opacity: 0.25; }
+  }
+
+  // Las tres barras que suben y bajan, como un vúmetro. Es lo que distingue
+  // «te estoy escuchando» de «hay un aviso en pantalla».
+  .dictado__onda {
+    display: inline-flex;
+    align-items: flex-end;
+    gap: 0.11rem;
+    height: 0.7rem;
+    margin-right: 0.1rem;
+
+    i {
+      width: 0.16rem;
+      height: 0.25rem;
+      border-radius: 0.08rem;
+      background: currentColor;
+      animation: vumetro 0.9s ease-in-out infinite;
+    }
+
+    i:nth-child(2) { animation-delay: 0.15s; }
+    i:nth-child(3) { animation-delay: 0.3s; }
+  }
+
+  @keyframes vumetro {
+    0%, 100% { height: 0.25rem; }
+    50% { height: 0.7rem; }
+  }
+
+  .dictado__estado--escuchando {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: var(--color-accent-ink);
+  }
+
   @media (prefers-reduced-motion: reduce) {
-    .dictado__boton--activo { animation: none; }
+    .dictado__boton--activo,
+    .dictado__punto,
+    .dictado__onda i { animation: none; }
+    // Sin movimiento, el punto se queda fijo: sigue diciendo que está grabando.
+    .dictado__punto { opacity: 1; }
   }
 
   // Ocupa su propia línea, debajo del campo. `flex-basis: 100%` es lo que la
   // obliga a bajar cuando el contenedor es una fila flex, que es el caso en los
   // dos sitios donde se usa.
+  // Ocupa su propia línea, debajo del campo. `flex-basis: 100%` es lo que la
+  // obliga a bajar cuando el contenedor es una fila flex, que es el caso en los
+  // dos sitios donde se usa.
+  //
+  // El margen de abajo es tan importante como el de arriba: el mensaje quedaba
+  // pegado al campo por arriba y a la etiqueta siguiente por abajo, y los tres
+  // se leían como un solo bloque.
   .dictado__estado {
     flex-basis: 100%;
     width: 100%;
-    margin: 0.35rem 0 0;
+    margin: 0.5rem 0 0.35rem;
     color: var(--color-ink-soft);
-    font-size: 0.75rem;
+    font-size: 0.78rem;
     font-weight: 600;
-    line-height: 1.4;
+    line-height: 1.45;
   }
 
   .dictado__estado--error { color: var(--color-marked-favorite); }

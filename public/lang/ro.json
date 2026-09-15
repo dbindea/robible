@@ -1060,7 +1060,8 @@
       "no_service": "Acest browser nu permite dictarea. Încearcă în Chrome sau Edge.",
       "no_mic": "Nu se găsește niciun microfon.",
       "offline": "Dictarea are nevoie de conexiune la internet.",
-      "site_blocked": "Dictarea este blocată de o setare a site-ului. O reparăm noi, nu e de la tine."
+      "site_blocked": "Dictarea este blocată de o setare a site-ului. O reparăm noi, nu e de la tine.",
+      "listening_stop": "Ascult… atinge microfonul ca să opresc."
     }
   },
   "auth": {
