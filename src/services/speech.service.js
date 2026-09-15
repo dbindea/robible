@@ -1,0 +1,123 @@
+// Dictar en vez de teclear.
+//
+// Envuelve `SpeechRecognition`, la API de reconocimiento del navegador. Todo
+// ocurre fuera de RoBible: no hay servidor propio, ni se guarda el audio, ni se
+// manda nada a nuestro backend.
+//
+// ── Lo que hay que decirle al usuario ───────────────────────────────────────
+//
+// **En Chrome y Edge de escritorio el audio viaja a los servidores de Google**
+// para reconocerlo. Es como está implementada la API en ese navegador, no una
+// decisión nuestra, pero la landing de RoBible promete «la Biblia que no te
+// sigue» y una excepción callada a eso sería justo lo que no se puede hacer.
+// Por eso el aviso va en la interfaz, al lado del botón, y no enterrado en una
+// política. En Android e iOS el reconocimiento es del propio sistema.
+//
+// ── Soporte ─────────────────────────────────────────────────────────────────
+//
+// Chrome, Edge y Android: sí. Safari (macOS/iOS): sí, con permiso cada vez.
+// Firefox: no lo implementa. Donde no hay soporte, el botón **no se pinta** —
+// un control que no puede funcionar es peor que no tenerlo (mismo criterio que
+// la tarjeta de notificaciones del perfil).
+
+const Reconocedor =
+  typeof window !== 'undefined'
+    ? window.SpeechRecognition || window.webkitSpeechRecognition
+    : null;
+
+/** ¿Este navegador sabe dictar? */
+export const soportado = () => !!Reconocedor;
+
+/**
+ * En Chrome de escritorio el audio sale a un servidor de Google; en el móvil lo
+ * resuelve el sistema operativo. Sirve para decidir si hace falta el aviso.
+ *
+ * No hay forma de preguntarlo a la API, así que se deduce del navegador: el
+ * prefijo `webkit` en un escritorio que no es Safari significa Chrome o Edge.
+ */
+export const usaServidorExterno = () => {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent.toLowerCase();
+  const movil = /android|iphone|ipad|ipod/.test(ua);
+  if (movil) return false;
+  const safari = /safari/.test(ua) && !/chrome|chromium|edg/.test(ua);
+  return !safari;
+};
+
+/** El locale de reconocimiento que le toca a cada versión bíblica. */
+export const localeDeReconocimiento = (locale) => {
+  const base = String(locale || 'ro').slice(0, 2).toLowerCase();
+  return { ro: 'ro-RO', es: 'es-ES', en: 'en-US', zh: 'zh-CN' }[base] || 'ro-RO';
+};
+
+/**
+ * Arranca una sesión de dictado.
+ *
+ * Devuelve un objeto con `parar()`. El ciclo de vida es de una sola frase:
+ * `continuous = false`, así que el reconocedor se apaga solo en cuanto detecta
+ * que has terminado de hablar. Es lo que se quiere aquí — se dicta una
+ * referencia, no se transcribe un sermón — y además evita dejar el micrófono
+ * abierto si alguien se olvida del botón.
+ *
+ * `interimResults` está encendido para poder ir enseñando lo que se entiende
+ * mientras se habla: sin eso, el campo se queda quieto varios segundos y parece
+ * que no funciona.
+ *
+ * @param {object} opciones
+ * @param {string} opciones.locale          'ro-RO', 'es-ES'…
+ * @param {(texto: string, final: boolean) => void} opciones.alEscuchar
+ * @param {(codigo: string) => void} [opciones.alFallar]
+ * @param {() => void} [opciones.alTerminar]
+ */
+export function dictar({ locale = 'ro-RO', alEscuchar, alFallar, alTerminar } = {}) {
+  if (!Reconocedor) {
+    alFallar?.('not_supported');
+    return { parar: () => {} };
+  }
+
+  const rec = new Reconocedor();
+  rec.lang = locale;
+  rec.continuous = false;
+  rec.interimResults = true;
+  // Una sola alternativa: quedarse con la mejor y no complicar la interfaz con
+  // una lista de «quizá quisiste decir».
+  rec.maxAlternatives = 1;
+
+  let parado = false;
+
+  rec.onresult = (evento) => {
+    // Se concatenan todos los tramos: Chrome va troceando la frase y quedarse
+    // sólo con el último daba «șaisprezece» en vez de «Ioan trei șaisprezece».
+    let texto = '';
+    let final = false;
+    for (let i = evento.resultIndex; i < evento.results.length; i += 1) {
+      texto += evento.results[i][0].transcript;
+      if (evento.results[i].isFinal) final = true;
+    }
+    alEscuchar?.(texto.trim(), final);
+  };
+
+  rec.onerror = (evento) => {
+    // `aborted` es lo que emite el propio `stop()`: no es un fallo y avisar de
+    // él enseñaría un error cada vez que el usuario suelta el botón.
+    if (evento.error === 'aborted' && parado) return;
+    alFallar?.(evento.error || 'unknown');
+  };
+
+  rec.onend = () => alTerminar?.();
+
+  try {
+    rec.start();
+  } catch {
+    // `start()` lanza si ya había una sesión viva. Se trata como fin, no como
+    // error: el usuario ha pulsado dos veces y con una basta.
+    alTerminar?.();
+  }
+
+  return {
+    parar: () => {
+      parado = true;
+      try { rec.stop(); } catch { /* ya estaba parado */ }
+    },
+  };
+}

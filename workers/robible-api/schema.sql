@@ -57,6 +57,18 @@ CREATE TABLE IF NOT EXISTS users (
   -- siquiera por la del autor de una predicación publicada, que sigue llevando
   -- sólo el nickname (ver `paraElPublico` en sermons.js).
   motto TEXT,
+  -- Plan de la cuenta (schema_version 15): 'free' | 'plus'.
+  --
+  -- Leer la Biblia NO se cobra, y esa es la decisión de producto: lo que algún
+  -- día puede requerir suscripción son utilidades muy por encima de lo que se
+  -- espera de una Biblia en línea (la primera candidata, dictar la referencia
+  -- por voz). La columna existe desde el principio para que activarlo sea un
+  -- UPDATE y una constante en `src/services/features.service.js`, en vez de una
+  -- migración con usuarios dentro.
+  --
+  -- Hoy todas las cuentas son 'free' y **todo está abierto**: el interruptor
+  -- `EN_PRUEBAS` del frontend ignora los planes mientras se prueba la función.
+  plan TEXT NOT NULL DEFAULT 'free',
   created_at TEXT NOT NULL,                          -- ISO 8601
   updated_at TEXT NOT NULL                           -- ISO 8601
 );
@@ -415,13 +427,14 @@ CREATE TABLE IF NOT EXISTS _meta (
 -- 13: users gana is_admin / is_disabled / full_name / birth_date / church /
 --     country / confession; se añade page_views (analíticas del panel de admin)
 -- 14: users gana motto (lema personal del perfil)
+-- 15: users gana plan ('free' | 'plus'), para las funciones con suscripción
 --
 -- El literal de abajo se había quedado en '9' aunque los comentarios de más
 -- abajo documentaban hasta la 12 (aplicadas a mano en producción sin bumpear
 -- este valor). Se corrige de una vez al llegar a la 13, en vez de arrastrar
 -- la deriva una migración más.
-INSERT OR IGNORE INTO _meta (key, value) VALUES ('schema_version', '14');
-UPDATE _meta SET value = '14' WHERE key = 'schema_version' AND value < '14';
+INSERT OR IGNORE INTO _meta (key, value) VALUES ('schema_version', '15');
+UPDATE _meta SET value = '15' WHERE key = 'schema_version' AND value < '15';
 
 -- 10: sermons gana is_public / public_slug / published_at
 --   ALTER TABLE sermons ADD COLUMN is_public INTEGER NOT NULL DEFAULT 0;
@@ -498,3 +511,8 @@ UPDATE _meta SET value = '14' WHERE key = 'schema_version' AND value < '14';
 --   ALTER TABLE users ADD COLUMN motto TEXT;
 --
 -- Aplicado en producción el 14 sep 2026.
+
+-- 15: plan de la cuenta, para las funciones con suscripción
+--   ALTER TABLE users ADD COLUMN plan TEXT NOT NULL DEFAULT 'free';
+--
+-- Aplicado en producción el 15 sep 2026.

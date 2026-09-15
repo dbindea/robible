@@ -117,6 +117,7 @@ export async function register(request, db, env, cors) {
       country: null,
       confession: null,
       motto: null,
+      plan: 'free',
       createdAt: now,
       updatedAt: now,
     },
@@ -167,7 +168,7 @@ export async function login(request, db, env, cors) {
   const user = await db
     .prepare(
       `SELECT id, nickname, password_salt, password_hash, user_type, email, is_admin,
-              is_disabled, full_name, birth_date, church, country, confession, motto,
+              is_disabled, full_name, birth_date, church, country, confession, motto, plan,
               created_at, updated_at
        FROM users WHERE nickname = ?`,
     )
@@ -201,6 +202,7 @@ export async function login(request, db, env, cors) {
       country: user.country || null,
       confession: user.confession || null,
       motto: user.motto || null,
+      plan: user.plan || 'free',
       createdAt: user.created_at,
       updatedAt: user.updated_at,
     },
@@ -296,7 +298,7 @@ export async function resetPassword(request, db, env, cors) {
   const user = await db
     .prepare(
       `SELECT id, nickname, user_type, email, is_admin, full_name, birth_date, church,
-              country, confession, motto, created_at, updated_at
+              country, confession, motto, plan, created_at, updated_at
        FROM users WHERE id = ?`,
     )
     .bind(payload.sub)
@@ -316,6 +318,7 @@ export async function resetPassword(request, db, env, cors) {
       country: user.country || null,
       confession: user.confession || null,
       motto: user.motto || null,
+      plan: user.plan || 'free',
       createdAt: user.created_at,
       updatedAt: user.updated_at,
     },
@@ -457,7 +460,7 @@ export async function updateProfile(request, db, env, cors) {
   const actualizado = await db
     .prepare(
       `SELECT id, nickname, user_type, email, is_admin, full_name, birth_date, church,
-              country, confession, motto, created_at, updated_at
+              country, confession, motto, plan, created_at, updated_at
        FROM users WHERE id = ?`,
     )
     .bind(auth.user.id)
@@ -479,6 +482,7 @@ export async function updateProfile(request, db, env, cors) {
       country: actualizado.country || null,
       confession: actualizado.confession || null,
       motto: actualizado.motto || null,
+      plan: actualizado.plan || 'free',
       createdAt: actualizado.created_at,
       updatedAt: actualizado.updated_at,
     },

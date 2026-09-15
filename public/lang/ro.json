@@ -1042,6 +1042,19 @@
       "how_3": "Apasă F pentru ecran complet și avansează cu telecomanda.",
       "free_title": "Gratuit, și rămâne gratuit",
       "free_text": "RoBible este gratuit pentru orice biserică. Nu are abonament, nu are reclame și nu cere cont pentru proiecție."
+    },
+    "speech": {
+      "start": "Dictează",
+      "start_reference": "Dictează referința",
+      "start_phrase": "Dictează expresia",
+      "stop": "Oprește dictarea",
+      "listening": "Ascult…",
+      "denied": "Microfonul este blocat în browser.",
+      "failed": "Nu am înțeles. Mai încearcă o dată.",
+      "notice_title": "Înainte de a începe",
+      "notice_text": "Pe calculator, Chrome trimite sunetul la serverele Google pentru a-l recunoaște. Nu trece prin RoBible și nu se păstrează nimic la noi. Pe telefon recunoașterea se face chiar pe dispozitiv.",
+      "notice_accept": "Am înțeles, pornește",
+      "plan_needed": "Dictarea face parte dintr-un abonament."
     }
   },
   "auth": {

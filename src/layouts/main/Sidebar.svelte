@@ -8,6 +8,7 @@
   import { getBibleVersionConfigOrDefault } from '../../config/bible-versions';
   import { buildBiblePath } from '../../services/bible-route.service';
   import BookDrawer from './BookDrawer.svelte';
+  import DictadoBoton from '../../components/DictadoBoton.svelte';
 
   export let map;
   export let result = [];
@@ -377,6 +378,22 @@
     }
   };
 
+  /**
+   * Lo dictado entra en el campo como si se hubiera tecleado.
+   *
+   * Se pasa por `handleSearchInput` para que haga exactamente lo mismo que al
+   * escribir —sugerencias de referencia o búsqueda por texto, según el modo—,
+   * en vez de duplicar aquí esa decisión. Y sólo cuando el reconocedor da la
+   * frase por terminada: con los parciales, el desplegable parpadeaba entero en
+   * cada sílaba.
+   */
+  const alDictarBusqueda = (texto, final) => {
+    searchForm.searchText = texto;
+    if (!final) return;
+    handleSearchInput();
+    if (searchForm.searchType !== 'reference') updateFilter(searchForm);
+  };
+
   const handleInputBlur = () => {
     // Delay para permitir click en los items del dropdown
     setTimeout(() => {
@@ -425,6 +442,15 @@
       <button class="clear-search" type="button" aria-label={$_('app.sidebar.clear_search_text')} on:click={clearInput}>
         <span class="icon-error icon--input" aria-hidden="true"></span>
       </button>
+      <!-- Dictar la búsqueda. El modo lo decide el tipo activo: en «referencia»
+           hay que convertir «trei șaisprezece» en «3 16»; en los demás el texto
+           va tal cual, porque quien dicta una frase quiere esas palabras. -->
+      <DictadoBoton
+        modo={searchForm.searchType === 'reference' ? 'referencia' : 'libre'}
+        locale={getBibleVersionConfigOrDefault($selectedBibleVersion)?.locale}
+        etiqueta={searchForm.searchType === 'reference' ? $_('app.speech.start_reference') : $_('app.speech.start_phrase')}
+        alDictar={alDictarBusqueda}
+      />
     </div>
 
     <!-- Reference search dropdown -->

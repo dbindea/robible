@@ -1042,6 +1042,19 @@
       "how_3": "Pulsa F para pantalla completa y avanza con el mando.",
       "free_title": "Gratis, y seguirá siéndolo",
       "free_text": "RoBible es gratuito para cualquier iglesia. Sin cuota, sin anuncios y sin pedir cuenta para proyectar."
+    },
+    "speech": {
+      "start": "Dictar",
+      "start_reference": "Dictar la referencia",
+      "start_phrase": "Dictar la expresión",
+      "stop": "Parar el dictado",
+      "listening": "Escuchando…",
+      "denied": "El micrófono está bloqueado en el navegador.",
+      "failed": "No te he entendido. Prueba otra vez.",
+      "notice_title": "Antes de empezar",
+      "notice_text": "En el ordenador, Chrome envía el audio a los servidores de Google para reconocerlo. No pasa por RoBible y aquí no se guarda nada. En el móvil el reconocimiento se hace en el propio dispositivo.",
+      "notice_accept": "Entendido, empezar",
+      "plan_needed": "El dictado forma parte de una suscripción."
     }
   },
   "auth": {

@@ -346,7 +346,7 @@ export async function requireAuth(request, db, env) {
   const user = await db
     .prepare(
       `SELECT id, nickname, user_type, email, is_admin, is_disabled, full_name, birth_date,
-              church, country, confession, motto, created_at, updated_at
+              church, country, confession, motto, plan, created_at, updated_at
        FROM users WHERE id = ?`,
     )
     .bind(payload.sub)
@@ -372,6 +372,7 @@ export async function requireAuth(request, db, env) {
       country: user.country || null,
       confession: user.confession || null,
       motto: user.motto || null,
+      plan: user.plan || 'free',
       createdAt: user.created_at,
       updatedAt: user.updated_at,
     },
