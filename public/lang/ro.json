@@ -56,7 +56,12 @@
       "update_title": "Versiune nouă disponibilă",
       "update_text": "Actualizează pentru cea mai recentă versiune.",
       "update_action": "Actualizează",
-      "dismiss": "Nu acum"
+      "dismiss": "Nu acum",
+      "install_later": "Mai târziu",
+      "install_never": "Nu-mi mai arăta",
+      "install_benefit_offline": "Citești fără internet, oriunde",
+      "install_benefit_screen": "Se deschide pe tot ecranul, fără bara browserului",
+      "install_benefit_fast": "Pornește instant, ca orice aplicație"
     },
     "sidebar": {
       "all_bible": "Toată Biblia",

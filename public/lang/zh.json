@@ -56,7 +56,12 @@
       "update_title": "有新版本可用",
       "update_text": "更新到最新版本。",
       "update_action": "更新",
-      "dismiss": "暂不"
+      "dismiss": "暂不",
+      "install_later": "稍后",
+      "install_never": "不再显示此选项",
+      "install_benefit_offline": "没有网络也能随时阅读",
+      "install_benefit_screen": "全屏打开，没有浏览器地址栏",
+      "install_benefit_fast": "像应用一样即刻启动"
     },
     "sidebar": {
       "all_bible": "全本圣经",

@@ -144,9 +144,13 @@
      imagen compartida y que la muestra del selector, así que el movimiento se
      añade ENCIMA en vez de sustituirlo.
 
-     Las dos animaciones son largas —90 y 120 segundos— y sin cambios de ritmo:
-     el fondo de una pantalla de iglesia no puede llamar la atención. Si se
-     nota que se mueve mientras se lee, está mal hecho. */
+     Los ciclos son de 18 y 15 segundos. Empezaron en 90 y 120 —«que no se
+     note»— y eso resultó ser demasiado: **un versículo está en pantalla entre
+     cinco y diez segundos**, así que en todo el tiempo que alguien mira la
+     diapositiva el fondo recorría un 5 % de su ciclo y parecía una imagen
+     fija. Si se va a mover, tiene que moverse lo bastante para que se aprecie
+     dentro de esa ventana; lo que no puede es cambiar de ritmo ni dar saltos,
+     que es lo que roba la atención de verdad. */
   .proyeccion--nebula::before,
   .proyeccion--water::before {
     content: '';
@@ -163,7 +167,7 @@
       radial-gradient(ellipse 38% 30% at 26% 32%, rgba(108, 92, 224, 0.4) 0%, rgba(0, 0, 0, 0) 68%),
       radial-gradient(ellipse 34% 26% at 74% 64%, rgba(46, 134, 216, 0.32) 0%, rgba(0, 0, 0, 0) 68%),
       radial-gradient(ellipse 28% 22% at 56% 16%, rgba(180, 85, 200, 0.26) 0%, rgba(0, 0, 0, 0) 68%);
-    animation: nebulosa 90s ease-in-out infinite alternate;
+    animation: nebulosa 18s ease-in-out infinite alternate;
   }
 
   /* Las estrellas, en su propia capa y QUIETAS: el pintor del canvas las
@@ -197,32 +201,33 @@
       radial-gradient(ellipse 70% 14% at 50% 30%, rgba(95, 212, 228, 0.2) 0%, rgba(0, 0, 0, 0) 72%),
       radial-gradient(ellipse 70% 12% at 50% 62%, rgba(95, 212, 228, 0.15) 0%, rgba(0, 0, 0, 0) 72%),
       radial-gradient(ellipse 70% 10% at 50% 88%, rgba(95, 212, 228, 0.1) 0%, rgba(0, 0, 0, 0) 72%);
-    animation: agua 120s linear infinite;
+    animation: agua 15s ease-in-out infinite;
   }
 
-  // Deriva lenta y un punto de escala: las nubes se separan y se juntan sin
-  // llegar a cruzarse, que es lo que haría que se notara el bucle.
+  // Deriva y un punto de escala: las nubes se separan y se juntan sin llegar a
+  // cruzarse, que es lo que haría que se notara el bucle. El recorrido cabe de
+  // sobra en el margen que da `inset: -25%`.
   @keyframes nebulosa {
     from {
-      transform: translate3d(-2%, -1%, 0) scale(1);
+      transform: translate3d(-5%, -3%, 0) scale(1);
     }
     to {
-      transform: translate3d(2%, 1.5%, 0) scale(1.08);
+      transform: translate3d(5%, 3.5%, 0) scale(1.14);
     }
   }
 
-  // Sólo vertical y muy despacio: el agua sube y baja, no se desplaza de lado.
-  // Recorre justo el margen que sobra de `inset: -25%`, así que el bucle no
-  // tiene salto — acaba donde empieza.
+  // Sólo vertical: el agua sube y baja, no se desplaza de lado. Va y vuelve
+  // dentro del mismo ciclo, así que acaba donde empieza y el bucle no salta.
+  // `ease-in-out` y no `linear` porque una marea no cambia de sentido de golpe.
   @keyframes agua {
     0% {
-      transform: translate3d(0, -4%, 0);
+      transform: translate3d(0, -9%, 0);
     }
     50% {
-      transform: translate3d(0, 4%, 0);
+      transform: translate3d(0, 9%, 0);
     }
     100% {
-      transform: translate3d(0, -4%, 0);
+      transform: translate3d(0, -9%, 0);
     }
   }
 

@@ -3,6 +3,11 @@
   import { onDestroy } from 'svelte';
   import { AMBIENCES, musicService } from '../services/music.service.js';
   import { _ } from '../services/i18n.service';
+  // La lectura con música es para quien tiene cuenta. Dos motivos: en el móvil
+  // este botón flotante se plantaba justo encima de la tarjeta de instalar la
+  // aplicación y no dejaba pulsarla, y es de las pocas cosas que justifican
+  // registrarse en una Biblia que por lo demás no pide nada.
+  import { isAuthenticated } from '../store/authStore';
   import {
     ttsState,
     ttsPanelOpen,
@@ -184,7 +189,6 @@
     reproducirDesde(cursor);
   }
 
-
   // Cambiar la velocidad en marcha: se reprograman los timers del versículo
   // actual con el ritmo nuevo, sin cortar la música.
   function handleSpeedChange(e) {
@@ -212,7 +216,10 @@
   let barRef;
   let touchStartY = 0;
   let isDragging = false;
-  function onTouchStart(e) { touchStartY = e.touches[0].clientY; isDragging = false; }
+  function onTouchStart(e) {
+    touchStartY = e.touches[0].clientY;
+    isDragging = false;
+  }
   function onTouchMove(e) {
     const delta = e.touches[0].clientY - touchStartY;
     if (Math.abs(delta) > 8) isDragging = true;
@@ -220,138 +227,157 @@
   function onTouchEnd(e) {
     if (!isDragging) return;
     const delta = e.changedTouches[0].clientY - touchStartY;
-    if (delta < -30) ttsPanelOpen.set(true); // swipe up → expand
+    if (delta < -30)
+      ttsPanelOpen.set(true); // swipe up → expand
     else if (delta > 30) ttsPanelOpen.set(false); // swipe down → minimize
   }
 </script>
 
 {#if available && isActive}
-<!-- ── MINI PLAYER BAR ── sits at bottom of screen, always visible when active ── -->
-<div
-  class="tts-bar"
-  class:tts-bar--open={isOpen}
-  bind:this={barRef}
-  role="region"
-  aria-label={$_('app.tts.player')}
->
-  <!-- Swipe handle (visible tab at top) -->
-  <button
-    type="button"
-    class="tts-bar__handle"
-    aria-label={$_('app.tts.expand')}
-    on:click={togglePanel}
-    on:touchstart={onTouchStart}
-    on:touchmove={onTouchMove}
-    on:touchend={onTouchEnd}
-  >
-    <span class="tts-bar__handle-bar"></span>
-  </button>
+  <!-- ── MINI PLAYER BAR ── sits at bottom of screen, always visible when active ── -->
+  <div class="tts-bar" class:tts-bar--open={isOpen} bind:this={barRef} role="region" aria-label={$_('app.tts.player')}>
+    <!-- Swipe handle (visible tab at top) -->
+    <button
+      type="button"
+      class="tts-bar__handle"
+      aria-label={$_('app.tts.expand')}
+      on:click={togglePanel}
+      on:touchstart={onTouchStart}
+      on:touchmove={onTouchMove}
+      on:touchend={onTouchEnd}
+    >
+      <span class="tts-bar__handle-bar"></span>
+    </button>
 
-  <!-- Compact bar content -->
-  <div class="tts-bar__row">
-    <!-- Left: controls -->
-    <div class="tts-bar__controls">
-      {#if isPlaying}
-        <button type="button" class="tts-bar__btn tts-bar__btn--pause" on:click={pausePlayback} title={$_('app.tts.pause')} aria-label={$_('app.tts.pause')}>
-          <Icon name="pause" weight="fill" />
+    <!-- Compact bar content -->
+    <div class="tts-bar__row">
+      <!-- Left: controls -->
+      <div class="tts-bar__controls">
+        {#if isPlaying}
+          <button
+            type="button"
+            class="tts-bar__btn tts-bar__btn--pause"
+            on:click={pausePlayback}
+            title={$_('app.tts.pause')}
+            aria-label={$_('app.tts.pause')}
+          >
+            <Icon name="pause" weight="fill" />
+          </button>
+        {:else}
+          <button
+            type="button"
+            class="tts-bar__btn tts-bar__btn--play"
+            on:click={resumePlayback}
+            title={$_('app.tts.resume')}
+            aria-label={$_('app.tts.resume')}
+          >
+            <Icon name="play" weight="fill" />
+          </button>
+        {/if}
+        <button
+          type="button"
+          class="tts-bar__btn tts-bar__btn--stop"
+          on:click={stopPlayback}
+          title={$_('app.tts.stop')}
+          aria-label={$_('app.tts.stop')}
+        >
+          <Icon name="stop" weight="fill" />
         </button>
-      {:else}
-        <button type="button" class="tts-bar__btn tts-bar__btn--play" on:click={resumePlayback} title={$_('app.tts.resume')} aria-label={$_('app.tts.resume')}>
-          <Icon name="play" weight="fill" />
-        </button>
-      {/if}
-      <button type="button" class="tts-bar__btn tts-bar__btn--stop" on:click={stopPlayback} title={$_('app.tts.stop')} aria-label={$_('app.tts.stop')}>
-        <Icon name="stop" weight="fill" />
+      </div>
+
+      <!-- Center: verse reference + progress -->
+      <button type="button" class="tts-bar__info" on:click={togglePanel} aria-label={$_('app.tts.open_player')}>
+        <span class="tts-bar__ref">
+          {map?.[state.currentBook]}
+          {state.currentChapter}:{state.currentVerse}
+        </span>
+        <div class="tts-bar__progress" aria-hidden="true">
+          <div
+            class="tts-bar__progress-fill"
+            style="width: {state.wordCount > 0 ? Math.round(((state.wordIndex + 1) / state.wordCount) * 100) : 0}%"
+          ></div>
+        </div>
+      </button>
+
+      <!-- Right: expand indicator -->
+      <button
+        type="button"
+        class="tts-bar__expand"
+        on:click={togglePanel}
+        aria-label={isOpen ? $_('app.tts.minimize') : $_('app.tts.open_player')}
+        aria-expanded={isOpen}
+      >
+        <!-- La clase va en el envoltorio: `class:` es una directiva de elemento y
+           no se puede poner sobre un componente. -->
+        <span class="tts-bar__chevron" class:tts-bar__chevron--up={!isOpen}>
+          <Icon name="chevron-up" />
+        </span>
       </button>
     </div>
 
-    <!-- Center: verse reference + progress -->
-    <button type="button" class="tts-bar__info" on:click={togglePanel} aria-label={$_('app.tts.open_player')}>
-      <span class="tts-bar__ref">
-        {map?.[state.currentBook]} {state.currentChapter}:{state.currentVerse}
-      </span>
-      <div class="tts-bar__progress" aria-hidden="true">
-        <div
-          class="tts-bar__progress-fill"
-          style="width: {state.wordCount > 0 ? Math.round((state.wordIndex + 1) / state.wordCount * 100) : 0}%"
-        ></div>
-      </div>
-    </button>
-
-    <!-- Right: expand indicator -->
-    <button type="button" class="tts-bar__expand" on:click={togglePanel} aria-label={isOpen ? $_('app.tts.minimize') : $_('app.tts.open_player')} aria-expanded={isOpen}>
-      <!-- La clase va en el envoltorio: `class:` es una directiva de elemento y
-           no se puede poner sobre un componente. -->
-      <span class="tts-bar__chevron" class:tts-bar__chevron--up={!isOpen}>
-        <Icon name="chevron-up" />
-      </span>
-    </button>
-  </div>
-
-  <!-- ── EXPANDED CONTROLS PANEL ── slides up from the bar ── -->
-  {#if isOpen}
-    <div class="tts-panel" role="region" aria-label={$_('app.tts.controls')}>
-      <!-- Speed -->
-      <div class="tts-panel__row">
-        <span class="tts-panel__label">{$_('app.tts.speed')}</span>
-        <div class="tts-speed-btns" role="group">
-          {#each SPEED_OPTIONS as opt (opt.value)}
-            <button
-              type="button"
-              class="tts-speed-btn"
-              class:tts-speed-btn--active={$ttsSpeed === opt.value}
-              on:click={handleSpeedChange}
-              value={opt.value}
-              aria-pressed={$ttsSpeed === opt.value}
-            >{opt.label}</button>
-          {/each}
-        </div>
-      </div>
-
-      <!-- Ambient -->
-      <div class="tts-panel__row">
-        <span class="tts-panel__label">{$_('app.tts.ambient')}</span>
-        <select class="tts-select" value={$ttsAmbient} on:change={handleAmbientChange}>
-          {#each AMBIENT_OPTIONS as opt (opt.value)}
-            <option value={opt.value}>{$_(opt.labelKey)}</option>
-          {/each}
-        </select>
-      </div>
-
-      <!-- Volumen de la música. No hay control de voz: la lectura es visual. -->
-      {#if $ttsAmbient !== 'none'}
+    <!-- ── EXPANDED CONTROLS PANEL ── slides up from the bar ── -->
+    {#if isOpen}
+      <div class="tts-panel" role="region" aria-label={$_('app.tts.controls')}>
+        <!-- Speed -->
         <div class="tts-panel__row">
-          <span class="tts-panel__label">{$_('app.tts.volume_music')}</span>
-          <input
-            type="range"
-            class="tts-range"
-            min="0"
-            max="1"
-            step="0.05"
-            value={$musicVolume}
-            on:input={handleMusicVolumeChange}
-            style="--range-fill: {Math.round($musicVolume * 100)}%"
-          />
+          <span class="tts-panel__label">{$_('app.tts.speed')}</span>
+          <div class="tts-speed-btns" role="group">
+            {#each SPEED_OPTIONS as opt (opt.value)}
+              <button
+                type="button"
+                class="tts-speed-btn"
+                class:tts-speed-btn--active={$ttsSpeed === opt.value}
+                on:click={handleSpeedChange}
+                value={opt.value}
+                aria-pressed={$ttsSpeed === opt.value}>{opt.label}</button
+              >
+            {/each}
+          </div>
         </div>
-      {/if}
-    </div>
-  {/if}
-</div>
 
-{:else if available && playlist.length && !isActive}
-<!-- ── BOTÓN DE INICIO — centrado abajo ──
+        <!-- Ambient -->
+        <div class="tts-panel__row">
+          <span class="tts-panel__label">{$_('app.tts.ambient')}</span>
+          <select class="tts-select" value={$ttsAmbient} on:change={handleAmbientChange}>
+            {#each AMBIENT_OPTIONS as opt (opt.value)}
+              <option value={opt.value}>{$_(opt.labelKey)}</option>
+            {/each}
+          </select>
+        </div>
+
+        <!-- Volumen de la música. No hay control de voz: la lectura es visual. -->
+        {#if $ttsAmbient !== 'none'}
+          <div class="tts-panel__row">
+            <span class="tts-panel__label">{$_('app.tts.volume_music')}</span>
+            <input
+              type="range"
+              class="tts-range"
+              min="0"
+              max="1"
+              step="0.05"
+              value={$musicVolume}
+              on:input={handleMusicVolumeChange}
+              style="--range-fill: {Math.round($musicVolume * 100)}%"
+            />
+          </div>
+        {/if}
+      </div>
+    {/if}
+  </div>
+{:else if available && playlist.length && !isActive && $isAuthenticated}
+  <!-- ── BOTÓN DE INICIO — centrado abajo ──
      Se muestra siempre que haya algo que leer en pantalla: un capítulo, o los
-     resultados de una búsqueda. -->
-<button
-  type="button"
-  class="tts-start-btn tts-start-btn--music tts-start-btn--centered"
-  on:click={startPlayback}
-  aria-label={$_('app.tts.start')}
-  title={$_('app.tts.start_hint')}
->
-  <Icon name="music" />
-  <span>{$_('app.tts.start')}</span>
-</button>
+     resultados de una búsqueda, y SÓLO con la sesión iniciada. -->
+  <button
+    type="button"
+    class="tts-start-btn tts-start-btn--music tts-start-btn--centered"
+    on:click={startPlayback}
+    aria-label={$_('app.tts.start')}
+    title={$_('app.tts.start_hint')}
+  >
+    <Icon name="music" />
+    <span>{$_('app.tts.start')}</span>
+  </button>
 {/if}
 
 <style lang="scss">
@@ -385,7 +411,9 @@
       0 0.5rem 1.5rem var(--shadow-tint),
       0 0.125rem 0.375rem var(--shadow-tint);
     overflow: hidden;
-    transition: box-shadow var(--motion-base) ease, transform var(--motion-base) ease;
+    transition:
+      box-shadow var(--motion-base) ease,
+      transform var(--motion-base) ease;
   }
 
   // La transparencia sólo donde hay desenfoque real. Sin el desenfoque, un
@@ -429,7 +457,9 @@
     opacity: 0.6;
     transition: opacity var(--motion-fast);
 
-    .tts-bar__handle:hover & { opacity: 1; }
+    .tts-bar__handle:hover & {
+      opacity: 1;
+    }
   }
 
   // ── Compact row ─────────────────────────────────────────────────────────────
@@ -461,7 +491,9 @@
     // <svg> de Icon.svelte, que lleva otra clase de scope.
     --icon-size: 0.9rem;
 
-    &:active { transform: scale(0.9); }
+    &:active {
+      transform: scale(0.9);
+    }
 
     &--play {
       background: var(--color-accent-solid);
@@ -475,7 +507,9 @@
       background: var(--wash-soft);
       color: var(--color-ink);
 
-      &:hover { background: var(--wash-hover); }
+      &:hover {
+        background: var(--wash-hover);
+      }
     }
   }
 
@@ -493,7 +527,9 @@
     border-radius: 0.3rem;
     min-width: 0;
 
-    &:hover { background: var(--wash-soft); }
+    &:hover {
+      background: var(--wash-soft);
+    }
   }
 
   .tts-bar__ref {
@@ -549,7 +585,9 @@
       transform: rotate(180deg);
     }
 
-    &:hover { background: var(--wash-soft); }
+    &:hover {
+      background: var(--wash-soft);
+    }
   }
 
   // ── Expanded panel ─────────────────────────────────────────────────────────
@@ -560,8 +598,14 @@
   }
 
   @keyframes panel-slide-up {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   .tts-panel__row {
@@ -570,7 +614,9 @@
     gap: 0.6rem;
     margin-bottom: 0.6rem;
 
-    &:last-child { margin-bottom: 0; }
+    &:last-child {
+      margin-bottom: 0;
+    }
   }
 
   .tts-panel__label {
@@ -599,9 +645,13 @@
     font-size: 0.72rem;
     font-weight: 600;
     cursor: pointer;
-    transition: background var(--motion-fast), border-color var(--motion-fast);
+    transition:
+      background var(--motion-fast),
+      border-color var(--motion-fast);
 
-    &:hover { background: var(--wash-hover); }
+    &:hover {
+      background: var(--wash-hover);
+    }
 
     &--active {
       background: var(--color-accent-solid);
@@ -624,13 +674,18 @@
 
     // La flecha, dibujada aparte: con `appearance: none` desaparece la nativa.
     appearance: none;
-    background-image: linear-gradient(45deg, transparent 50%, currentcolor 50%),
+    background-image:
+      linear-gradient(45deg, transparent 50%, currentcolor 50%),
       linear-gradient(135deg, currentcolor 50%, transparent 50%);
-    background-position: right 0.85rem center, right 0.6rem center;
+    background-position:
+      right 0.85rem center,
+      right 0.6rem center;
     background-size: 0.3rem 0.3rem;
     background-repeat: no-repeat;
 
-    &:hover { border-color: var(--color-accent); }
+    &:hover {
+      border-color: var(--color-accent);
+    }
 
     &:focus-visible {
       outline: none;
@@ -668,7 +723,9 @@
     font-size: 0.8rem;
     font-weight: 600;
     box-shadow: 0 4px 16px color-mix(in srgb, var(--color-accent) 35%, transparent);
-    transition: transform var(--motion-base), box-shadow var(--motion-base);
+    transition:
+      transform var(--motion-base),
+      box-shadow var(--motion-base);
 
     // El tamaño va al contenedor: una regla `svg` de aquí no alcanza al
     // <svg> de Icon.svelte, que lleva otra clase de scope.
@@ -678,7 +735,9 @@
       transform: scale(1.05);
       box-shadow: 0 6px 20px color-mix(in srgb, var(--color-accent) 45%, transparent);
     }
-    &:active { transform: scale(0.96); }
+    &:active {
+      transform: scale(0.96);
+    }
   }
 
   .tts-start-btn--music {
@@ -712,7 +771,9 @@
       transform: translateX(-50%) scale(1.05);
       box-shadow: 0 8px 32px color-mix(in srgb, var(--color-success) 50%, transparent);
     }
-    &:active { transform: translateX(-50%) scale(0.96); }
+    &:active {
+      transform: translateX(-50%) scale(0.96);
+    }
 
     @media (max-width: 40rem) {
       bottom: 1.25rem;
