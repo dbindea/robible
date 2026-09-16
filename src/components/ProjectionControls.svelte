@@ -232,6 +232,54 @@
     font-size: 0.8rem;
     font-variant-numeric: tabular-nums;
     font-weight: 700;
+    // Sin esto, «12 / 150» se parte en dos renglones en cuanto la barra va
+    // justa de ancho y la hace el doble de alta.
+    white-space: nowrap;
+  }
+
+  /* ── Móvil ────────────────────────────────────────────────────────────────
+     Centrada abajo y algo por encima del borde: sobre esa franja inferior es
+     donde el navegador móvil enseña y esconde su propia barra de direcciones.
+
+     En UNA fila y compacta. Con los botones de 2,6 rem que tenía, los ocho no
+     cabían a lo ancho de un móvil: la barra se partía en dos renglones, se
+     salía por la izquierda y el contador quedaba cortado. A 2,2 rem (35 px)
+     entran los ocho y el contador en una sola fila — por encima del mínimo de
+     24 px que pide WCAG 2.5.8, aunque por debajo de lo cómodo para un pulgar.
+     Es el precio de que esta pantalla también sirva para LEER en el móvil, que
+     es para lo que se pidió: cuanto menos ocupe la barra, mejor. */
+  @media (max-width: 40rem) {
+    .controles {
+      right: auto;
+      left: 50%;
+      bottom: 1rem;
+      transform: translateX(-50%);
+      flex-wrap: nowrap;
+      justify-content: center;
+      gap: 0.15rem;
+      padding: 0.3rem 0.45rem;
+      max-width: calc(100vw - 1rem);
+
+      button {
+        width: 2.2rem;
+        height: 2.2rem;
+        --icon-size: 1rem;
+      }
+    }
+
+    .controles__posicion {
+      padding: 0 0.25rem;
+      font-size: 0.72rem;
+    }
+
+    // El panel se apoya justo encima de los controles, también centrado.
+    .panel {
+      right: auto;
+      left: 50%;
+      bottom: 4.25rem;
+      transform: translateX(-50%);
+      width: calc(100vw - 2rem);
+    }
   }
 
   .panel {
