@@ -1812,15 +1812,37 @@
       grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     }
   }
+  /* En una sola columna, el pie se centra entero.
+     Alineado a la izquierda, una columna estrecha con el logo arriba, tres
+     encabezados y once enlaces se lee como una ficha técnica pegada al margen;
+     centrado se lee como el cierre de la página, que es lo que es. En dos o
+     más columnas NO se centra: ahí el margen izquierdo común es lo que deja
+     recorrer las listas de un vistazo. */
   @media (max-width: 40rem) {
     .footer__inner {
       grid-template-columns: minmax(0, 1fr);
+      --footer-align: center;
+      --donar-align: center;
+      --donar-text-align: center;
+      text-align: center;
+    }
+    .footer__brand {
+      justify-content: center;
+    }
+    .footer__tagline {
+      /* Sin esto el texto se centra pero la caja de 28ch sigue pegada a la
+         izquierda, y el eslogan queda visiblemente descolocado. */
+      margin-inline: auto;
     }
   }
+  /* `--footer-align` es el interruptor de alineación de todo el pie: `start` en
+     escritorio, `center` cuando queda una sola columna. Va por variable porque
+     tiene que cruzar hasta `DonarBoton`, que es otro componente con su propio
+     scoping, y una variable sí atraviesa esa frontera. */
   .footer__marca {
     display: grid;
     gap: 0.7rem;
-    justify-items: start;
+    justify-items: var(--footer-align, start);
   }
   .footer__brand {
     display: flex;
@@ -1856,6 +1878,7 @@
   .footer__col ul {
     display: grid;
     gap: 0.1rem;
+    justify-items: var(--footer-align, start);
     margin: 0;
     padding: 0;
     list-style: none;
@@ -1905,16 +1928,23 @@
   .footer__contact {
     display: grid;
     gap: 0.15rem;
-    justify-items: start;
+    justify-items: var(--footer-align, start);
     font-style: normal;
     font-family: var(--font-family-base);
-    font-size: 0.85rem;
     line-height: 1.5;
     color: var(--color-ink-soft);
   }
+  /* El tamaño va en el `p` y NO en el contenedor: `global.css` da
+     `p { font-size: 1rem }`, y una regla directa sobre el elemento le gana a la
+     herencia. Puesto sólo arriba, las tres líneas de contacto salían a 16 px
+     —más grandes que cualquier otra cosa del pie— y el nombre, además en
+     negrita, parecía un titular. */
   .footer__contact p {
     margin: 0;
+    font-size: 0.82rem;
   }
+  /* Se distingue por el peso y por la tinta, no por el tamaño: es una línea
+     más de la misma dirección postal, no un encabezado. */
   .footer__contact-name {
     color: var(--color-ink);
     font-weight: 700;

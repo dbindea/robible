@@ -357,16 +357,49 @@
     }
   }
 
+  /* En una sola columna, el pie se centra entero.
+     Alineado a la izquierda, una columna estrecha con el logo arriba, tres
+     encabezados y doce enlaces se lee como una ficha técnica pegada al margen;
+     centrado se lee como el cierre de la página, que es lo que es. En dos o
+     más columnas NO se centra: ahí el margen izquierdo común es justo lo que
+     deja recorrer las listas de un vistazo. */
   @media (max-width: 40rem) {
     .footer__columnas {
       grid-template-columns: minmax(0, 1fr);
+      --footer-align: center;
+      --donar-align: center;
+      --donar-text-align: center;
+      text-align: center;
+    }
+
+    .footer__slogan,
+    .footer__contacto {
+      /* Sin esto el texto se centra pero la caja sigue pegada a la izquierda,
+         y una nota de dos renglones queda visiblemente descolocada. */
+      margin-inline: auto;
+    }
+
+    /* La franja de abajo acompaña: la firma centrada y los tres controles
+       debajo, también centrados. */
+    .footer__barra {
+      justify-content: center;
+    }
+
+    .footer__meta,
+    .footer__actions {
+      justify-content: center;
     }
   }
 
+  /* `--footer-align` es el interruptor de alineación de todo el pie: en
+     escritorio vale `start` y en una sola columna pasa a `center`. Va por
+     variable y no repitiendo `text-align` en cada regla porque tiene que
+     cruzar hasta `DonarBoton`, que es otro componente y tiene su propio
+     scoping — una variable sí atraviesa esa frontera. */
   .footer__marca {
     display: grid;
     gap: 0.6rem;
-    justify-items: start;
+    justify-items: var(--footer-align, start);
     min-width: 0;
   }
 
@@ -425,6 +458,7 @@
   .footer__lista {
     display: grid;
     gap: 0.1rem;
+    justify-items: var(--footer-align, start);
     margin: 0;
     padding: 0;
     list-style: none;
@@ -453,19 +487,25 @@
     min-width: 0;
     font-style: normal;
     color: var(--color-ink-soft);
-    font-size: 0.82rem;
     line-height: 1.5;
 
+    /* El tamaño va en el `p` y NO en el contenedor: `global.css` da
+       `p { font-size: 1rem }`, y una regla directa sobre el elemento le gana a
+       la herencia. Puesto sólo arriba, las tres líneas de contacto salían a
+       16 px —más grandes que cualquier otra cosa del pie— y el nombre, además
+       en negrita, parecía un titular. */
     p {
       margin: 0;
+      font-size: 0.82rem;
     }
 
     a {
-      justify-self: start;
+      justify-self: var(--footer-align, start);
       display: inline-flex;
       align-items: center;
       min-height: 1.5rem;
       color: var(--color-accent-ink);
+      font-size: 0.82rem;
       font-weight: 600;
       text-decoration: none;
 
@@ -475,6 +515,8 @@
     }
   }
 
+  /* Se distingue por el peso y por la tinta, no por el tamaño: es una línea
+     más de la misma dirección postal, no un encabezado. */
   .footer__nombre {
     color: var(--color-ink);
     font-weight: 700;
@@ -858,10 +900,13 @@
     }
   }
 
+  /* OJO: este bloque va DESPUÉS del de 40rem y ambos se aplican en un móvil.
+     A igual especificidad gana el último, así que aquí no puede haber nada que
+     contradiga al centrado de arriba — tenía un `justify-content: space-between`
+     heredado de la versión en una fila que dejaba los tres controles repartidos
+     de borde a borde mientras el resto del pie ya iba centrado. */
   @media (max-width: 32rem) {
     .footer {
-      // Las columnas ya se apilan solas con `auto-fit`; aquí sólo se aprieta el
-      // relleno y se baja el cuerpo, que en un móvil son doce enlaces seguidos.
       padding-top: 1.5rem;
       font-size: 14px;
     }
@@ -871,8 +916,6 @@
     }
 
     .footer__actions {
-      justify-content: space-between;
-      flex-wrap: wrap;
       gap: 0.4rem;
     }
 

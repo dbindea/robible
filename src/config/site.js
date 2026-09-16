@@ -19,20 +19,21 @@ export const CONTACTO = {
 };
 
 /**
- * Usuario de PayPal.me al que van las donaciones.
+ * Página de pago de PayPal a la que van las donaciones.
  *
- * ⚠️ VERIFICA que `https://paypal.me/<esto>` abre TU cuenta antes de subir a
- * producción. Los identificadores de PayPal.me se reparten por orden de
- * llegada: si éste lo tiene otra persona, el dinero de quien done acaba en su
- * cuenta y no hay forma de saberlo desde el código.
+ * Es un enlace de «No-Code Checkout» (`/ncp/payment/<id>`), creado desde el
+ * panel de PayPal: una página alojada por ellos donde quien dona elige el
+ * importe. Lo da el propietario de la cuenta y **no se puede deducir** —el
+ * identificador no tiene relación con el nombre ni con el correo—, así que
+ * aquí va tal cual lo entregó, sin reconstruirlo por partes.
  *
  * Vacío = no se pinta ningún botón en ninguna parte. Es el estado seguro: más
- * vale un pie sin botón que un botón que cobra para un desconocido.
+ * vale un pie sin botón que un botón que cobra a saber para quién.
  */
-export const PAYPAL_USUARIO = 'dbindea';
+export const PAYPAL_ENLACE = 'https://www.paypal.com/ncp/payment/RHM4ARZK28FEQ';
 
 /**
- * Se eligió PayPal.me y no el SDK de botones inteligentes a propósito.
+ * Se eligió una página alojada y no el SDK de botones inteligentes a propósito.
  *
  * El SDK es un `<script>` de paypal.com cargado en cada página, con sus
  * cookies y su huella — y la primera promesa de la landing es «la Biblia que
@@ -40,7 +41,7 @@ export const PAYPAL_USUARIO = 'dbindea';
  * decide pulsarlo, que es exactamente donde debe estar la frontera. Es el
  * mismo criterio que con el dictado por voz (CLAUDE.md, trampa 92).
  */
-export const hayDonaciones = () => PAYPAL_USUARIO.trim().length > 0;
+export const hayDonaciones = () => PAYPAL_ENLACE.trim().length > 0;
 
 /** El enlace de donación, o cadena vacía si no está configurado. */
-export const enlaceDonacion = () => (hayDonaciones() ? `https://www.paypal.com/paypalme/${PAYPAL_USUARIO.trim()}` : '');
+export const enlaceDonacion = () => PAYPAL_ENLACE.trim();

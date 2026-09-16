@@ -51,10 +51,17 @@
 {/if}
 
 <style lang="scss">
+  /* La alineación se controla desde fuera con `--donar-align`, y no con una
+     prop ni con `:global()`: el scoping de Svelte impide que el padre alcance
+     estas clases, pero las variables CSS sí cruzan esa frontera. Es el mismo
+     mecanismo que `--icon-size` en `Icon.svelte`. En el pie, la versión de
+     móvil lo pone a `center` y en escritorio se queda alineado a la izquierda
+     con el resto de la columna. */
   .donar {
     display: grid;
     gap: 0.5rem;
-    justify-items: start;
+    justify-items: var(--donar-align, start);
+    text-align: var(--donar-text-align, left);
   }
 
   .donar--compacto {
@@ -95,8 +102,11 @@
     }
   }
 
+  /* El tamaño va aquí y no en `.donar`: `global.css` da `p { font-size: 1rem }`
+     a todo párrafo, y eso le gana a la herencia del contenedor. Sobre la clase
+     del propio `<p>` sí manda, porque una clase pesa más que un elemento. */
   .donar__nota {
-    max-width: 30ch;
+    max-width: 32ch;
     margin: 0;
     color: var(--color-ink-soft);
     font-size: 0.76rem;
