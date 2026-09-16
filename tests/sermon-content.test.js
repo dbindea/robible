@@ -33,16 +33,20 @@ import {
 
 // ── Forma del documento ─────────────────────────────────
 
-test('los pasos son los ocho previstos y en orden', () => {
-  // 'intro' va antes de 'development' a propósito, y no es lo que enseña el
-  // curso (que dice escribirla al final): es una decisión del propietario
-  // para no perder el hilo del orden en que se predica. Ver la nota de STEPS.
-  assert.deepEqual(STEPS, ['text', 'observation', 'context', 'idea', 'structure', 'intro', 'development', 'final']);
+test('los pasos son los siete previstos y en orden', () => {
+  // 'intro' NO es un paso: se escribe dentro de 'development', en la misma
+  // pantalla y antes de los puntos. Sigue yendo antes que ellos —al revés de
+  // lo que enseña el curso, que la deja para el final— pero sin pantalla
+  // propia. Ver la nota de STEPS.
+  assert.deepEqual(STEPS, ['text', 'observation', 'context', 'idea', 'structure', 'development', 'final']);
+  assert.ok(!STEPS.includes('intro'), 'la introducción dejó de ser un paso');
 });
 
 test('el documento vacío trae todas las claves', () => {
   const c = emptyContent();
-  for (const clave of ['marks', 'observation', 'context', 'idea', 'structure', 'development', 'intro', 'conclusion']) {
+  // `intro` y `diagram` siguen en el documento aunque no tengan paso propio:
+  // lo que cambió es dónde se editan, no lo que se guarda.
+  for (const clave of ['marks', 'observation', 'context', 'idea', 'structure', 'development', 'intro', 'diagram', 'conclusion']) {
     assert.ok(clave in c, `falta ${clave}`);
   }
 });

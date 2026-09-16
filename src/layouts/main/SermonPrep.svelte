@@ -353,6 +353,104 @@
     guardar({ content: JSON.stringify(content) });
   };
 
+  /**
+   * Apuntar en el cuaderno desde cualquier paso.
+   *
+   * Es el mismo `content.notes` que se escribe en TEXT: un solo campo, visible
+   * desde varios sitios. Mientras se desarrolla un punto salen ideas que hay
+   * que anotar en el momento, y retroceder cuatro pasos para media frase
+   * significaba no anotarla.
+   */
+  const escribirNota = (texto) => {
+    content.notes = texto;
+    guardarContenido();
+  };
+
+  // ── Diagrama del texto ────────────────────────────────────────────────────
+
+  /**
+   * Vuelca la perícope en el campo del diagrama, un versículo por línea.
+   *
+   * Es el punto de partida del trabajo: a partir de ahí se tabula a mano para
+   * que la sangría enseñe cómo está construido el pasaje — qué depende de qué,
+   * dónde están las oraciones subordinadas.
+   *
+   * Si ya hay algo escrito NO se pisa: se añade debajo. Perder media hora de
+   * diagramado por pulsar un botón dos veces sería imperdonable.
+   */
+  const volcarTexto = () => {
+    const lineas = pericopa.map((v) => `${v.numero}  ${v.texto}`).join('\n');
+    const actual = (content.diagram || '').trim();
+    content.diagram = actual ? `${actual}\n\n${lineas}` : lineas;
+    guardarContenido();
+  };
+
+  /**
+   * El tabulador tabula, en vez de saltar al control siguiente.
+   *
+   * Sin esto no se puede diagramar: la sangría es toda la herramienta. Se
+   * limita a ESTE campo a propósito — en el resto de la aplicación el Tab tiene
+   * que seguir moviendo el foco, que es como se recorre un formulario con el
+   * teclado y lo que espera un lector de pantalla.
+   *
+   * Shift+Tab quita una sangría, y con texto seleccionado se sangran todas las
+   * líneas del bloque a la vez, que es lo que se hace al reordenar un diagrama.
+   *
+   * La salida es **Escape y luego Tab**: robarle el tabulador al campo lo
+   * convierte en una trampa para quien navega con teclado o lector de pantalla
+   * —no habría forma de salir de él— y eso es un incumplimiento de WCAG 2.1.2.
+   * Con el Escape puesto, el siguiente Tab mueve el foco como en cualquier otro
+   * sitio; cualquier otra tecla vuelve a dejar el tabulador sangrando.
+   */
+  let salirConTab = false;
+
+  const tabularEnDiagrama = (e) => {
+    if (e.key === 'Escape') {
+      salirConTab = true;
+      return;
+    }
+    if (e.key !== 'Tab') {
+      salirConTab = false;
+      return;
+    }
+    if (salirConTab) {
+      salirConTab = false;
+      return; // sin preventDefault: el foco se va, como espera el teclado
+    }
+    e.preventDefault();
+
+    const area = e.target;
+    const { selectionStart: ini, selectionEnd: fin, value } = area;
+    const SANGRIA = '    ';
+
+    // Con varias líneas seleccionadas se sangra el bloque entero.
+    if (value.slice(ini, fin).includes('\n')) {
+      const desde = value.lastIndexOf('\n', ini - 1) + 1;
+      const bloque = value.slice(desde, fin);
+      const nuevo = e.shiftKey
+        ? bloque.replace(/^ {1,4}/gm, '')
+        : bloque.replace(/^/gm, SANGRIA);
+      area.value = value.slice(0, desde) + nuevo + value.slice(fin);
+      area.selectionStart = desde;
+      area.selectionEnd = desde + nuevo.length;
+    } else if (e.shiftKey) {
+      // Quitar sangría: sólo si de verdad hay espacios justo antes del cursor.
+      const desde = value.lastIndexOf('\n', ini - 1) + 1;
+      const delante = value.slice(desde, ini);
+      const sobran = delante.match(/ {1,4}$/)?.[0].length || 0;
+      if (!sobran) return;
+      area.value = value.slice(0, ini - sobran) + value.slice(ini);
+      area.selectionStart = area.selectionEnd = ini - sobran;
+    } else {
+      area.value = value.slice(0, ini) + SANGRIA + value.slice(fin);
+      area.selectionStart = area.selectionEnd = ini + SANGRIA.length;
+    }
+
+    // `bind:value` no se entera de un cambio hecho a mano sobre el elemento.
+    content.diagram = area.value;
+    guardarContenido();
+  };
+
   // Guardado inmediato, sin esperar al retardo. Se usa al salir de la pantalla,
   // al cambiar de paso y antes de un refresco manual: son los momentos en que
   // dejar algo a medias significa perderlo.
@@ -940,10 +1038,36 @@
             </p>
           {/if}
 
-          <!-- La hoja en blanco. Va al final del paso, después del texto: se
-               apunta MIENTRAS se lee la perícopa, no antes de haberla leído.
-               Ocupa casi la pantalla a propósito — un campo de cinco líneas
-               invita a escribir cinco líneas, y aquí se quiere lo contrario. -->
+          <!-- Dos hojas, media pantalla cada una.
+               Arriba el diagrama: la perícope volcada y tabulada a mano para
+               ver cómo está construido el pasaje. Abajo los apuntes, como
+               siempre. Son dos trabajos distintos sobre el mismo texto y
+               mezclados en un solo campo el diagrama se pierde entre las
+               ideas sueltas. -->
+          <div class="campo campo--diagrama">
+            <div class="campo__cabecera">
+              <span>{$_('app.sermons.diagram')}</span>
+              <button
+                type="button"
+                class="campo__marcar"
+                on:click={volcarTexto}
+                title={$_('app.sermons.diagram_dump_help')}
+              >
+                <Icon name="copy" size="0.85rem" />
+                {$_('app.sermons.diagram_dump')}
+              </button>
+            </div>
+            <small class="campo__pista">{$_('app.sermons.diagram_help')}</small>
+            <textarea
+              spellcheck="false"
+              class="campo__hoja"
+              placeholder={$_('app.sermons.diagram_placeholder')}
+              bind:value={content.diagram}
+              on:input={guardarContenido}
+              on:keydown={tabularEnDiagrama}
+            ></textarea>
+          </div>
+
           <label class="campo campo--notas">
             <span>{$_('app.sermons.notes')}</span>
             <small class="campo__pista">{$_('app.sermons.notes_help')}</small>
@@ -962,7 +1086,7 @@
         <div class="bloque">
           <h2>{$_('app.sermons.step_observation')}</h2>
           <Ajutor paso="observation" tip={sermon?.type} />
-          <Notite notes={content.notes} />
+          <Notite notes={content.notes} onChange={escribirNota} />
           <p class="bloque__ayuda">{$_('app.sermons.optional_help')}</p>
           {#each ['repeats', 'contrasts', 'actions', 'tension', 'truth'] as clave (clave)}
             <label class="campo">
@@ -977,10 +1101,14 @@
         <div class="bloque">
           <h2>{$_('app.sermons.step_context')}</h2>
           <Ajutor paso="context" tip={sermon?.type} />
-          <Notite notes={content.notes} />
+          <Notite notes={content.notes} onChange={escribirNota} />
 
+          <!-- Abiertos de salida. Leer lo que va antes y después del pasaje es
+               parte del trabajo de este paso, no un extra: plegados había que
+               acordarse de abrirlos, y lo que no se ve no se lee. Se pueden
+               cerrar, que para eso siguen siendo `<details>`. -->
           {#if contextoAntes.length}
-            <details class="contexto">
+            <details class="contexto" open>
               <summary>{$_('app.sermons.context_before')}</summary>
               {#each contextoAntes as v (v.numero)}
                 <p class="contexto__verso"><span class="texto__num">{v.numero}</span>{v.texto}</p>
@@ -988,7 +1116,7 @@
             </details>
           {/if}
           {#if contextoDespues.length}
-            <details class="contexto">
+            <details class="contexto" open>
               <summary>{$_('app.sermons.context_after')}</summary>
               {#each contextoDespues as v (v.numero)}
                 <p class="contexto__verso"><span class="texto__num">{v.numero}</span>{v.texto}</p>
@@ -1013,7 +1141,7 @@
         <div class="bloque">
           <h2>{$_('app.sermons.step_idea')}</h2>
           <Ajutor paso="idea" tip={sermon?.type} />
-          <Notite notes={content.notes} />
+          <Notite notes={content.notes} onChange={escribirNota} />
           <label class="campo">
             <span>{$_('app.sermons.idea_exegetical')}</span>
             <small class="campo__pista">{$_('app.sermons.idea_exegetical_help')}</small>
@@ -1042,7 +1170,24 @@
           <h2>{$_('app.sermons.step_structure')}</h2>
           <Ajutor paso="structure" tip={sermon?.type} />
           <Recapitulare {content} paso="structure" {referencia} />
-          <Notite notes={content.notes} />
+          <Notite notes={content.notes} onChange={escribirNota} />
+
+          <!-- El pasaje, a mano y plegado. Las divisiones salen del texto, y
+               tenerlo cuatro pasos atrás obligaba a retroceder cada vez que se
+               formulaba un punto. Cerrado de salida porque aquí ya se ha leído:
+               esto es para consultar una palabra, no para volver a leerlo. -->
+          <details class="contexto">
+            <summary>{$_('app.sermons.show_passage', { reference: referencia })}</summary>
+            <!-- El scroll va en el cuerpo y no en el `<details>`: puesto en el
+                 contenedor, el resumen se iría con el desplazamiento y no
+                 quedaría a mano el sitio para volver a cerrarlo. -->
+            <div class="contexto__cuerpo">
+              {#each pericopa as v (v.numero)}
+                <p class="contexto__verso"><span class="texto__num">{v.numero}</span>{v.texto}</p>
+              {/each}
+            </div>
+          </details>
+
           <p class="bloque__ayuda">{$_('app.sermons.structure_help')}</p>
 
           <!-- La transición va ANTES de los puntos: es la frase con la que se
@@ -1094,9 +1239,17 @@
             </div>
           {/each}
 
-          <button type="button" class="bloque__añadir" on:click={añadirPunto}>
-            + {$_('app.sermons.add_point')}
-          </button>
+          <!-- Añadir un punto es LA acción de este paso: aquí se levanta el
+               esqueleto del sermón. Estaba como un enlace discreto al final de
+               la lista y se pasaba de largo sin verlo. Va centrado, en el color
+               de la casa y con una línea debajo que dice qué se está haciendo. -->
+          <div class="añadir-punto">
+            <button type="button" class="añadir-punto__boton" on:click={añadirPunto}>
+              <Icon name="plus" />
+              {$_('app.sermons.add_point')}
+            </button>
+            <p class="añadir-punto__pista">{$_('app.sermons.add_point_hint')}</p>
+          </div>
         </div>
 
       <!-- ── DEZVOLTARE ───────────────────────────────────────────────── -->
@@ -1105,7 +1258,53 @@
           <h2>{$_('app.sermons.step_development')}</h2>
           <Ajutor paso="development" tip={sermon?.type} />
           <Recapitulare {content} paso="development" {referencia} />
-          <Notite notes={content.notes} />
+          <Notite notes={content.notes} onChange={escribirNota} />
+
+          <!-- La INTRODUCCIÓN, que hasta el 15 sep 2026 era un paso propio.
+               Va aquí y antes de los puntos porque es lo primero que se dice:
+               en la misma pantalla se ve la predicación entera — se entra y se
+               desarrolla. Su guía se enseña al lado del campo, no arriba, para
+               que no se confunda con el del desarrollo. -->
+          <div class="campo campo--intro">
+            <div class="campo__cabecera">
+              <span>{$_('app.sermons.intro')}</span>
+              <button
+                type="button"
+                class="campo__marcar"
+                on:click={() => abrirInsertarCita('intro')}
+                title={$_('app.sermons.insert_verse_help')}
+              >
+                <Icon name="book-open" size="0.85rem" />
+                {$_('app.sermons.insert_verse')}
+              </button>
+            </div>
+            <small class="campo__pista">{$_('app.sermons.intro_help')}</small>
+            <!-- Con su nombre en la barra: en esta pantalla hay dos guías y con
+                 la misma etiqueta no se sabía cuál era de qué. -->
+            <Ajutor
+              paso="intro"
+              tip={sermon?.type}
+              etiqueta={`${$_('app.homiletics.open')} — ${$_('app.sermons.intro')}`}
+            />
+            <textarea spellcheck="false"
+              rows="8"
+              bind:this={areas['intro']}
+              bind:value={content.intro}
+              on:input={guardarContenido}
+            ></textarea>
+          </div>
+
+          <!-- La frase de transición ya está escrita en STRUCTURĂ: aquí se
+               recuerda, porque es la costura entre la introducción y el primer
+               punto y hay que tenerla delante al desarrollarlo. Se edita en su
+               sitio, no en dos. -->
+          {#if content.transition.trim()}
+            <p class="transicion-eco">
+              <span class="transicion-eco__etiqueta">{$_('app.sermons.transition')}</span>
+              {quitarMarcas(content.transition)}
+            </p>
+          {/if}
+
           {#if !content.structure.length}
             <p class="bloque__ayuda">{$_('app.sermons.development_needs_structure')}</p>
             <button type="button" class="bloque__añadir" on:click={() => irAPaso('structure')}>
@@ -1188,8 +1387,12 @@
                           {/each}
                         </ul>
                       {/if}
+                      <!-- Sin la explicación larga: la lleva el bloque de
+                           referencias del punto, unas líneas más abajo, y
+                           repetirla en cada subpunto es ruido. -->
                       <button type="button" class="refs__añadir" on:click={() => abrirBuscadorRefs(sub.id)}>
-                        + {$_('app.sermons.refs_add')}
+                        <Icon name="plus" size="0.75rem" />
+                        {$_('app.sermons.refs_add')}
                       </button>
                     </div>
                   </div>
@@ -1264,47 +1467,24 @@
                         </li>
                       {/each}
                     </ul>
-                  {:else}
-                    <p class="refs__vacio">{$_('app.sermons.refs_empty')}</p>
                   {/if}
                   <button type="button" class="refs__añadir" on:click={() => abrirBuscadorRefs(punto.id)}>
-                    + {$_('app.sermons.refs_add')}
+                    <Icon name="plus" size="0.75rem" />
+                    {$_('app.sermons.refs_add')}
                   </button>
+                  <!-- La explicación se queda siempre, no sólo cuando la lista
+                       está vacía: es lo que dice para qué sirve el botón, y
+                       quien ya añadió uno sigue sin saber adónde va a parar. -->
+                  <p class="refs__vacio">{$_('app.sermons.refs_empty')}</p>
                 </div>
               </div>
             {/each}
           {/if}
         </div>
 
-      <!-- ── INTRODUCERE ──────────────────────────────────────────────── -->
-      {:else if paso === 'intro'}
-        <div class="bloque">
-          <h2>{$_('app.sermons.step_intro')}</h2>
-          <Ajutor paso="intro" tip={sermon?.type} />
-          <Recapitulare {content} paso="intro" {referencia} />
-          <Notite notes={content.notes} />
-          <div class="campo">
-            <div class="campo__cabecera">
-              <span>{$_('app.sermons.intro')}</span>
-              <button
-                type="button"
-                class="campo__marcar"
-                on:click={() => abrirInsertarCita('intro')}
-                title={$_('app.sermons.insert_verse_help')}
-              >
-                <Icon name="book-open" size="0.85rem" />
-                {$_('app.sermons.insert_verse')}
-              </button>
-            </div>
-            <small class="campo__pista">{$_('app.sermons.intro_help')}</small>
-            <textarea spellcheck="false"
-              rows="8"
-              bind:this={areas['intro']}
-              bind:value={content.intro}
-              on:input={guardarContenido}
-            ></textarea>
-          </div>
-        </div>
+      <!-- INTRODUCERE ya no es un paso: se escribe dentro de DEZVOLTARE, en la
+           misma pantalla y antes de los puntos. El campo `content.intro` sigue
+           existiendo igual; lo que cambió es dónde se edita. -->
 
       <!-- ── FINALIZARE ───────────────────────────────────────────────── -->
       {:else if paso === 'final'}
@@ -1312,7 +1492,7 @@
           <h2>{$_('app.sermons.step_final')}</h2>
           <Ajutor paso="final" tip={sermon?.type} />
           <Recapitulare {content} paso="final" {referencia} />
-          <Notite notes={content.notes} />
+          <Notite notes={content.notes} onChange={escribirNota} />
           <div class="campo">
             <div class="campo__cabecera">
               <span>{$_('app.sermons.conclusion')}</span>
@@ -1408,18 +1588,47 @@
         {/if}
       </article>
 
-      <div class="prep__acciones no-imprimir">
-        <button type="button" on:click={() => (vista = 'prep')}>{$_('app.sermons.edit')}</button>
-        <button type="button" on:click={crearSchita}>{$_('app.sermons.create_outline')}</button>
-        <button type="button" disabled={generandoPdf} on:click={() => descargarPdf('predica')}>
-          {generandoPdf ? $_('app.sermons.pdf_working') : $_('app.sermons.print_sermon')}
+      <!-- Cinco botones seguidos y con el mismo peso no decían cuál era el paso
+           siguiente ni qué hacía cada uno. Ahora hay una salida atrás y dos
+           grupos: lo que se lleva al púlpito y lo que se da a otros. -->
+      <div class="acciones no-imprimir">
+        <!-- Volver no es un grupo: es la puerta por la que se ha entrado.
+             Va arriba y en forma de enlace, igual que en la schiță. -->
+        <button type="button" class="acciones__volver" on:click={() => (vista = 'prep')}>
+          ← {$_('app.sermons.edit')}
         </button>
-        <button type="button" disabled={publicando} on:click={alternarPublicacion}>
-          {sermon?.isPublic ? $_('app.sermons.share.unpublish') : $_('app.sermons.share.publish')}
-        </button>
-        <button type="button" class="prep__cta" on:click={marcarPreparada}>
-          {$_('app.sermons.mark_ready')}
-        </button>
+
+        <section class="acciones__grupo">
+          <h3 class="acciones__titulo">{$_('app.sermons.actions_pulpit')}</h3>
+          <div class="acciones__fila">
+            <button type="button" on:click={crearSchita}>
+              <Icon name="file-text" size="0.9rem" />
+              {$_('app.sermons.create_outline')}
+            </button>
+            <button type="button" class="prep__cta" on:click={marcarPreparada}>
+              <Icon name="lectern" size="0.9rem" />
+              {$_('app.sermons.mark_ready')}
+            </button>
+          </div>
+          <!-- Qué hace «preparada»: sin esto parecía un simple cambio de
+               estado y nadie adivinaba que es lo que la deja accesible sin
+               internet delante de la congregación. -->
+          <p class="acciones__pista">{$_('app.sermons.mark_ready_hint')}</p>
+        </section>
+
+        <section class="acciones__grupo">
+          <h3 class="acciones__titulo">{$_('app.sermons.actions_share')}</h3>
+          <div class="acciones__fila">
+            <button type="button" disabled={generandoPdf} on:click={() => descargarPdf('predica')}>
+              <Icon name="file-text" size="0.9rem" />
+              {generandoPdf ? $_('app.sermons.pdf_working') : $_('app.sermons.print_sermon')}
+            </button>
+            <button type="button" disabled={publicando} on:click={alternarPublicacion}>
+              <Icon name={sermon?.isPublic ? 'lock' : 'globe'} size="0.9rem" />
+              {sermon?.isPublic ? $_('app.sermons.share.unpublish') : $_('app.sermons.share.publish')}
+            </button>
+          </div>
+        </section>
       </div>
 
       {#if enlacePublico}
@@ -1704,10 +1913,14 @@
     }
   }
 
+  /* Los botones de marcar e insertar cita, separados del campo.
+     Pegados al borde del `textarea` parecían parte de la caja de escritura, y
+     al escribir la última línea el cursor quedaba justo debajo de ellos. */
   .campo__acciones {
     display: flex;
     align-items: center;
     gap: 0.4rem;
+    margin: 0.45rem 0 0.15rem;
   }
 
   .campo__marcar {
@@ -1756,10 +1969,15 @@
     letter-spacing: var(--letter-spacing-eyebrow);
   }
 
+  /* Va DEBAJO del botón y sale siempre, no sólo con la lista vacía: es lo que
+     explica adónde van a parar los versículos que se añaden aquí (a la schiță
+     y al púlpito, con su texto), y eso hace falta saberlo también después de
+     añadir el primero. */
   .refs__vacio {
-    margin: 0 0 0.5rem;
+    margin: 0.5rem 0 0;
     color: var(--color-ink-soft);
-    font-size: 0.82rem;
+    font-size: 0.78rem;
+    line-height: 1.4;
   }
 
   .refs__lista {
@@ -1802,11 +2020,16 @@
   }
 
   .refs__añadir {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    min-height: 1.9rem;
     padding: 0.3rem 0.7rem;
     border: 1px solid var(--color-line-accent);
     border-radius: var(--radius-pill);
     background: transparent;
     color: var(--color-accent-ink);
+    font-family: inherit;
     font-size: 0.78rem;
     font-weight: 700;
     cursor: pointer;
@@ -2147,6 +2370,8 @@
     color: var(--color-accent);
   }
 
+  /* El discreto se queda para añadir un SUBpunto y para el enlace de volver a
+     la estructura: son acciones secundarias. La de añadir un punto ya no. */
   .bloque__añadir,
   .punto__añadir-sub {
     justify-self: start;
@@ -2160,6 +2385,53 @@
     cursor: pointer;
 
     &:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  }
+
+  /* Añadir un punto: la acción principal del paso.
+     Era un botón de borde discontinuo y texto gris al final de la lista, con la
+     misma pinta que «añadir subpunto» — y es lo que levanta el esqueleto del
+     sermón. Se pasaba de largo sin verlo. */
+  .añadir-punto {
+    display: grid;
+    justify-items: center;
+    gap: 0.4rem;
+    margin-top: 0.8rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--color-line-soft, var(--color-line));
+  }
+
+  .añadir-punto__boton {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-height: 2.8rem;
+    padding: 0.65rem 1.6rem;
+    border: 1px solid var(--color-accent);
+    border-radius: var(--radius-pill);
+    /* Relleno de acento: lleva texto encima y `--color-accent` sólo da 3.30:1. */
+    background: var(--color-accent-solid);
+    color: var(--color-on-primary);
+    font: inherit;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: var(--transition);
+    --icon-size: 1.05rem;
+
+    &:hover { background: var(--color-accent-solid-hover); transform: translateY(-1px); }
+  }
+
+  .añadir-punto__pista {
+    margin: 0;
+    max-width: 32rem;
+    color: var(--color-ink-soft);
+    font-size: 0.82rem;
+    line-height: 1.45;
+    text-align: center;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .añadir-punto__boton:hover { transform: none; }
   }
 
   .campo {
@@ -2190,16 +2462,41 @@
     }
   }
 
-  /* La hoja de notas del paso TEXT: casi la pantalla entera.
+  /* Las dos hojas del paso TEXT: diagrama arriba, apuntes abajo.
      El tamaño ES la instrucción. Con las cinco filas del resto de campos el
      predicador escribe cinco líneas y pasa de paso; aquí se quiere que vuelque
      todo lo que se le ocurra, y una hoja grande y vacía lo pide sola.
+     Antes los apuntes se llevaban los 65 dvh enteros; ahora se reparten a medias
+     con el diagrama, que es el mismo espacio dividido en dos trabajos.
      `dvh` y no `vh` porque en el móvil el teclado se come la ventana y con `vh`
      el campo se queda por debajo, con el cursor escondido detrás de las teclas.
-     El `clamp` acota los dos extremos: en un portátil apaisado 60 dvh son cuatro
-     dedos de alto, y en un monitor vertical serían dos palmos. */
-  .campo--notas .campo__hoja {
-    min-height: clamp(16rem, 65dvh, 48rem);
+     El `clamp` acota los dos extremos: en un portátil apaisado 32 dvh son dos
+     dedos de alto, y en un monitor vertical serían un palmo. */
+  .campo__hoja {
+    min-height: clamp(9rem, 32dvh, 24rem);
+  }
+
+  /* Un filete separa las dos hojas de arriba, donde se marcan palabras sobre el
+     texto: son dos trabajos distintos y sin nada por medio parecía todo lo
+     mismo. Van juntas entre sí, así que el filete es sólo sobre la primera. */
+  .campo--diagrama {
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--color-line);
+  }
+
+  /* El diagrama del texto se escribe con el tabulador, y tabular sólo sirve de
+     algo si las columnas quedan alineadas: de ahí la tipografía monoespaciada.
+     Y `white-space: pre` con scroll horizontal en vez de ajuste de línea porque
+     una línea larga que se parte sola arranca en el margen izquierdo y deshace
+     justo la sangría que se acaba de poner. */
+  .campo--diagrama .campo__hoja {
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-tiny);
+    line-height: 1.6;
+    tab-size: 4;
+    white-space: pre;
+    overflow-wrap: normal;
+    overflow-x: auto;
   }
 
   /* Las listas de la schiță: una idea por línea, con su guion. Sin ajuste
@@ -2236,6 +2533,40 @@
   .campo__pista {
     font-size: var(--font-size-tiny);
     color: var(--color-ink-soft);
+  }
+
+  /* La introducción vive dentro de DEZVOLTARE pero no es un punto: es lo que se
+     dice ANTES del primero. Pegada al punto 1 se leía como parte de él, así que
+     se cierra con un filete. */
+  .campo--intro {
+    padding-bottom: 0.9rem;
+    border-bottom: 1px solid var(--color-line);
+  }
+
+  /* Eco de la frase de transición, que se escribe en STRUCTURĂ.
+     Es un recordatorio, no un campo: sin caja de escritura y en cursiva, para
+     que nadie intente escribir encima. Se edita en su sitio, no en dos. */
+  .transicion-eco {
+    margin: 0;
+    padding: 0.55rem 0.75rem;
+    border-left: 3px solid var(--color-accent);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    background: var(--wash-accent);
+    color: var(--color-ink);
+    font-size: var(--font-size-small);
+    font-style: italic;
+    line-height: 1.5;
+  }
+
+  .transicion-eco__etiqueta {
+    display: block;
+    margin-bottom: 0.15rem;
+    color: var(--color-accent-ink);
+    font-size: 0.68rem;
+    font-style: normal;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: var(--letter-spacing-eyebrow);
   }
 
   // ── Texto marcable ────────────────────────────────────────────────────────
@@ -2296,6 +2627,14 @@
     margin: 0.4rem 0 0;
     font-size: var(--font-size-small);
     line-height: 1.6;
+  }
+
+  /* Un capítulo entero desplegado aquí empujaría el resto del paso fuera de la
+     pantalla, y este bloque está para consultar una palabra sin perder el sitio
+     donde se estaba escribiendo. */
+  .contexto__cuerpo {
+    max-height: 18rem;
+    overflow-y: auto;
   }
 
   // ── Puntos ────────────────────────────────────────────────────────────────
@@ -2499,6 +2838,88 @@
     cursor: pointer;
 
     &:hover { background: var(--color-accent-hover) !important; }
+  }
+
+  /* ── Acciones de la predicación final, por grupos ──────────────────────────
+     Eran cinco botones en una fila, todos del mismo tamaño y color salvo uno:
+     editar, schiță, PDF, publicar y «preparada». Ni el orden ni el aspecto
+     decían qué iba con qué, y «preparada para predicar» parecía un botón de
+     estado más. Ahora hay una salida atrás y dos cajas: lo que uno se lleva al
+     púlpito y lo que da a otros. */
+  .acciones {
+    display: grid;
+    gap: 0.9rem;
+    margin-top: 1.25rem;
+  }
+
+  /* Volver no es una acción del mismo rango que las demás: es la puerta de
+     entrada, así que va como enlace y no como botón con marco. */
+  .acciones__volver {
+    justify-self: start;
+    min-height: 1.5rem;
+    padding: 0.35rem 0;
+    border: 0;
+    background: transparent;
+    color: var(--color-accent-ink);
+    font-family: inherit;
+    font-size: var(--font-size-small);
+    font-weight: 600;
+    cursor: pointer;
+
+    &:hover { text-decoration: underline; }
+  }
+
+  .acciones__grupo {
+    padding: 0.8rem 0.9rem;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+  }
+
+  .acciones__titulo {
+    margin: 0 0 0.55rem;
+    color: var(--color-ink-soft);
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: var(--letter-spacing-eyebrow);
+  }
+
+  .acciones__fila {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+
+    button {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      min-height: 2.2rem;
+      padding: 0.5rem 1rem;
+      border: 1px solid var(--color-line);
+      border-radius: var(--radius-pill);
+      background: transparent;
+      color: var(--color-ink);
+      font-family: inherit;
+      font-size: var(--font-size-small);
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+
+      &:disabled { opacity: 0.35; cursor: not-allowed; }
+      &:hover:not(:disabled) { border-color: var(--color-accent); color: var(--color-accent); }
+    }
+
+    /* Tres clases contra dos clases y un elemento: le gana a la regla de
+       arriba sin !important, igual que hace `.prep__deshacer`. */
+    .prep__cta { font-weight: 700; }
+  }
+
+  .acciones__pista {
+    margin: 0.55rem 0 0;
+    color: var(--color-ink-soft);
+    font-size: 0.78rem;
+    line-height: 1.4;
   }
 
   // ── Documento final ───────────────────────────────────────────────────────

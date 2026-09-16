@@ -8,7 +8,7 @@
    * se indexa a propósito, como `/predici`.
    *
    * **No hay texto nuevo que pueda desincronizarse del que ya usa la
-   * aplicación**: el timeline de los ocho pasos sale de las MISMAS claves que
+   * aplicación**: el timeline de los siete pasos sale de las MISMAS claves que
    * `Ajutor.svelte` (`app.homiletics.*`) y las tres tarjetas de tipos, de las
    * mismas que `SeriesPicker`/`Sermons.svelte` (`app.sermons.type_*`). Si
    * cambia el texto del guía de dentro de la aplicación, cambia aquí también,
@@ -24,6 +24,17 @@
 
   const TIPOS = ['expositive', 'textual', 'thematic'];
   const TIPOS_CON_NOTA = ['textual', 'thematic'];
+
+  /**
+   * Qué apartados del guía cubre cada paso.
+   *
+   * Casi siempre uno, con su mismo nombre. La excepción es DEZVOLTARE, que
+   * desde el 15 sep 2026 incluye la introducción: dejó de ser un paso propio y
+   * se escribe dentro, antes de los puntos. Aquí sigue explicándose, porque el
+   * manual no puede callarse cómo se escribe una introducción — sólo deja de
+   * llevar número propio, igual que en la aplicación.
+   */
+  const guiasDe = (paso) => (paso === 'development' ? ['intro', 'development'] : [paso]);
 
   $: versionConfig = getBibleVersionConfigOrDefault($selectedBibleVersion);
 
@@ -86,43 +97,53 @@
           <span class="timeline__num" aria-hidden="true">{i + 1}</span>
           <div class="timeline__cuerpo">
             <h3>{$_(`app.sermons.step_${paso}`)}</h3>
-            <p class="timeline__why">{$_(`app.homiletics.${paso}.why`)}</p>
 
-            {#if (GUIA[paso]?.bullets || 0) > 0}
-              <ul class="timeline__lista">
-                {#each vinetasDe(paso) as v (v)}
-                  <li>{$_(`app.homiletics.${paso}.${v}`)}</li>
-                {/each}
-              </ul>
-            {/if}
-
-            {#if GUIA[paso]?.quote}
-              <blockquote class="timeline__cita">{$_(`app.homiletics.${paso}.quote`)}</blockquote>
-            {/if}
-
-            {#if ejemploDe(paso).length}
-              <div class="timeline__ejemplo">
-                <p class="timeline__ejemplo-titulo">{$_('app.homiletics.example')}</p>
-                {#each ejemploDe(paso) as e (e)}
-                  <p>{$_(`app.homiletics.${paso}.${e}`)}</p>
-                {/each}
-              </div>
-            {/if}
-
-            {#if GUIA[paso]?.warn}
-              <p class="timeline__aviso">{$_(`app.homiletics.${paso}.warn`)}</p>
-            {/if}
-
-            <!-- Lo que cambia según el tipo, las dos a la vez: es lo que
-                 responde a «y en una textuală, y en una tematică» sin
-                 obligar a leer el paso tres veces. -->
-            {#each TIPOS_CON_NOTA as tipo (tipo)}
-              {#if tieneNotaDeTipo(tipo, paso)}
-                <p class="timeline__tipo">
-                  <strong>{$_(`app.sermons.type_${tipo}`)}:</strong>
-                  {$_(`app.homiletics.types.${tipo}.${paso}`)}
-                </p>
+            <!-- Un paso puede cubrir más de un apartado del guía: DEZVOLTARE
+                 lleva dentro la introducción. El apartado que no se llama como
+                 el paso se anuncia con su propio encabezado. -->
+            {#each guiasDe(paso) as g (g)}
+              {#if g !== paso}
+                <h4 class="timeline__sub">{$_(`app.sermons.step_${g}`)}</h4>
               {/if}
+
+              <p class="timeline__why">{$_(`app.homiletics.${g}.why`)}</p>
+
+              {#if (GUIA[g]?.bullets || 0) > 0}
+                <ul class="timeline__lista">
+                  {#each vinetasDe(g) as v (v)}
+                    <li>{$_(`app.homiletics.${g}.${v}`)}</li>
+                  {/each}
+                </ul>
+              {/if}
+
+              {#if GUIA[g]?.quote}
+                <blockquote class="timeline__cita">{$_(`app.homiletics.${g}.quote`)}</blockquote>
+              {/if}
+
+              {#if ejemploDe(g).length}
+                <div class="timeline__ejemplo">
+                  <p class="timeline__ejemplo-titulo">{$_('app.homiletics.example')}</p>
+                  {#each ejemploDe(g) as e (e)}
+                    <p>{$_(`app.homiletics.${g}.${e}`)}</p>
+                  {/each}
+                </div>
+              {/if}
+
+              {#if GUIA[g]?.warn}
+                <p class="timeline__aviso">{$_(`app.homiletics.${g}.warn`)}</p>
+              {/if}
+
+              <!-- Lo que cambia según el tipo, las dos a la vez: es lo que
+                   responde a «y en una textuală, y en una tematică» sin
+                   obligar a leer el paso tres veces. -->
+              {#each TIPOS_CON_NOTA as tipo (tipo)}
+                {#if tieneNotaDeTipo(tipo, g)}
+                  <p class="timeline__tipo">
+                    <strong>{$_(`app.sermons.type_${tipo}`)}:</strong>
+                    {$_(`app.homiletics.types.${tipo}.${g}`)}
+                  </p>
+                {/if}
+              {/each}
             {/each}
           </div>
         </li>
@@ -266,6 +287,18 @@
     padding-top: 0.2rem;
 
     h3 { margin: 0 0 0.4rem; font-size: 1.15rem; }
+  }
+
+  /* Apartado dentro de un paso —hoy sólo la introducción, dentro de
+     Dezvoltare—. Va un escalón por debajo del título del paso: es parte de él,
+     no un paso más, y por eso tampoco lleva número. */
+  .timeline__sub {
+    margin: 0.9rem 0 0.35rem;
+    color: var(--color-accent-ink);
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: var(--letter-spacing-eyebrow);
   }
 
   .timeline__why {

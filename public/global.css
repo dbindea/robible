@@ -84,6 +84,10 @@
   /* ── Tipografía ── */
   --font-default-size: 16px;
   --font-family-base: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, 'Open Sans', sans-serif;
+  /* Sólo para texto que se alinea en columnas: hoy, el diagrama del pasaje en
+     la preparación de la predicación, que se sangra a tabulador y sin anchura
+     fija de carácter no queda alineado. No es para código ni para adornar. */
+  --font-family-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
   /* Escala fluida: crece con el viewport sin saltos por breakpoint. */
   --font-size-body: clamp(1rem, 0.3vw + 0.94rem, 1.0625rem);
   --font-size-lead: clamp(1.05rem, 0.5vw + 0.95rem, 1.2rem);

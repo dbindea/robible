@@ -84,6 +84,28 @@
   $: destacados = apartados.filter((a) => a.destacado);
   $: resto = apartados.filter((a) => !a.destacado);
   $: hayAlgo = apartados.length > 0 || marcadas.length > 0;
+
+  /**
+   * El resto, agrupado por el paso del que salió.
+   *
+   * Antes era una lista plana: diez preguntas seguidas, todas con el mismo
+   * tratamiento —mayúsculas, negrita y un filete de acento cada una— y sin nada
+   * que dijera cuáles iban juntas. Leída de corrido, esa pared cansa y no se
+   * distingue una respuesta de otra.
+   *
+   * Agrupadas, cada bloque es una unidad reconocible («esto es lo que observé»,
+   * «esto es el contexto») y la vista puede saltar al que busca.
+   */
+  const ORIGEN = { idea: 'idea', obs: 'observation', ctx: 'context' };
+
+  $: grupos = Object.entries(
+    resto.reduce((acc, a) => {
+      const prefijo = a.clave.split('_')[0];
+      const grupo = ORIGEN[prefijo] || 'otros';
+      (acc[grupo] ||= []).push(a);
+      return acc;
+    }, {}),
+  ).map(([clave, items]) => ({ clave, items }));
 </script>
 
 {#if hayAlgo}
@@ -121,11 +143,22 @@
           </div>
         {/if}
 
-        {#each resto as a (a.clave)}
-          <div class="recap__campo">
-            <p class="recap__clave">{$_(`app.sermons.${a.clave}`)}</p>
-            <p class="recap__valor">{quitarMarcas(a.valor)}</p>
-          </div>
+        <!-- Agrupado por paso de origen. Cada grupo lleva un encabezado tenue
+             y dentro las respuestas: la pregunta acompaña, la respuesta manda. -->
+        {#each grupos as g (g.clave)}
+          <section class="recap__grupo">
+            <!-- `otros` es el cajón por si algún día entra una clave con otro
+                 prefijo: se pinta el grupo, pero sin un título inventado. -->
+            {#if g.clave !== 'otros'}
+              <h4 class="recap__grupo-titulo">{$_(`app.sermons.step_${g.clave}`)}</h4>
+            {/if}
+            {#each g.items as a (a.clave)}
+              <div class="recap__campo">
+                <p class="recap__clave">{$_(`app.sermons.${a.clave}`)}</p>
+                <p class="recap__valor">{quitarMarcas(a.valor)}</p>
+              </div>
+            {/each}
+          </section>
         {/each}
       </div>
     {/if}
@@ -192,32 +225,45 @@
     font-weight: 700;
   }
 
-  .recap__campo { margin: 0; }
+  /* Aire entre respuestas: pegadas, dos frases seguidas parecen un párrafo. */
+  .recap__campo {
+    margin: 0 0 0.6rem;
 
-  /* La pregunta tiene que leerse tan bien como la respuesta.
-     En gris claro a 0.68 rem las etiquetas casi desaparecían al lado del texto,
-     y sin ellas la recapitulación es una lista de frases sueltas sin saber a
-     qué contestan. Ahora van en tinta normal, un punto más grandes y con una
-     marca de acento delante que las ancla visualmente. */
-  .recap__clave {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    margin: 0 0 0.2rem;
-    color: var(--color-ink);
-    font-size: 0.74rem;
+    &:last-child { margin-bottom: 0; }
+  }
+
+  /* Grupo de respuestas de un mismo paso. El encabezado es lo único que lleva
+     acento aquí: antes cada una de las diez preguntas tenía su propio filete
+     azul y en conjunto se leía como una valla. */
+  .recap__grupo {
+    margin-top: 0.9rem;
+    padding-top: 0.7rem;
+    border-top: 1px solid var(--color-line-soft, var(--color-line));
+
+    &:first-of-type { margin-top: 0.6rem; }
+  }
+
+  .recap__grupo-titulo {
+    margin: 0 0 0.5rem;
+    color: var(--color-accent-ink);
+    font-size: 0.7rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: var(--letter-spacing-eyebrow);
+  }
 
-    &::before {
-      content: '';
-      flex: 0 0 auto;
-      width: 0.2rem;
-      height: 0.8rem;
-      border-radius: 1px;
-      background: var(--color-accent);
-    }
+  /* La pregunta acompaña; la respuesta manda.
+     Estaba en mayúsculas, negrita y con filete de acento —el mismo peso que la
+     respuesta—, así que diez seguidas eran diez titulares y la vista no sabía
+     dónde posarse. Ahora es una línea tenue, en minúscula y sin adornos: se lee
+     cuando hace falta saber a qué contesta el texto de debajo, y se ignora
+     cuando no. */
+  .recap__clave {
+    margin: 0 0 0.1rem;
+    color: var(--color-ink-soft);
+    font-size: 0.76rem;
+    font-weight: 600;
+    line-height: 1.35;
   }
 
   .recap__valor {

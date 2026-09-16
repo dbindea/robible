@@ -18,6 +18,14 @@
   export let paso = '';
   /** Tipo de predicación. Sólo cambia el aviso; la guía es la misma. */
   export let tip = 'expositive';
+  /**
+   * Qué pone en la barra. Por defecto, «Ghid de omiletică».
+   *
+   * Hace falta desde que DEZVOLTARE lleva dentro la introducción: en esa
+   * pantalla hay dos guías, y con la misma etiqueta las dos barras eran
+   * indistinguibles — no había forma de saber cuál explicaba qué.
+   */
+  export let etiqueta = '';
 
   const CLAVE = 'robible:sermons:guide-open';
 
@@ -43,7 +51,7 @@
   <div class="ajutor" class:ajutor--abierta={abierta}>
     <button type="button" class="ajutor__boton" aria-expanded={abierta} on:click={alternar}>
       <span class="ajutor__icono"><Icon name="light" weight={abierta ? 'fill' : 'regular'} /></span>
-      <span class="ajutor__etiqueta">{$_('app.homiletics.open')}</span>
+      <span class="ajutor__etiqueta">{etiqueta || $_('app.homiletics.open')}</span>
       <!-- `class:` no compila sobre <Icon> (es una directiva de elemento):
            el chevron gira desde el <span> que lo envuelve. -->
       <span class="ajutor__chevron"><Icon name="chevron-up" /></span>
@@ -186,21 +194,41 @@
   .ajutor__ejemplo-titulo {
     margin: 0 0 0.35rem;
     color: var(--color-ink-soft);
-    font-size: 0.7rem;
+    font-size: 0.68rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: var(--letter-spacing-eyebrow);
   }
 
+  /* El ejemplo es una referencia, no el contenido principal.
+     Heredaba el tamaño del cuerpo del guía, así que «Ejemplo — Tito 2:11-14»
+     pesaba lo mismo que el campo que hay que rellenar y se leía como si fuera
+     lo que toca escribir. Un punto por debajo basta para que se entienda que
+     es una muestra. */
   .ajutor__ejemplo-linea {
     margin: 0 0 0.25rem;
+    color: var(--color-ink-soft);
+    font-size: 0.82rem;
+    line-height: 1.5;
 
     &:last-child { margin-bottom: 0; }
   }
 
+  /* El aviso del paso.
+     En IDEE dice que es el paso más difícil de toda la preparación y que no se
+     siga adelante sin tenerlo claro — y eso, en negrita sobre el mismo fondo
+     que el resto, se leía como una frase más del guía. Ahora es una caja con
+     filete grueso y fondo propio: la advertencia que corta la lectura. */
   .ajutor__aviso {
-    margin: 0.8rem 0 0;
+    display: block;
+    margin: 0.9rem 0 0;
+    padding: 0.7rem 0.85rem;
+    border-left: 4px solid var(--color-accent-solid);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    background: var(--color-surface);
+    color: var(--color-ink-strong);
+    font-size: 0.95rem;
     font-weight: 700;
-    color: var(--color-accent-ink);
+    line-height: 1.5;
   }
 </style>

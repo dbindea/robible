@@ -7,6 +7,8 @@
 //     de ahí**: ni al recuento, ni al documento, ni al PDF, ni a la página
 //     pública. Un apunte a medio pensar publicado bajo su nombre es el peor
 //     fallo posible de este módulo, y no habría forma de saber que ha pasado.
+//     `diagram` —el pasaje volcado y sangrado a mano— es material de trabajo
+//     de la misma clase y va con las mismas reglas.
 //   - `transition` es lo contrario: se predica, así que cuenta, se imprime y
 //     se publica.
 
@@ -29,10 +31,12 @@ import { definirPredica, definirSchita } from '../src/services/sermon-pdf.servic
 import { tieneNotaDeTipo, sugerenciasDeTransicion } from '../src/config/homiletics.js';
 
 const SECRETO = 'ZZQUENADIEVEA';
+const SECRETO_DIAGRAMA = 'ZZDIAGRAMAINTERNA';
 
 const contenidoDePrueba = () => ({
   ...emptyContent(),
   notes: `Ilustrația cu marinarul ${SECRETO}`,
+  diagram: `\tsubordonare ${SECRETO_DIAGRAMA}`,
   transition: 'Să vedem trei MOTIVE pentru care creștinul suferă',
   idea: { exegetical: '', purpose: '', central: 'Ideea', question: '' },
   structure: [{ id: 'p_1', title: 'Primul punct', refs: [], subpoints: [] }],
@@ -99,6 +103,33 @@ test('las notas cuentan para dar el paso TEXT por hecho', () => {
   const solo = { ...emptyContent(), notes: 'un gând' };
   assert.equal(stepCompletion(solo).text, true);
   assert.equal(stepCompletion(emptyContent()).text, false);
+});
+
+// ── El diagrama tampoco sale de la preparación ────────────────────────────
+
+test('normalizeContent completa diagram en documentos viejos', () => {
+  const viejo = normalizeContent({ version: 1, structure: [], development: {} });
+  assert.equal(viejo.diagram, '');
+});
+
+test('el diagrama no cuenta como palabras predicadas', () => {
+  const c = contenidoDePrueba();
+  assert.equal(sermonWordCount(c), sermonWordCount({ ...c, diagram: '' }));
+});
+
+test('el diagrama no llega al PDF ni a la schiță', () => {
+  const texto = textoDelPdf(definirPredica({ title: 'T' }, contenidoDePrueba()));
+  assert.ok(!texto.includes(SECRETO_DIAGRAMA), 'el diagrama se ha impreso en el PDF');
+
+  const o = generateOutline(contenidoDePrueba());
+  assert.ok(!JSON.stringify(o).includes(SECRETO_DIAGRAMA), 'el diagrama se ha colado en la schiță');
+});
+
+test('el diagrama basta para dar el paso TEXT por hecho', () => {
+  // Quien empieza diagramando el pasaje y todavía no ha marcado ni apuntado
+  // nada ha hecho el trabajo del paso: la línea de progreso lo daba por vacío.
+  const solo = { ...emptyContent(), diagram: '\tsubordonare' };
+  assert.equal(stepCompletion(solo).text, true);
 });
 
 // ── La transición, de la preparación al atril ─────────────────────────────
