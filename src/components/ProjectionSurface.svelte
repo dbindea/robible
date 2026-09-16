@@ -35,6 +35,9 @@
 
   $: fondo = getBackground(fondoKey);
   $: fondoCss = backgroundCss(fondo);
+  // 'nebula' | 'water' | undefined. Enciende la capa animada de abajo; el resto
+  // de fondos no tienen ninguna y no pagan nada por ello.
+  $: animado = fondo?.animado || '';
 
   /**
    * Una sola transición para las cuatro opciones, elegida en tiempo de
@@ -68,9 +71,12 @@
 <div
   class="proyeccion"
   class:proyeccion--negro={enNegro}
+  class:proyeccion--nebula={animado === 'nebula' && !enNegro}
+  class:proyeccion--water={animado === 'water' && !enNegro}
   style="--escala: {escala}; --fondo: {fondoCss}; --tinta: {fondo.ink}; --acento: {fondo.accent}"
   on:mousemove
   on:touchstart
+  on:touchend
   on:wheel
 >
   {#if !enNegro && principal.texto}
@@ -82,6 +88,11 @@
         <blockquote class="lamina__texto">{principal.texto}</blockquote>
 
         {#if secundario.texto}
+          <!-- El mismo filete corto y centrado que lleva la imagen para
+               compartir encima de la referencia. Aquí separa los dos idiomas:
+               pegados, y con el segundo ya bastante más pequeño, se leían como
+               un solo párrafo que cambia de letra a media frase. -->
+          <hr class="lamina__filete" />
           <blockquote class="lamina__texto lamina__texto--secundario">{secundario.texto}</blockquote>
         {/if}
 
@@ -127,7 +138,109 @@
     background: #000;
   }
 
+  /* ── Los dos fondos que se mueven ────────────────────────────────────────
+     Van en una capa aparte (`::before`) y no en el `background` del div: el
+     fondo estático tiene que seguir siendo el mismo que pinta el canvas de la
+     imagen compartida y que la muestra del selector, así que el movimiento se
+     añade ENCIMA en vez de sustituirlo.
+
+     Las dos animaciones son largas —90 y 120 segundos— y sin cambios de ritmo:
+     el fondo de una pantalla de iglesia no puede llamar la atención. Si se
+     nota que se mueve mientras se lee, está mal hecho. */
+  .proyeccion--nebula::before,
+  .proyeccion--water::before {
+    content: '';
+    position: absolute;
+    // Se sale del marco por los cuatro lados para que al desplazarse no asome
+    // ningún borde de la capa.
+    inset: -25%;
+    pointer-events: none;
+    will-change: transform;
+  }
+
+  .proyeccion--nebula::before {
+    background:
+      radial-gradient(ellipse 38% 30% at 26% 32%, rgba(108, 92, 224, 0.4) 0%, rgba(0, 0, 0, 0) 68%),
+      radial-gradient(ellipse 34% 26% at 74% 64%, rgba(46, 134, 216, 0.32) 0%, rgba(0, 0, 0, 0) 68%),
+      radial-gradient(ellipse 28% 22% at 56% 16%, rgba(180, 85, 200, 0.26) 0%, rgba(0, 0, 0, 0) 68%);
+    animation: nebulosa 90s ease-in-out infinite alternate;
+  }
+
+  /* Las estrellas, en su propia capa y QUIETAS: el pintor del canvas las
+     dibuja, así que sin ellas la imagen compartida y la proyección no eran el
+     mismo fondo. Van aparte de las nubes para que no se estiren con su escala
+     —unas estrellas que crecen delatan el truco— y sin parpadeo, que es
+     precisamente el tipo de movimiento que roba la vista mientras se lee.
+     Son posiciones fijas y no una trama repetida: repetida se ve la rejilla. */
+  .proyeccion--nebula::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      radial-gradient(1.5px 1.5px at 12% 18%, rgba(244, 247, 255, 0.75), transparent),
+      radial-gradient(1px 1px at 27% 61%, rgba(244, 247, 255, 0.55), transparent),
+      radial-gradient(1.5px 1.5px at 41% 12%, rgba(244, 247, 255, 0.65), transparent),
+      radial-gradient(1px 1px at 56% 78%, rgba(244, 247, 255, 0.5), transparent),
+      radial-gradient(2px 2px at 68% 26%, rgba(244, 247, 255, 0.8), transparent),
+      radial-gradient(1px 1px at 79% 55%, rgba(244, 247, 255, 0.45), transparent),
+      radial-gradient(1.5px 1.5px at 88% 84%, rgba(244, 247, 255, 0.6), transparent),
+      radial-gradient(1px 1px at 33% 88%, rgba(244, 247, 255, 0.5), transparent),
+      radial-gradient(1px 1px at 63% 8%, rgba(244, 247, 255, 0.55), transparent),
+      radial-gradient(1.5px 1.5px at 8% 72%, rgba(244, 247, 255, 0.5), transparent),
+      radial-gradient(1px 1px at 94% 34%, rgba(244, 247, 255, 0.45), transparent),
+      radial-gradient(1px 1px at 47% 44%, rgba(244, 247, 255, 0.4), transparent);
+  }
+
+  .proyeccion--water::before {
+    background:
+      radial-gradient(ellipse 70% 14% at 50% 30%, rgba(95, 212, 228, 0.2) 0%, rgba(0, 0, 0, 0) 72%),
+      radial-gradient(ellipse 70% 12% at 50% 62%, rgba(95, 212, 228, 0.15) 0%, rgba(0, 0, 0, 0) 72%),
+      radial-gradient(ellipse 70% 10% at 50% 88%, rgba(95, 212, 228, 0.1) 0%, rgba(0, 0, 0, 0) 72%);
+    animation: agua 120s linear infinite;
+  }
+
+  // Deriva lenta y un punto de escala: las nubes se separan y se juntan sin
+  // llegar a cruzarse, que es lo que haría que se notara el bucle.
+  @keyframes nebulosa {
+    from {
+      transform: translate3d(-2%, -1%, 0) scale(1);
+    }
+    to {
+      transform: translate3d(2%, 1.5%, 0) scale(1.08);
+    }
+  }
+
+  // Sólo vertical y muy despacio: el agua sube y baja, no se desplaza de lado.
+  // Recorre justo el margen que sobra de `inset: -25%`, así que el bucle no
+  // tiene salto — acaba donde empieza.
+  @keyframes agua {
+    0% {
+      transform: translate3d(0, -4%, 0);
+    }
+    50% {
+      transform: translate3d(0, 4%, 0);
+    }
+    100% {
+      transform: translate3d(0, -4%, 0);
+    }
+  }
+
+  // Quien pide menos movimiento se queda con el fondo quieto. No pierde nada:
+  // el dibujo es el mismo, sólo deja de derivar.
+  @media (prefers-reduced-motion: reduce) {
+    .proyeccion--nebula::before,
+    .proyeccion--water::before {
+      animation: none;
+    }
+  }
+
+  // `position: relative` y `z-index`, o la capa animada de arriba le pasa por
+  // encima: una caja posicionada se pinta después que sus hermanas normales,
+  // así que las nubes quedaban delante del versículo.
   .lamina {
+    position: relative;
+    z-index: 1;
     max-width: 90vw;
     margin: 0;
     text-align: center;
@@ -153,17 +266,30 @@
     margin-bottom: clamp(0.75rem, 2vh, 1.5rem);
   }
 
-  // El segundo idioma: más pequeño, debajo y con menos peso. La proporción
-  // (58 %) es la que deja leer los dos sin que compitan — al 80 % parecían dos
-  // textos principales y la vista no sabía dónde posarse.
+  // El segundo idioma: más pequeño, debajo y con menos peso — pero LEGIBLE.
+  // Estaba al 58 % del principal y en una pantalla de iglesia eso no se leía
+  // desde las últimas filas: quien sigue el texto en el segundo idioma tiene el
+  // mismo derecho a leerlo que el resto. Subido a ~72 %, que es donde se lee sin
+  // llegar a discutirle el sitio al principal.
   .lamina--dos .lamina__texto--secundario {
-    font-size: calc(clamp(0.95rem, 1.9vw + 0.55vh, 2.5rem) * var(--escala, 1));
+    font-size: calc(clamp(1.2rem, 2.4vw + 0.7vh, 3.1rem) * var(--escala, 1));
   }
 
   .lamina__texto--secundario {
     font-size: calc(clamp(1.1rem, 2.4vw + 0.7vh, 3.2rem) * var(--escala, 1));
     font-weight: 400;
-    opacity: 0.86;
+    opacity: 0.9;
+  }
+
+  // El filete entre los dos idiomas. Corto, centrado y en el acento del fondo
+  // al 55 %: exactamente el de la imagen para compartir, que es de donde salió.
+  .lamina__filete {
+    width: min(18%, 9rem);
+    height: 0;
+    margin: clamp(0.7rem, 2vh, 1.6rem) auto;
+    border: 0;
+    border-top: 2px solid var(--acento, #f0c674);
+    opacity: 0.55;
   }
 
   .lamina__ref {
@@ -208,6 +334,18 @@
   @media (prefers-reduced-motion: reduce) {
     .marca {
       transition: none;
+    }
+  }
+
+  // En vertical, el relleno lateral de escritorio se comía media línea por
+  // lado. El de abajo reserva la franja de los controles.
+  @media (max-width: 40rem) {
+    .proyeccion {
+      padding: 1.25rem 1rem 4.5rem;
+    }
+
+    .lamina {
+      max-width: 100%;
     }
   }
 </style>

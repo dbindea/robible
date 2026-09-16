@@ -16,8 +16,7 @@ export const IMAGE_FORMATS = [
   { key: 'square', width: 1080, height: 1080 },
 ];
 
-export const getFormat = (key) =>
-  IMAGE_FORMATS.find((f) => f.key === key) || IMAGE_FORMATS[0];
+export const getFormat = (key) => IMAGE_FORMATS.find((f) => f.key === key) || IMAGE_FORMATS[0];
 
 // ── Fondos ──────────────────────────────────────────────
 // `stops` es el degradado en diagonal; `glow` el halo suave superpuesto;
@@ -68,7 +67,8 @@ export const IMAGE_BACKGROUNDS = [
 
   // ── Los tres siguientes no son otro degradado en diagonal ──────────────
   // Cambian el DIBUJO, no sólo la paleta: cada uno tiene su propio pintor en
-  // `PINTORES`. Los seis de arriba comparten el de `gradient`.
+  // `PINTORES`, y su `swatch` con la versión en CSS del mismo motivo. Los seis
+  // de arriba comparten el pintor `gradient` y no necesitan `swatch`.
 
   {
     // Malla de manchas de color, sin forma reconocible. Es el más abstracto.
@@ -85,38 +85,55 @@ export const IMAGE_BACKGROUNDS = [
       'radial-gradient(circle at 46% 84%, #E2588F 0%, transparent 62%),' +
       'linear-gradient(140deg, #161B3D, #0B0E22)',
   },
+  // ── Y estos dos, además, SE MUEVEN en la proyección ────────────────────
+  // `animado` enciende una capa con `@keyframes` en `ProjectionSurface`. En la
+  // imagen para compartir no se mueve nada, claro: ahí el pintor deja una foto
+  // fija del mismo motivo. Sustituyen a `rays` y `arcs` (16 sep 2026), que eran
+  // demasiado marcados —un abanico de luz y unos anillos de curva de nivel— y
+  // le disputaban la atención al versículo en una pantalla de diez metros.
+
   {
-    // Haces de luz abriéndose desde una esquina, como por una claraboya.
-    key: 'rays',
-    style: 'rays',
-    stops: ['#123049', '#08131E'],
-    beam: '#FFD98C',
-    glow: 'rgba(255, 217, 140, 0.16)',
-    ink: '#F5FAFD',
-    accent: 'rgba(255, 217, 140, 0.92)',
+    // Nubes de color a la deriva sobre cielo profundo, con estrellas.
+    key: 'nebula',
+    style: 'nebula',
+    animado: 'nebula',
+    stops: ['#0E1230', '#070A1A'],
+    blobs: ['#6C5CE0', '#2E86D8', '#B455C8'],
+    glow: 'rgba(150, 190, 255, 0.14)',
+    ink: '#F4F7FF',
+    accent: 'rgba(178, 206, 255, 0.92)',
     swatch:
-      'repeating-conic-gradient(from 200deg at 82% -6%,' +
-      'rgba(255,217,140,0.30) 0deg 5deg, rgba(255,217,140,0) 5deg 13deg),' +
-      'linear-gradient(160deg, #123049, #08131E)',
+      'radial-gradient(ellipse 46% 34% at 28% 34%, rgba(108,92,224,0.50) 0%, rgba(0,0,0,0) 70%),' +
+      'radial-gradient(ellipse 40% 30% at 72% 62%, rgba(46,134,216,0.42) 0%, rgba(0,0,0,0) 70%),' +
+      'radial-gradient(ellipse 34% 26% at 58% 18%, rgba(180,85,200,0.34) 0%, rgba(0,0,0,0) 70%),' +
+      'linear-gradient(150deg, #0E1230, #070A1A)',
   },
   {
-    // Anillos concéntricos finos, tipo curva de nivel. Claro y muy sobrio.
-    key: 'arcs',
-    style: 'arcs',
-    stops: ['#FAF7F1', '#EBE3D6'],
-    line: '#5A4A3A',
-    glow: 'rgba(255, 255, 255, 0.5)',
-    ink: '#3A2E22',
-    accent: 'rgba(58, 46, 34, 0.75)',
+    // Agua en calma: ondas anchas que se desplazan muy despacio.
+    key: 'water',
+    style: 'water',
+    animado: 'water',
+    stops: ['#0B3A4A', '#062430'],
+    wave: '#5FD4E4',
+    glow: 'rgba(120, 220, 240, 0.16)',
+    ink: '#EAF7FB',
+    accent: 'rgba(146, 226, 240, 0.92)',
     swatch:
-      'repeating-radial-gradient(circle at 18% 108%,' +
-      'rgba(90,74,58,0.22) 0 1px, rgba(90,74,58,0) 1px 9px),' +
-      'linear-gradient(150deg, #FAF7F1, #EBE3D6)',
+      'radial-gradient(ellipse 80% 22% at 50% 30%, rgba(95,212,228,0.24) 0%, rgba(0,0,0,0) 72%),' +
+      'radial-gradient(ellipse 80% 20% at 50% 62%, rgba(95,212,228,0.18) 0%, rgba(0,0,0,0) 72%),' +
+      'radial-gradient(ellipse 80% 18% at 50% 88%, rgba(95,212,228,0.12) 0%, rgba(0,0,0,0) 72%),' +
+      'linear-gradient(150deg, #0B3A4A, #062430)',
   },
 ];
 
-export const getBackground = (key) =>
-  IMAGE_BACKGROUNDS.find((b) => b.key === key) || IMAGE_BACKGROUNDS[0];
+export const getBackground = (key) => IMAGE_BACKGROUNDS.find((b) => b.key === key) || IMAGE_BACKGROUNDS[0];
+
+/**
+ * La viñeta: oscurece los bordes para que el texto centrado gane contraste.
+ * En el canvas se aplica a TODOS los estilos, fuera de los pintores; aquí va
+ * como primera capa —la de más arriba— por el mismo motivo.
+ */
+const VINETA_CSS = 'radial-gradient(ellipse at 50% 50%, rgba(0,0,0,0) 38%, rgba(0,0,0,0.22) 100%)';
 
 /**
  * El mismo fondo, pero como valor CSS en vez de dibujado en un canvas.
@@ -126,9 +143,19 @@ export const getBackground = (key) =>
  * solo dueño — si alguien añade uno nuevo a `IMAGE_BACKGROUNDS`, aparece en los
  * dos sitios sin tocar nada más.
  *
- * Los tres con dibujo propio (`aurora`, `rays`, `arcs`) ya traen `swatch`, que
- * es exactamente esto: la aproximación en CSS de lo que su pintor dibuja en el
- * canvas. Los seis de degradado no lo necesitan, se construye de `stops`.
+ * **Tiene que reproducir TODAS las capas del pintor, no sólo el degradado.**
+ * Hasta el 16 sep 2026 devolvía un `linear-gradient` pelado y se notaba al
+ * poner las dos cosas lado a lado: en la imagen compartida hay un halo de luz
+ * arriba a la izquierda y dos círculos tenues tipo bokeh que en la proyección
+ * no estaban, y el fondo se veía plano. Orden de capas: viñeta, bokeh, halo y
+ * degradado — al revés que en el canvas, donde lo último dibujado queda encima.
+ *
+ * Los que traen dibujo propio ya tienen `swatch`, que es la aproximación en CSS
+ * de lo que su pintor hace; sólo se les añade la viñeta.
+ *
+ * Las medidas van en PORCENTAJE y no en `vmin`: este mismo valor pinta la
+ * muestra de 44 px del selector y la pantalla entera del proyector, y con
+ * unidades de viewport la muestra saldría con un círculo gigante.
  *
  * El ángulo es 150° igual que en el canvas, para que la muestra del selector y
  * la pantalla real no se vean distintas.
@@ -136,8 +163,19 @@ export const getBackground = (key) =>
 export const backgroundCss = (background) => {
   const bg = typeof background === 'string' ? getBackground(background) : background;
   if (!bg) return '';
-  if (bg.swatch) return bg.swatch;
-  return `linear-gradient(150deg, ${bg.stops.join(', ')})`;
+
+  const capas = bg.swatch
+    ? [bg.swatch]
+    : [
+        // Los dos círculos tipo bokeh, en la tinta del fondo y al 7 %.
+        `radial-gradient(ellipse 24% 18% at 86% 16%, ${conAlfa(bg.ink, 0.07)} 0%, rgba(0,0,0,0) 72%)`,
+        `radial-gradient(ellipse 32% 24% at 12% 82%, ${conAlfa(bg.ink, 0.07)} 0%, rgba(0,0,0,0) 72%)`,
+        // El halo de luz arriba a la izquierda.
+        `radial-gradient(ellipse 90% 72% at 24% 20%, ${bg.glow} 0%, rgba(0,0,0,0) 70%)`,
+        `linear-gradient(150deg, ${bg.stops.join(', ')})`,
+      ];
+
+  return [VINETA_CSS, ...capas].join(', ');
 };
 
 // ── Maquetación del texto (pura, sin canvas) ────────────
@@ -356,10 +394,10 @@ const pintarAurora = (ctx, bg, w, h) => {
 
   // Repartidas por las esquinas, lejos de la banda central del versículo.
   const manchas = [
-    { x: 0.14, y: 0.16, r: 0.70, a: 0.55 },
+    { x: 0.14, y: 0.16, r: 0.7, a: 0.55 },
     { x: 0.88, y: 0.28, r: 0.58, a: 0.45 },
     { x: 0.22, y: 0.86, r: 0.66, a: 0.42 },
-    { x: 0.86, y: 0.92, r: 0.60, a: 0.38 },
+    { x: 0.86, y: 0.92, r: 0.6, a: 0.38 },
   ];
   manchas.forEach((m, i) => {
     const color = bg.blobs[i % bg.blobs.length];
@@ -372,84 +410,111 @@ const pintarAurora = (ctx, bg, w, h) => {
   });
 };
 
-/** Haces de luz abriéndose desde una esquina, como por una claraboya. */
-const pintarRayos = (ctx, bg, w, h) => {
-  const base = ctx.createLinearGradient(0, 0, w * 0.4, h);
+/**
+ * Nebulosa: nubes de color a la deriva sobre cielo profundo, con estrellas.
+ *
+ * En la proyección se mueve (ver `ProjectionSurface`); aquí es la foto fija del
+ * mismo motivo. Las estrellas salen de un generador pseudoaleatorio con semilla
+ * fija y NO de `Math.random()`: la misma referencia tiene que dar la misma
+ * imagen dos veces seguidas, o compartir el mismo versículo dos días distintos
+ * produciría dos fondos y parecería un fallo.
+ */
+const pintarNebulosa = (ctx, bg, w, h) => {
+  const base = ctx.createLinearGradient(0, 0, w * 0.6, h);
   bg.stops.forEach((color, i) => base.addColorStop(i / (bg.stops.length - 1), color));
   ctx.fillStyle = base;
   ctx.fillRect(0, 0, w, h);
 
-  // Origen fuera del lienzo: así los haces entran ya abiertos y no se ve el
-  // vértice, que delataría que son triángulos.
-  const ox = w * 0.88;
-  const oy = -h * 0.10;
-  const largo = Math.hypot(w, h) * 1.6;
+  // Tres nubes anchas y muy difusas. Las posiciones son las mismas que las del
+  // `swatch` en CSS, para que la muestra del selector no engañe.
+  const nubes = [
+    { x: 0.28, y: 0.34, r: 0.62, a: 0.5 },
+    { x: 0.72, y: 0.62, r: 0.56, a: 0.42 },
+    { x: 0.58, y: 0.18, r: 0.48, a: 0.34 },
+  ];
+  nubes.forEach((n, i) => {
+    const color = bg.blobs[i % bg.blobs.length];
+    const g = ctx.createRadialGradient(w * n.x, h * n.y, 0, w * n.x, h * n.y, w * n.r);
+    g.addColorStop(0, conAlfa(color, n.a));
+    g.addColorStop(0.5, conAlfa(color, n.a * 0.4));
+    g.addColorStop(1, conAlfa(color, 0));
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+  });
+
+  // Estrellas. Generador congruencial lineal con semilla fija: barato,
+  // determinista y más que suficiente para repartir puntos.
+  let semilla = 20260916;
+  const aleatorio = () => {
+    semilla = (semilla * 1103515245 + 12345) % 2147483648;
+    return semilla / 2147483648;
+  };
 
   ctx.save();
-  ctx.translate(ox, oy);
-  // Abanico hacia abajo y a la izquierda.
-  const desde = Math.PI * 0.55;
-  const hasta = Math.PI * 1.02;
-  const haces = 11;
-  for (let i = 0; i < haces; i++) {
-    const t = i / (haces - 1);
-    const centro = desde + (hasta - desde) * t;
-    // Anchos y opacidades irregulares: unos haces iguales parecen un ventilador.
-    const ancho = (0.014 + ((i * 7) % 5) * 0.006) * Math.PI;
-    const alfa = 0.05 + ((i * 3) % 4) * 0.028;
+  ctx.fillStyle = bg.ink;
+  for (let i = 0; i < 90; i++) {
+    const x = aleatorio() * w;
+    const y = aleatorio() * h;
+    // Tamaños y brillos desiguales: todas iguales parecen una trama impresa.
+    const r = (0.4 + aleatorio() * 1.3) * Math.max(1, w / 540);
+    ctx.globalAlpha = 0.25 + aleatorio() * 0.5;
     ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(Math.cos(centro - ancho) * largo, Math.sin(centro - ancho) * largo);
-    ctx.lineTo(Math.cos(centro + ancho) * largo, Math.sin(centro + ancho) * largo);
-    ctx.closePath();
-    ctx.fillStyle = conAlfa(bg.beam, alfa);
+    ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fill();
   }
   ctx.restore();
-
-  // Resplandor en el foco, para que la luz parezca venir de algún sitio.
-  const foco = ctx.createRadialGradient(ox, oy, 0, ox, oy, w * 0.85);
-  foco.addColorStop(0, bg.glow);
-  foco.addColorStop(1, 'rgba(0, 0, 0, 0)');
-  ctx.fillStyle = foco;
-  ctx.fillRect(0, 0, w, h);
 };
 
-/** Anillos concéntricos finos, tipo curva de nivel. El más sobrio de los tres. */
-const pintarArcos = (ctx, bg, w, h) => {
+/**
+ * Agua en calma: bandas anchas de luz, como el reflejo sobre una superficie
+ * quieta. En la proyección se desplazan muy despacio.
+ */
+const pintarAgua = (ctx, bg, w, h) => {
   const base = ctx.createLinearGradient(0, 0, w * 0.5, h);
   bg.stops.forEach((color, i) => base.addColorStop(i / (bg.stops.length - 1), color));
   ctx.fillStyle = base;
   ctx.fillRect(0, 0, w, h);
 
-  // Centro fuera del lienzo, abajo a la izquierda: dentro se verían anillos
-  // completos y parecería una diana.
-  const cx = w * 0.16;
-  const cy = h * 1.06;
-  const paso = w * 0.058;
-  const maximo = Math.hypot(w, h) * 1.25;
+  // Bandas horizontales difusas, cada una más tenue que la de arriba: así se
+  // lee como profundidad y no como unas rayas.
+  const bandas = [
+    { y: 0.3, alto: 0.22, a: 0.24 },
+    { y: 0.62, alto: 0.2, a: 0.18 },
+    { y: 0.88, alto: 0.18, a: 0.12 },
+  ];
+  bandas.forEach((b) => {
+    const g = ctx.createLinearGradient(0, h * (b.y - b.alto), 0, h * (b.y + b.alto));
+    g.addColorStop(0, conAlfa(bg.wave, 0));
+    g.addColorStop(0.5, conAlfa(bg.wave, b.a));
+    g.addColorStop(1, conAlfa(bg.wave, 0));
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+  });
 
+  // Ondulación fina encima: una senoide de trazo suave por banda. Es lo que
+  // hace que se lea «agua» y no «degradado a rayas».
   ctx.save();
-  ctx.lineCap = 'round';
-  for (let r = paso, i = 0; r < maximo; r += paso, i++) {
-    // Se desvanecen al alejarse y el grosor alterna: así se lee como relieve
-    // y no como una rejilla.
-    const lejania = r / maximo;
-    ctx.globalAlpha = Math.max(0.04, 0.20 * (1 - lejania));
-    ctx.lineWidth = (i % 4 === 0 ? 2.2 : 1.1) * Math.max(1, w / 540);
-    ctx.strokeStyle = bg.line;
+  ctx.lineWidth = Math.max(1, w / 620);
+  bandas.forEach((b, i) => {
+    ctx.globalAlpha = 0.14 - i * 0.03;
+    ctx.strokeStyle = bg.wave;
     ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    for (let x = 0; x <= w; x += Math.max(2, w / 300)) {
+      const t = x / w;
+      const y = h * b.y + Math.sin(t * Math.PI * 4 + i * 1.7) * h * 0.018;
+      if (x === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
     ctx.stroke();
-  }
+  });
   ctx.restore();
 };
 
 const PINTORES = {
   gradient: pintarDegradado,
   aurora: pintarAurora,
-  rays: pintarRayos,
-  arcs: pintarArcos,
+  nebula: pintarNebulosa,
+  water: pintarAgua,
 };
 
 const paintBackground = (ctx, bg, w, h) => {
@@ -476,14 +541,10 @@ const paintBackground = (ctx, bg, w, h) => {
  * @param {string} opts.formatKey   'story' | 'square'
  * @param {string} opts.backgroundKey
  */
-export const drawVerseImage = (canvas, {
-  text,
-  reference,
-  versionName = '',
-  footer = 'robible.com',
-  formatKey = 'story',
-  backgroundKey = 'dawn',
-}) => {
+export const drawVerseImage = (
+  canvas,
+  { text, reference, versionName = '', footer = 'robible.com', formatKey = 'story', backgroundKey = 'dawn' },
+) => {
   const format = getFormat(formatKey);
   const bg = getBackground(backgroundKey);
   const { width: w, height: h } = format;
@@ -610,12 +671,13 @@ export const canvasToBlob = (canvas) =>
   });
 
 export const buildFileName = (reference) => {
-  const slug = String(reference || 'versiculo')
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '') || 'versiculo';
+  const slug =
+    String(reference || 'versiculo')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'versiculo';
   return `robible-${slug}.png`;
 };
 

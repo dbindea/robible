@@ -672,6 +672,33 @@
     );
   };
 
+  /**
+   * En el móvil, un TOQUE enseña la barra; un arrastre no.
+   *
+   * Antes bastaba con `touchstart`, así que cualquier gesto la sacaba. Y esta
+   * pantalla se usa también para leer la Biblia en el móvil —con el dedo
+   * encima todo el rato—, así que la barra aparecía sola cada dos por tres
+   * justo encima de lo que se estaba leyendo.
+   *
+   * El umbral son 12 px: por debajo de eso nadie está arrastrando, es el
+   * temblor normal del pulgar al tocar.
+   */
+  const MOVIMIENTO_MAXIMO_TOQUE = 12;
+  let toqueInicio = null;
+
+  const alEmpezarToque = (e) => {
+    const t = e.touches?.[0];
+    toqueInicio = t ? { x: t.clientX, y: t.clientY } : null;
+  };
+
+  const alTerminarToque = (e) => {
+    if (!toqueInicio) return;
+    const t = e.changedTouches?.[0];
+    const recorrido = t ? Math.hypot(t.clientX - toqueInicio.x, t.clientY - toqueInicio.y) : 0;
+    toqueInicio = null;
+    if (recorrido < MOVIMIENTO_MAXIMO_TOQUE) mostrarControles();
+  };
+
   const entrarEnControles = () => {
     punteroEncima = true;
     clearTimeout(ocultarControlesTimer);
@@ -1005,7 +1032,8 @@
     {indice}
     {enNegro}
     on:mousemove={mostrarControles}
-    on:touchstart={mostrarControles}
+    on:touchstart={alEmpezarToque}
+    on:touchend={alTerminarToque}
     on:wheel={alGirarRueda}
   >
     <!-- Zonas de toque para avanzar sin teclado: la mitad derecha avanza, la
@@ -1176,12 +1204,17 @@
     font-size: var(--font-size-small);
   }
 
+  // Centrado, en escritorio y en móvil: es una acción, no una línea de texto,
+  // y alineada al margen izquierdo con toda la columna vacía a su derecha
+  // parecía un enlace suelto que se había quedado ahí.
   .antesala__continuar {
-    display: inline-flex;
+    display: flex;
     align-items: center;
+    justify-content: center;
+    width: fit-content;
+    margin: 0 auto 1.5rem;
     gap: 0.45rem;
     min-height: 2.6rem;
-    margin-bottom: 1.5rem;
     padding: 0.55rem 1.15rem;
     border: 1px solid var(--color-accent);
     border-radius: var(--radius-pill);
@@ -1289,12 +1322,15 @@
   //
   // Esto SÍ usa la paleta del usuario: se mira en el portátil, antes de
   // empezar. La que no la usa es la lámina.
+  // Centrado, igual que «Continuă»: son las dos formas de empezar y tienen que
+  // leerse como un par, no como dos cosas pegadas a la izquierda.
   .dos-pantallas {
     display: grid;
-    gap: 0.4rem;
-    justify-items: start;
+    gap: 0.5rem;
+    justify-items: center;
+    text-align: center;
     margin: 1.25rem 0;
-    padding: 0.9rem 1rem;
+    padding: 1rem;
     border: 1px solid var(--color-line-accent);
     border-radius: var(--radius-md);
     background: var(--wash-accent);
@@ -1425,8 +1461,12 @@
 
   // La botonera va dentro de la franja y no flotando en una esquina: aquí no
   // hay lámina que respetar, así que se coloca en el flujo.
+  // `transform: none` es obligatorio: la regla de móvil de la botonera la
+  // centra con `translateX(-50%)`, y aquí va en el flujo — sin anularlo se
+  // desplazaba media anchura hacia la izquierda y se salía de la franja.
   .consola :global(.controles) {
     position: static;
+    transform: none;
     flex: 0 0 auto;
   }
 
