@@ -40,6 +40,11 @@
         "sitemap": "Sitemap",
         "github": "GitHub",
         "projection": "Projection for churches"
+      },
+      "columns": {
+        "navigate": "Navigation",
+        "public": "Public pages",
+        "contact": "Contact"
       }
     },
     "pwa": {
@@ -1072,6 +1077,11 @@
       "offline": "Dictation needs an internet connection.",
       "site_blocked": "Dictation is blocked by a site setting. That is on us to fix, not on you.",
       "listening_stop": "Listening… tap the microphone to stop."
+    },
+    "donate": {
+      "title": "Support RoBible",
+      "action": "Donate with PayPal",
+      "note": "All funds go to keeping the platform in development and to humanitarian needs."
     }
   },
   "auth": {

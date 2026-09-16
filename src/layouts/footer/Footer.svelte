@@ -9,6 +9,8 @@
   import { openAuthMenu } from '../../store/authMenuStore';
   import { getBibleVersionConfigOrDefault, selectedBibleVersion } from '../../store/stores';
   import { navegarA } from '../../services/navigation.service';
+  import DonarBoton from '../../components/DonarBoton.svelte';
+  import { CONTACTO } from '../../config/site';
 
   let isAboutOpen = false;
   const appVersion = packageInfo.version;
@@ -45,7 +47,11 @@
    * XML estático, no una ruta de la SPA, y GitHub es un dominio ajeno — los
    * dos rompían si se les aplicaba el `pushState` + evento de navegación.
    */
-  const ENLACES_ESTATICOS = [
+  // Desde el 16 sep 2026 van en DOS columnas y no en una tira: eran doce
+  // enlaces seguidos y en un móvil ocupaban cuatro líneas sin ningún orden
+  // aparente. La división es la que ya existía en la cabeza de quien los usa —
+  // «leer la Biblia» contra «lo que hay publicado»—, no un reparto por mitades.
+  const ENLACES_PUBLICOS = [
     { href: '/landing', clave: 'landing' },
     // Apunta a la página de presentación, no a la herramienta: este pie lista
     // páginas públicas e indexables, y `/proiectie` va con `noindex` porque es
@@ -59,13 +65,12 @@
     { href: 'https://github.com/dbindea/robible', clave: 'github', externo: true },
   ];
 
-  $: enlacesPublicos = (() => {
+  $: enlacesNavegar = (() => {
     const config = getBibleVersionConfigOrDefault($selectedBibleVersion);
     return [
       { href: '/', clave: 'bible' },
       { href: `/${config?.comparePath || 'compara'}`, clave: 'compare' },
       { href: `/${config?.indexPath || 'indice'}`, clave: 'index' },
-      ...ENLACES_ESTATICOS,
     ];
   })();
 
@@ -121,69 +126,131 @@
 </script>
 
 <div class="footer">
-  <div class="footer__content">
-    <nav class="footer__enlaces" aria-label={$_('app.footer.public_label')}>
-      {#each enlacesPublicos as e (e.href)}
-        {#if e.externo}
-          <a href={e.href} target={e.href.startsWith('http') ? '_blank' : undefined} rel={e.href.startsWith('http') ? 'noopener' : undefined}>
-            {$_(`app.footer.links.${e.clave}`)}
-          </a>
-        {:else}
-          <a href={e.href} on:click|preventDefault={() => irA(e.href)}>
-            {$_(`app.footer.links.${e.clave}`)}
-          </a>
-        {/if}
-      {/each}
+  <!-- Cuatro columnas: quiénes somos, adónde se va a leer, qué hay publicado y
+       a quién escribir. El bloque de donación va con la marca porque es lo
+       único del pie que pide algo, y ahí lo lee quien ya se ha parado a mirar
+       de quién es esto. -->
+  <div class="footer__columnas">
+    <div class="footer__marca">
+      <a class="footer__logo" href="/landing" on:click|preventDefault={() => irA('/landing')}>
+        <!-- El logo completo, el mismo del icono de la PWA: aquí hay sitio para
+             el cuadrado opaco, y es donde se cierra la página. -->
+        <img src="/assets/img/logo.svg" alt="" width="40" height="40" />
+        <span>RoBible</span>
+      </a>
+      <p class="footer__slogan">{$_('landing.footer.tagline')}</p>
+      <DonarBoton />
+    </div>
+
+    <!-- Un solo <nav> con dos encabezados dentro, y no dos <nav> hermanos: para
+         un lector de pantalla los enlaces del pie son un único punto de
+         referencia, y anunciar dos regiones de navegación seguidas sobra. -->
+    <nav class="footer__grupo" aria-label={$_('app.footer.public_label')}>
+      <div class="footer__col">
+        <h2 class="footer__titulo">{$_('app.footer.columns.navigate')}</h2>
+        <ul class="footer__lista">
+          {#each enlacesNavegar as e (e.href)}
+            <li>
+              <a href={e.href} on:click|preventDefault={() => irA(e.href)}>
+                {$_(`app.footer.links.${e.clave}`)}
+              </a>
+            </li>
+          {/each}
+        </ul>
+      </div>
+
+      <div class="footer__col">
+        <h2 class="footer__titulo">{$_('app.footer.columns.public')}</h2>
+        <ul class="footer__lista">
+          {#each ENLACES_PUBLICOS as e (e.href)}
+            <li>
+              {#if e.externo}
+                <!-- `externo` son los que NO pasan por `irA()`: `/sitemap.xml`
+                     es un XML estático, no una ruta de la SPA, y GitHub es otro
+                     dominio. Los dos rompían con el pushState. -->
+                <a
+                  href={e.href}
+                  target={e.href.startsWith('http') ? '_blank' : undefined}
+                  rel={e.href.startsWith('http') ? 'noopener' : undefined}
+                >
+                  {$_(`app.footer.links.${e.clave}`)}
+                </a>
+              {:else}
+                <a href={e.href} on:click|preventDefault={() => irA(e.href)}>
+                  {$_(`app.footer.links.${e.clave}`)}
+                </a>
+              {/if}
+            </li>
+          {/each}
+        </ul>
+      </div>
     </nav>
+
+    <address class="footer__contacto">
+      <h2 class="footer__titulo">{$_('app.footer.columns.contact')}</h2>
+      <p class="footer__nombre">{CONTACTO.nombre}</p>
+      <p>{CONTACTO.direccion}</p>
+      <a href="mailto:{CONTACTO.email}">{CONTACTO.email}</a>
+    </address>
+  </div>
+
+  <div class="footer__barra">
     <p class="footer__meta">
       <span>{$_('app.footer.made_with_love')}</span>
       <span class="only-desktop">·</span>
       <strong>{$_('app.footer.maranata')}</strong>
     </p>
-  </div>
 
-  <div class="footer__actions">
-    <button
-      type="button"
-      class="footer__auth"
-      class:footer__auth--signed={$isAuthenticated}
-      on:click={handleAuthClick}
-      title={$isAuthenticated ? $_('auth.logout') : $_('app.app_menu.items.auth.label')}
-    >
-      {#if $isAuthenticated}
-        <span class="online-dot online-dot--inline" aria-hidden="true"></span>
-        <!-- Aquí sólo el nombre, sin el apodo debajo: es un botón de una línea
+    <div class="footer__actions">
+      <button
+        type="button"
+        class="footer__auth"
+        class:footer__auth--signed={$isAuthenticated}
+        on:click={handleAuthClick}
+        title={$isAuthenticated ? $_('auth.logout') : $_('app.app_menu.items.auth.label')}
+      >
+        {#if $isAuthenticated}
+          <span class="online-dot online-dot--inline" aria-hidden="true"></span>
+          <!-- Aquí sólo el nombre, sin el apodo debajo: es un botón de una línea
              en la barra del pie y no hay un «debajo» donde ponerlo. -->
-        {nombreVisible($currentUser)}
-        <span class="footer__auth-action">· {$_('auth.logout')}</span>
-      {:else}
-        {$_('app.app_menu.items.auth.label')}
-      {/if}
-    </button>
-    <button type="button" class="footer__about" on:click={() => (isAboutOpen = true)}>
-      {$_('app.footer.about_action')}
-      <span>v{appVersion} · {swVersion}</span>
-    </button>
-    <button
-      type="button"
-      class="theme-toggle"
-      aria-label={$_('app.palette.open')}
-      title={$_('app.palette.open')}
-      on:click={() => (isPaletteOpen = true)}
-    >
-      <!-- Fondo, acento y tinta, no fondo/superficie/acento: en las paletas
+          {nombreVisible($currentUser)}
+          <span class="footer__auth-action">· {$_('auth.logout')}</span>
+        {:else}
+          {$_('app.app_menu.items.auth.label')}
+        {/if}
+      </button>
+      <button type="button" class="footer__about" on:click={() => (isAboutOpen = true)}>
+        {$_('app.footer.about_action')}
+        <span>v{appVersion} · {swVersion}</span>
+      </button>
+      <button
+        type="button"
+        class="theme-toggle"
+        aria-label={$_('app.palette.open')}
+        title={$_('app.palette.open')}
+        on:click={() => (isPaletteOpen = true)}
+      >
+        <!-- Fondo, acento y tinta, no fondo/superficie/acento: en las paletas
            claras el fondo y la superficie son dos blancos casi iguales, y el
            botón acababa pareciendo la media luna del interruptor que sustituye. -->
-      <span class="theme-toggle__swatch" aria-hidden="true">
-        {#each ['page', 'accent', 'ink'] as capa (capa)}
-          <span style="background: {paletaActiva.swatch[capa]}"></span>
-        {/each}
-      </span>
-    </button>
+        <span class="theme-toggle__swatch" aria-hidden="true">
+          {#each ['page', 'accent', 'ink'] as capa (capa)}
+            <span style="background: {paletaActiva.swatch[capa]}"></span>
+          {/each}
+        </span>
+      </button>
+    </div>
   </div>
 </div>
 
-<Modal open={isPaletteOpen} title={$_('app.palette.title')} eyebrow={$_('app.palette.eyebrow')} size="sm" fitContent onClose={() => (isPaletteOpen = false)}>
+<Modal
+  open={isPaletteOpen}
+  title={$_('app.palette.title')}
+  eyebrow={$_('app.palette.eyebrow')}
+  size="sm"
+  fitContent
+  onClose={() => (isPaletteOpen = false)}
+>
   <ul class="palette-list">
     {#each PALETTES as paleta (paleta.id)}
       <li>
@@ -196,10 +263,15 @@
         >
           <!-- La muestra usa los colores reales de la paleta, no los de la
                activa: hay que poder compararlas sin aplicarlas una a una. -->
-          <span class="palette-option__swatch" style="background: {paleta.swatch.page}; border-color: {paleta.swatch.ink}33" aria-hidden="true">
+          <span
+            class="palette-option__swatch"
+            style="background: {paleta.swatch.page}; border-color: {paleta.swatch.ink}33"
+            aria-hidden="true"
+          >
             <span class="palette-option__card" style="background: {paleta.swatch.surface}">
               <span class="palette-option__line" style="background: {paleta.swatch.ink}"></span>
-              <span class="palette-option__line palette-option__line--short" style="background: {paleta.swatch.accent}"></span>
+              <span class="palette-option__line palette-option__line--short" style="background: {paleta.swatch.accent}"
+              ></span>
             </span>
           </span>
           <span class="palette-option__text">
@@ -254,35 +326,142 @@
 
 <style lang="scss">
   .footer {
-    min-height: 5.25rem;
     box-shadow: var(--box-shadow-up);
-    align-items: center;
-    gap: 1.25rem;
     // El relleno inferior reserva la franja de los botones flotantes (ver
     // `--floating-band` en global.css). Sin él, al llegar al final de la página
     // «Subir» y «pantalla completa» caían justo encima de «Autentificare» y del
     // selector de paleta, y no había forma de pulsarlos.
-    padding: 1rem clamp(1rem, 5vw, 5rem) calc(1rem + var(--floating-band) + var(--player-offset, 0px));
-    display: flex;
+    padding: 2rem clamp(1rem, 5vw, 5rem) calc(1rem + var(--floating-band) + var(--player-offset, 0px));
+    display: grid;
+    gap: 1.5rem;
     color: var(--color-bg-dark);
-    justify-content: space-between;
     background-color: var(--color-white);
     border-top: 1px solid color-mix(in srgb, var(--color-bg-dark) 10%, transparent);
   }
 
-  .footer__content {
+  /* Columnas EXPLÍCITAS y no `auto-fit`: con `auto-fit` la rejilla crea tantas
+     como quepan —cinco en un portátil— y como sólo hay tres bloques, los tres
+     se apretaban a la izquierda y sobraba un tercio de pie en blanco.
+     `minmax(0, …)` y no `…fr` a secas: sin él una columna no puede encogerse
+     por debajo de su contenido más ancho y desborda en pantallas medianas. */
+  .footer__columnas {
     display: grid;
-    gap: 0.25rem;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.5fr) minmax(0, 1fr);
+    gap: 1.75rem 2.5rem;
+    align-items: start;
+  }
+
+  @media (max-width: 60rem) {
+    .footer__columnas {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+  }
+
+  /* En una sola columna, el pie se centra entero.
+     Alineado a la izquierda, una columna estrecha con el logo arriba, tres
+     encabezados y doce enlaces se lee como una ficha técnica pegada al margen;
+     centrado se lee como el cierre de la página, que es lo que es. En dos o
+     más columnas NO se centra: ahí el margen izquierdo común es justo lo que
+     deja recorrer las listas de un vistazo. */
+  @media (max-width: 40rem) {
+    .footer__columnas {
+      grid-template-columns: minmax(0, 1fr);
+      --footer-align: center;
+      --donar-align: center;
+      --donar-text-align: center;
+      text-align: center;
+    }
+
+    .footer__slogan,
+    .footer__contacto {
+      /* Sin esto el texto se centra pero la caja sigue pegada a la izquierda,
+         y una nota de dos renglones queda visiblemente descolocada. */
+      margin-inline: auto;
+    }
+
+    /* La franja de abajo acompaña: la firma centrada y los tres controles
+       debajo, también centrados. */
+    .footer__barra {
+      justify-content: center;
+    }
+
+    .footer__meta,
+    .footer__actions {
+      justify-content: center;
+    }
+  }
+
+  /* `--footer-align` es el interruptor de alineación de todo el pie: en
+     escritorio vale `start` y en una sola columna pasa a `center`. Va por
+     variable y no repitiendo `text-align` en cada regla porque tiene que
+     cruzar hasta `DonarBoton`, que es otro componente y tiene su propio
+     scoping — una variable sí atraviesa esa frontera. */
+  .footer__marca {
+    display: grid;
+    gap: 0.6rem;
+    justify-items: var(--footer-align, start);
     min-width: 0;
   }
 
-  /* Envuelven en vez de hacer scroll: en un móvil estrecho tres enlaces pasan
-     a dos líneas y siguen todos a la vista, que es de lo que se trata. */
-  .footer__enlaces {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.35rem 0.9rem;
-    margin-bottom: 0.35rem;
+  .footer__logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    color: var(--color-ink-strong);
+    font-size: 1.15rem;
+    font-weight: 700;
+    text-decoration: none;
+
+    img {
+      border-radius: var(--radius-sm);
+    }
+
+    &:hover span {
+      color: var(--color-accent-ink);
+    }
+  }
+
+  .footer__slogan {
+    max-width: 28ch;
+    margin: 0;
+    color: var(--color-ink-soft);
+    font-size: 0.85rem;
+    line-height: 1.45;
+  }
+
+  .footer__grupo {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.5rem;
+    min-width: 0;
+  }
+
+  @media (max-width: 40rem) {
+    .footer__grupo {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  .footer__col {
+    min-width: 0;
+  }
+
+  .footer__titulo {
+    margin: 0 0 0.55rem;
+    color: var(--color-ink-strong);
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: var(--letter-spacing-eyebrow);
+  }
+
+  .footer__lista {
+    display: grid;
+    gap: 0.1rem;
+    justify-items: var(--footer-align, start);
+    margin: 0;
+    padding: 0;
+    list-style: none;
 
     a {
       /* El texto solo daba 17 px de alto y WCAG 2.5.8 pide 24. */
@@ -291,30 +470,93 @@
       min-height: 1.5rem;
       color: var(--color-accent-ink);
       font-size: 0.82rem;
-      font-weight: 700;
+      font-weight: 600;
       text-decoration: none;
 
-      &:hover { text-decoration: underline; }
+      &:hover {
+        text-decoration: underline;
+      }
     }
   }
 
-  .footer__meta {
-    margin: 0;
+  /* `<address>` es lo que marca este bloque como los datos de contacto del
+     documento, pero los navegadores lo pintan en cursiva de fábrica. */
+  .footer__contacto {
+    display: grid;
+    gap: 0.15rem;
+    min-width: 0;
+    font-style: normal;
+    color: var(--color-ink-soft);
+    line-height: 1.5;
+
+    /* El tamaño va en el `p` y NO en el contenedor: `global.css` da
+       `p { font-size: 1rem }`, y una regla directa sobre el elemento le gana a
+       la herencia. Puesto sólo arriba, las tres líneas de contacto salían a
+       16 px —más grandes que cualquier otra cosa del pie— y el nombre, además
+       en negrita, parecía un titular. */
+    p {
+      margin: 0;
+      font-size: 0.82rem;
+    }
+
+    a {
+      justify-self: var(--footer-align, start);
+      display: inline-flex;
+      align-items: center;
+      min-height: 1.5rem;
+      color: var(--color-accent-ink);
+      font-size: 0.82rem;
+      font-weight: 600;
+      text-decoration: none;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+
+  /* Se distingue por el peso y por la tinta, no por el tamaño: es una línea
+     más de la misma dirección postal, no un encabezado. */
+  .footer__nombre {
+    color: var(--color-ink);
+    font-weight: 700;
+  }
+
+  /* La franja de siempre: la firma a la izquierda y los tres controles de la
+     aplicación a la derecha. Va debajo de las columnas y separada por un
+     filete, porque no es información del sitio sino estado de la sesión. */
+  .footer__barra {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1.25rem;
+    padding-top: 1.1rem;
+    border-top: 1px solid color-mix(in srgb, var(--color-bg-dark) 8%, transparent);
   }
 
   .footer__meta {
     display: flex;
     flex-wrap: wrap;
     gap: 0.4rem;
+    margin: 0;
     color: var(--color-ink-soft);
     font-size: 0.82rem;
   }
 
+  /* `flex: 0 1 auto` y `min-width: 0`, NO `flex: 0 0 auto`.
+     Con el crecimiento y el encogimiento a cero, esta fila se quedaba con su
+     ancho de contenido —412 px con la sesión iniciada— dentro de una pantalla
+     de 390, y como no podía encoger tampoco envolvía: el botón «Despre» se
+     salía por la derecha y arrastraba el scroll horizontal a toda la página.
+     Pudiendo encoger, el `flex-wrap` de dentro sí entra en juego. */
   .footer__actions {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 0.55rem;
-    flex: 0 0 auto;
+    flex: 0 1 auto;
+    min-width: 0;
   }
 
   .footer__about {
@@ -449,7 +691,9 @@
     text-align: left;
     font-size: 0.9rem;
     font-weight: 600;
-    transition: border-color var(--motion-base) ease, background var(--motion-base) ease,
+    transition:
+      border-color var(--motion-base) ease,
+      background var(--motion-base) ease,
       transform var(--motion-fast) var(--ease-out);
 
     &:hover,
@@ -656,18 +900,22 @@
     }
   }
 
-  // Dark mode auth button
-
+  /* OJO: este bloque va DESPUÉS del de 40rem y ambos se aplican en un móvil.
+     A igual especificidad gana el último, así que aquí no puede haber nada que
+     contradiga al centrado de arriba — tenía un `justify-content: space-between`
+     heredado de la versión en una fila que dejaba los tres controles repartidos
+     de borde a borde mientras el resto del pie ya iba centrado. */
   @media (max-width: 32rem) {
     .footer {
-      align-items: stretch;
-      flex-direction: column;
+      padding-top: 1.5rem;
       font-size: 14px;
     }
 
+    .footer__columnas {
+      gap: 1.4rem;
+    }
+
     .footer__actions {
-      justify-content: space-between;
-      flex-wrap: wrap;
       gap: 0.4rem;
     }
 

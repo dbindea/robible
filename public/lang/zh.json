@@ -40,6 +40,11 @@
         "sitemap": "网站地图",
         "github": "GitHub",
         "projection": "教会投影"
+      },
+      "columns": {
+        "navigate": "导航",
+        "public": "公开页面",
+        "contact": "联系方式"
       }
     },
     "pwa": {
@@ -1072,6 +1077,11 @@
       "offline": "语音输入需要联网。",
       "site_blocked": "语音输入被网站设置阻止。这是我们要修复的问题，与你无关。",
       "listening_stop": "正在聆听……点击麦克风停止。"
+    },
+    "donate": {
+      "title": "支持 RoBible",
+      "action": "用 PayPal 捐助",
+      "note": "所有款项都用于平台的持续开发和人道主义需要。"
     }
   },
   "auth": {

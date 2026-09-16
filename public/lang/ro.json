@@ -40,6 +40,11 @@
         "sitemap": "Harta site-ului",
         "github": "GitHub",
         "projection": "Proiecție pentru biserici"
+      },
+      "columns": {
+        "navigate": "Navigare",
+        "public": "Pagini publice",
+        "contact": "Contact"
       }
     },
     "pwa": {
@@ -1072,6 +1077,11 @@
       "offline": "Dictarea are nevoie de conexiune la internet.",
       "site_blocked": "Dictarea este blocată de o setare a site-ului. O reparăm noi, nu e de la tine.",
       "listening_stop": "Ascult… atinge microfonul ca să opresc."
+    },
+    "donate": {
+      "title": "Sprijină RoBible",
+      "action": "Donează cu PayPal",
+      "note": "Toți banii primiți se folosesc pentru dezvoltarea platformei și pentru nevoi umanitare."
     }
   },
   "auth": {
