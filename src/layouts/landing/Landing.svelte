@@ -1,5 +1,7 @@
 <script>
   import Icon from '../../components/Icon.svelte';
+  import DonarBoton from '../../components/DonarBoton.svelte';
+  import { CONTACTO } from '../../config/site';
   import { onMount, tick } from 'svelte';
   import { _ } from '../../services/i18n.service';
   import { searchReferences } from '../../services/referenceSearch.service';
@@ -8,7 +10,7 @@
 
   // ── Estado del micro-demo ────────────────────────────────────────────────
   let demoQuery = '';
-  let demoResult = null;     // { book, chapter, verse, name } | null
+  let demoResult = null; // { book, chapter, verse, name } | null
   let demoError = '';
   let demoLoading = false;
 
@@ -263,7 +265,7 @@
             }
           });
         },
-        { threshold: 0.15, rootMargin: '0px 0px -10% 0px' }
+        { threshold: 0.15, rootMargin: '0px 0px -10% 0px' },
       );
     }
     revelar();
@@ -360,8 +362,8 @@
                   class="hero__lang-btn"
                   class:hero__lang-btn--active={loc.code === activeLang}
                   on:click={() => setLocale(loc.code)}
-                  aria-label={loc.label}
-                >{loc.short}</button>
+                  aria-label={loc.label}>{loc.short}</button
+                >
               </li>
             {/each}
           </ul>
@@ -738,13 +740,7 @@
             <span>{$_(item.qKey)}</span>
             <span class="faq__plus" aria-hidden="true">{openFaqIdx === i ? '−' : '+'}</span>
           </button>
-          <div
-            class="faq__a"
-            id={`faq-a-${i}`}
-            role="region"
-            aria-labelledby={`faq-q-${i}`}
-            hidden={openFaqIdx !== i}
-          >
+          <div class="faq__a" id={`faq-a-${i}`} role="region" aria-labelledby={`faq-q-${i}`} hidden={openFaqIdx !== i}>
             <p>{$_(item.aKey)}</p>
           </div>
         </li>
@@ -813,23 +809,59 @@
   </section>
 
   <!-- ─── FOOTER ──────────────────────────────────────────────── -->
+  <!-- Mismo reparto en columnas que el pie de la aplicación, con los mismos
+       datos de contacto y el mismo botón de donar. Siguen siendo dos ficheros
+       a propósito (CLAUDE.md, trampa 43) porque aquí los enlaces son
+       navegación completa y allí son de cliente; lo que NO se duplica es el
+       dato: el contacto y el destino de PayPal salen de `config/site.js`. -->
   <footer class="footer">
     <div class="footer__inner">
-      <p class="footer__brand">RoBible</p>
-      <p class="footer__tagline">{$_('landing.footer.tagline')}</p>
-      <nav class="footer__nav" aria-label={$_('landing.footer.nav_aria')}>
-        <a href="/biblia">{$_('landing.footer.bible')}</a>
-        <a href="/compara">{$_('landing.footer.compare')}</a>
-        <a href="/indice">{$_('landing.footer.index')}</a>
-        <!-- Las dos secciones públicas. Reutilizan las claves del pie de la
-             aplicación porque son literalmente las mismas palabras; duplicarlas
-             en `landing.footer.*` sería tener que traducirlas dos veces y que
-             se desincronizaran. -->
-        <a href="/predici">{$_('app.footer.links.sermons')}</a>
-        <a href="/teme">{$_('app.footer.links.topics')}</a>
-        <a href="/sitemap.xml">{$_('landing.footer.sitemap')}</a>
-        <a href="https://github.com/dbindea/robible" rel="noopener">{$_('landing.footer.github')}</a>
+      <div class="footer__marca">
+        <p class="footer__brand">
+          <!-- El logo completo, el mismo del icono de la PWA: aquí hay sitio
+               para el cuadrado opaco. `alt` vacío porque el nombre va escrito
+               al lado y repetirlo obliga a oírlo dos veces. -->
+          <img src="/assets/img/logo.svg" alt="" width="40" height="40" />
+          RoBible
+        </p>
+        <p class="footer__tagline">{$_('landing.footer.tagline')}</p>
+        <DonarBoton />
+      </div>
+
+      <nav class="footer__cols" aria-label={$_('landing.footer.nav_aria')}>
+        <div class="footer__col">
+          <h2 class="footer__col-title">{$_('app.footer.columns.navigate')}</h2>
+          <ul>
+            <li><a href="/biblia">{$_('landing.footer.bible')}</a></li>
+            <li><a href="/compara">{$_('landing.footer.compare')}</a></li>
+            <li><a href="/indice">{$_('landing.footer.index')}</a></li>
+          </ul>
+        </div>
+
+        <div class="footer__col">
+          <h2 class="footer__col-title">{$_('app.footer.columns.public')}</h2>
+          <ul>
+            <!-- Reutilizan las claves del pie de la aplicación porque son
+                 literalmente las mismas palabras; duplicarlas en
+                 `landing.footer.*` sería traducirlas dos veces y que se
+                 desincronizaran. -->
+            <li><a href="/predici">{$_('app.footer.links.sermons')}</a></li>
+            <li><a href="/teme">{$_('app.footer.links.topics')}</a></li>
+            <li><a href="/ghid-predicare">{$_('app.footer.links.guide')}</a></li>
+            <li><a href="/proiectie-biserici">{$_('app.footer.links.projection')}</a></li>
+            <li><a href="/sitemap.xml">{$_('landing.footer.sitemap')}</a></li>
+            <li><a href="https://github.com/dbindea/robible" rel="noopener">{$_('landing.footer.github')}</a></li>
+          </ul>
+        </div>
       </nav>
+
+      <address class="footer__contact">
+        <h2 class="footer__col-title">{$_('app.footer.columns.contact')}</h2>
+        <p class="footer__contact-name">{CONTACTO.nombre}</p>
+        <p>{CONTACTO.direccion}</p>
+        <a href="mailto:{CONTACTO.email}">{CONTACTO.email}</a>
+      </address>
+
       <p class="footer__attribution">{$_('app.footer.made_with_love')} · {$_('app.footer.maranata')}</p>
     </div>
   </footer>
@@ -856,7 +888,10 @@
     line-height: 1.65;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    font-feature-settings: 'kern' 1, 'liga' 1, 'onum' 1;
+    font-feature-settings:
+      'kern' 1,
+      'liga' 1,
+      'onum' 1;
     overflow-x: hidden;
     position: relative;
   }
@@ -910,7 +945,11 @@
     letter-spacing: 0.005em;
     text-decoration: none;
     border-radius: 0.2rem;
-    transition: background var(--motion-base) ease, color var(--motion-base) ease, transform var(--motion-fast) ease, box-shadow var(--motion-base) ease;
+    transition:
+      background var(--motion-base) ease,
+      color var(--motion-base) ease,
+      transform var(--motion-fast) ease,
+      box-shadow var(--motion-base) ease;
     cursor: pointer;
     border: 1px solid transparent;
   }
@@ -1129,7 +1168,10 @@
     font-weight: 600;
     letter-spacing: 0.04em;
     cursor: pointer;
-    transition: border-color var(--motion-fast), color var(--motion-fast), background var(--motion-fast);
+    transition:
+      border-color var(--motion-fast),
+      color var(--motion-fast),
+      background var(--motion-fast);
   }
   .hero__lang-btn:hover {
     border-color: var(--color-ink);
@@ -1173,8 +1215,15 @@
     animation: scroll-pulse 2s ease-in-out infinite;
   }
   @keyframes scroll-pulse {
-    0%, 100% { transform: translateY(0); opacity: 1; }
-    50% { transform: translateY(0.5rem); opacity: 0.4; }
+    0%,
+    100% {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    50% {
+      transform: translateY(0.5rem);
+      opacity: 0.4;
+    }
   }
 
   /* ── DEMO ────────────────────────────────────────────────── */
@@ -1226,7 +1275,9 @@
     background: var(--color-surface);
     border: 1px solid var(--color-line);
     border-radius: 0.2rem;
-    transition: border-color var(--motion-fast), background var(--motion-fast);
+    transition:
+      border-color var(--motion-fast),
+      background var(--motion-fast);
   }
   .demo__input:focus {
     outline: none;
@@ -1290,7 +1341,9 @@
     font-size: 0.75rem;
     font-weight: 600;
     cursor: pointer;
-    transition: border-color var(--motion-fast), background var(--motion-fast);
+    transition:
+      border-color var(--motion-fast),
+      background var(--motion-fast);
   }
   .demo__result-link:hover {
     border-color: var(--color-ink);
@@ -1312,7 +1365,9 @@
     border-radius: 0.2rem;
     font-family: var(--font-family-base);
     cursor: pointer;
-    transition: background var(--motion-fast), border-color var(--motion-fast);
+    transition:
+      background var(--motion-fast),
+      border-color var(--motion-fast);
     text-align: left;
   }
   .demo__list-item:hover {
@@ -1519,7 +1574,9 @@
     padding: 1.5rem;
     border-radius: 0.2rem;
     background: var(--color-surface);
-    transition: border-color var(--motion-base), transform var(--motion-base);
+    transition:
+      border-color var(--motion-base),
+      transform var(--motion-base);
   }
   .audience__card:hover {
     border-color: var(--color-accent);
@@ -1735,49 +1792,85 @@
     border-top: 1px solid var(--color-line);
     padding: 2.5rem clamp(1.25rem, 5vw, 4rem);
   }
+  /* Tres bloques —marca, enlaces y contacto— y la firma cruzándolos debajo.
+     Columnas EXPLÍCITAS y no `auto-fit`: con `auto-fit` la rejilla crea tantas
+     como quepan —cinco a 1248 px— y como sólo hay tres bloques, los tres se
+     apretaban a la izquierda, sobraba un tercio de pie en blanco a la derecha
+     y las dos listas de enlaces se apilaban por falta de ancho.
+     `minmax(0, …)` y no `…fr` a secas: sin él, una columna no puede encogerse
+     por debajo del contenido más ancho que tenga dentro. */
   .footer__inner {
     max-width: 78rem;
     margin: 0 auto;
     display: grid;
-    grid-template-columns: auto 1fr;
-    align-items: center;
-    gap: 1.5rem 2.5rem;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.5fr) minmax(0, 1fr);
+    align-items: start;
+    gap: 2rem 2.5rem;
   }
-  @media (max-width: 44rem) {
+  @media (max-width: 60rem) {
     .footer__inner {
-      grid-template-columns: 1fr;
-      text-align: center;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     }
   }
+  @media (max-width: 40rem) {
+    .footer__inner {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  .footer__marca {
+    display: grid;
+    gap: 0.7rem;
+    justify-items: start;
+  }
   .footer__brand {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
     font-family: var(--font-family-base);
     font-size: 1.5rem;
     font-weight: 600;
     color: var(--color-ink);
     margin: 0;
-    grid-row: 1 / 3;
   }
-  @media (max-width: 44rem) {
-    .footer__brand {
-      grid-row: auto;
-    }
+  .footer__brand img {
+    border-radius: var(--radius-sm);
   }
   .footer__tagline {
+    max-width: 28ch;
     color: var(--color-ink-soft);
     font-size: 0.92rem;
     margin: 0;
   }
-  .footer__nav {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem 1.5rem;
+  /* Las dos listas de enlaces dentro del mismo `<nav>`: son un solo punto de
+     referencia para un lector de pantalla, con dos encabezados dentro. */
+  .footer__cols {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.5rem;
   }
-  @media (max-width: 44rem) {
-    .footer__nav {
-      justify-content: center;
+  @media (max-width: 40rem) {
+    .footer__cols {
+      grid-template-columns: minmax(0, 1fr);
     }
   }
-  .footer__nav a {
+  .footer__col ul {
+    display: grid;
+    gap: 0.1rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .footer__col-title {
+    margin: 0 0 0.6rem;
+    font-family: var(--font-family-base);
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--color-ink);
+    text-transform: uppercase;
+    letter-spacing: var(--letter-spacing-eyebrow);
+  }
+  .footer__col a,
+  .footer__contact a {
     /* Caja de 24 px: WCAG 2.5.8. El texto por sí solo daba 22. */
     display: inline-flex;
     align-items: center;
@@ -1789,7 +1882,8 @@
     position: relative;
     transition: color var(--motion-fast);
   }
-  .footer__nav a::after {
+  .footer__col a::after,
+  .footer__contact a::after {
     content: '';
     position: absolute;
     bottom: -2px;
@@ -1799,24 +1893,41 @@
     background: var(--color-accent);
     transition: width var(--motion-slow) cubic-bezier(0.6, 0, 0.2, 1);
   }
-  .footer__nav a:hover {
+  .footer__col a:hover,
+  .footer__contact a:hover {
     color: var(--color-accent);
   }
-  .footer__nav a:hover::after {
+  .footer__col a:hover::after,
+  .footer__contact a:hover::after {
     width: 100%;
+  }
+  /* `<address>` viene en cursiva de fábrica en todos los navegadores. */
+  .footer__contact {
+    display: grid;
+    gap: 0.15rem;
+    justify-items: start;
+    font-style: normal;
+    font-family: var(--font-family-base);
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--color-ink-soft);
+  }
+  .footer__contact p {
+    margin: 0;
+  }
+  .footer__contact-name {
+    color: var(--color-ink);
+    font-weight: 700;
   }
   .footer__attribution {
     grid-column: 1 / -1;
-    margin: 1rem 0 0;
+    margin: 0;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--color-line);
     text-align: center;
     font-family: var(--font-family-base);
     font-size: 0.78rem;
     color: var(--color-ink-soft);
-  }
-  @media (max-width: 44rem) {
-    .footer__attribution {
-      grid-column: 1;
-    }
   }
 
   /* ── Reveal on scroll (subtle, no opacity blocking) ────── */
@@ -1841,11 +1952,21 @@
      en vez de todos a la vez. */
   .why__item[data-reveal],
   .audience__card[data-reveal] {
-    &:nth-child(2) { transition-delay: 0.08s; }
-    &:nth-child(3) { transition-delay: var(--motion-fast); }
-    &:nth-child(4) { transition-delay: var(--motion-slow); }
-    &:nth-child(5) { transition-delay: 0.32s; }
-    &:nth-child(6) { transition-delay: 0.4s; }
+    &:nth-child(2) {
+      transition-delay: 0.08s;
+    }
+    &:nth-child(3) {
+      transition-delay: var(--motion-fast);
+    }
+    &:nth-child(4) {
+      transition-delay: var(--motion-slow);
+    }
+    &:nth-child(5) {
+      transition-delay: 0.32s;
+    }
+    &:nth-child(6) {
+      transition-delay: 0.4s;
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -1975,13 +2096,20 @@
     border: 1px solid var(--color-line);
     border-radius: 0.4rem;
     background: var(--color-surface);
-    transition: border-color var(--motion-base), transform var(--motion-base);
+    transition:
+      border-color var(--motion-base),
+      transform var(--motion-base);
 
-    &:hover { transform: translateY(-2px); }
+    &:hover {
+      transform: translateY(-2px);
+    }
 
     /* El CTA se pega abajo para que las dos tarjetas terminen a la misma
        altura aunque una tenga más líneas. */
-    .btn { margin-top: auto; align-self: flex-start; }
+    .btn {
+      margin-top: auto;
+      align-self: flex-start;
+    }
   }
 
   .profile--destacado {
@@ -2101,7 +2229,9 @@
     background: var(--color-surface);
     color: inherit;
     text-decoration: none;
-    transition: border-color var(--motion-base), transform var(--motion-base);
+    transition:
+      border-color var(--motion-base),
+      transform var(--motion-base);
   }
 
   .sermons__link:hover {

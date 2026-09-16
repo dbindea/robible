@@ -40,6 +40,11 @@
         "sitemap": "Mapa del sitio",
         "github": "GitHub",
         "projection": "Proyección para iglesias"
+      },
+      "columns": {
+        "navigate": "Navegación",
+        "public": "Páginas públicas",
+        "contact": "Contacto"
       }
     },
     "pwa": {
@@ -1072,6 +1077,11 @@
       "offline": "El dictado necesita conexión a internet.",
       "site_blocked": "El dictado está bloqueado por un ajuste del sitio. Lo arreglamos nosotros, no es cosa tuya.",
       "listening_stop": "Escuchando… toca el micrófono para parar."
+    },
+    "donate": {
+      "title": "Apoya RoBible",
+      "action": "Donar con PayPal",
+      "note": "Todos los fondos se destinan a seguir desarrollando la plataforma y a necesidades humanitarias."
     }
   },
   "auth": {
