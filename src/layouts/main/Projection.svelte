@@ -11,6 +11,20 @@
    *   el Modo Amvon y por el mismo motivo: el modo inmersivo esconde el cromo
    *   pero deja debajo swipe, iconos y player, y cualquiera de esos apareciendo
    *   delante de la congregación es justo lo que no puede pasar.
+   *
+   * **Hay DOS formas de proyectar, y esta pantalla hace los tres papeles:**
+   *
+   *   antesala  se elige qué proyectar
+   *   local     la lámina tapa ESTA ventana — un portátil, o una tele conectada
+   *             por HDMI en modo espejo
+   *   remoto    la lámina va a una segunda ventana (`?ecran=1`) que se arrastra
+   *             al proyector, y aquí queda la consola: el buscador sigue a mano
+   *             para preparar el versículo siguiente sin cortar lo que se ve
+   *
+   * El modo remoto es el de la iglesia con dos monitores. Con una sola ventana
+   * era imposible: proyectar significaba tapar el portátil, y para buscar otro
+   * versículo había que salir de la proyección delante de todo el mundo. El
+   * cómo, en `projection-channel.service.js`.
    * - **Colores propios, no los de la paleta activa.** Los fondos son los
    *   mismos que los de compartir un versículo como imagen, y cada uno trae su
    *   color de tinta: es lo que garantiza que el texto se lea sobre cualquiera
@@ -27,8 +41,6 @@
    * y en una iglesia con conexión mala eso importa.
    */
   import { onDestroy, onMount } from 'svelte';
-  import { fade, fly, scale } from 'svelte/transition';
-  import { cubicOut } from 'svelte/easing';
   import { _ } from '../../services/i18n.service';
   import { applySeoMetadata } from '../../services/seo.service';
   import {
@@ -42,10 +54,12 @@
   import { getFilterResult } from '../../services/filter.service';
   import { keepScreenAwake } from '../../services/sermon-pulpit.service';
   import { getLastRead } from '../../services/reading-progress.service';
-  import { IMAGE_BACKGROUNDS, backgroundCss, getBackground } from '../../services/verse-image.service';
-  import { ANIMACIONES, cargarPreferencias, guardarPreferencias } from '../../services/projection.service';
+  import { cargarPreferencias, guardarPreferencias } from '../../services/projection.service';
   import Icon from '../../components/Icon.svelte';
   import DictadoBoton from '../../components/DictadoBoton.svelte';
+  import ProjectionSurface from '../../components/ProjectionSurface.svelte';
+  import ProjectionControls from '../../components/ProjectionControls.svelte';
+  import { abrirCanal, abrirVentanaPantalla, MENSAJES, soportaCanal } from '../../services/projection-channel.service';
 
   export let bible = [];
   export let map = {};
@@ -65,22 +79,51 @@
     robots: 'noindex, nofollow',
   });
 
+  /**
+   * Esta misma pantalla hace dos papeles, y el parámetro `?ecran=1` los separa.
+   *
+   * Sin parámetro es la ventana del OPERADOR: elige qué proyectar y manda.
+   * Con él es la ventana PROYECTADA, la que se arrastra al segundo monitor y
+   * se pone a pantalla completa: sólo pinta la lámina y no sabe nada más.
+   *
+   * Va por parámetro y no por ruta propia porque una ruta obligaría a tocar
+   * `Main.svelte`, `bible-versions.js`, `AppMenu.svelte` y `generate-seo.mjs`
+   * (CLAUDE.md, trampa 11) para una pantalla que nadie enlaza ni indexa.
+   */
+  const esPantalla = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('ecran') === '1';
+
+  /**
+   * Dónde sale la proyección.
+   *
+   *   'antesala'  eligiendo qué proyectar
+   *   'local'     proyectando en ESTA pantalla, a pantalla completa (lo de siempre)
+   *   'remoto'    proyectando en la ventana del segundo monitor; aquí queda la consola
+   *
+   * El modo remoto es la razón de todo esto: con una sola ventana, proyectar
+   * significaba tapar el portátil, y para buscar el versículo siguiente había
+   * que salir de la proyección y volver a entrar delante de la congregación.
+   */
+  let modo = 'antesala';
+
   // ── Estado ────────────────────────────────────────────────────────────────
-  let proyectando = false;
-  let pasajes = [];        // [{ book, chapter, verse, texto, referencia }]
+  // `proyectando` sigue significando «hay algo en la pantalla grande», lo mismo
+  // en local que en remoto: de eso dependen el bloqueo de pantalla y las teclas.
+  $: proyectando = modo !== 'antesala';
+  let pasajes = []; // [{ book, chapter, verse, texto, referencia }]
   let indice = 0;
   let enNegro = false;
   let controlesVisibles = true;
   let ocultarControlesTimer;
   let soltarPantalla = null;
-  let panelAbierto = '';   // '' | 'fondo' | 'animacion' | 'idioma'
+  let panelAbierto = ''; // '' | 'fondo' | 'animacion' | 'idioma'
 
   // Preferencias persistidas. Se leen en `onMount` y no aquí: en el arranque del
   // módulo `localStorage` puede no estar listo en algunos navegadores.
   let prefs = { fondo: 'night', animacion: 'fade', escala: 1, segundoIdioma: false, invertido: false };
 
-  $: fondo = getBackground(prefs.fondo);
-  $: fondoCss = backgroundCss(fondo);
+  // El fondo ya no se resuelve aquí: lo hace `ProjectionSurface` a partir de la
+  // clave, porque lo necesitan las dos ventanas y sólo una de ellas tiene estas
+  // preferencias. Aquí sólo se guarda y se manda la clave.
 
   $: actual = pasajes[indice] || null;
   // Se compara contra las variables directamente y no a través de un helper:
@@ -110,37 +153,16 @@
   // Qué va arriba (grande) y qué abajo (pequeño). `invertido` sólo cambia el
   // orden de pintado: no toca la versión activa de la aplicación, que es de lo
   // que depende todo lo demás (rutas, voz, SEO).
-  $: principal = prefs.invertido && textoSecundario
-    ? { texto: textoSecundario, referencia: referenciaSecundaria, version: versionSecundariaConfig?.bibleName || '' }
-    : { texto: actual?.texto || '', referencia: actual?.referencia || '', version: versionConfig?.bibleName || '' };
-  $: secundario = prefs.invertido && textoSecundario
-    ? { texto: actual?.texto || '', referencia: actual?.referencia || '', version: versionConfig?.bibleName || '' }
-    : { texto: textoSecundario, referencia: referenciaSecundaria, version: versionSecundariaConfig?.bibleName || '' };
+  $: principal =
+    prefs.invertido && textoSecundario
+      ? { texto: textoSecundario, referencia: referenciaSecundaria, version: versionSecundariaConfig?.bibleName || '' }
+      : { texto: actual?.texto || '', referencia: actual?.referencia || '', version: versionConfig?.bibleName || '' };
+  $: secundario =
+    prefs.invertido && textoSecundario
+      ? { texto: actual?.texto || '', referencia: actual?.referencia || '', version: versionConfig?.bibleName || '' }
+      : { texto: textoSecundario, referencia: referenciaSecundaria, version: versionSecundariaConfig?.bibleName || '' };
 
   const persistir = () => guardarPreferencias(prefs);
-
-  /**
-   * Una sola transición para las cuatro opciones, elegida en tiempo de
-   * ejecución. Antes había un `in:fade` en la lámina y otro `in:fly`/`in:scale`
-   * en un `<div>` interior según el ajuste; con una sola función no hay dos
-   * capas que puedan discrepar.
-   *
-   * **Tiene que usarse con `|global`.** En Svelte las transiciones son locales
-   * por defecto, y «local» significa que NO se reproducen cuando quien crea el
-   * elemento es un bloque contenedor — que es justo el caso: lo recrea el
-   * `{#key indice}` al cambiar de versículo. El síntoma era exacto: animaba el
-   * primer versículo (montaje) y ninguno de los siguientes.
-   */
-  const animarEntrada = (node, { tipo }) => {
-    switch (tipo) {
-      case 'fade': return fade(node, { duration: 260, easing: cubicOut });
-      // Sube un poco al entrar: leído de lejos, el movimiento vertical se nota
-      // más que el horizontal y no arrastra la vista fuera de la pantalla.
-      case 'slide': return fly(node, { y: 34, duration: 320, easing: cubicOut });
-      case 'zoom': return scale(node, { start: 0.94, duration: 300, easing: cubicOut, opacity: 0 });
-      default: return { duration: 0 };
-    }
-  };
 
   // ── Preparación: qué se proyecta ──────────────────────────────────────────
   //
@@ -233,11 +255,19 @@
       .filter((v) => v.texto);
   };
 
+  /**
+   * Pone una lista en pantalla.
+   *
+   * Si ya se está proyectando en el segundo monitor NO cambia de modo: ese es
+   * justamente el caso que se venía a resolver — buscar el versículo siguiente
+   * mientras la congregación sigue viendo el anterior, y cambiarlo cuando toca,
+   * sin apagar y volver a encender la proyección.
+   */
   const arrancar = (lista, desde = 0) => {
     if (!lista.length) return;
     pasajes = lista;
     indice = Math.min(Math.max(desde, 0), lista.length - 1);
-    proyectando = true;
+    if (modo === 'antesala') modo = 'local';
     enNegro = false;
     panelAbierto = '';
     mostrarControles();
@@ -265,9 +295,9 @@
   let ultimaLectura = null;
   $: etiquetaUltima =
     ultimaLectura && map[ultimaLectura.book]
-      // El `+ 1` convierte el índice de capítulo (base 0, como lo guarda la
-      // lectura) al número que se enseña. NO es «el capítulo siguiente».
-      ? `${map[ultimaLectura.book]} ${ultimaLectura.chapter + 1}`
+      ? // El `+ 1` convierte el índice de capítulo (base 0, como lo guarda la
+        // lectura) al número que se enseña. NO es «el capítulo siguiente».
+        `${map[ultimaLectura.book]} ${ultimaLectura.chapter + 1}`
       : '';
 
   // ── Segundo idioma ────────────────────────────────────────────────────────
@@ -306,10 +336,24 @@
   // cerrabas a mano, y como los controles tampoco se ocultan con un panel
   // abierto, bastaba con mirar un fondo para dejar dos cajas encendidas en la
   // pantalla de la iglesia durante el resto del culto.
-  const elegirFondo = (key) => { prefs.fondo = key; persistir(); cerrarPanel(); };
-  const elegirAnimacion = (key) => { prefs.animacion = key; persistir(); cerrarPanel(); };
-  const masGrande = () => { prefs.escala = Math.min(prefs.escala + 0.1, 2); persistir(); };
-  const masPequeno = () => { prefs.escala = Math.max(prefs.escala - 0.1, 0.5); persistir(); };
+  const elegirFondo = (key) => {
+    prefs.fondo = key;
+    persistir();
+    cerrarPanel();
+  };
+  const elegirAnimacion = (key) => {
+    prefs.animacion = key;
+    persistir();
+    cerrarPanel();
+  };
+  const masGrande = () => {
+    prefs.escala = Math.min(prefs.escala + 0.1, 2);
+    persistir();
+  };
+  const masPequeno = () => {
+    prefs.escala = Math.max(prefs.escala - 0.1, 0.5);
+    persistir();
+  };
 
   const cerrarPanel = () => {
     panelAbierto = '';
@@ -343,12 +387,24 @@
   //
   // Avanzar cierra cualquier panel abierto: si el operador estaba mirando los
   // fondos y pasa al versículo siguiente, ya no está eligiendo.
-  const siguiente = () => { panelAbierto = ''; if (haySiguiente) indice += 1; };
-  const anterior = () => { panelAbierto = ''; if (hayAnterior) indice -= 1; };
-  const alternarNegro = () => { enNegro = !enNegro; };
+  const siguiente = () => {
+    panelAbierto = '';
+    if (haySiguiente) indice += 1;
+  };
+  const anterior = () => {
+    panelAbierto = '';
+    if (hayAnterior) indice -= 1;
+  };
+  const alternarNegro = () => {
+    enNegro = !enNegro;
+  };
 
   const salir = () => {
-    proyectando = false;
+    // La ventana del segundo monitor se cierra con la proyección: dejarla
+    // abierta con el último versículo puesto delante de la congregación es
+    // justo lo que no puede pasar al pulsar «salir».
+    cerrarVentanaPantalla();
+    modo = 'antesala';
     enNegro = false;
     panelAbierto = '';
     pasajes = [];
@@ -356,6 +412,94 @@
       document.exitFullscreen?.().catch(() => {});
     }
   };
+
+  // ── Las dos ventanas ──────────────────────────────────────────────────────
+  //
+  // Todo lo de aquí abajo existe para el caso de la iglesia: portátil + un
+  // proyector. Ver la cabecera de `projection-channel.service.js`.
+  let canal = null;
+  let ventanaPantalla = null;
+  let vigilanteVentana = null;
+
+  /** Lo que tiene que pintar la ventana proyectada. Va entero en cada cambio. */
+  $: estadoPantalla = {
+    principal: { texto: principal.texto, referencia: principal.referencia },
+    secundario: { texto: secundario.texto, referencia: secundario.referencia },
+    fondoKey: prefs.fondo,
+    escala: prefs.escala,
+    animacion: prefs.animacion,
+    indice,
+    enNegro,
+  };
+
+  // Se publica en cada cambio mientras haya una ventana escuchando. Se compara
+  // contra `modo` y `estadoPantalla` directamente, no dentro de un helper: si
+  // la dependencia queda escondida en una función, el compilador no la ve y
+  // deja de republicar (CLAUDE.md, trampa 23).
+  $: if (modo === 'remoto' && canal) canal.enviar({ tipo: MENSAJES.ESTADO, estado: estadoPantalla });
+
+  const cerrarVentanaPantalla = () => {
+    clearInterval(vigilanteVentana);
+    vigilanteVentana = null;
+    try {
+      ventanaPantalla?.close();
+    } catch {
+      /* ya la había cerrado el usuario */
+    }
+    ventanaPantalla = null;
+    canal?.cerrar();
+    canal = null;
+  };
+
+  /**
+   * Lo que llega DE la ventana proyectada.
+   *
+   * `listo` es el saludo de una ventana recién abierta: hay que mandarle el
+   * estado en el acto o se queda en negro hasta el versículo siguiente.
+   * `tecla` reenvía las teclas de esa ventana, para que el mando de
+   * presentación funcione tenga el foco donde lo tenga — que en un culto es
+   * exactamente lo que va a pasar.
+   */
+  const alRecibirDeLaPantalla = (mensaje) => {
+    if (!mensaje) return;
+    if (mensaje.tipo === MENSAJES.LISTO) {
+      canal?.enviar({ tipo: MENSAJES.ESTADO, estado: estadoPantalla });
+    } else if (mensaje.tipo === MENSAJES.CERRANDO) {
+      // Se cierra la proyección pero NO se tira la lista: el operador vuelve a
+      // abrir la ventana y sigue donde estaba.
+      cerrarVentanaPantalla();
+      modo = 'antesala';
+    } else if (mensaje.tipo === MENSAJES.TECLA) {
+      manejarTecla(mensaje.key, { desdeLaPantalla: true });
+    }
+  };
+
+  // Sin `async`: `window.open` tiene que ejecutarse dentro del clic o el
+  // navegador bloquea la ventana (ver `abrirVentanaPantalla`).
+  const abrirSegundaPantalla = () => {
+    ventanaPantalla = abrirVentanaPantalla();
+    // Un bloqueador de ventanas emergentes devuelve null. No es un fallo de la
+    // aplicación y hay que decirlo, o el botón parece roto.
+    if (!ventanaPantalla) {
+      avisoPantalla = $_('app.projection.window_blocked');
+      return;
+    }
+    avisoPantalla = '';
+    canal = abrirCanal(alRecibirDeLaPantalla);
+    modo = 'remoto';
+    panelAbierto = '';
+    // Si el operador cierra la ventana con la cruz del sistema no llega ningún
+    // evento a esta: `closed` es la única forma de enterarse.
+    clearInterval(vigilanteVentana);
+    vigilanteVentana = setInterval(() => {
+      if (ventanaPantalla?.closed) {
+        cerrarVentanaPantalla();
+        modo = 'antesala';
+      }
+    }, 1000);
+  };
+
+  let avisoPantalla = '';
 
   const alternarPantallaCompleta = async () => {
     try {
@@ -372,43 +516,131 @@
    * emite Flecha derecha o AvPág, y el de retroceder Flecha izquierda o RePág.
    * Por eso hay varias teclas para lo mismo — no es indecisión.
    */
-  const alPulsarTecla = (e) => {
-    if (!proyectando) return;
-    // Si se está escribiendo en un campo, las teclas son texto y no atajos.
-    //
-    // No es teórico: el Enter que arranca la proyección desde el buscador
-    // seguía burbujeando hasta aquí, y como para entonces `proyectando` ya era
-    // `true`, avanzaba un versículo en el mismo gesto. Se empezaba siempre en
-    // el segundo versículo del capítulo sin que nada lo explicara.
-    const donde = e.target?.tagName;
-    if (donde === 'INPUT' || donde === 'TEXTAREA' || e.target?.isContentEditable) return;
-
-    switch (e.key) {
-      case 'ArrowRight': case 'ArrowDown': case 'PageDown': case ' ': case 'Enter':
-        e.preventDefault(); siguiente(); break;
-      case 'ArrowLeft': case 'ArrowUp': case 'PageUp': case 'Backspace':
-        e.preventDefault(); anterior(); break;
-      case 'Home': e.preventDefault(); indice = 0; break;
-      case 'End': e.preventDefault(); indice = pasajes.length - 1; break;
-      case 'n': case 'N': case 'b': case 'B': case '.':
-        e.preventDefault(); alternarNegro(); break;
-      case 'f': case 'F': e.preventDefault(); alternarPantallaCompleta(); break;
-      case 's': case 'S': e.preventDefault(); intercambiarIdiomas(); break;
+  /**
+   * La acción de cada tecla, separada del evento.
+   *
+   * Está aparte porque ahora las teclas llegan de DOS sitios: del teclado de
+   * esta ventana y, por el canal, del de la ventana proyectada — el mando de
+   * presentación puede tener el foco en cualquiera de las dos y tiene que
+   * funcionar igual.
+   *
+   * `desdeLaPantalla` marca las que vienen por el canal: ahí la pantalla
+   * completa la maneja la ventana proyectada, que es la que está en el
+   * proyector, así que esta no hace nada con la tecla F.
+   */
+  const manejarTecla = (key, { desdeLaPantalla = false } = {}) => {
+    switch (key) {
+      case 'ArrowRight':
+      case 'ArrowDown':
+      case 'PageDown':
+      case ' ':
+      case 'Enter':
+        siguiente();
+        break;
+      case 'ArrowLeft':
+      case 'ArrowUp':
+      case 'PageUp':
+      case 'Backspace':
+        anterior();
+        break;
+      case 'Home':
+        indice = 0;
+        break;
+      case 'End':
+        indice = pasajes.length - 1;
+        break;
+      case 'n':
+      case 'N':
+      case 'b':
+      case 'B':
+      case '.':
+        alternarNegro();
+        break;
+      case 'f':
+      case 'F':
+        if (!desdeLaPantalla) alternarPantallaCompleta();
+        break;
+      case 's':
+      case 'S':
+        intercambiarIdiomas();
+        break;
       // Encender o apagar el segundo idioma sin abrir el menú: en mitad del
       // culto entra un grupo de visitantes y hay que ponerlo en el acto.
-      case 'l': case 'L': e.preventDefault(); alternarSegundoIdioma(); break;
-      case '+': case '=': e.preventDefault(); masGrande(); break;
-      case '-': case '_': e.preventDefault(); masPequeno(); break;
+      case 'l':
+      case 'L':
+        alternarSegundoIdioma();
+        break;
+      case '+':
+      case '=':
+        masGrande();
+        break;
+      case '-':
+      case '_':
+        masPequeno();
+        break;
       case 'Escape':
-        e.preventDefault();
         // Escape cierra primero el panel abierto y sólo sale si no hay ninguno:
         // si saliera directamente, abrir el menú de fondos por error te echaba
         // de la proyección en mitad del culto.
         if (panelAbierto) panelAbierto = '';
         else salir();
         break;
-      default: break;
+      default:
+        break;
     }
+  };
+
+  /** Las teclas que consumimos. Las demás siguen su curso. */
+  const TECLAS = new Set([
+    'ArrowRight',
+    'ArrowDown',
+    'PageDown',
+    ' ',
+    'Enter',
+    'ArrowLeft',
+    'ArrowUp',
+    'PageUp',
+    'Backspace',
+    'Home',
+    'End',
+    'n',
+    'N',
+    'b',
+    'B',
+    '.',
+    'f',
+    'F',
+    's',
+    'S',
+    'l',
+    'L',
+    '+',
+    '=',
+    '-',
+    '_',
+    'Escape',
+  ]);
+
+  const alPulsarTecla = (e) => {
+    if (!proyectando) return;
+    // Si se está escribiendo en un campo, las teclas son texto y no atajos.
+    //
+    // No es teórico: el Enter que arranca la proyección desde el buscador
+    // seguía burbujeando hasta aquí, y como para entonces ya se estaba
+    // proyectando, avanzaba un versículo en el mismo gesto. Se empezaba siempre
+    // en el segundo versículo del capítulo sin que nada lo explicara.
+    const donde = e.target?.tagName;
+    if (donde === 'INPUT' || donde === 'TEXTAREA' || e.target?.isContentEditable) return;
+
+    // Y con un botón enfocado, Espacio y Enter son «pulsa este botón». En la
+    // proyección a pantalla completa daba igual porque no había botones que
+    // recibieran el foco; en la consola del modo remoto están todos a la vista,
+    // y sin esto avanzar de versículo también disparaba el botón enfocado.
+    if (donde === 'BUTTON' && (e.key === ' ' || e.key === 'Enter')) return;
+
+    if (!TECLAS.has(e.key)) return;
+    e.preventDefault();
+    manejarTecla(e.key);
   };
 
   // Los controles se esconden solos: un botón flotante en la esquina se ve
@@ -430,11 +662,14 @@
     clearTimeout(ocultarControlesTimer);
     // No se ocultan con el puntero encima: el operador está usándolos, y que se
     // desvanezcan mientras los miras es de las cosas que más enfadan.
-    ocultarControlesTimer = setTimeout(() => {
-      if (punteroEncima) return;
-      panelAbierto = '';
-      controlesVisibles = false;
-    }, panelAbierto ? ESPERA_PANEL_MS : ESPERA_CONTROLES_MS);
+    ocultarControlesTimer = setTimeout(
+      () => {
+        if (punteroEncima) return;
+        panelAbierto = '';
+        controlesVisibles = false;
+      },
+      panelAbierto ? ESPERA_PANEL_MS : ESPERA_CONTROLES_MS,
+    );
   };
 
   const entrarEnControles = () => {
@@ -465,18 +700,69 @@
   // barra de desplazamiento **encima de la proyección**: una franja gris a la
   // derecha de la pantalla de la iglesia. Se reutiliza la clase que ya usa
   // `Modal.svelte` en vez de escribir otro `overflow: hidden`.
+  //
+  // Sólo en local: en modo remoto la capa está en la OTRA ventana y aquí queda
+  // la consola, que es una página normal y tiene que poder desplazarse — si no,
+  // una lista larga de resultados se quedaba sin poder llegar al final.
   let scrollBloqueado = false;
+  $: bloquearScroll = modo === 'local' || esPantalla;
   $: if (typeof document !== 'undefined') {
-    if (proyectando && !scrollBloqueado) {
+    if (bloquearScroll && !scrollBloqueado) {
       document.body.classList.add('drawer-open');
       scrollBloqueado = true;
-    } else if (!proyectando && scrollBloqueado) {
+    } else if (!bloquearScroll && scrollBloqueado) {
       document.body.classList.remove('drawer-open');
       scrollBloqueado = false;
     }
   }
 
+  // ── La ventana proyectada ─────────────────────────────────────────────────
+  //
+  // Sólo pinta lo que le mandan. No carga Biblias, no busca y no guarda nada.
+  let estadoRecibido = {
+    principal: { texto: '', referencia: '' },
+    secundario: { texto: '', referencia: '' },
+    fondoKey: 'night',
+    escala: 1,
+    animacion: 'fade',
+    indice: 0,
+    enNegro: false,
+  };
+  let pistaPantalla = true;
+
+  const montarPantalla = () => {
+    const suCanal = abrirCanal((mensaje) => {
+      if (mensaje?.tipo === MENSAJES.ESTADO) estadoRecibido = mensaje.estado;
+    });
+    // El saludo: la ventana de control responde con el estado actual. Sin esto
+    // la pantalla se queda en negro hasta que alguien cambie de versículo.
+    suCanal.enviar({ tipo: MENSAJES.LISTO });
+
+    // Las teclas de ESTA ventana se reenvían a la de control, que es la que
+    // manda: el mando de presentación suele dejar el foco aquí.
+    const alTeclear = (e) => {
+      if (e.key === 'F11') return; // pantalla completa la maneja el navegador
+      suCanal.enviar({ tipo: MENSAJES.TECLA, key: e.key });
+    };
+    const alCerrar = () => suCanal.enviar({ tipo: MENSAJES.CERRANDO });
+
+    window.addEventListener('keydown', alTeclear);
+    window.addEventListener('pagehide', alCerrar);
+    // La pista de «ponla a pantalla completa» sobra en cuanto se ha leído.
+    const quitarPista = setTimeout(() => (pistaPantalla = false), 8000);
+
+    return () => {
+      clearTimeout(quitarPista);
+      window.removeEventListener('keydown', alTeclear);
+      window.removeEventListener('pagehide', alCerrar);
+      alCerrar();
+      suCanal.cerrar();
+    };
+  };
+
   onMount(() => {
+    if (esPantalla) return montarPantalla();
+
     prefs = cargarPreferencias();
     ultimaLectura = getLastRead();
     // Si quedó encendido el segundo idioma de una sesión anterior, hay que
@@ -489,6 +775,9 @@
   onDestroy(() => {
     clearTimeout(ocultarControlesTimer);
     if (soltarPantalla) soltarPantalla();
+    // Navegar fuera de la consola no puede dejar la ventana del proyector
+    // encendida con el último versículo puesto.
+    cerrarVentanaPantalla();
     // Sin esto, salir de la proyección navegando (no con Escape) dejaría el
     // resto de la aplicación sin poder hacer scroll.
     if (typeof document !== 'undefined') {
@@ -498,9 +787,28 @@
   });
 </script>
 
-{#if !proyectando}
-  <!-- ── Antesala: qué se va a proyectar ──────────────────────────────── -->
-  <section class="antesala">
+{#if esPantalla}
+  <!-- ── La ventana que va al proyector ───────────────────────────────── -->
+  <!-- Sólo la lámina. Ni controles, ni zonas táctiles, ni paneles: lo que se
+       ve aquí lo ve la congregación entera. -->
+  <ProjectionSurface
+    principal={estadoRecibido.principal}
+    secundario={estadoRecibido.secundario}
+    fondoKey={estadoRecibido.fondoKey}
+    escala={estadoRecibido.escala}
+    animacion={estadoRecibido.animacion}
+    indice={estadoRecibido.indice}
+    enNegro={estadoRecibido.enNegro}
+  >
+    <!-- Cómo dejarla lista, y se quita sola a los ocho segundos: es una
+         instrucción de montaje, no parte de la proyección. -->
+    {#if pistaPantalla}
+      <p class="pista-pantalla">{$_('app.projection.screen_hint')}</p>
+    {/if}
+  </ProjectionSurface>
+{:else if modo !== 'local'}
+  <!-- ── Antesala y consola ───────────────────────────────────────────── -->
+  <section class="antesala" class:antesala--consola={modo === 'remoto'}>
     <header class="antesala__cabecera">
       <p class="antesala__eyebrow">{$_('app.projection.eyebrow')}</p>
       <h1>{$_('app.projection.title')}</h1>
@@ -515,7 +823,12 @@
             type="search"
             bind:value={consultaRef}
             on:input={buscarReferencia}
-            on:keydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); empezarDesdeConsulta(); } }}
+            on:keydown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                empezarDesdeConsulta();
+              }
+            }}
             placeholder={$_('app.projection.search_placeholder')}
             autocomplete="off"
             spellcheck="false"
@@ -538,7 +851,12 @@
             type="search"
             bind:value={consultaTexto}
             on:input={buscarPorTexto}
-            on:keydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); buscarPorTexto(); } }}
+            on:keydown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                buscarPorTexto();
+              }
+            }}
             placeholder={$_('app.projection.phrase_placeholder')}
             autocomplete="off"
             spellcheck="false"
@@ -594,6 +912,24 @@
       </button>
     {/if}
 
+    <!-- ── Dos pantallas ───────────────────────────────────────────────── -->
+    <!-- El caso de la iglesia: portátil + proyector. Abre una segunda ventana
+         que se arrastra al proyector, y deja ÉSTA con el buscador a la vista
+         para preparar el versículo siguiente sin cortar lo que se está
+         proyectando. -->
+    {#if modo === 'antesala' && soportaCanal()}
+      <div class="dos-pantallas">
+        <button type="button" class="dos-pantallas__boton" on:click={abrirSegundaPantalla}>
+          <Icon name="projection" />
+          {$_('app.projection.open_screen')}
+        </button>
+        <p class="dos-pantallas__pista">{$_('app.projection.open_screen_hint')}</p>
+        {#if avisoPantalla}
+          <p class="dos-pantallas__aviso" role="alert">{avisoPantalla}</p>
+        {/if}
+      </div>
+    {/if}
+
     <!-- Las teclas se enseñan ANTES de empezar, no durante: en mitad del culto
          no hay dónde mirarlas, y quien proyecta las repasa mientras prepara. -->
     <div class="atajos">
@@ -610,174 +946,97 @@
       </ul>
     </div>
   </section>
+
+  <!-- ── Consola del modo remoto ─────────────────────────────────────── -->
+  <!-- La proyección está en la OTRA ventana. Aquí queda lo que el operador
+       necesita ver sin tapar el buscador: qué hay puesto ahora mismo y los
+       mismos controles de siempre. -->
+  {#if modo === 'remoto'}
+    <div class="consola">
+      <div class="consola__ahora">
+        <p class="consola__eyebrow">{$_('app.projection.on_screen')}</p>
+        {#if enNegro}
+          <p class="consola__ref">{$_('app.projection.key_black')}</p>
+        {:else if principal.referencia}
+          <p class="consola__ref">{principal.referencia}</p>
+          <p class="consola__texto">{principal.texto}</p>
+        {:else}
+          <p class="consola__ref consola__ref--vacio">{$_('app.projection.screen_waiting')}</p>
+        {/if}
+      </div>
+
+      <div class="consola__pasos">
+        <button type="button" disabled={!hayAnterior} on:click={anterior} aria-label={$_('app.projection.key_prev')}>
+          <Icon name="arrow-left" />
+        </button>
+        <button type="button" disabled={!haySiguiente} on:click={siguiente} aria-label={$_('app.projection.key_next')}>
+          <Icon name="arrow-right" />
+        </button>
+      </div>
+
+      <ProjectionControls
+        {prefs}
+        {panelAbierto}
+        {indice}
+        total={pasajes.length}
+        visibles={true}
+        conPantallaCompleta={false}
+        onPanel={alternarPanel}
+        onSalir={salir}
+        onMasGrande={masGrande}
+        onMasPequeno={masPequeno}
+        onNegro={alternarNegro}
+        onFondo={elegirFondo}
+        onAnimacion={elegirAnimacion}
+        onSegundoIdioma={alternarSegundoIdioma}
+        onSegundaVersion={elegirSegundaVersion}
+        onIntercambiar={intercambiarIdiomas}
+      />
+    </div>
+  {/if}
 {:else}
-  <!-- ── Proyectando ──────────────────────────────────────────────────── -->
-  <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div
-    class="proyeccion"
-    class:proyeccion--negro={enNegro}
-    style="--escala: {prefs.escala}; --fondo: {fondoCss}; --tinta: {fondo.ink}; --acento: {fondo.accent}"
+  <!-- ── Proyectando en ESTA pantalla ─────────────────────────────────── -->
+  <ProjectionSurface
+    {principal}
+    {secundario}
+    fondoKey={prefs.fondo}
+    escala={prefs.escala}
+    animacion={prefs.animacion}
+    {indice}
+    {enNegro}
     on:mousemove={mostrarControles}
     on:touchstart={mostrarControles}
     on:wheel={alGirarRueda}
   >
-    {#if !enNegro && actual}
-      <!-- `{#key}` vuelve a montar la lámina en cada versículo, que es lo que
-           dispara la transición de entrada. Sin él, Svelte reutiliza el nodo y
-           el texto cambia de golpe. -->
-      {#key indice}
-        <figure
-          class="lamina"
-          class:lamina--dos={!!secundario.texto}
-          in:animarEntrada|global={{ tipo: prefs.animacion }}
-        >
-          <blockquote class="lamina__texto">{principal.texto}</blockquote>
-
-          {#if secundario.texto}
-            <blockquote class="lamina__texto lamina__texto--secundario">{secundario.texto}</blockquote>
-          {/if}
-
-          <!-- Sólo la referencia. El nombre de la versión no pinta nada en una
-               pantalla de iglesia: la congregación sabe qué Biblia se usa, y
-               ocupaba sitio al lado de lo único que de verdad hay que leer
-               ahí. Sigue estando en la antesala, donde se elige. -->
-          <figcaption class="lamina__ref">{principal.referencia}</figcaption>
-        </figure>
-      {/key}
-    {/if}
-
     <!-- Zonas de toque para avanzar sin teclado: la mitad derecha avanza, la
          izquierda retrocede. Invisibles a propósito — es una pantalla, no una
          interfaz. -->
-    <button type="button" class="zona zona--anterior" aria-label={$_('app.projection.key_prev')} on:click={anterior}></button>
-    <button type="button" class="zona zona--siguiente" aria-label={$_('app.projection.key_next')} on:click={siguiente}></button>
+    <button type="button" class="zona zona--anterior" aria-label={$_('app.projection.key_prev')} on:click={anterior}
+    ></button>
+    <button type="button" class="zona zona--siguiente" aria-label={$_('app.projection.key_next')} on:click={siguiente}
+    ></button>
 
-    <!-- Marca de agua. La aplicación es gratuita y esto es toda su publicidad:
-         quien vea el versículo en la pantalla de la iglesia sabe de dónde sale.
-         Va tenue a propósito — compite con el texto si se nota demasiado— y
-         desaparece con la pantalla en negro, que existe justamente para que no
-         se vea nada. -->
-    {#if !enNegro}
-      <p class="marca" aria-hidden="true">robible.com</p>
-    {/if}
-
-    <!-- ── Paneles de ajuste ──────────────────────────────────────────── -->
-    {#if panelAbierto === 'fondo'}
-      <div class="panel">
-        <p class="panel__titulo">{$_('app.projection.panel_background')}</p>
-        <div class="muestras">
-          {#each IMAGE_BACKGROUNDS as b (b.key)}
-            <button
-              type="button"
-              class="muestra"
-              class:muestra--activa={prefs.fondo === b.key}
-              style="background: {backgroundCss(b)}"
-              aria-label={b.key}
-              aria-pressed={prefs.fondo === b.key}
-              on:click={() => elegirFondo(b.key)}
-            ></button>
-          {/each}
-        </div>
-      </div>
-    {:else if panelAbierto === 'animacion'}
-      <div class="panel">
-        <p class="panel__titulo">{$_('app.projection.panel_animation')}</p>
-        <div class="opciones">
-          {#each ANIMACIONES as a (a)}
-            <button
-              type="button"
-              class="opcion"
-              class:opcion--activa={prefs.animacion === a}
-              aria-pressed={prefs.animacion === a}
-              on:click={() => elegirAnimacion(a)}
-            >
-              {$_(`app.projection.animation_${a}`)}
-            </button>
-          {/each}
-        </div>
-      </div>
-    {:else if panelAbierto === 'idioma'}
-      <div class="panel">
-        <p class="panel__titulo">{$_('app.projection.panel_language')}</p>
-        <div class="opciones">
-          <button
-            type="button"
-            class="opcion"
-            class:opcion--activa={prefs.segundoIdioma}
-            aria-pressed={prefs.segundoIdioma}
-            on:click={alternarSegundoIdioma}
-          >
-            {$_(prefs.segundoIdioma ? 'app.projection.second_on' : 'app.projection.second_off')}
-          </button>
-          {#if prefs.segundoIdioma}
-            {#each BIBLE_VERSIONS.filter((v) => v.value !== $selectedBibleVersion) as v (v.value)}
-              <button
-                type="button"
-                class="opcion"
-                class:opcion--activa={$compareWithVersion === v.value}
-                aria-pressed={$compareWithVersion === v.value}
-                on:click={() => elegirSegundaVersion(v.value)}
-              >
-                {v.bibleName}
-              </button>
-            {/each}
-            <button type="button" class="opcion" on:click={intercambiarIdiomas}>
-              <Icon name="swap" />
-              {$_('app.projection.key_swap')}
-            </button>
-          {/if}
-        </div>
-      </div>
-    {/if}
-
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div
-      class="controles"
-      class:controles--ocultos={!controlesVisibles}
-      on:mouseenter={entrarEnControles}
-      on:mouseleave={salirDeControles}
-    >
-      <button type="button" on:click={salir} title={$_('app.projection.key_exit')} aria-label={$_('app.projection.key_exit')}>
-        <Icon name="close" />
-      </button>
-      <button type="button" on:click={masPequeno} aria-label={$_('app.projection.key_size')}><Icon name="minus" /></button>
-      <button type="button" on:click={masGrande} aria-label={$_('app.projection.key_size')}><Icon name="plus" /></button>
-      <button
-        type="button"
-        class:controles__activo={panelAbierto === 'fondo'}
-        on:click={() => alternarPanel('fondo')}
-        title={$_('app.projection.panel_background')}
-        aria-label={$_('app.projection.panel_background')}
-      >
-        <Icon name="palette" />
-      </button>
-      <button
-        type="button"
-        class:controles__activo={panelAbierto === 'animacion'}
-        on:click={() => alternarPanel('animacion')}
-        title={$_('app.projection.panel_animation')}
-        aria-label={$_('app.projection.panel_animation')}
-      >
-        <Icon name="play" />
-      </button>
-      <button
-        type="button"
-        class:controles__activo={panelAbierto === 'idioma'}
-        on:click={() => alternarPanel('idioma')}
-        title={$_('app.projection.panel_language')}
-        aria-label={$_('app.projection.panel_language')}
-      >
-        <Icon name="globe" />
-      </button>
-      <button type="button" on:click={alternarNegro} title={$_('app.projection.key_black')} aria-label={$_('app.projection.key_black')}>
-        <Icon name="eye" />
-      </button>
-      <button type="button" on:click={alternarPantallaCompleta} title={$_('app.projection.key_fullscreen')} aria-label={$_('app.projection.key_fullscreen')}>
-        <Icon name="expand" />
-      </button>
-      <span class="controles__posicion">{indice + 1} / {pasajes.length}</span>
-    </div>
-  </div>
+    <ProjectionControls
+      {prefs}
+      {panelAbierto}
+      {indice}
+      total={pasajes.length}
+      visibles={controlesVisibles}
+      onPanel={alternarPanel}
+      onSalir={salir}
+      onMasGrande={masGrande}
+      onMasPequeno={masPequeno}
+      onNegro={alternarNegro}
+      onPantallaCompleta={alternarPantallaCompleta}
+      onFondo={elegirFondo}
+      onAnimacion={elegirAnimacion}
+      onSegundoIdioma={alternarSegundoIdioma}
+      onSegundaVersion={elegirSegundaVersion}
+      onIntercambiar={intercambiarIdiomas}
+      onEntrar={entrarEnControles}
+      onSalirDeControles={salirDeControles}
+    />
+  </ProjectionSurface>
 {/if}
 
 <style lang="scss">
@@ -794,7 +1053,9 @@
   .antesala__cabecera {
     margin-bottom: 1.5rem;
 
-    h1 { margin: 0.2rem 0 0.5rem; }
+    h1 {
+      margin: 0.2rem 0 0.5rem;
+    }
   }
 
   .antesala__eyebrow {
@@ -826,7 +1087,10 @@
     gap: 0.35rem;
     font-size: var(--font-size-small);
 
-    > span { font-weight: 600; color: var(--color-ink); }
+    > span {
+      font-weight: 600;
+      color: var(--color-ink);
+    }
 
     input {
       // Dentro de la fila con el micrófono, el campo se queda con el resto.
@@ -882,11 +1146,16 @@
       text-align: left;
       cursor: pointer;
 
-      &:hover { border-color: var(--color-accent); }
+      &:hover {
+        border-color: var(--color-accent);
+      }
     }
   }
 
-  .resultados__ref { font-weight: 700; color: var(--color-accent-ink); }
+  .resultados__ref {
+    font-weight: 700;
+    color: var(--color-accent-ink);
+  }
 
   .resultados__texto {
     color: var(--color-ink-soft);
@@ -925,7 +1194,9 @@
     cursor: pointer;
     --icon-size: 1rem;
 
-    &:hover { background: var(--color-accent-solid-hover); }
+    &:hover {
+      background: var(--color-accent-solid-hover);
+    }
   }
 
   .atajos {
@@ -934,7 +1205,11 @@
     border-radius: var(--radius-md);
     background: var(--color-surface);
 
-    h2 { margin: 0 0 0.6rem; font-size: 0.95rem; color: var(--color-ink-strong); }
+    h2 {
+      margin: 0 0 0.6rem;
+      font-size: 0.95rem;
+      color: var(--color-ink-strong);
+    }
 
     ul {
       display: grid;
@@ -972,76 +1247,10 @@
   // Capa fija a pantalla completa, como el Modo Amvon: es lo que impide que se
   // cuele la cabecera, el menú o un botón flotante de otra parte.
   //
-  // El fondo y los colores del texto salen del fondo elegido —los mismos de
-  // compartir un versículo como imagen—, no de la paleta del usuario. Cada
-  // fondo trae su `ink` y su `accent` ya comprobados contra él, que es lo que
-  // garantiza que el texto se lea sobre cualquiera de los nueve.
-  .proyeccion {
-    position: fixed;
-    inset: 0;
-    z-index: 200;
-    display: grid;
-    place-items: center;
-    padding: clamp(1.5rem, 5vw, 4rem);
-    background: var(--fondo, #0b0d10);
-    color: var(--tinta, #f2f4f7);
-    cursor: default;
-  }
-
-  // Negro de verdad: es el «apaga la pantalla» de entre canto y canto, así que
-  // ignora el fondo elegido a propósito.
-  .proyeccion--negro { background: #000; }
-
-  .lamina {
-    max-width: 90vw;
-    margin: 0;
-    text-align: center;
-  }
-
-  // El tamaño se calcula con `vw` y `vh` a la vez: sólo con `vw`, un televisor
-  // panorámico daba letras enormes que no cabían a lo alto, y sólo con `vh`
-  // quedaban pequeñas en una pantalla ancha. `--escala` es el ajuste manual.
-  .lamina__texto {
-    margin: 0 0 clamp(1rem, 3vh, 2.5rem);
-    font-size: calc(clamp(1.75rem, 4.2vw + 1.2vh, 5.5rem) * var(--escala, 1));
-    font-weight: 600;
-    line-height: 1.3;
-    text-wrap: balance;
-  }
-
-  // Con dos idiomas hay que repartir el alto de la pantalla entre los dos, así
-  // que el principal se encoge. Sin esto, un versículo largo en dos idiomas
-  // —Ioan 3:2, por ejemplo— llenaba la pantalla de borde a borde y el operador
-  // tenía que bajar el tamaño a mano justo cuando menos tiempo tiene.
-  .lamina--dos .lamina__texto {
-    font-size: calc(clamp(1.4rem, 3.1vw + 0.9vh, 4rem) * var(--escala, 1));
-    margin-bottom: clamp(0.75rem, 2vh, 1.5rem);
-  }
-
-  // El segundo idioma: más pequeño, debajo y con menos peso. La proporción
-  // (58 %) es la que deja leer los dos sin que compitan — al 80 % parecían dos
-  // textos principales y la vista no sabía dónde posarse.
-  .lamina--dos .lamina__texto--secundario {
-    font-size: calc(clamp(0.95rem, 1.9vw + 0.55vh, 2.5rem) * var(--escala, 1));
-  }
-
-  .lamina__texto--secundario {
-    font-size: calc(clamp(1.1rem, 2.4vw + 0.7vh, 3.2rem) * var(--escala, 1));
-    font-weight: 400;
-    opacity: 0.86;
-  }
-
-  .lamina__ref {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    justify-content: center;
-    gap: 0.6rem;
-    color: var(--acento, #f0c674);
-    font-size: calc(clamp(1rem, 1.4vw + 0.6vh, 2rem) * var(--escala, 1));
-    font-weight: 700;
-  }
-
+  // La lámina (fondo, textos, referencia y marca de agua) vive en
+  // ProjectionSurface.svelte, y la botonera con sus paneles en
+  // ProjectionControls.svelte: las pintan las DOS ventanas, así que sus
+  // estilos no pueden estar aquí.
 
   // Mitades invisibles para avanzar con el ratón o el dedo. Van por debajo de
   // los controles y los paneles, que necesitan sus propios clics.
@@ -1064,212 +1273,205 @@
     outline: none;
     -webkit-tap-highlight-color: transparent;
 
-    &::-moz-focus-inner { border: 0; }
+    &::-moz-focus-inner {
+      border: 0;
+    }
   }
 
-  .zona--anterior { left: 0; }
-  .zona--siguiente { right: 0; }
+  .zona--anterior {
+    left: 0;
+  }
+  .zona--siguiente {
+    right: 0;
+  }
 
-  // ── Marca de agua ─────────────────────────────────────────────────────────
+  // ── Dos pantallas ─────────────────────────────────────────────────────────
   //
-  // Hereda la tinta del fondo elegido, así que se lee sobre los nueve sin
-  // comprobarlo a mano. Al 38 %: suficiente para reconocerla de cerca, poco
-  // para que compita con el versículo desde la última fila.
-  .marca {
-    position: absolute;
-    right: 1rem;
-    bottom: 0.9rem;
-    margin: 0;
-    color: var(--tinta, #f2f4f7);
-    opacity: 0.38;
-    font-size: clamp(0.7rem, 0.9vw, 1rem);
-    font-weight: 600;
-    letter-spacing: 0.03em;
-    // No recibe clics: está justo donde la mitad derecha avanza de versículo.
-    pointer-events: none;
-    transition: opacity var(--motion-base, 200ms) ease;
-  }
-
-  // Con los controles a la vista, la marca se aparta: comparten esquina y
-  // superpuestas no se entiende ninguna de las dos.
-  .proyeccion:has(.controles:not(.controles--ocultos)) .marca {
-    opacity: 0;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .marca { transition: none; }
-  }
-
-  // ── Paneles y controles ───────────────────────────────────────────────────
-  .panel {
-    position: absolute;
-    right: 1rem;
-    bottom: 4.25rem;
-    z-index: 3;
-    max-width: min(26rem, calc(100vw - 2rem));
-    padding: 0.75rem 0.85rem;
-    border: 1px solid rgba(255, 255, 255, 0.14);
+  // Esto SÍ usa la paleta del usuario: se mira en el portátil, antes de
+  // empezar. La que no la usa es la lámina.
+  .dos-pantallas {
+    display: grid;
+    gap: 0.4rem;
+    justify-items: start;
+    margin: 1.25rem 0;
+    padding: 0.9rem 1rem;
+    border: 1px solid var(--color-line-accent);
     border-radius: var(--radius-md);
-    // Opaco y no translúcido: sobre un fondo claro como `sand` o `arcs`, un
-    // panel semitransparente dejaba los textos ilegibles.
-    background: #14181e;
+    background: var(--wash-accent);
+  }
+
+  .dos-pantallas__boton {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 2.6rem;
+    padding: 0 1.1rem;
+    border: 1px solid var(--color-accent);
+    border-radius: var(--radius-pill);
+    background: var(--color-accent-solid);
+    color: var(--color-on-primary);
+    font-family: inherit;
+    font-size: var(--font-size-small);
+    font-weight: 700;
+    cursor: pointer;
+    --icon-size: 1.05rem;
+
+    &:hover {
+      background: var(--color-accent-solid-hover);
+    }
+  }
+
+  .dos-pantallas__pista {
+    max-width: 46ch;
+    margin: 0;
+    color: var(--color-ink-soft);
+    font-size: 0.8rem;
+    line-height: 1.45;
+  }
+
+  .dos-pantallas__aviso {
+    margin: 0;
+    color: var(--color-danger-ink);
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+
+  // ── Consola del modo remoto ───────────────────────────────────────────────
+  //
+  // Franja fija abajo: la proyección está en la otra ventana, así que aquí no
+  // hay nada que tapar y el buscador de arriba tiene que seguir accesible. Es
+  // `fixed`, así que establece bloque contenedor para los `position: absolute`
+  // de la botonera y de sus paneles.
+  .consola {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    min-height: 4.5rem;
+    padding: 0.7rem clamp(0.75rem, 4vw, 2rem);
+    // Colores fijos, como la botonera que lleva dentro: es la continuación de
+    // lo que se está proyectando, no una barra más de la aplicación.
+    border-top: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(20, 24, 30, 0.97);
     color: #f2f4f7;
   }
 
-  .panel__titulo {
-    margin: 0 0 0.5rem;
+  .consola__ahora {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .consola__eyebrow {
+    margin: 0 0 0.1rem;
     color: #98a2b3;
-    font-size: 0.75rem;
+    font-size: 0.68rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.06em;
   }
 
-  .muestras {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(2.75rem, 1fr));
-    gap: 0.45rem;
+  .consola__ref {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 700;
   }
 
-  .muestra {
-    width: 2.75rem;
-    height: 2.75rem;
-    border: 2px solid transparent;
-    border-radius: 0.5rem;
-    cursor: pointer;
-  }
-
-  .muestra--activa {
-    border-color: #f2f4f7;
-    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.45);
-  }
-
-  .opciones {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-  }
-
-  .opcion {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    min-height: 2.25rem;
-    padding: 0.35rem 0.8rem;
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    border-radius: var(--radius-pill);
-    background: transparent;
-    color: #f2f4f7;
-    font: inherit;
-    font-size: 0.85rem;
+  .consola__ref--vacio {
+    color: #98a2b3;
     font-weight: 600;
-    cursor: pointer;
-    --icon-size: 0.9rem;
-
-    &:hover { background: rgba(255, 255, 255, 0.1); }
   }
 
-  .opcion--activa {
-    border-color: #f2f4f7;
-    background: rgba(255, 255, 255, 0.16);
+  // Una sola línea: es un recordatorio de qué hay puesto, no el texto para
+  // leerlo. Leerlo es lo que hace la congregación en la otra pantalla.
+  .consola__texto {
+    margin: 0;
+    overflow: hidden;
+    color: #aeb6c2;
+    font-size: 0.82rem;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
 
-  .controles {
-    position: absolute;
-    right: 1rem;
-    bottom: 1rem;
-    z-index: 2;
+  .consola__pasos {
     display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.45rem 0.6rem;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    border-radius: var(--radius-pill);
-    background: rgba(20, 24, 30, 0.86);
-    transition: opacity var(--motion-base, 200ms) ease;
+    gap: 0.4rem;
+    flex: 0 0 auto;
 
     button {
       display: inline-grid;
       place-items: center;
-      // 2.25rem = 36px: por encima del mínimo de 24 px de objetivo táctil
-      // (WCAG 2.5.8) y cómodo de acertar con prisa.
-      width: 2.25rem;
-      height: 2.25rem;
-      border: 0;
+      width: 2.6rem;
+      height: 2.6rem;
+      border: 1px solid rgba(255, 255, 255, 0.18);
       border-radius: 50%;
       background: transparent;
       color: #f2f4f7;
       cursor: pointer;
-      --icon-size: 1.05rem;
+      --icon-size: 1.1rem;
 
-      &:hover { background: rgba(255, 255, 255, 0.12); }
-    }
-  }
-
-  .controles__activo { background: rgba(255, 255, 255, 0.2) !important; }
-
-  .controles--ocultos {
-    opacity: 0;
-    // Sin esto seguirían recibiendo clics invisibles justo donde el operador
-    // toca para avanzar.
-    pointer-events: none;
-  }
-
-  // ── Móvil ─────────────────────────────────────────────────────────────────
-  //
-  // En el teléfono esto no es «el equipo que proyecta»: es alguien leyendo
-  // versículo a versículo en la mano, y la proyección resulta ser una forma
-  // muy cómoda de hacerlo. Con los controles en la esquina derecha hacían falta
-  // dos manos y aun así quedaban fuera del alcance del pulgar.
-  //
-  // Centrados y algo más arriba: sobre esa franja inferior es donde el
-  // navegador móvil enseña y esconde su propia barra de direcciones.
-  @media (max-width: 40rem) {
-    .controles {
-      right: auto;
-      left: 50%;
-      bottom: 1.5rem;
-      transform: translateX(-50%);
-      // Caben ocho botones justos en una pantalla estrecha; si no, se parten en
-      // dos filas en vez de salirse por los lados.
-      flex-wrap: wrap;
-      justify-content: center;
-      max-width: calc(100vw - 1.5rem);
-
-      button {
-        // 2.6rem = 42px: por encima del objetivo táctil mínimo y cómodo para el
-        // pulgar, que es con lo que se usa aquí.
-        width: 2.6rem;
-        height: 2.6rem;
-        --icon-size: 1.15rem;
+      &:hover:not(:disabled) {
+        background: rgba(255, 255, 255, 0.12);
+      }
+      &:disabled {
+        opacity: 0.3;
+        cursor: default;
       }
     }
+  }
 
-    // El panel se apoya justo encima de los controles, también centrado.
-    .panel {
-      right: auto;
-      left: 50%;
-      bottom: 5.25rem;
-      transform: translateX(-50%);
-      width: calc(100vw - 2rem);
+  // La botonera va dentro de la franja y no flotando en una esquina: aquí no
+  // hay lámina que respetar, así que se coloca en el flujo.
+  .consola :global(.controles) {
+    position: static;
+    flex: 0 0 auto;
+  }
+
+  // Los paneles sí flotan, pero hacia ARRIBA: abajo está el borde de la
+  // pantalla y se salían fuera.
+  .consola :global(.panel) {
+    bottom: calc(100% + 0.5rem);
+  }
+
+  // Y la página deja sitio para la franja, o el último resultado de la
+  // búsqueda queda debajo y no hay forma de pulsarlo.
+  .antesala--consola {
+    padding-bottom: 7rem;
+  }
+
+  @media (max-width: 40rem) {
+    .consola {
+      flex-wrap: wrap;
+      gap: 0.5rem 0.75rem;
     }
 
-    // Y el texto respira: en vertical, el relleno lateral de escritorio se
-    // comía media línea por lado.
-    .proyeccion { padding: 1.25rem 1rem 5.5rem; }
-
-    .lamina { max-width: 100%; }
+    .consola__ahora {
+      flex-basis: 100%;
+    }
   }
 
-  .controles__posicion {
-    padding: 0 0.35rem;
-    color: #98a2b3;
-    font-size: 0.8rem;
-    font-variant-numeric: tabular-nums;
-    font-weight: 700;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .controles { transition: none; }
+  // ── La ventana proyectada ─────────────────────────────────────────────────
+  //
+  // La instrucción de montaje, arriba y centrada: abajo a la derecha se habría
+  // superpuesto con la marca de agua.
+  .pista-pantalla {
+    position: absolute;
+    top: 1.25rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 4;
+    max-width: min(34rem, calc(100vw - 2rem));
+    margin: 0;
+    padding: 0.6rem 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: var(--radius-pill);
+    background: rgba(20, 24, 30, 0.9);
+    color: #f2f4f7;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-align: center;
   }
 </style>

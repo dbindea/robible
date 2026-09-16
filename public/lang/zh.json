@@ -1031,7 +1031,13 @@
       "animation_none": "无",
       "animation_fade": "淡入",
       "animation_slide": "滑入",
-      "animation_zoom": "缩放"
+      "animation_zoom": "缩放",
+      "open_screen": "投影到第二个屏幕",
+      "open_screen_hint": "会打开一个新窗口：把它拖到投影仪上并按 F11。笔记本电脑保持可用，可以在不中断投影的情况下查找下一节经文。",
+      "window_blocked": "浏览器拦截了该窗口。请为 robible.com 允许弹出窗口后重试。",
+      "screen_hint": "把这个窗口拖到投影仪上，按 F11 进入全屏。",
+      "on_screen": "当前画面",
+      "screen_waiting": "选择一节经文开始投影。"
     },
     "projection_landing": {
       "seo_title": "教会投影 | RoBible",
