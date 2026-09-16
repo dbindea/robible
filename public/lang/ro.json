@@ -1031,7 +1031,13 @@
       "animation_none": "Fără",
       "animation_fade": "Estompare",
       "animation_slide": "Glisare",
-      "animation_zoom": "Apropiere"
+      "animation_zoom": "Apropiere",
+      "open_screen": "Proiectează pe al doilea ecran",
+      "open_screen_hint": "Se deschide o fereastră nouă: trage-o pe proiector și apasă F11. Laptopul rămâne liber, ca să cauți versetul următor fără să oprești proiecția.",
+      "window_blocked": "Browserul a blocat fereastra. Permite ferestrele pop-up pentru robible.com și încearcă din nou.",
+      "screen_hint": "Trage această fereastră pe proiector și apasă F11 pentru ecran complet.",
+      "on_screen": "Pe ecran acum",
+      "screen_waiting": "Alege un verset ca să înceapă proiecția."
     },
     "projection_landing": {
       "seo_title": "Proiecție pentru biserici | RoBible",

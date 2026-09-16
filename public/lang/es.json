@@ -1031,7 +1031,13 @@
       "animation_none": "Ninguna",
       "animation_fade": "Fundido",
       "animation_slide": "Deslizar",
-      "animation_zoom": "Acercar"
+      "animation_zoom": "Acercar",
+      "open_screen": "Proyectar en la segunda pantalla",
+      "open_screen_hint": "Se abre una ventana nueva: arrástrala al proyector y pulsa F11. El portátil se queda libre para buscar el versículo siguiente sin cortar la proyección.",
+      "window_blocked": "El navegador ha bloqueado la ventana. Permite las ventanas emergentes para robible.com y vuelve a intentarlo.",
+      "screen_hint": "Arrastra esta ventana al proyector y pulsa F11 para pantalla completa.",
+      "on_screen": "En pantalla ahora",
+      "screen_waiting": "Elige un versículo para empezar a proyectar."
     },
     "projection_landing": {
       "seo_title": "Proyección para iglesias | RoBible",

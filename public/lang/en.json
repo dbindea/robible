@@ -1031,7 +1031,13 @@
       "animation_none": "None",
       "animation_fade": "Fade",
       "animation_slide": "Slide",
-      "animation_zoom": "Zoom"
+      "animation_zoom": "Zoom",
+      "open_screen": "Project on the second screen",
+      "open_screen_hint": "A new window opens: drag it to the projector and press F11. The laptop stays free, so you can look up the next verse without stopping the projection.",
+      "window_blocked": "The browser blocked the window. Allow pop-ups for robible.com and try again.",
+      "screen_hint": "Drag this window to the projector and press F11 for full screen.",
+      "on_screen": "On screen now",
+      "screen_waiting": "Pick a verse to start projecting."
     },
     "projection_landing": {
       "seo_title": "Projection for churches | RoBible",
