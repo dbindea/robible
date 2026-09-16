@@ -56,7 +56,12 @@
       "update_title": "Nueva versión disponible",
       "update_text": "Actualiza para usar la versión más reciente.",
       "update_action": "Actualizar",
-      "dismiss": "Ahora no"
+      "dismiss": "Ahora no",
+      "install_later": "Más tarde",
+      "install_never": "No mostrarme más esta opción",
+      "install_benefit_offline": "Lees sin internet, donde sea",
+      "install_benefit_screen": "Se abre a pantalla completa, sin la barra del navegador",
+      "install_benefit_fast": "Arranca al instante, como cualquier aplicación"
     },
     "sidebar": {
       "all_bible": "Toda la Biblia",
