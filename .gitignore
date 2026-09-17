@@ -36,3 +36,6 @@ dev.log
 # El histórico los conserva: recuperar el tamaño del repo exigiría reescribirlo.
 robible/
 
+
+# Paquete de iconos de Phosphor, descargado sólo para regenerar Icon.svelte
+.tmp-icons/

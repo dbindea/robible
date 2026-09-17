@@ -61,7 +61,10 @@
       "install_never": "No mostrarme más esta opción",
       "install_benefit_offline": "Lees sin internet, donde sea",
       "install_benefit_screen": "Se abre a pantalla completa, sin la barra del navegador",
-      "install_benefit_fast": "Arranca al instante, como cualquier aplicación"
+      "install_benefit_fast": "Arranca al instante, como cualquier aplicación",
+      "badge_eyebrow": "Descarga gratis",
+      "badge_action": "Instalar RoBible",
+      "badge_unavailable": "Ya instalada o no disponible en este navegador"
     },
     "sidebar": {
       "all_bible": "Toda la Biblia",
@@ -1042,7 +1045,11 @@
       "window_blocked": "El navegador ha bloqueado la ventana. Permite las ventanas emergentes para robible.com y vuelve a intentarlo.",
       "screen_hint": "Arrastra esta ventana al proyector y pulsa F11 para pantalla completa.",
       "on_screen": "En pantalla ahora",
-      "screen_waiting": "Elige un versículo para empezar a proyectar."
+      "screen_waiting": "Elige un versículo para empezar a proyectar.",
+      "screen_fullscreen": "Pantalla completa (F11)",
+      "screen_open": "La ventana de proyección está abierta",
+      "screen_open_hint": "Se queda en el proyector aunque pares los versículos. Para dejar paso a otro programa, pulsa Escape allí o pon la pantalla en negro — no hace falta volver a colocarla.",
+      "screen_close": "Cerrar la ventana de proyección"
     },
     "projection_landing": {
       "seo_title": "Proyección para iglesias | RoBible",

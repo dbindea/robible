@@ -71,6 +71,12 @@ const ICONOS = {
   // `expand` («pantalla completa»), que ya significa otra cosa en esta misma
   // aplicación — el modo inmersivo.
   projection: 'projector-screen',
+  // La SEGUNDA pantalla, la que se manda al proyector. Tiene que distinguirse
+  // de `projection` de un vistazo: los dos botones viven en la misma página
+  // —«Proiecție» en la barra y «Proyectar en la segunda pantalla» en la
+  // antesala— y con el mismo dibujo, con prisa, no se sabía cuál era cuál. Un
+  // monitor dice «otra pantalla»; la pantalla de trípode dice «proyectar».
+  monitor: 'monitor',
   // Dictado por voz. `microphone` con relleno cuando está escuchando, que es el
   // patrón de iOS que ya usa el resto de la aplicación.
   microphone: 'microphone',
@@ -99,8 +105,25 @@ const ICONOS = {
 // seleccionado. Generar `fill` para los treinta y tantos duplicaría el archivo
 // para nada.
 const CON_RELLENO = new Set([
-  'heart', 'bookmark', 'star', 'note', 'cross', 'sun', 'moon', 'shield', 'crown',
-  'dove', 'hands', 'flame', 'water', 'home', 'light', 'peace', 'play', 'pause', 'stop',
+  'heart',
+  'bookmark',
+  'star',
+  'note',
+  'cross',
+  'sun',
+  'moon',
+  'shield',
+  'crown',
+  'dove',
+  'hands',
+  'flame',
+  'water',
+  'home',
+  'light',
+  'peace',
+  'play',
+  'pause',
+  'stop',
   // El micrófono tiene estado: contorno en reposo, macizo mientras escucha.
   'microphone',
 ]);
@@ -120,9 +143,7 @@ const lineas = [];
 for (const [clave, nombre] of Object.entries(ICONOS)) {
   const reg = contenido('regular', nombre);
   const fil = CON_RELLENO.has(clave) ? contenido('fill', nombre) : null;
-  lineas.push(
-    `  '${clave}': {\n    regular: \`${reg}\`,${fil ? `\n    fill: \`${fil}\`,` : ''}\n  },`,
-  );
+  lineas.push(`  '${clave}': {\n    regular: \`${reg}\`,${fil ? `\n    fill: \`${fil}\`,` : ''}\n  },`);
 }
 
 const salida = `<script>

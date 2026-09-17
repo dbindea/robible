@@ -61,7 +61,10 @@
       "install_never": "Nu-mi mai arăta",
       "install_benefit_offline": "Citești fără internet, oriunde",
       "install_benefit_screen": "Se deschide pe tot ecranul, fără bara browserului",
-      "install_benefit_fast": "Pornește instant, ca orice aplicație"
+      "install_benefit_fast": "Pornește instant, ca orice aplicație",
+      "badge_eyebrow": "Descarcă gratuit",
+      "badge_action": "Instalează RoBible",
+      "badge_unavailable": "Deja instalată sau nedisponibilă în acest browser"
     },
     "sidebar": {
       "all_bible": "Toată Biblia",
@@ -1042,7 +1045,11 @@
       "window_blocked": "Browserul a blocat fereastra. Permite ferestrele pop-up pentru robible.com și încearcă din nou.",
       "screen_hint": "Trage această fereastră pe proiector și apasă F11 pentru ecran complet.",
       "on_screen": "Pe ecran acum",
-      "screen_waiting": "Alege un verset ca să înceapă proiecția."
+      "screen_waiting": "Alege un verset ca să înceapă proiecția.",
+      "screen_fullscreen": "Ecran complet (F11)",
+      "screen_open": "Fereastra de proiecție este deschisă",
+      "screen_open_hint": "Rămâne pe proiector chiar dacă oprești versetele. Ca să faci loc altui program, apasă Escape acolo sau pune ecranul negru — nu trebuie să o muți din nou.",
+      "screen_close": "Închide fereastra de proiecție"
     },
     "projection_landing": {
       "seo_title": "Proiecție pentru biserici | RoBible",

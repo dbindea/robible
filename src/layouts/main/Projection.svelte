@@ -400,12 +400,16 @@
   };
 
   const salir = () => {
-    // La ventana del segundo monitor se cierra con la proyección: dejarla
-    // abierta con el último versículo puesto delante de la congregación es
-    // justo lo que no puede pasar al pulsar «salir».
-    cerrarVentanaPantalla();
-    modo = 'antesala';
-    enNegro = false;
+    // La ventana del segundo monitor NO se cierra: se queda en negro.
+    //
+    // Es el cambio que pidió el uso real. Colocarla en el proyector cuesta
+    // arrastrarla y pulsar F11, y eso no se puede repetir cada vez que hay que
+    // dejar paso a una canción de otro programa. Cerrándola, volver a proyectar
+    // era rehacer toda la maniobra delante de la congregación; dejándola
+    // abierta y a oscuras, volver es elegir el versículo siguiente y ya está.
+    // Para cerrarla de verdad está su propio botón.
+    modo = ventanaPantalla && !ventanaPantalla.closed ? 'remoto' : 'antesala';
+    enNegro = modo === 'remoto';
     panelAbierto = '';
     pasajes = [];
     if (typeof document !== 'undefined' && document.fullscreenElement) {
@@ -437,6 +441,20 @@
   // la dependencia queda escondida en una función, el compilador no la ve y
   // deja de republicar (CLAUDE.md, trampa 23).
   $: if (modo === 'remoto' && canal) canal.enviar({ tipo: MENSAJES.ESTADO, estado: estadoPantalla });
+
+  /**
+   * Cerrar del todo: se acabó el culto.
+   *
+   * Es la única acción que obliga a volver a colocar la ventana en el
+   * proyector, así que está separada del botón de salir y con su propio texto.
+   */
+  const cerrarProyeccion = () => {
+    cerrarVentanaPantalla();
+    modo = 'antesala';
+    enNegro = false;
+    panelAbierto = '';
+    pasajes = [];
+  };
 
   const cerrarVentanaPantalla = () => {
     clearInterval(vigilanteVentana);
@@ -756,6 +774,23 @@
     enNegro: false,
   };
   let pistaPantalla = true;
+  let enPantallaCompleta = false;
+
+  /**
+   * Volver a pantalla completa desde la propia ventana proyectada.
+   *
+   * Tiene que ser un gesto EN ESTA ventana: la pantalla completa exige
+   * activación del usuario en el documento que la pide, así que no se puede
+   * pedir desde la consola por el canal. Como esta ventana está en el
+   * proyector, es un solo clic con el ratón — bastante mejor que arrastrar.
+   */
+  const ponerPantallaCompleta = async () => {
+    try {
+      await document.documentElement.requestFullscreen();
+    } catch {
+      // Si el navegador no deja, queda F11, que es lo que dice el botón.
+    }
+  };
 
   const montarPantalla = () => {
     const suCanal = abrirCanal((mensaje) => {
@@ -765,16 +800,33 @@
     // la pantalla se queda en negro hasta que alguien cambie de versículo.
     suCanal.enviar({ tipo: MENSAJES.LISTO });
 
-    // Las teclas de ESTA ventana se reenvían a la de control, que es la que
-    // manda: el mando de presentación suele dejar el foco aquí.
+    /**
+     * Las teclas de ESTA ventana se reenvían a la de control, que es la que
+     * manda: el mando de presentación suele dejar el foco aquí.
+     *
+     * **`F11` y `Escape` NO se reenvían**, y esto último costó el escenario
+     * real: Escape es la tecla con la que el navegador sale de pantalla
+     * completa, así que el operador la pulsa para dejar paso a otro programa
+     * —una canción, un vídeo—. Reenviada, llegaba al control como «salir de la
+     * proyección» y CERRABA esta ventana: había que volver a arrastrarla al
+     * proyector y volver a pulsar F11, en mitad del culto. Aquí Escape
+     * significa una sola cosa: salir de pantalla completa.
+     */
     const alTeclear = (e) => {
-      if (e.key === 'F11') return; // pantalla completa la maneja el navegador
+      if (e.key === 'F11' || e.key === 'Escape') return;
       suCanal.enviar({ tipo: MENSAJES.TECLA, key: e.key });
     };
     const alCerrar = () => suCanal.enviar({ tipo: MENSAJES.CERRANDO });
 
+    // Para saber si hay que ofrecer el botón de volver a pantalla completa.
+    const alCambiarPantallaCompleta = () => {
+      enPantallaCompleta = !!document.fullscreenElement;
+    };
+
     window.addEventListener('keydown', alTeclear);
     window.addEventListener('pagehide', alCerrar);
+    document.addEventListener('fullscreenchange', alCambiarPantallaCompleta);
+    alCambiarPantallaCompleta();
     // La pista de «ponla a pantalla completa» sobra en cuanto se ha leído.
     const quitarPista = setTimeout(() => (pistaPantalla = false), 8000);
 
@@ -782,6 +834,7 @@
       clearTimeout(quitarPista);
       window.removeEventListener('keydown', alTeclear);
       window.removeEventListener('pagehide', alCerrar);
+      document.removeEventListener('fullscreenchange', alCambiarPantallaCompleta);
       alCerrar();
       suCanal.cerrar();
     };
@@ -829,8 +882,20 @@
   >
     <!-- Cómo dejarla lista, y se quita sola a los ocho segundos: es una
          instrucción de montaje, no parte de la proyección. -->
-    {#if pistaPantalla}
+    {#if pistaPantalla && !enPantallaCompleta}
       <p class="pista-pantalla">{$_('app.projection.screen_hint')}</p>
+    {/if}
+
+    <!-- Volver a pantalla completa, de un clic.
+         Sale SÓLO cuando no lo está, así que durante el culto no se ve nunca.
+         Existe porque salir de pantalla completa es lo normal —se pulsa Escape
+         para dejar paso a otro programa— y volver a entrar no puede costar
+         arrastrar la ventana otra vez. -->
+    {#if !enPantallaCompleta}
+      <button type="button" class="volver-completa" on:click={ponerPantallaCompleta}>
+        <Icon name="expand" size="1.1rem" />
+        {$_('app.projection.screen_fullscreen')}
+      </button>
     {/if}
   </ProjectionSurface>
 {:else if modo !== 'local'}
@@ -946,14 +1011,31 @@
          proyectando. -->
     {#if modo === 'antesala' && soportaCanal()}
       <div class="dos-pantallas">
+        <!-- Icono de MONITOR, no el de proyección: el de proyección ya está en
+             la barra de arriba, a dos dedos de aquí, y con el mismo dibujo en
+             los dos botones nadie acertaba con prisa cuál era cuál. -->
         <button type="button" class="dos-pantallas__boton" on:click={abrirSegundaPantalla}>
-          <Icon name="projection" />
+          <Icon name="monitor" />
           {$_('app.projection.open_screen')}
         </button>
         <p class="dos-pantallas__pista">{$_('app.projection.open_screen_hint')}</p>
         {#if avisoPantalla}
           <p class="dos-pantallas__aviso" role="alert">{avisoPantalla}</p>
         {/if}
+      </div>
+    {:else if modo === 'remoto'}
+      <!-- La ventana ya está colocada en el proyector. Lo que hace falta aquí
+           es RECORDARLO —para que nadie la vuelva a abrir por las bravas— y
+           dar la única salida que no es reversible: cerrarla. -->
+      <div class="dos-pantallas dos-pantallas--abierta">
+        <p class="dos-pantallas__estado">
+          <Icon name="monitor" size="1rem" />
+          {$_('app.projection.screen_open')}
+        </p>
+        <p class="dos-pantallas__pista">{$_('app.projection.screen_open_hint')}</p>
+        <button type="button" class="dos-pantallas__cerrar" on:click={cerrarProyeccion}>
+          {$_('app.projection.screen_close')}
+        </button>
       </div>
     {/if}
 
@@ -1370,6 +1452,77 @@
     color: var(--color-danger-ink);
     font-size: 0.8rem;
     font-weight: 600;
+  }
+
+  // Con la ventana ya colocada, esta caja deja de ser una invitación y pasa a
+  // ser un estado: verde apagado en vez del acento, que es el color de «pulsa
+  // aquí».
+  .dos-pantallas--abierta {
+    border-color: color-mix(in srgb, var(--color-success) 40%, transparent);
+    background: color-mix(in srgb, var(--color-success) 8%, transparent);
+  }
+
+  .dos-pantallas__estado {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+    color: var(--color-success-ink);
+    font-size: var(--font-size-small);
+    font-weight: 700;
+    --icon-size: 1rem;
+  }
+
+  .dos-pantallas__cerrar {
+    min-height: 2.25rem;
+    padding: 0 0.9rem;
+    border: 1px solid var(--color-line-strong);
+    border-radius: var(--radius-pill);
+    background: transparent;
+    color: var(--color-ink-soft);
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:hover {
+      border-color: var(--color-danger);
+      color: var(--color-danger-ink);
+    }
+  }
+
+  // ── Volver a pantalla completa (ventana proyectada) ───────────────────────
+  //
+  // Grande y abajo del todo: se pulsa con el ratón en la pantalla del
+  // proyector, sin precisión y con prisa. ABAJO y no en el centro porque en el
+  // centro está el versículo — puesto ahí tapaba justo la línea que hay que
+  // leer. Sólo existe fuera de pantalla completa, así que durante el culto no
+  // se ve nunca.
+  .volver-completa {
+    position: absolute;
+    bottom: 7%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 4;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-height: 3.25rem;
+    padding: 0 1.6rem;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    border-radius: var(--radius-pill);
+    background: rgba(20, 24, 30, 0.88);
+    color: #f2f4f7;
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    --icon-size: 1.1rem;
+
+    &:hover {
+      background: rgba(20, 24, 30, 0.96);
+      border-color: rgba(255, 255, 255, 0.45);
+    }
   }
 
   // ── Consola del modo remoto ───────────────────────────────────────────────
