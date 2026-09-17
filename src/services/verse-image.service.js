@@ -119,12 +119,21 @@ export const IMAGE_BACKGROUNDS = [
     glow: 'rgba(120, 220, 240, 0.16)',
     ink: '#EAF7FB',
     accent: 'rgba(146, 226, 240, 0.92)',
-    // La cresta se dibuja con una curva en un SVG embebido, la misma que usa
-    // la capa animada. Con `radial-gradient` recortado salía una fila de arcos
-    // de medio punto —un acueducto, no el mar—: un círculo no es una ola.
+    // La cresta se dibuja con una curva en un SVG embebido, la misma que usa la
+    // capa animada. Dos reglas que no son opcionales:
+    //
+    //   `no-repeat`            repitiendo la baldosa, su borde inferior es una
+    //                          línea perfectamente horizontal que cruza la
+    //                          proyección de lado a lado.
+    //   `0 100%` + relleno
+    //   hasta el fondo del SVG el dibujo se ancla abajo y el color llega al
+    //                          borde de la pantalla, así que no queda corte.
+    //
+    // Esto lo pinta `--fondo` a pantalla completa, no sólo la muestra de 44 px
+    // del selector: lo que aquí sea una raya, allí es una raya de dos metros.
     swatch:
-      "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 40' preserveAspectRatio='none'%3E%3Cpath d='M0 14 Q 15 2 30 14 T 60 14 T 90 14 T 120 14 V40 H0 Z' fill='%235FD4E4' fill-opacity='.24'/%3E%3C/svg%3E\") repeat-x 0 76% / 55% 34%," +
-      "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 40' preserveAspectRatio='none'%3E%3Cpath d='M0 16 Q 30 4 60 16 T 120 16 V40 H0 Z' fill='%235FD4E4' fill-opacity='.14'/%3E%3C/svg%3E\") repeat-x 0 58% / 80% 40%," +
+      "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 80' preserveAspectRatio='none'%3E%3Cpath d='M0 26 C 22 12 44 32 68 24 S 104 8 132 26 S 172 38 198 22 S 226 14 240 28 V80 H0 Z' fill='%235FD4E4' fill-opacity='.20'/%3E%3C/svg%3E\") no-repeat 0 100% / 100% 44%," +
+      "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 80' preserveAspectRatio='none'%3E%3Cpath d='M0 40 C 44 28 78 50 120 40 S 190 26 240 42 V80 H0 Z' fill='%235FD4E4' fill-opacity='.10'/%3E%3C/svg%3E\") no-repeat 0 100% / 100% 66%," +
       'linear-gradient(150deg, #0B3A4A, #062430)',
   },
   {

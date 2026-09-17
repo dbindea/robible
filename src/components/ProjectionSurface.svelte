@@ -206,106 +206,99 @@
       radial-gradient(1px 1px at 47% 44%, rgba(244, 247, 255, 0.4), transparent);
   }
 
-  /* ── Agua ─────────────────────────────────────────────────────────────
-     Crestas de ola, no bandas de luz: las bandas se leían como un degradado a
-     rayas. Cada fila es un círculo transparente hasta el 66 % del radio y con
-     color a partir de ahí, repetido en horizontal — eso deja exactamente el
-     arco de una ola.
+  /* ── Agua, nubes y vapor: sin mosaico ───────────────────────────────────
+     Los tres se dibujaban repitiendo una baldosa en horizontal, y eso traía
+     dos problemas que se veían en la pantalla grande:
 
-     El bucle es SIN COSTURA porque cada capa se desplaza justo el ancho de una
-     baldosa (`background-size`) y vuelve a empezar donde estaba. Si se cambia
-     un `background-size` hay que cambiar su `@keyframes`, o el mar da un salto
-     cada vuelta. */
-  /* Una onda DE VERDAD, dibujada con una curva en un SVG embebido. El primer
-     intento las hacía con `radial-gradient` recortado y el resultado era una
-     fila de arcos de medio punto: parecía un acueducto, no el mar. Un círculo
-     no es una ola por mucho que se recorte; una senoide sí.
+     - **Un corte recto que se desliza.** El borde de la baldosa es una línea
+       perfectamente horizontal, y al moverse cruzaba la proyección de lado a
+       lado. Es lo que delataba el truco.
+     - **Simetría.** Una baldosa que se repite es, por definición, un patrón: a
+       los pocos segundos se le ve el ritmo. Las nubes salían circulares y la
+       niebla acompasada, cuando lo que se pide es justo lo contrario — humo,
+       que no se sabe adónde va.
 
-     Tres detalles que costaron una vuelta cada uno:
+     Ahora no hay baldosa: cada capa es UNA sola imagen, más ancha y más alta
+     que la pantalla (`no-repeat`), y se mueve poco y en `alternate` — va y
+     vuelve por el mismo camino, así que no hay salto de bucle ni borde que
+     pueda entrar en cuadro.
 
-     - Las capas se anclan ABAJO (`background-position: 0 100%`) y la baldosa es
-       mucho más alta que la ola. Con baldosas bajas, el relleno terminaba en el
-       borde inferior de la baldosa y dejaba una raya horizontal recta cruzando
-       la pantalla debajo de cada fila de olas.
-     - Por eso el desbordamiento de esta capa es sólo LATERAL (`inset: 0 -30%`):
-       el movimiento es horizontal, y desbordando también por abajo el anclaje
-       se iba fuera de la pantalla y las olas desaparecían.
-     - `preserveAspectRatio='none'` es lo que deja estirar la baldosa a lo alto
-       sin que la ola se haga enorme: la curva se deforma con ella. */
+     Lo que rompe la simetría son tres cosas a la vez: formas de proporciones
+     distintas y posiciones sin orden, `filter: blur()` que las funde en manchas
+     irregulares, y dos capas girando en sentidos contrarios con periodos que no
+     son múltiplos entre sí. Dos ciclos de 37 y 53 segundos tardan media hora en
+     volver a coincidir; un culto se acaba antes. */
+
+  /* ── Agua ──────────────────────────────────────────────────────────── */
   .proyeccion--water::before,
   .proyeccion--water::after {
-    inset: 0 -30%;
+    inset: 0 -20%;
   }
 
+  /* Las crestas son curvas irregulares escritas a mano —amplitudes desiguales,
+     ningún periodo exacto—, no una senoide: una senoide perfecta se reconoce
+     como dibujo, y el mar no tiene dos olas iguales. */
   .proyeccion--water::before {
     background-image:
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 60' preserveAspectRatio='none'%3E%3Cpath d='M0 12 Q 15 3 30 12 T 60 12 T 90 12 T 120 12 V60 H0 Z' fill='%235FD4E4' fill-opacity='.20'/%3E%3C/svg%3E"),
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 60' preserveAspectRatio='none'%3E%3Cpath d='M0 10 Q 30 2 60 10 T 120 10 V60 H0 Z' fill='%235FD4E4' fill-opacity='.12'/%3E%3C/svg%3E");
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 80' preserveAspectRatio='none'%3E%3Cpath d='M0 26 C 22 12 44 32 68 24 S 104 8 132 26 S 172 38 198 22 S 226 14 240 28 V80 H0 Z' fill='%235FD4E4' fill-opacity='.20'/%3E%3C/svg%3E"),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 80' preserveAspectRatio='none'%3E%3Cpath d='M0 34 C 30 22 52 44 84 34 S 128 18 160 36 S 206 46 240 30 V80 H0 Z' fill='%235FD4E4' fill-opacity='.13'/%3E%3C/svg%3E");
     background-size:
-      260px 300px,
-      260px 430px;
-    background-repeat: repeat-x, repeat-x;
+      190% 46%,
+      210% 64%;
+    background-repeat: no-repeat, no-repeat;
     background-position:
       0 100%,
       0 100%;
-    animation: olas-cerca 13s linear infinite;
+    animation: agua-cerca 37s ease-in-out infinite alternate;
   }
 
-  /* La fila de fondo, más ancha y en sentido contrario: dos capas cruzándose
-     es lo que hace que parezca agua y no un friso que se desliza. */
   .proyeccion--water::after {
-    content: '';
-    position: absolute;
-    inset: -25%;
-    pointer-events: none;
-    will-change: transform;
-    // Dos crestas y no una: con una sola curva a lo ancho de toda la baldosa el
-    // borde quedaba casi recto y se leía como una regla cruzando la pantalla.
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 60' preserveAspectRatio='none'%3E%3Cpath d='M0 9 Q 30 1 60 9 T 120 9 V60 H0 Z' fill='%235FD4E4' fill-opacity='.08'/%3E%3C/svg%3E");
-    background-size: 520px 560px;
-    background-repeat: repeat-x;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 80' preserveAspectRatio='none'%3E%3Cpath d='M0 40 C 44 28 78 50 120 40 S 190 26 240 42 V80 H0 Z' fill='%235FD4E4' fill-opacity='.08'/%3E%3C/svg%3E");
+    background-size: 230% 82%;
+    background-repeat: no-repeat;
     background-position: 0 100%;
-    animation: olas-lejos 23s linear infinite;
+    animation: agua-lejos 53s ease-in-out infinite alternate;
   }
 
-  // El desplazamiento es EXACTAMENTE el ancho de una baldosa, así que el bucle
-  // no tiene costura: acaba donde empezó. Si se cambia un `background-size`,
-  // hay que cambiar aquí el mismo número o el mar dará un salto cada vuelta.
-  @keyframes olas-cerca {
+  @keyframes agua-cerca {
+    from {
+      transform: translate3d(-4%, 0.6%, 0);
+    }
     to {
-      transform: translate3d(-260px, 0, 0);
+      transform: translate3d(4%, -0.6%, 0);
     }
   }
 
-  @keyframes olas-lejos {
+  @keyframes agua-lejos {
+    from {
+      transform: translate3d(3%, -0.4%, 0);
+    }
     to {
-      transform: translate3d(520px, 0, 0);
+      transform: translate3d(-3%, 0.4%, 0);
     }
   }
 
-  /* ── Nubes ────────────────────────────────────────────────────────────
-     Un cielo despejado. Se desplazan en porcentaje y no en píxeles: la baldosa
-     mide el 50 % del ancho de la capa, así que moverse un 50 % la deja
-     exactamente donde estaba, quepa lo que quepa en la pantalla. */
-  /* Cada nube son CUATRO lóbulos solapados con la base más plana que la
-     cúspide, no una mancha redonda: con un solo degradado por nube parecían
-     pompas de jabón flotando. Las cuatro capas comparten `background-size`,
-     `repeat` y `position`, así que sus baldosas caen alineadas y los lóbulos
-     se juntan siempre formando la misma nube. */
+  /* ── Nubes ─────────────────────────────────────────────────────────────
+     Sin las pequeñas, que parecían pompas de jabón, y las grandes bien
+     difuminadas. El desenfoque va sobre una capa que sólo se transforma, así
+     que el navegador lo rasteriza una vez y a partir de ahí sólo compone: no
+     se vuelve a calcular en cada fotograma. */
+  .proyeccion--clouds::before,
+  .proyeccion--clouds::after {
+    filter: blur(26px);
+  }
+
   .proyeccion--clouds::before {
     background-image:
-      radial-gradient(ellipse 13% 15% at 30% 60%, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0) 62%),
-      radial-gradient(ellipse 17% 21% at 46% 44%, rgba(255, 255, 255, 0.96) 0%, rgba(255, 255, 255, 0) 62%),
-      radial-gradient(ellipse 14% 16% at 62% 54%, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0) 62%),
-      radial-gradient(ellipse 24% 9% at 46% 68%, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0) 66%);
-    background-size: 50% 46%;
-    background-repeat: repeat-x;
-    background-position: 0 14%;
-    animation: nubes-altas 70s linear infinite;
+      radial-gradient(ellipse 19% 13% at 18% 26%, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0) 64%),
+      radial-gradient(ellipse 13% 17% at 31% 19%, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0) 66%),
+      radial-gradient(ellipse 24% 10% at 62% 33%, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0) 62%),
+      radial-gradient(ellipse 11% 15% at 73% 24%, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0) 66%),
+      radial-gradient(ellipse 17% 9% at 88% 44%, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0) 64%);
+    background-repeat: no-repeat;
+    animation: nubes-a 37s ease-in-out infinite alternate;
   }
 
-  /* Las de abajo, más pequeñas y más lentas: es la parte que da la sensación
-     de distancia. */
   .proyeccion--clouds::after {
     content: '';
     position: absolute;
@@ -313,48 +306,86 @@
     pointer-events: none;
     will-change: transform;
     background-image:
-      radial-gradient(ellipse 12% 14% at 38% 56%, rgba(255, 255, 255, 0.62) 0%, rgba(255, 255, 255, 0) 64%),
-      radial-gradient(ellipse 15% 18% at 54% 44%, rgba(255, 255, 255, 0.66) 0%, rgba(255, 255, 255, 0) 64%),
-      radial-gradient(ellipse 20% 8% at 50% 64%, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0) 68%);
-    background-size: 40% 34%;
-    background-repeat: repeat-x;
-    background-position: 0 66%;
-    animation: nubes-bajas 110s linear infinite;
+      radial-gradient(ellipse 27% 11% at 34% 61%, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0) 66%),
+      radial-gradient(ellipse 15% 18% at 12% 72%, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0) 68%),
+      radial-gradient(ellipse 21% 12% at 79% 68%, rgba(255, 255, 255, 0.66), rgba(255, 255, 255, 0) 66%);
+    background-repeat: no-repeat;
+    animation: nubes-b 53s ease-in-out infinite alternate;
   }
 
-  @keyframes nubes-altas {
+  // Giro además del desplazamiento: es lo que hace que dos manchas que se
+  // cruzan no vuelvan a cruzarse igual, y lo que le quita el aire de «círculos
+  // que van de lado».
+  @keyframes nubes-a {
+    from {
+      transform: translate3d(-5%, -1.5%, 0) rotate(-1.2deg) scale(1.02);
+    }
     to {
-      transform: translate3d(-50%, 0, 0);
+      transform: translate3d(5%, 1.5%, 0) rotate(1.2deg) scale(1.1);
     }
   }
 
-  @keyframes nubes-bajas {
+  @keyframes nubes-b {
+    from {
+      transform: translate3d(4%, 1%, 0) rotate(1.6deg) scale(1.08);
+    }
     to {
-      transform: translate3d(-40%, 0, 0);
+      transform: translate3d(-4%, -1%, 0) rotate(-1.6deg) scale(1);
     }
   }
 
-  /* ── Vapor ────────────────────────────────────────────────────────────
-     Jirones que suben desde el campo. La máscara es lo que lo convierte en
-     vapor y no en niebla uniforme: denso abajo, deshecho arriba. Donde no haya
-     soporte de máscara se ve parejo, que sigue siendo aceptable. */
+  /* ── Vapor ─────────────────────────────────────────────────────────────
+     Humo, no niebla: jirones alargados de proporciones distintas, muy
+     difuminados, subiendo y girando a destiempo. La máscara los deja densos
+     junto al suelo y deshechos arriba, que es lo que los hace vapor que se
+     levanta y no una bruma parada. */
+  .proyeccion--mist::before,
+  .proyeccion--mist::after {
+    filter: blur(30px);
+    -webkit-mask-image: linear-gradient(to top, #000 8%, rgba(0, 0, 0, 0.5) 42%, transparent 86%);
+    mask-image: linear-gradient(to top, #000 8%, rgba(0, 0, 0, 0.5) 42%, transparent 86%);
+  }
+
   .proyeccion--mist::before {
     background-image:
-      radial-gradient(ellipse 60% 5% at 38% 50%, rgba(255, 255, 255, 0.34) 0%, rgba(255, 255, 255, 0) 70%),
-      radial-gradient(ellipse 70% 4% at 66% 82%, rgba(255, 255, 255, 0.26) 0%, rgba(255, 255, 255, 0) 70%);
-    background-size: 100% 30%;
-    background-repeat: repeat-y;
-    -webkit-mask-image: linear-gradient(to top, #000 12%, rgba(0, 0, 0, 0.45) 45%, transparent 88%);
-    mask-image: linear-gradient(to top, #000 12%, rgba(0, 0, 0, 0.45) 45%, transparent 88%);
-    animation: vapor 26s linear infinite;
+      radial-gradient(ellipse 34% 7% at 28% 74%, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0) 68%),
+      radial-gradient(ellipse 22% 11% at 57% 62%, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0) 70%),
+      radial-gradient(ellipse 41% 6% at 76% 83%, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0) 66%);
+    background-repeat: no-repeat;
+    animation: vapor-a 41s ease-in-out infinite alternate;
   }
 
-  @keyframes vapor {
+  .proyeccion--mist::after {
+    content: '';
+    position: absolute;
+    inset: -25%;
+    pointer-events: none;
+    will-change: transform;
+    background-image:
+      radial-gradient(ellipse 28% 9% at 44% 88%, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0) 68%),
+      radial-gradient(ellipse 18% 13% at 15% 66%, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0) 72%),
+      radial-gradient(ellipse 31% 8% at 88% 58%, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0) 70%);
+    background-repeat: no-repeat;
+    animation: vapor-b 59s ease-in-out infinite alternate;
+  }
+
+  @keyframes vapor-a {
+    from {
+      transform: translate3d(-3%, 5%, 0) rotate(-0.8deg) scale(1);
+    }
     to {
-      transform: translate3d(0, -30%, 0);
+      transform: translate3d(3%, -6%, 0) rotate(0.8deg) scale(1.14);
     }
   }
 
+  @keyframes vapor-b {
+    from {
+      transform: translate3d(3%, 4%, 0) rotate(1deg) scale(1.1);
+    }
+    to {
+      transform: translate3d(-2%, -7%, 0) rotate(-1deg) scale(1);
+    }
+  }
   // Deriva y un punto de escala: las nubes se separan y se juntan sin llegar a
   // cruzarse, que es lo que haría que se notara el bucle. El recorrido cabe de
   // sobra en el margen que da `inset: -25%`.
