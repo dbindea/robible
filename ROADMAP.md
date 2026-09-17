@@ -1,7 +1,7 @@
 # RoBible — Roadmap
 
 > Documento vivo. Actualizado en cada milestone.
-> Última actualización: **12 sep 2026** (Panel de administración, perfil ampliado con datos opcionales, analíticas propias sin IP, y tres retoques públicos: temas al azar, enlace a la guía y footer completo)
+> Última actualización: **17 sep 2026** — se cierra la tanda de desarrollo. Ver [Estado al cerrar el desarrollo](#estado-al-cerrar-el-desarrollo-17-sep-2026), que es la sección por la que hay que empezar al retomar.
 
 > Documentación de referencia: [CLAUDE.md](CLAUDE.md) · [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) · [docs/OPERACIONES.md](docs/OPERACIONES.md)
 > Deuda técnica detectada: [docs/AUDITORIA-2026-09-04.md](docs/AUDITORIA-2026-09-04.md)
@@ -10,13 +10,13 @@
 
 ## Resumen ejecutivo
 
-RoBible es una app web (PWA) de la Biblia con soporte offline, auth multi-device, índice temático (con temas compartibles), favoritos, notas y subrayados sincronizados, memorización de versículos, lectura acompañada de música y un módulo completo de preparación de predicaciones con Modo Amvon. **Cuatro** Biblias con datos (`vdc`, `rvl`, `en_kjv`, `zh_cuv`) e interfaz traducida a cuatro idiomas. Construida con Svelte 5 + Vite, SCSS, datos JSON estáticos, backend en Cloudflare Workers + D1.
+RoBible es una app web (PWA) de la Biblia con soporte offline, auth multi-device, índice temático (con temas compartibles), favoritos, notas y subrayados sincronizados, memorización de versículos, lectura acompañada de música, dictado por voz de la referencia, un módulo completo de preparación de predicaciones con Modo Amvon y un Modo Proyección en dos ventanas para la pantalla de la iglesia. **Siete** Biblias con datos —cuatro públicas (`vdc`, `rvl`, `en_kjv`, `zh_cuv`) y tres en español que no se indexan (`es_rv1909`, `es_vbl`, `es_pdt`)— e interfaz traducida a cuatro idiomas. Construida con Svelte 5 + Vite, SCSS, datos JSON estáticos, backend en Cloudflare Workers + D1.
 
 **Stack:**
 - Frontend: Svelte 5 (sintaxis legacy, no runes) + Vite 8, SCSS themeable (light/dark)
-- Data: JSON estáticos en `/public/data/{vdc,rvl,en_kjv,zh_cuv}/bible.{map,json}` — entre 3 y 4,3 MB por Biblia
+- Data: JSON estáticos en `/public/data/{vdc,rvl,es_rv1909,es_vbl,es_pdt,en_kjv,zh_cuv}/bible.{map,json}` — entre 1 y 4,3 MB por Biblia
 - i18n: propio, sin librería. JSON en `/public/lang/{ro,es,en,zh}.json`
-- PWA: manifest + service worker (cache-first, versiones) — hoy `robible-v31`
+- PWA: manifest + service worker (cache-first, versiones) — hoy `robible-v32`
 - Rutas: path-based custom (parsea `window.location.pathname`)
 - Backend: Cloudflare Workers (`robible-api`) + D1 (`robible-db`), router Hono
 - Auth: PBKDF2 + HMAC tokens persistidos en D1 (revocables), TTL 30 días
@@ -26,10 +26,11 @@ RoBible es una app web (PWA) de la Biblia con soporte offline, auth multi-device
 - Backend: `https://robible-api.robible.workers.dev`
 - CORS: `robible.com`, `www.robible.com`, `robible.app`, `www.robible.app`, `localhost:5173`, `127.0.0.1:5173`
 
-**Workflow git (importante):**
-- Frontend → lo maneja el usuario (commits, PRs, merges)
-- Backend → lo maneja el agente (deploys, tests, scripts)
-- El agente **NO** debe hacer `git commit` / `push` / `PR` / `merge` de archivos frontend
+**Workflow git (importante) — cambiado el 14 sep 2026:**
+- El agente **sí** commitea y empuja a `develop`, también el frontend. Antes era al revés y esta misma sección decía lo contrario; se levantó porque el control editorial se ejerce en el merge a `master`, no en cada commit.
+- **`master` es del propietario**: sólo recibe merges hechos por él. El agente no abre PR, no mergea y no trabaja sobre `master`.
+- El agente gestiona además backend (`workers/`), deploys a Cloudflare, queries a D1 y scripts.
+- La fuente de verdad de esta regla es `CLAUDE.md` → «Reglas de trabajo». Si las dos discrepan, manda `CLAUDE.md`.
 
 ---
 
@@ -296,35 +297,39 @@ Cuándo revisar: cada release mayor (Phase 4.1, 4.6, etc.) + cada 3 meses como m
 
 ---
 
-## Siguiente release
+## Estado al cerrar el desarrollo (17 sep 2026)
 
-Estado a **9 sep 2026**. La aplicación está desplegada y funcionando; esto es lo que queda.
+El propietario cerró la tanda ese día para **ponerse a usar la aplicación en producción** y volver más adelante con lo que vaya saliendo. Al retomar, el modo por defecto es **corregir síntomas reales**, no empezar funciones nuevas.
 
-### Listo para subir (en el árbol de trabajo, sin commitear)
+**Todo lo de septiembre está en `develop` y sin desplegar.** El merge a `master` lo hace él, y es un despliegue grande: módulo de proyección en dos ventanas, pie con donaciones PayPal, tres versiones bíblicas más, interruptor de versiones en «Mi cuenta», dictado por voz, panel de administración y once fondos animados.
 
-| Qué | Por qué importa |
+### Lo que queda en su tejado
+
+| Qué | Dónde |
 |---|---|
-| Navegación entre colecciones curadas (`CuratedTopic.svelte`) | **Bug vivo en producción**: los chips de «Alte colecții» no hacen nada. Ir de `/versete/x` a `/versete/y` no cambia el tipo de ruta, así que `Main.svelte` no vuelve a montar el componente y `onMount` no se ejecuta otra vez |
-| Rescate manual de cuenta (`AuthModal.svelte`) | Quien no recuerda su respuesta de seguridad se quedaba sin salida y se creaba otra cuenta |
-| Texto del campo email en los 4 idiomas | Prometía «sólo para recuperar la cuenta» y no se usa para nada |
-| `VAPID_SUBJECT` → `dbindea@gmail.com` | Es a donde escriben Google o Mozilla si los envíos de push dan problemas |
-
-**El backend ya está desplegado** (schema 11, worker con el cron horario). El frontend lo sube el propietario.
+| **Mergear `develop` → `master`** y desplegar | GitHub |
+| Renombrar los secretos `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` | Panel de Cloudflare |
+| **Añadir `/predici` a la Cache Rule** — se quedó fuera y sigue llegando al origen en cada visita | Panel de Cloudflare |
+| Mirar Search Console → Estadísticas de rastreo, y **qué límite de Netlify** estaba al 100 % (ancho de banda o invocaciones) | Search Console / Netlify |
 
 ### Pendiente de comprobar en el mundo real
 
-- **Entrega de un push a un dispositivo.** La firma VAPID está verificada contra su propia clave pública y el cron desplegado, pero nadie ha recibido todavía una notificación. Se confirma suscribiéndose desde el móvil y esperando a la hora elegida. **En iOS hace falta tener la PWA instalada** (iOS 16.4+).
-- **El aviso de actualización de la PWA.** El service worker va por `robible-v31`; quien la tenga instalada verá el aviso y tiene que aceptarlo. Purgar Cloudflare no cambia nada, porque responde el service worker.
+Por orden de probabilidad de dar guerra:
+
+- **El Modo Proyección en una iglesia de verdad.** Es lo más nuevo y lo menos rodado, y depende de cosas que no se pueden simular en un portátil: dónde coloca el sistema operativo la segunda pantalla, si el bloqueador de emergentes deja abrir la ventana, y si el mando de presentación emite las teclas que se esperan. El guion completo —arrastrar al proyector, F11, interrumpir con Escape para meter una canción de otro programa y volver— funciona en pruebas.
+- **Entrega de un push a un dispositivo.** La firma VAPID está verificada contra su propia clave pública y el cron desplegado, pero **nadie ha recibido todavía una notificación**. Se confirma suscribiéndose desde el móvil y esperando a la hora elegida. En iOS hace falta tener la PWA instalada (16.4+).
+- **El botón de donar de PayPal**, que nadie ha pulsado en producción.
+- **Las tres versiones nuevas en español** (`es_rv1909`, `es_vbl`, `es_pdt`): los datos están validados contra los 66 libros y la versificación medida, pero nadie ha leído un capítulo entero en ellas.
+- **El aviso de actualización de la PWA.** El service worker va por `robible-v32`; quien la tenga instalada verá el aviso y tiene que aceptarlo. Purgar Cloudflare no cambia nada, porque responde el service worker.
+
+### Bloqueado por falta de datos, no por trabajo
+
+**NTR, Reina-Valera 1960 corregida y San Pablo.** Se pidieron con licencia, pero la licencia no trae el texto: ninguna de las tres está en un repositorio público ni en el formato USFX que consume `scripts/build-bible-data.mjs`. Hacen falta **los ficheros del editor**. Las tres que sí se pudieron conseguir ya están instaladas.
 
 ### Candidatos para más adelante
 
 Sin fecha ni compromiso. Por orden de valor aparente:
 
-0. **Dictado por voz al buscador de la proyección** (pedido el 15 sep 2026). La idea: que el predicador diga «Ioan trei șaisprezece» y la referencia se proyecte, sin soltar el micrófono ni mirar el teclado. Es de las pocas cosas que no se pueden hacer con una mano desde el púlpito.
-   - Se hace con `SpeechRecognition` (Web Speech API), sin dependencias ni backend. Va bien en Chrome y Edge de escritorio y en Android.
-   - **Lo que hay que resolver antes de prometerlo**: en Chrome de escritorio el reconocimiento **viaja a los servidores de Google**, así que hay que decirlo — «no te seguimos» es de las primeras frases de la landing y no puede haber una excepción callada. Firefox no lo implementa. En iOS sólo desde Safari y con permiso por gesto cada vez.
-   - Y el reconocimiento **no entiende referencias**: devuelve texto corrido en el idioma del reconocedor, con los números escritos con letra y el nombre del libro declinado. Hace falta una capa que normalice eso antes de dárselo a `parseReference`, y probarla con los 66 libros en rumano y en español.
-   - Empezaría por un botón de micrófono en el campo de referencia, visible sólo donde el navegador lo soporta — un control que no puede funcionar es peor que no tenerlo (mismo criterio que la tarjeta de push en el perfil).
 1. **Uso del email**, cuando haya volumen: validación de la cuenta o aviso al autor cuando su predicación recibe visitas. Hoy no se envía nada y no hay proveedor elegido.
 2. **Estadísticas de repaso** en memorización: la columna `correct` llega al worker y **no se guarda**, a propósito, porque no hay pantalla que la lea. Si algún día se quiere una racha o un histórico, se añade la columna entonces.
 3. **Sonido o vibración del aviso diario**, y poder elegir varios días de la semana en vez de todos.
@@ -954,6 +959,21 @@ editor tipo Word, ni roles más allá de Utilizator/Predicator.
 ---
 
 ## Historial de cambios recientes
+
+**2026-09-14/17 — Proyección para iglesias, donaciones, tres Biblias más y los fondos animados**
+
+La última tanda antes de la pausa. Todo en `develop`, nada desplegado.
+
+- **Se frenó el rastreo que agotó Netlify** (14 sep): `robots.txt` corregido —un grupo `User-agent: Googlebot` al final desactivaba todos los `Disallow` del grupo `*`—, `noindex` en los versículos no destacados, caché de las imágenes OG y una Cache Rule en Cloudflare. Trampas 83 y 84
+- **Analíticas sin bots** (`esVisitaDeBot`): Googlebot y Bingbot renderizan, así que entraban en la cifra de visitas. Lista explícita a propósito, que un `/bot/` genérico se lleva por delante a los Android de marca CUBOT. Trampa 81
+- **Modo Proyección** (`/proiectie`), en **dos ventanas** desde el 16 sep: `?ecran=1` sobre la misma ruta separa el papel de operador del de proyector, y se hablan por `BroadcastChannel` mandando texto, no coordenadas. El portátil queda libre para buscar el versículo siguiente mientras la congregación sigue viendo el anterior. Dos idiomas a la vez resueltos **por referencia**, once fondos, cuatro animaciones de entrada, pantalla en negro y atajos de mando de presentación. Trampas 86 y 87
+- **Navegación continua** (17 sep): al acabar el capítulo sigue al siguiente, y al acabar el libro al siguiente libro, dando la vuelta en Apocalipsa 22:21 → Geneza 1:1
+- **Dictado por voz** de la referencia (`speech-reference.service.js`), con aviso de que el audio sale del dispositivo en Chrome de escritorio, y preparado para ser de suscripción sin serlo hoy. Trampas 91 y 92
+- **Pie nuevo con donaciones**: columnas, logo, eslogan, contacto y botón de PayPal, con la nota de que los fondos van al desarrollo y a necesidades humanitarias. Insignia de instalar en estilo Play/App Store y el ofrecimiento como modal centrado
+- **Tres Biblias más en español** (`es_rv1909`, `es_vbl`, `es_pdt`), todas con `indexable: false` para no volver a ampliar la superficie de rastreo, e **interruptor en «Mi cuenta»** para elegir cuáles salen en el selector
+- **Versificación medida y garantizada** (`versification.service.js`): de los 1.189 capítulos, 148 difieren en número de versículos pero sólo **cuatro** están de verdad descuadrados. `tests/versification.test.js` lo vigila contra las Biblias reales. Trampa 96
+- **Los fondos animados**, en varias iteraciones sobre el aspecto: olas de verdad en vez de arcos de acueducto, cielo con nubes, campo con humo, fuera el mosaico que dejaba un corte recto deslizante, ciclos cuatro veces más rápidos —un versículo está en pantalla 5-10 segundos— y estrellas que titilan. Trampa 47
+- Dos fallos que no daban ningún síntoma y salieron al medir: `.proyeccion--water::after` no tenía `content`, así que la ola de fondo **no se había visto nunca**; y la lámina se comía el toque en móvil, de modo que sólo se avanzaba dando en los márgenes
 
 **2026-09-12 — Panel de administración, perfil ampliado y tres retoques públicos**
 
