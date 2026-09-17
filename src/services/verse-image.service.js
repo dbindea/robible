@@ -167,9 +167,17 @@ export const IMAGE_BACKGROUNDS = [
     glow: 'rgba(230, 245, 220, 0.3)',
     ink: '#F4FAF2',
     accent: 'rgba(214, 240, 200, 0.92)',
+    // El humo es ruido fractal deformado (`feTurbulence` + `feDisplacementMap`),
+    // no degradados: dos elipses difusas dan bruma, y lo que se pidió es humo —
+    // con grano, con hebras y sin poder adivinar por dónde va. La misma receta
+    // que las capas animadas de `ProjectionSurface`, donde está explicada al
+    // detalle, para que el fondo quieto y el que se mueve sean el mismo dibujo.
+    //
+    // Con OTRA semilla, eso sí: éste es el fondo que va debajo de aquéllas, y
+    // con la misma se superpondrían calcadas y el humo saldría al doble de
+    // denso justo donde ya lo estaba.
     swatch:
-      'radial-gradient(ellipse 60% 12% at 40% 58%, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 70%),' +
-      'radial-gradient(ellipse 70% 10% at 60% 76%, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 70%),' +
+      "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='700'%3E%3Cfilter id='h' x='-30%25' y='-30%25' width='160%25' height='160%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.014 0.007' numOctaves='6' seed='5' result='humo'/%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.0035' numOctaves='2' seed='23' result='remolino'/%3E%3CfeDisplacementMap in='humo' in2='remolino' scale='110' xChannelSelector='R' yChannelSelector='G'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 1 0 0 0 0'/%3E%3CfeComponentTransfer result='denso'%3E%3CfeFuncA type='table' tableValues='0 0 0.24 0.85 1'/%3E%3C/feComponentTransfer%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.3' numOctaves='2' seed='12' result='motas'/%3E%3CfeColorMatrix in='motas' type='matrix' values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 1.5 0 0 0 -0.25' result='grano'/%3E%3CfeComposite in='denso' in2='grano' operator='arithmetic' k1='1' k2='0' k3='0' k4='0'/%3E%3C/filter%3E%3Crect width='700' height='700' filter='url(%23h)' opacity='.5' mask='url(%23m)'/%3E%3Cmask id='m'%3E%3ClinearGradient id='g' x1='0' y1='1' x2='0' y2='0'%3E%3Cstop offset='.04' stop-color='%23fff'/%3E%3Cstop offset='.3' stop-color='%236b6b6b'/%3E%3Cstop offset='.7' stop-color='%23000'/%3E%3C/linearGradient%3E%3Crect width='700' height='700' fill='url(%23g)'/%3E%3C/mask%3E%3C/svg%3E\") no-repeat 50% 100% / 150% 120%," +
       'linear-gradient(180deg, #6E9B5B, #41703C, #1B3822)',
   },
 ];
@@ -392,6 +400,23 @@ export const ensureFontsReady = async () => {
   }
 };
 
+/**
+ * Un lienzo suelto para dibujar aparte y pegarlo después.
+ *
+ * `OffscreenCanvas` primero porque no toca el DOM; donde no exista, un
+ * `<canvas>` que nunca se inserta. Devuelve `null` si no hay ninguno de los dos
+ * —los tests corren en Node, sin ventana— y el pintor que lo pida se queda sin
+ * esa capa en vez de reventar.
+ */
+const lienzoAuxiliar = (w, h) => {
+  if (typeof OffscreenCanvas === 'function') return new OffscreenCanvas(w, h);
+  if (typeof document === 'undefined') return null;
+  const c = document.createElement('canvas');
+  c.width = w;
+  c.height = h;
+  return c;
+};
+
 /** `#RRGGBB` + alfa → `rgba(...)`. Los pintores necesitan desvanecer colores. */
 const conAlfa = (hex, alfa) => {
   const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || ''));
@@ -611,12 +636,65 @@ const pintarNubes = (ctx, bg, w, h) => {
   nube(w * 0.12, h * 0.8, w * 0.1, 0.35);
 };
 
+/* ── Ruido fractal ───────────────────────────────────────────────────────
+   El equivalente en canvas del `feTurbulence` que usa el fondo animado. Canvas
+   2D no tiene primitiva de ruido, así que se calcula a mano: `ruidoValor` hace
+   la interpolación suave entre los valores de una retícula, y `ruidoFractal`
+   suma varias octavas —cada una al doble de frecuencia y a la mitad de
+   amplitud—, que es lo que produce detalle a todas las escalas a la vez. Eso
+   es lo que distingue el humo de una mancha difusa.
+
+   Es DETERMINISTA a propósito: misma semilla, misma imagen. La vista previa se
+   repinta en cada tecla (trampa 19), y con ruido aleatorio el fondo parpadearía
+   mientras se escribe. */
+const hashRuido = (x, y, semilla) => {
+  let n = Math.imul(x, 374761393) + Math.imul(y, 668265263) + Math.imul(semilla, 1274126177);
+  n = Math.imul(n ^ (n >>> 13), 1274126177);
+  return ((n ^ (n >>> 16)) >>> 0) / 4294967295;
+};
+
+// Smoothstep. Sin él, la interpolación lineal deja la retícula a la vista como
+// un enrejado de rombos.
+const suavizar = (t) => t * t * (3 - 2 * t);
+
+const ruidoValor = (x, y, semilla) => {
+  const xi = Math.floor(x);
+  const yi = Math.floor(y);
+  const fx = suavizar(x - xi);
+  const fy = suavizar(y - yi);
+  const a = hashRuido(xi, yi, semilla);
+  const b = hashRuido(xi + 1, yi, semilla);
+  const c = hashRuido(xi, yi + 1, semilla);
+  const d = hashRuido(xi + 1, yi + 1, semilla);
+  const arriba = a + (b - a) * fx;
+  const abajo = c + (d - c) * fx;
+  return arriba + (abajo - arriba) * fy;
+};
+
+const ruidoFractal = (x, y, semilla, octavas) => {
+  let suma = 0;
+  let total = 0;
+  let amplitud = 1;
+  let fx = x;
+  let fy = y;
+  for (let o = 0; o < octavas; o += 1) {
+    suma += ruidoValor(fx, fy, semilla + o * 131) * amplitud;
+    total += amplitud;
+    fx *= 2;
+    fy *= 2;
+    amplitud *= 0.5;
+  }
+  return suma / total;
+};
+
 /**
  * Vapor levantándose de un campo verde.
  *
- * El campo es el propio degradado —verde y más oscuro abajo— y encima van
- * jirones de niebla horizontales, más densos cerca del suelo y deshechos hacia
- * arriba. Es lo que se ve en un prado a primera hora.
+ * El campo es el propio degradado —verde y más oscuro abajo— y encima va humo
+ * de ruido fractal: denso junto al suelo, con hebras verticales y deshecho
+ * arriba. Antes eran cinco elipses difuminadas y el resultado era bruma, no
+ * humo: lo que se pidió es «más definido y más granulado», y eso no sale de un
+ * degradado radial por muchos que se solapen.
  */
 const pintarVapor = (ctx, bg, w, h) => {
   const campo = ctx.createLinearGradient(0, 0, 0, h);
@@ -624,32 +702,67 @@ const pintarVapor = (ctx, bg, w, h) => {
   ctx.fillStyle = campo;
   ctx.fillRect(0, 0, w, h);
 
-  // De abajo arriba: cuanto más alto, más tenue y más ancho — el vapor se
-  // abre al subir.
-  const jirones = [
-    { y: 0.92, ancho: 0.55, alto: 0.05, a: 0.4 },
-    { y: 0.8, ancho: 0.7, alto: 0.06, a: 0.32 },
-    { y: 0.67, ancho: 0.62, alto: 0.05, a: 0.24 },
-    { y: 0.54, ancho: 0.8, alto: 0.07, a: 0.16 },
-    { y: 0.4, ancho: 0.72, alto: 0.06, a: 0.1 },
-  ];
+  // El humo se calcula a la MITAD de resolución y se estira al pintarlo: son
+  // cuatro veces menos píxeles que evaluar —el formato vertical tiene dos
+  // millones— y el grano sale de dos píxeles, que es justo lo que se quiere
+  // ver. A resolución completa el cálculo se notaba en la vista previa.
+  const nw = Math.ceil(w / 2);
+  const nh = Math.ceil(h / 2);
+  const humo = lienzoAuxiliar(nw, nh);
+  if (!humo) return;
+  const hctx = humo.getContext('2d');
+  const datos = hctx.createImageData(nw, nh);
+  const px = datos.data;
 
-  jirones.forEach((j, i) => {
-    // Se alternan a izquierda y derecha para que no formen una columna.
-    const cx = w * (i % 2 === 0 ? 0.4 : 0.62);
-    const g = ctx.createRadialGradient(cx, h * j.y, 0, cx, h * j.y, w * j.ancho);
-    g.addColorStop(0, conAlfa(bg.mistColor, j.a));
-    g.addColorStop(0.55, conAlfa(bg.mistColor, j.a * 0.4));
-    g.addColorStop(1, conAlfa(bg.mistColor, 0));
-    ctx.save();
-    // Aplastado: el vapor se extiende a lo ancho, no en círculo.
-    ctx.translate(0, h * j.y);
-    ctx.scale(1, (j.alto / j.ancho) * (w / h) * 3);
-    ctx.translate(0, -h * j.y);
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, w, h);
-    ctx.restore();
-  });
+  const m = /^#?([0-9a-f]{6})$/i.exec(String(bg.mistColor || '#FFFFFF'));
+  const tinta = m ? parseInt(m[1], 16) : 0xffffff;
+  const rojo = (tinta >> 16) & 255;
+  const verde = (tinta >> 8) & 255;
+  const azul = tinta & 255;
+
+  for (let y = 0; y < nh; y += 1) {
+    const t = y / nh;
+    // Denso abajo y sin nada en el tercio superior. Al cuadrado para que la
+    // transición no sea una banda recta.
+    const mascara = t <= 0.18 ? 0 : Math.min(1, (t - 0.18) / 0.62) ** 2;
+    if (mascara === 0) continue;
+
+    for (let x = 0; x < nw; x += 1) {
+      const u = x / nw;
+
+      // La misma deformación que hace `feDisplacementMap` en el fondo animado:
+      // un ruido de escala grande que mueve el punto de muestreo. Sin ella, un
+      // ruido estirado sale peinado —una empalizada de rayas verticales— en vez
+      // de humo, y ese fue el primer intento fallido de los dos.
+      const ondaX = (ruidoValor(u * 2.2, t * 2.2, 71) - 0.5) * 2.6;
+      const ondaY = (ruidoValor(u * 1.7, t * 1.7, 113) - 0.5) * 1.3;
+
+      // CATORCE ciclos de ancho contra cuatro y medio de alto: las manchas salen
+      // estrechas y largas, que es la forma de un penacho que sube. Ojo con
+      // invertirlo, que da bandas horizontales cruzando la pantalla.
+      const n = ruidoFractal(u * 14 + ondaX, t * 4.5 + ondaY, 17, 5);
+
+      // Umbral: lo que queda por debajo se va a cero en vez de quedarse en un
+      // velo gris. Es lo que abre huecos y deja los jirones DEFINIDOS.
+      const densidad = (n - 0.44) / 0.56;
+      if (densidad <= 0) continue;
+
+      // Y el grano: ruido fino que MULTIPLICA al humo, igual que el
+      // `feComposite operator='arithmetic'` del fondo animado. Las octavas
+      // afinan la forma, pero el humo seguiría siendo una mancha continua; la
+      // textura de partículas sólo sale de multiplicar por algo fino.
+      const grano = 0.35 + ruidoValor(u * 170, t * 170, 4) * 0.85;
+
+      const i = (y * nw + x) * 4;
+      px[i] = rojo;
+      px[i + 1] = verde;
+      px[i + 2] = azul;
+      px[i + 3] = Math.min(255, densidad ** 1.3 * mascara * grano * 245);
+    }
+  }
+
+  hctx.putImageData(datos, 0, 0);
+  ctx.drawImage(humo, 0, 0, w, h);
 };
 
 const PINTORES = {

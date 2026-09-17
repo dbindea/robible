@@ -89,8 +89,13 @@
   {#if !enNegro && principal.texto}
     <!-- `{#key}` vuelve a montar la lámina en cada versículo, que es lo que
          dispara la transición de entrada. Sin él, Svelte reutiliza el nodo y
-         el texto cambia de golpe. -->
-    {#key indice}
+         el texto cambia de golpe.
+
+         Va la referencia ADEMÁS del índice: al pasar del último versículo de un
+         capítulo al primero del siguiente, el índice vuelve a 0 y en un capítulo
+         de un solo versículo sería 0 antes y 0 después — misma clave, ninguna
+         transición. Con la referencia delante, cada versículo tiene la suya. -->
+    {#key `${principal.referencia}#${indice}`}
       <figure class="lamina" class:lamina--dos={!!secundario.texto} in:animarEntrada|global={{ tipo: animacion }}>
         <blockquote class="lamina__texto">{principal.texto}</blockquote>
 
@@ -159,10 +164,21 @@
      fija. Si se va a mover, tiene que moverse lo bastante para que se aprecie
      dentro de esa ventana; lo que no puede es cambiar de ritmo ni dar saltos,
      que es lo que roba la atención de verdad. */
+  /* TODAS las capas animadas declaran aquí `content` y `position`, las dos
+     pseudo de cada fondo. Estaban repartidas —cada `::after` repetía las suyas—
+     y al de agua se le olvidaron: la ola de fondo tenía su dibujo, su tamaño y
+     su animación, y no se veía NADA, porque un pseudoelemento sin `content` no
+     existe. Un fallo así no da error ni aviso; se cazó midiendo cuánto se movía
+     cada capa y encontrando una parada en cero. En un solo sitio no vuelve a
+     pasar. (La `::after` de nebulosa queda fuera a propósito: son las estrellas,
+     van quietas y con su propio encuadre.) */
   .proyeccion--nebula::before,
   .proyeccion--water::before,
+  .proyeccion--water::after,
   .proyeccion--clouds::before,
-  .proyeccion--mist::before {
+  .proyeccion--clouds::after,
+  .proyeccion--mist::before,
+  .proyeccion--mist::after {
     content: '';
     position: absolute;
     // Se sale del marco por los cuatro lados para que al desplazarse no asome
@@ -226,8 +242,15 @@
      Lo que rompe la simetría son tres cosas a la vez: formas de proporciones
      distintas y posiciones sin orden, `filter: blur()` que las funde en manchas
      irregulares, y dos capas girando en sentidos contrarios con periodos que no
-     son múltiplos entre sí. Dos ciclos de 37 y 53 segundos tardan media hora en
-     volver a coincidir; un culto se acaba antes. */
+     son múltiplos entre sí. Los pares son primos entre sí a propósito (17/26,
+     19/27, 23/31), así que en `alternate` tardan un cuarto de hora largo en
+     volver a coincidir: un culto se acaba antes de que se repita un fotograma.
+
+     Esos números bajaron a la mitad el 17 sep 2026. Estaban en 37 y 53 y el
+     cálculo de arriba salía mal: a 4 % de recorrido en 37 segundos, el agua se
+     desplazaba unos pocos píxeles en los diez que dura la diapositiva. Ahora el
+     recorrido es el doble y el ciclo la mitad — cuatro veces más rápido, que es
+     donde el movimiento empieza a verse sin llegar a distraer. */
 
   /* ── Agua ──────────────────────────────────────────────────────────── */
   .proyeccion--water::before,
@@ -249,7 +272,7 @@
     background-position:
       0 100%,
       0 100%;
-    animation: agua-cerca 37s ease-in-out infinite alternate;
+    animation: agua-cerca 17s ease-in-out infinite alternate;
   }
 
   .proyeccion--water::after {
@@ -257,24 +280,29 @@
     background-size: 230% 82%;
     background-repeat: no-repeat;
     background-position: 0 100%;
-    animation: agua-lejos 53s ease-in-out infinite alternate;
+    animation: agua-lejos 26s ease-in-out infinite alternate;
   }
 
+  /* El recorrido es el DOBLE que antes y en la mitad de tiempo, porque con 4%
+     en 37 s el agua avanzaba tres píxeles mientras se leía el versículo y
+     parecía una foto. La cresta sube y baja además de ir de lado: sin ese
+     componente vertical, una ola que se desplaza en horizontal se lee como un
+     dibujo arrastrado, no como agua. */
   @keyframes agua-cerca {
     from {
-      transform: translate3d(-4%, 0.6%, 0);
+      transform: translate3d(-8%, 1.6%, 0);
     }
     to {
-      transform: translate3d(4%, -0.6%, 0);
+      transform: translate3d(8%, -1.6%, 0);
     }
   }
 
   @keyframes agua-lejos {
     from {
-      transform: translate3d(3%, -0.4%, 0);
+      transform: translate3d(6%, -1.1%, 0);
     }
     to {
-      transform: translate3d(-3%, 0.4%, 0);
+      transform: translate3d(-6%, 1.1%, 0);
     }
   }
 
@@ -296,94 +324,130 @@
       radial-gradient(ellipse 11% 15% at 73% 24%, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0) 66%),
       radial-gradient(ellipse 17% 9% at 88% 44%, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0) 64%);
     background-repeat: no-repeat;
-    animation: nubes-a 37s ease-in-out infinite alternate;
+    animation: nubes-a 19s ease-in-out infinite alternate;
   }
 
   .proyeccion--clouds::after {
-    content: '';
-    position: absolute;
-    inset: -25%;
-    pointer-events: none;
-    will-change: transform;
     background-image:
       radial-gradient(ellipse 27% 11% at 34% 61%, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0) 66%),
       radial-gradient(ellipse 15% 18% at 12% 72%, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0) 68%),
       radial-gradient(ellipse 21% 12% at 79% 68%, rgba(255, 255, 255, 0.66), rgba(255, 255, 255, 0) 66%);
     background-repeat: no-repeat;
-    animation: nubes-b 53s ease-in-out infinite alternate;
+    animation: nubes-b 27s ease-in-out infinite alternate;
   }
 
   // Giro además del desplazamiento: es lo que hace que dos manchas que se
   // cruzan no vuelvan a cruzarse igual, y lo que le quita el aire de «círculos
-  // que van de lado».
+  // que van de lado». El recorrido se dobló y el ciclo se partió por la mitad
+  // por lo mismo que el agua: en diez segundos hay que ver que se mueven.
   @keyframes nubes-a {
     from {
-      transform: translate3d(-5%, -1.5%, 0) rotate(-1.2deg) scale(1.02);
+      transform: translate3d(-10%, -3%, 0) rotate(-2.4deg) scale(1.02);
     }
     to {
-      transform: translate3d(5%, 1.5%, 0) rotate(1.2deg) scale(1.1);
+      transform: translate3d(10%, 3%, 0) rotate(2.4deg) scale(1.16);
     }
   }
 
   @keyframes nubes-b {
     from {
-      transform: translate3d(4%, 1%, 0) rotate(1.6deg) scale(1.08);
+      transform: translate3d(8%, 2.4%, 0) rotate(3deg) scale(1.14);
     }
     to {
-      transform: translate3d(-4%, -1%, 0) rotate(-1.6deg) scale(1);
+      transform: translate3d(-8%, -2.4%, 0) rotate(-3deg) scale(1);
     }
   }
 
   /* ── Vapor ─────────────────────────────────────────────────────────────
-     Humo, no niebla: jirones alargados de proporciones distintas, muy
-     difuminados, subiendo y girando a destiempo. La máscara los deja densos
-     junto al suelo y deshechos arriba, que es lo que los hace vapor que se
-     levanta y no una bruma parada. */
+     Humo de verdad, y por eso GRANULADO: la textura sale de `feTurbulence`,
+     el ruido fractal de SVG, y no de degradados. Unas manchas difusas dan
+     bruma; el humo tiene grano, hebras y densidad desigual, y eso no se
+     consigue con `radial-gradient` por muchos que se acumulen — era lo que
+     quedaba redondo y predecible.
+
+     La receta del filtro: `feTurbulence` genera ruido en color y
+     `feColorMatrix` lo convierte en blanco con alfa variable (la última fila,
+     `1 0 0 0 0`, toma el canal rojo del ruido como transparencia). El
+     resultado es humo blanco irregular sobre fondo transparente.
+
+     Son TRES primitivas encadenadas, y ninguna sobra — se llegó a ellas
+     descartando las versiones más simples, que se veían así:
+
+     - `feTurbulence` solo, con las frecuencias muy desiguales (mucha en X, poca
+       en Y): sale una cortina de rayas verticales regularmente espaciadas, una
+       empalizada. El ruido anisótropo extremo peina, no humea.
+     - Con las frecuencias al revés (poca en X, mucha en Y) salen bandas
+       HORIZONTALES cruzando la pantalla: justo el «corte deslizante» del que se
+       venía huyendo. Ojo con el orden, que es `x y` y **frecuencia alta =
+       detalle fino**.
+
+     Lo que sí funciona es un ruido de proporción suave —apenas el doble de alto
+     que de ancho— DEFORMADO por un segundo ruido de escala grande
+     (`feDisplacementMap`). Esa deformación es la que curva los penachos y hace
+     que no se repitan: es la diferencia entre una textura y humo.
+
+     `feComponentTransfer` es lo que lo hace DEFINIDO. El ruido en crudo se
+     agolpa alrededor del medio y pinta un velo gris parejo; la tabla estira esa
+     franja central, así que lo flojo se va a cero y lo denso se queda. De ahí
+     salen los huecos entre jirón y jirón.
+
+     El `filter` lleva región ampliada (`x/y/width/height`): la de por defecto
+     es un 10 % alrededor, y al desplazar 90 unidades entraban los bordes
+     transparentes y el humo se cortaba en seco por los lados.
+
+     La máscara los deja densos junto al suelo y deshechos arriba, que es lo
+     que los hace vapor que se levanta y no una bruma parada. */
   .proyeccion--mist::before,
   .proyeccion--mist::after {
-    filter: blur(30px);
-    -webkit-mask-image: linear-gradient(to top, #000 8%, rgba(0, 0, 0, 0.5) 42%, transparent 86%);
-    mask-image: linear-gradient(to top, #000 8%, rgba(0, 0, 0, 0.5) 42%, transparent 86%);
+    -webkit-mask-image: linear-gradient(to top, #000 4%, rgba(0, 0, 0, 0.42) 30%, transparent 70%);
+    mask-image: linear-gradient(to top, #000 4%, rgba(0, 0, 0, 0.42) 30%, transparent 70%);
   }
 
   .proyeccion--mist::before {
-    background-image:
-      radial-gradient(ellipse 34% 7% at 28% 74%, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0) 68%),
-      radial-gradient(ellipse 22% 11% at 57% 62%, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0) 70%),
-      radial-gradient(ellipse 41% 6% at 76% 83%, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0) 66%);
+    // Apenas desenfoque: el grano ES el efecto. A 30px se deshacía en la misma
+    // mancha lisa de antes, y a 7 seguía comiéndose las octavas finas.
+    filter: blur(1px);
+    // El `feComposite operator='arithmetic'` con k1=1 y el resto a cero es una
+    // MULTIPLICACIÓN: el humo ya formado por su propio grano. Es lo que le da la
+    // textura de partículas en suspensión, y no se consigue con más octavas —
+    // ésas afinan la forma, pero siguen siendo la misma mancha continua.
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='700'%3E%3Cfilter id='h' x='-30%25' y='-30%25' width='160%25' height='160%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.014 0.007' numOctaves='6' seed='17' result='humo'/%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.0035' numOctaves='2' seed='9' result='remolino'/%3E%3CfeDisplacementMap in='humo' in2='remolino' scale='110' xChannelSelector='R' yChannelSelector='G'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 1 0 0 0 0'/%3E%3CfeComponentTransfer result='denso'%3E%3CfeFuncA type='table' tableValues='0 0 0.24 0.85 1'/%3E%3C/feComponentTransfer%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.3' numOctaves='2' seed='4' result='motas'/%3E%3CfeColorMatrix in='motas' type='matrix' values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 1.5 0 0 0 -0.25' result='grano'/%3E%3CfeComposite in='denso' in2='grano' operator='arithmetic' k1='1' k2='0' k3='0' k4='0'/%3E%3C/filter%3E%3Crect width='700' height='700' filter='url(%23h)' opacity='.75'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
-    animation: vapor-a 41s ease-in-out infinite alternate;
+    background-size: 150% 120%;
+    background-position: 50% 100%;
+    animation: vapor-a 23s ease-in-out infinite alternate;
   }
 
   .proyeccion--mist::after {
-    content: '';
-    position: absolute;
-    inset: -25%;
-    pointer-events: none;
-    will-change: transform;
-    background-image:
-      radial-gradient(ellipse 28% 9% at 44% 88%, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0) 68%),
-      radial-gradient(ellipse 18% 13% at 15% 66%, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0) 72%),
-      radial-gradient(ellipse 31% 8% at 88% 58%, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0) 70%);
+    filter: blur(9px);
+    // Otras semillas y otra escala de deformación: dos capas del mismo ruido se
+    // delatarían como una sola moviéndose en paralelo. Ésta va más difusa y más
+    // ancha, y hace de penacho de fondo para que el de delante se recorte contra
+    // algo en vez de contra el verde liso.
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='700'%3E%3Cfilter id='h2' x='-30%25' y='-30%25' width='160%25' height='160%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.009 0.005' numOctaves='5' seed='53' result='humo'/%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.0025' numOctaves='2' seed='31' result='remolino'/%3E%3CfeDisplacementMap in='humo' in2='remolino' scale='150' xChannelSelector='G' yChannelSelector='B'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 1 0 0 0 0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='table' tableValues='0 0 0.2 0.75 1'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='700' height='700' filter='url(%23h2)' opacity='.42'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
-    animation: vapor-b 59s ease-in-out infinite alternate;
+    background-size: 190% 140%;
+    background-position: 50% 100%;
+    animation: vapor-b 31s ease-in-out infinite alternate;
   }
 
+  // Sube y se abre: el recorrido vertical manda sobre el lateral, y la escala
+  // ensancha el penacho conforme sube, como hace el humo de verdad.
   @keyframes vapor-a {
     from {
-      transform: translate3d(-3%, 5%, 0) rotate(-0.8deg) scale(1);
+      transform: translate3d(-2%, 9%, 0) rotate(-1deg) scale(1);
     }
     to {
-      transform: translate3d(3%, -6%, 0) rotate(0.8deg) scale(1.14);
+      transform: translate3d(2%, -11%, 0) rotate(1deg) scale(1.22);
     }
   }
 
   @keyframes vapor-b {
     from {
-      transform: translate3d(3%, 4%, 0) rotate(1deg) scale(1.1);
+      transform: translate3d(3%, 7%, 0) rotate(1.4deg) scale(1.16);
     }
     to {
-      transform: translate3d(-2%, -7%, 0) rotate(-1deg) scale(1);
+      transform: translate3d(-3%, -12%, 0) rotate(-1.4deg) scale(1);
     }
   }
   // Deriva y un punto de escala: las nubes se separan y se juntan sin llegar a
@@ -406,7 +470,8 @@
     .proyeccion--water::after,
     .proyeccion--clouds::before,
     .proyeccion--clouds::after,
-    .proyeccion--mist::before {
+    .proyeccion--mist::before,
+    .proyeccion--mist::after {
       animation: none;
     }
   }
@@ -420,6 +485,13 @@
     max-width: 90vw;
     margin: 0;
     text-align: center;
+    // No recibe clics, por lo mismo que la marca de agua: las dos mitades que
+    // avanzan y retroceden van DEBAJO (llegan por el slot, después, pero sin
+    // `z-index`, y un `z-index: 1` gana a un `auto` aunque vaya antes en el
+    // DOM). Sin esto, el versículo —que en un móvil ocupa casi toda la
+    // pantalla— se tragaba el toque y sólo avanzaba dando en los márgenes.
+    // Dentro no hay nada que pulsar: es una cita, un filete y la referencia.
+    pointer-events: none;
   }
 
   // El tamaño se calcula con `vw` y `vh` a la vez: sólo con `vw`, un televisor
