@@ -35,8 +35,9 @@
 
   $: fondo = getBackground(fondoKey);
   $: fondoCss = backgroundCss(fondo);
-  // 'nebula' | 'water' | undefined. Enciende la capa animada de abajo; el resto
-  // de fondos no tienen ninguna y no pagan nada por ello.
+  // La clave del fondo animado, si lo es: 'nebula', 'water', 'clouds' o
+  // 'mist'. Enciende la capa de abajo; el resto de fondos no tienen ninguna y
+  // no pagan nada por ello.
   $: animado = fondo?.animado || '';
 
   /**
@@ -68,11 +69,17 @@
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
+<!-- Una directiva `class:` por fondo animado, y no `proyeccion--{animado}`: con
+     el nombre construido, Svelte no ve estas clases escritas en la plantilla y
+     poda sus estilos como CSS muerto (CLAUDE.md, trampa 21). Al añadir un fondo
+     animado hay que añadir aquí su línea. -->
 <div
   class="proyeccion"
   class:proyeccion--negro={enNegro}
   class:proyeccion--nebula={animado === 'nebula' && !enNegro}
   class:proyeccion--water={animado === 'water' && !enNegro}
+  class:proyeccion--clouds={animado === 'clouds' && !enNegro}
+  class:proyeccion--mist={animado === 'mist' && !enNegro}
   style="--escala: {escala}; --fondo: {fondoCss}; --tinta: {fondo.ink}; --acento: {fondo.accent}"
   on:mousemove
   on:touchstart
@@ -138,21 +145,24 @@
     background: #000;
   }
 
-  /* ── Los dos fondos que se mueven ────────────────────────────────────────
+  /* ── Los fondos que se mueven ───────────────────────────────────────────
      Van en una capa aparte (`::before`) y no en el `background` del div: el
      fondo estático tiene que seguir siendo el mismo que pinta el canvas de la
      imagen compartida y que la muestra del selector, así que el movimiento se
      añade ENCIMA en vez de sustituirlo.
 
-     Los ciclos son de 18 y 15 segundos. Empezaron en 90 y 120 —«que no se
-     note»— y eso resultó ser demasiado: **un versículo está en pantalla entre
+     Los ciclos van de 13 a 110 segundos según el motivo: unas olas se mueven
+     deprisa y unas nubes no. Empezaron todos en 90-120 —«que no se note»— y
+     eso resultó ser demasiado: **un versículo está en pantalla entre
      cinco y diez segundos**, así que en todo el tiempo que alguien mira la
      diapositiva el fondo recorría un 5 % de su ciclo y parecía una imagen
      fija. Si se va a mover, tiene que moverse lo bastante para que se aprecie
      dentro de esa ventana; lo que no puede es cambiar de ritmo ni dar saltos,
      que es lo que roba la atención de verdad. */
   .proyeccion--nebula::before,
-  .proyeccion--water::before {
+  .proyeccion--water::before,
+  .proyeccion--clouds::before,
+  .proyeccion--mist::before {
     content: '';
     position: absolute;
     // Se sale del marco por los cuatro lados para que al desplazarse no asome
@@ -196,12 +206,153 @@
       radial-gradient(1px 1px at 47% 44%, rgba(244, 247, 255, 0.4), transparent);
   }
 
+  /* ── Agua ─────────────────────────────────────────────────────────────
+     Crestas de ola, no bandas de luz: las bandas se leían como un degradado a
+     rayas. Cada fila es un círculo transparente hasta el 66 % del radio y con
+     color a partir de ahí, repetido en horizontal — eso deja exactamente el
+     arco de una ola.
+
+     El bucle es SIN COSTURA porque cada capa se desplaza justo el ancho de una
+     baldosa (`background-size`) y vuelve a empezar donde estaba. Si se cambia
+     un `background-size` hay que cambiar su `@keyframes`, o el mar da un salto
+     cada vuelta. */
+  /* Una onda DE VERDAD, dibujada con una curva en un SVG embebido. El primer
+     intento las hacía con `radial-gradient` recortado y el resultado era una
+     fila de arcos de medio punto: parecía un acueducto, no el mar. Un círculo
+     no es una ola por mucho que se recorte; una senoide sí.
+
+     Tres detalles que costaron una vuelta cada uno:
+
+     - Las capas se anclan ABAJO (`background-position: 0 100%`) y la baldosa es
+       mucho más alta que la ola. Con baldosas bajas, el relleno terminaba en el
+       borde inferior de la baldosa y dejaba una raya horizontal recta cruzando
+       la pantalla debajo de cada fila de olas.
+     - Por eso el desbordamiento de esta capa es sólo LATERAL (`inset: 0 -30%`):
+       el movimiento es horizontal, y desbordando también por abajo el anclaje
+       se iba fuera de la pantalla y las olas desaparecían.
+     - `preserveAspectRatio='none'` es lo que deja estirar la baldosa a lo alto
+       sin que la ola se haga enorme: la curva se deforma con ella. */
+  .proyeccion--water::before,
+  .proyeccion--water::after {
+    inset: 0 -30%;
+  }
+
   .proyeccion--water::before {
-    background:
-      radial-gradient(ellipse 70% 14% at 50% 30%, rgba(95, 212, 228, 0.2) 0%, rgba(0, 0, 0, 0) 72%),
-      radial-gradient(ellipse 70% 12% at 50% 62%, rgba(95, 212, 228, 0.15) 0%, rgba(0, 0, 0, 0) 72%),
-      radial-gradient(ellipse 70% 10% at 50% 88%, rgba(95, 212, 228, 0.1) 0%, rgba(0, 0, 0, 0) 72%);
-    animation: agua 15s ease-in-out infinite;
+    background-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 60' preserveAspectRatio='none'%3E%3Cpath d='M0 12 Q 15 3 30 12 T 60 12 T 90 12 T 120 12 V60 H0 Z' fill='%235FD4E4' fill-opacity='.20'/%3E%3C/svg%3E"),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 60' preserveAspectRatio='none'%3E%3Cpath d='M0 10 Q 30 2 60 10 T 120 10 V60 H0 Z' fill='%235FD4E4' fill-opacity='.12'/%3E%3C/svg%3E");
+    background-size:
+      260px 300px,
+      260px 430px;
+    background-repeat: repeat-x, repeat-x;
+    background-position:
+      0 100%,
+      0 100%;
+    animation: olas-cerca 13s linear infinite;
+  }
+
+  /* La fila de fondo, más ancha y en sentido contrario: dos capas cruzándose
+     es lo que hace que parezca agua y no un friso que se desliza. */
+  .proyeccion--water::after {
+    content: '';
+    position: absolute;
+    inset: -25%;
+    pointer-events: none;
+    will-change: transform;
+    // Dos crestas y no una: con una sola curva a lo ancho de toda la baldosa el
+    // borde quedaba casi recto y se leía como una regla cruzando la pantalla.
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 60' preserveAspectRatio='none'%3E%3Cpath d='M0 9 Q 30 1 60 9 T 120 9 V60 H0 Z' fill='%235FD4E4' fill-opacity='.08'/%3E%3C/svg%3E");
+    background-size: 520px 560px;
+    background-repeat: repeat-x;
+    background-position: 0 100%;
+    animation: olas-lejos 23s linear infinite;
+  }
+
+  // El desplazamiento es EXACTAMENTE el ancho de una baldosa, así que el bucle
+  // no tiene costura: acaba donde empezó. Si se cambia un `background-size`,
+  // hay que cambiar aquí el mismo número o el mar dará un salto cada vuelta.
+  @keyframes olas-cerca {
+    to {
+      transform: translate3d(-260px, 0, 0);
+    }
+  }
+
+  @keyframes olas-lejos {
+    to {
+      transform: translate3d(520px, 0, 0);
+    }
+  }
+
+  /* ── Nubes ────────────────────────────────────────────────────────────
+     Un cielo despejado. Se desplazan en porcentaje y no en píxeles: la baldosa
+     mide el 50 % del ancho de la capa, así que moverse un 50 % la deja
+     exactamente donde estaba, quepa lo que quepa en la pantalla. */
+  /* Cada nube son CUATRO lóbulos solapados con la base más plana que la
+     cúspide, no una mancha redonda: con un solo degradado por nube parecían
+     pompas de jabón flotando. Las cuatro capas comparten `background-size`,
+     `repeat` y `position`, así que sus baldosas caen alineadas y los lóbulos
+     se juntan siempre formando la misma nube. */
+  .proyeccion--clouds::before {
+    background-image:
+      radial-gradient(ellipse 13% 15% at 30% 60%, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0) 62%),
+      radial-gradient(ellipse 17% 21% at 46% 44%, rgba(255, 255, 255, 0.96) 0%, rgba(255, 255, 255, 0) 62%),
+      radial-gradient(ellipse 14% 16% at 62% 54%, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0) 62%),
+      radial-gradient(ellipse 24% 9% at 46% 68%, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0) 66%);
+    background-size: 50% 46%;
+    background-repeat: repeat-x;
+    background-position: 0 14%;
+    animation: nubes-altas 70s linear infinite;
+  }
+
+  /* Las de abajo, más pequeñas y más lentas: es la parte que da la sensación
+     de distancia. */
+  .proyeccion--clouds::after {
+    content: '';
+    position: absolute;
+    inset: -25%;
+    pointer-events: none;
+    will-change: transform;
+    background-image:
+      radial-gradient(ellipse 12% 14% at 38% 56%, rgba(255, 255, 255, 0.62) 0%, rgba(255, 255, 255, 0) 64%),
+      radial-gradient(ellipse 15% 18% at 54% 44%, rgba(255, 255, 255, 0.66) 0%, rgba(255, 255, 255, 0) 64%),
+      radial-gradient(ellipse 20% 8% at 50% 64%, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0) 68%);
+    background-size: 40% 34%;
+    background-repeat: repeat-x;
+    background-position: 0 66%;
+    animation: nubes-bajas 110s linear infinite;
+  }
+
+  @keyframes nubes-altas {
+    to {
+      transform: translate3d(-50%, 0, 0);
+    }
+  }
+
+  @keyframes nubes-bajas {
+    to {
+      transform: translate3d(-40%, 0, 0);
+    }
+  }
+
+  /* ── Vapor ────────────────────────────────────────────────────────────
+     Jirones que suben desde el campo. La máscara es lo que lo convierte en
+     vapor y no en niebla uniforme: denso abajo, deshecho arriba. Donde no haya
+     soporte de máscara se ve parejo, que sigue siendo aceptable. */
+  .proyeccion--mist::before {
+    background-image:
+      radial-gradient(ellipse 60% 5% at 38% 50%, rgba(255, 255, 255, 0.34) 0%, rgba(255, 255, 255, 0) 70%),
+      radial-gradient(ellipse 70% 4% at 66% 82%, rgba(255, 255, 255, 0.26) 0%, rgba(255, 255, 255, 0) 70%);
+    background-size: 100% 30%;
+    background-repeat: repeat-y;
+    -webkit-mask-image: linear-gradient(to top, #000 12%, rgba(0, 0, 0, 0.45) 45%, transparent 88%);
+    mask-image: linear-gradient(to top, #000 12%, rgba(0, 0, 0, 0.45) 45%, transparent 88%);
+    animation: vapor 26s linear infinite;
+  }
+
+  @keyframes vapor {
+    to {
+      transform: translate3d(0, -30%, 0);
+    }
   }
 
   // Deriva y un punto de escala: las nubes se separan y se juntan sin llegar a
@@ -216,26 +367,15 @@
     }
   }
 
-  // Sólo vertical: el agua sube y baja, no se desplaza de lado. Va y vuelve
-  // dentro del mismo ciclo, así que acaba donde empieza y el bucle no salta.
-  // `ease-in-out` y no `linear` porque una marea no cambia de sentido de golpe.
-  @keyframes agua {
-    0% {
-      transform: translate3d(0, -9%, 0);
-    }
-    50% {
-      transform: translate3d(0, 9%, 0);
-    }
-    100% {
-      transform: translate3d(0, -9%, 0);
-    }
-  }
-
   // Quien pide menos movimiento se queda con el fondo quieto. No pierde nada:
   // el dibujo es el mismo, sólo deja de derivar.
   @media (prefers-reduced-motion: reduce) {
     .proyeccion--nebula::before,
-    .proyeccion--water::before {
+    .proyeccion--water::before,
+    .proyeccion--water::after,
+    .proyeccion--clouds::before,
+    .proyeccion--clouds::after,
+    .proyeccion--mist::before {
       animation: none;
     }
   }

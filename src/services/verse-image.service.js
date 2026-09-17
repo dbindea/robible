@@ -109,7 +109,8 @@ export const IMAGE_BACKGROUNDS = [
       'linear-gradient(150deg, #0E1230, #070A1A)',
   },
   {
-    // Agua en calma: ondas anchas que se desplazan muy despacio.
+    // Agua: crestas de ola de verdad, no bandas de luz. Las bandas anchas que
+    // tenía antes se leían como un degradado a rayas y no como agua.
     key: 'water',
     style: 'water',
     animado: 'water',
@@ -118,11 +119,49 @@ export const IMAGE_BACKGROUNDS = [
     glow: 'rgba(120, 220, 240, 0.16)',
     ink: '#EAF7FB',
     accent: 'rgba(146, 226, 240, 0.92)',
+    // La cresta se dibuja con una curva en un SVG embebido, la misma que usa
+    // la capa animada. Con `radial-gradient` recortado salía una fila de arcos
+    // de medio punto —un acueducto, no el mar—: un círculo no es una ola.
     swatch:
-      'radial-gradient(ellipse 80% 22% at 50% 30%, rgba(95,212,228,0.24) 0%, rgba(0,0,0,0) 72%),' +
-      'radial-gradient(ellipse 80% 20% at 50% 62%, rgba(95,212,228,0.18) 0%, rgba(0,0,0,0) 72%),' +
-      'radial-gradient(ellipse 80% 18% at 50% 88%, rgba(95,212,228,0.12) 0%, rgba(0,0,0,0) 72%),' +
+      "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 40' preserveAspectRatio='none'%3E%3Cpath d='M0 14 Q 15 2 30 14 T 60 14 T 90 14 T 120 14 V40 H0 Z' fill='%235FD4E4' fill-opacity='.24'/%3E%3C/svg%3E\") repeat-x 0 76% / 55% 34%," +
+      "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 40' preserveAspectRatio='none'%3E%3Cpath d='M0 16 Q 30 4 60 16 T 120 16 V40 H0 Z' fill='%235FD4E4' fill-opacity='.14'/%3E%3C/svg%3E\") repeat-x 0 58% / 80% 40%," +
       'linear-gradient(150deg, #0B3A4A, #062430)',
+  },
+  {
+    // Cielo azul con nubes blancas, las de un día despejado.
+    key: 'clouds',
+    style: 'clouds',
+    animado: 'clouds',
+    // De arriba abajo: azul más profundo arriba y más claro hacia el horizonte,
+    // que es como se ve un cielo de verdad.
+    stops: ['#4E97CF', '#8FC5E8', '#DCEEF9'],
+    glow: 'rgba(255, 255, 255, 0.5)',
+    // Tinta OSCURA: el cielo es claro y las nubes son blancas, así que el texto
+    // en blanco desaparecería justo encima de una nube.
+    ink: '#0E2D45',
+    accent: 'rgba(14, 45, 69, 0.8)',
+    swatch:
+      'radial-gradient(ellipse 26% 34% at 26% 42%, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0) 70%),' +
+      'radial-gradient(ellipse 30% 30% at 68% 32%, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0) 70%),' +
+      'radial-gradient(ellipse 22% 24% at 48% 66%, rgba(255,255,255,0.75) 0%, rgba(255,255,255,0) 72%),' +
+      'linear-gradient(180deg, #4E97CF, #8FC5E8, #DCEEF9)',
+  },
+  {
+    // Vapor levantándose de un campo verde, al amanecer.
+    key: 'mist',
+    style: 'mist',
+    animado: 'mist',
+    // Verde oscuro abajo para que el texto en blanco se lea: un campo a pleno
+    // sol dejaría el versículo ilegible en una pantalla de iglesia.
+    stops: ['#6E9B5B', '#41703C', '#1B3822'],
+    mistColor: '#FFFFFF',
+    glow: 'rgba(230, 245, 220, 0.3)',
+    ink: '#F4FAF2',
+    accent: 'rgba(214, 240, 200, 0.92)',
+    swatch:
+      'radial-gradient(ellipse 60% 12% at 40% 58%, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 70%),' +
+      'radial-gradient(ellipse 70% 10% at 60% 76%, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 70%),' +
+      'linear-gradient(180deg, #6E9B5B, #41703C, #1B3822)',
   },
 ];
 
@@ -466,8 +505,13 @@ const pintarNebulosa = (ctx, bg, w, h) => {
 };
 
 /**
- * Agua en calma: bandas anchas de luz, como el reflejo sobre una superficie
- * quieta. En la proyección se desplazan muy despacio.
+ * Agua: olas de verdad, con cresta y valle.
+ *
+ * Antes eran tres bandas de luz difusas y no se leían como agua sino como un
+ * degradado a rayas — lo dijo el propietario viéndolo en la pantalla de la
+ * iglesia. Ahora cada capa es una superficie ondulada rellena: una senoide
+ * cerrada por abajo, con su propia frecuencia, amplitud y fase. Superpuestas y
+ * desfasadas entre sí es como se forma el relieve de un mar en calma.
  */
 const pintarAgua = (ctx, bg, w, h) => {
   const base = ctx.createLinearGradient(0, 0, w * 0.5, h);
@@ -475,39 +519,128 @@ const pintarAgua = (ctx, bg, w, h) => {
   ctx.fillStyle = base;
   ctx.fillRect(0, 0, w, h);
 
-  // Bandas horizontales difusas, cada una más tenue que la de arriba: así se
-  // lee como profundidad y no como unas rayas.
-  const bandas = [
-    { y: 0.3, alto: 0.22, a: 0.24 },
-    { y: 0.62, alto: 0.2, a: 0.18 },
-    { y: 0.88, alto: 0.18, a: 0.12 },
+  // De lejos a cerca: las de abajo son más grandes, más marcadas y más
+  // espaciadas, que es lo que da la sensación de profundidad.
+  const capas = [
+    { y: 0.52, amp: 0.012, ciclos: 5.0, fase: 0.0, a: 0.1 },
+    { y: 0.63, amp: 0.018, ciclos: 3.6, fase: 1.3, a: 0.14 },
+    { y: 0.76, amp: 0.026, ciclos: 2.7, fase: 2.4, a: 0.18 },
+    { y: 0.9, amp: 0.034, ciclos: 1.9, fase: 0.7, a: 0.22 },
   ];
-  bandas.forEach((b) => {
-    const g = ctx.createLinearGradient(0, h * (b.y - b.alto), 0, h * (b.y + b.alto));
-    g.addColorStop(0, conAlfa(bg.wave, 0));
-    g.addColorStop(0.5, conAlfa(bg.wave, b.a));
-    g.addColorStop(1, conAlfa(bg.wave, 0));
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, w, h);
-  });
 
-  // Ondulación fina encima: una senoide de trazo suave por banda. Es lo que
-  // hace que se lea «agua» y no «degradado a rayas».
-  ctx.save();
-  ctx.lineWidth = Math.max(1, w / 620);
-  bandas.forEach((b, i) => {
-    ctx.globalAlpha = 0.14 - i * 0.03;
-    ctx.strokeStyle = bg.wave;
+  const paso = Math.max(2, w / 400);
+  for (const c of capas) {
     ctx.beginPath();
-    for (let x = 0; x <= w; x += Math.max(2, w / 300)) {
+    ctx.moveTo(0, h);
+    for (let x = 0; x <= w; x += paso) {
       const t = x / w;
-      const y = h * b.y + Math.sin(t * Math.PI * 4 + i * 1.7) * h * 0.018;
+      ctx.lineTo(x, h * c.y + Math.sin(t * Math.PI * 2 * c.ciclos + c.fase) * h * c.amp);
+    }
+    ctx.lineTo(w, h);
+    ctx.closePath();
+    ctx.fillStyle = conAlfa(bg.wave, c.a);
+    ctx.fill();
+
+    // Un filo claro sobre la cresta: es lo que hace que se vea el borde del
+    // agua y no una mancha.
+    ctx.beginPath();
+    for (let x = 0; x <= w; x += paso) {
+      const t = x / w;
+      const y = h * c.y + Math.sin(t * Math.PI * 2 * c.ciclos + c.fase) * h * c.amp;
       if (x === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
     }
+    ctx.lineWidth = Math.max(1, w / 700);
+    ctx.strokeStyle = conAlfa(bg.wave, Math.min(0.55, c.a + 0.2));
     ctx.stroke();
+  }
+};
+
+/**
+ * Cielo despejado con nubes blancas.
+ *
+ * Cada nube son varios círculos difusos solapados con la base más plana que la
+ * cúspide: un cúmulo de verdad se apoya sobre una línea horizontal. Con un solo
+ * círculo por nube parecían pompas.
+ */
+const pintarNubes = (ctx, bg, w, h) => {
+  // Vertical y no en diagonal: un cielo se aclara hacia el horizonte, no hacia
+  // una esquina.
+  const cielo = ctx.createLinearGradient(0, 0, 0, h);
+  bg.stops.forEach((color, i) => cielo.addColorStop(i / (bg.stops.length - 1), color));
+  ctx.fillStyle = cielo;
+  ctx.fillRect(0, 0, w, h);
+
+  const nube = (cx, cy, escala, alfa) => {
+    // Los bultos de un cúmulo: el del medio más alto, los de los lados
+    // menores, y todos apoyados en la misma base.
+    const bultos = [
+      { dx: -0.9, dy: 0.1, r: 0.55 },
+      { dx: -0.35, dy: -0.25, r: 0.8 },
+      { dx: 0.3, dy: -0.15, r: 0.7 },
+      { dx: 0.95, dy: 0.12, r: 0.5 },
+      { dx: 0, dy: 0.22, r: 0.75 },
+    ];
+    for (const b of bultos) {
+      const x = cx + b.dx * escala;
+      const y = cy + b.dy * escala;
+      const r = b.r * escala;
+      const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+      g.addColorStop(0, conAlfa(bg.mistColor || '#FFFFFF', alfa));
+      g.addColorStop(0.6, conAlfa(bg.mistColor || '#FFFFFF', alfa * 0.55));
+      g.addColorStop(1, conAlfa(bg.mistColor || '#FFFFFF', 0));
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, w, h);
+    }
+  };
+
+  // Las de arriba, más grandes y opacas; las de abajo se van al horizonte.
+  nube(w * 0.24, h * 0.2, w * 0.17, 0.92);
+  nube(w * 0.72, h * 0.31, w * 0.2, 0.85);
+  nube(w * 0.45, h * 0.58, w * 0.14, 0.6);
+  nube(w * 0.86, h * 0.72, w * 0.12, 0.45);
+  nube(w * 0.12, h * 0.8, w * 0.1, 0.35);
+};
+
+/**
+ * Vapor levantándose de un campo verde.
+ *
+ * El campo es el propio degradado —verde y más oscuro abajo— y encima van
+ * jirones de niebla horizontales, más densos cerca del suelo y deshechos hacia
+ * arriba. Es lo que se ve en un prado a primera hora.
+ */
+const pintarVapor = (ctx, bg, w, h) => {
+  const campo = ctx.createLinearGradient(0, 0, 0, h);
+  bg.stops.forEach((color, i) => campo.addColorStop(i / (bg.stops.length - 1), color));
+  ctx.fillStyle = campo;
+  ctx.fillRect(0, 0, w, h);
+
+  // De abajo arriba: cuanto más alto, más tenue y más ancho — el vapor se
+  // abre al subir.
+  const jirones = [
+    { y: 0.92, ancho: 0.55, alto: 0.05, a: 0.4 },
+    { y: 0.8, ancho: 0.7, alto: 0.06, a: 0.32 },
+    { y: 0.67, ancho: 0.62, alto: 0.05, a: 0.24 },
+    { y: 0.54, ancho: 0.8, alto: 0.07, a: 0.16 },
+    { y: 0.4, ancho: 0.72, alto: 0.06, a: 0.1 },
+  ];
+
+  jirones.forEach((j, i) => {
+    // Se alternan a izquierda y derecha para que no formen una columna.
+    const cx = w * (i % 2 === 0 ? 0.4 : 0.62);
+    const g = ctx.createRadialGradient(cx, h * j.y, 0, cx, h * j.y, w * j.ancho);
+    g.addColorStop(0, conAlfa(bg.mistColor, j.a));
+    g.addColorStop(0.55, conAlfa(bg.mistColor, j.a * 0.4));
+    g.addColorStop(1, conAlfa(bg.mistColor, 0));
+    ctx.save();
+    // Aplastado: el vapor se extiende a lo ancho, no en círculo.
+    ctx.translate(0, h * j.y);
+    ctx.scale(1, (j.alto / j.ancho) * (w / h) * 3);
+    ctx.translate(0, -h * j.y);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+    ctx.restore();
   });
-  ctx.restore();
 };
 
 const PINTORES = {
@@ -515,6 +648,8 @@ const PINTORES = {
   aurora: pintarAurora,
   nebula: pintarNebulosa,
   water: pintarAgua,
+  clouds: pintarNubes,
+  mist: pintarVapor,
 };
 
 const paintBackground = (ctx, bg, w, h) => {

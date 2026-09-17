@@ -429,7 +429,9 @@
         "sand": "Arena",
         "aurora": "Aurora",
         "nebula": "Nebulosa",
-        "water": "Agua en calma"
+        "water": "Agua en calma",
+        "clouds": "Nubes en el cielo",
+        "mist": "Vapor sobre el campo"
       },
       "share": "Compartir",
       "close": "Cerrar",
