@@ -279,9 +279,67 @@
     mostrarControles();
   };
 
+  /**
+   * El capítulo que se está recorriendo, para poder seguir más allá de él.
+   *
+   * `null` cuando lo que hay en pantalla NO es un capítulo sino el resultado de
+   * una búsqueda por texto: ahí son versículos de libros distintos y «seguir»
+   * no significa nada.
+   */
+  let recorriendo = null; // { book, chapter }
+
   const empezarDesde = (book, chapter, verse) => {
     const lista = construirPasajes(book, chapter);
+    if (!lista.length) return;
+    recorriendo = { book, chapter };
     arrancar(lista, Number.isInteger(verse) && verse > 1 ? verse - 1 : 0);
+  };
+
+  /**
+   * El capítulo siguiente (o el anterior), saltando de libro cuando toca.
+   *
+   * Da la vuelta al llegar a Apocalipsa: quien lee en el móvil un domingo por
+   * la noche no tiene por qué encontrarse con un botón muerto. La Biblia es un
+   * ciclo, y volver a Geneza 1 es una respuesta mejor que no hacer nada.
+   */
+  const capituloVecino = ({ book, chapter }, paso) => {
+    const capsDe = (b) => bible?.[b]?.length || 0;
+
+    if (paso > 0) {
+      if (chapter < capsDe(book)) return { book, chapter: chapter + 1 };
+      const siguienteLibro = book + 1 < 66 ? book + 1 : 0;
+      return { book: siguienteLibro, chapter: 1 };
+    }
+
+    if (chapter > 1) return { book, chapter: chapter - 1 };
+    const anteriorLibro = book - 1 >= 0 ? book - 1 : 65;
+    return { book: anteriorLibro, chapter: capsDe(anteriorLibro) || 1 };
+  };
+
+  /**
+   * Salta al capítulo de al lado y coloca el cursor donde corresponde:
+   * al principio si se va hacia delante, al final si se va hacia atrás.
+   *
+   * Se salta cualquier capítulo que quede vacío en esta versión —pasa con las
+   * ediciones que omiten un pasaje entero— en vez de dejar la pantalla en
+   * blanco. El tope de 5 saltos es una guarda contra una Biblia rota: sin él,
+   * un array vacío haría un bucle infinito en mitad del culto.
+   */
+  const irACapituloVecino = (paso) => {
+    if (!recorriendo) return false;
+
+    let destino = recorriendo;
+    for (let intento = 0; intento < 5; intento += 1) {
+      destino = capituloVecino(destino, paso);
+      const lista = construirPasajes(destino.book, destino.chapter);
+      if (lista.length) {
+        recorriendo = destino;
+        pasajes = lista;
+        indice = paso > 0 ? 0 : lista.length - 1;
+        return true;
+      }
+    }
+    return false;
   };
 
   const empezarDesdeSugerencia = (s) => empezarDesde(s.book, s.chapter, s.verse);
@@ -295,7 +353,10 @@
   // son versículos de libros distintos y no tendría sentido saltar al capítulo
   // de cada uno. Es justo lo que se quiere para un tema («toate versetele
   // despre dragoste») proyectado uno detrás de otro.
-  const empezarDesdeTexto = (i) => arrancar(resultadosTexto, i);
+  const empezarDesdeTexto = (i) => {
+    recorriendo = null;
+    arrancar(resultadosTexto, i);
+  };
 
   // Atajo: seguir por donde se iba leyendo.
   let ultimaLectura = null;
@@ -384,7 +445,11 @@
   const alGirarRueda = (e) => {
     e.preventDefault();
     const paso = e.deltaY < 0 ? 0.05 : -0.05;
-    prefs.escala = Math.min(Math.max(prefs.escala + paso, 0.5), 2);
+    // Redondeado a dos decimales: el error del coma flotante se acumula muesca
+    // a muesca —cuatro vueltas y ya vale 1.2000000000000002— y eso se guarda en
+    // localStorage y se manda a la otra ventana en cada cambio.
+    const bruto = Math.min(Math.max(prefs.escala + paso, 0.5), 2);
+    prefs.escala = Math.round(bruto * 100) / 100;
     persistir();
     mostrarControles();
   };
@@ -393,13 +458,20 @@
   //
   // Avanzar cierra cualquier panel abierto: si el operador estaba mirando los
   // fondos y pasa al versículo siguiente, ya no está eligiendo.
+  //
+  // Y al llegar al último versículo NO se para: sigue en el capítulo siguiente,
+  // y al acabar el libro, en el siguiente libro. Se pidió leyendo en el móvil, y
+  // tiene razón — un lector que llega al final de Geneza 1 quiere Geneza 2, no
+  // un botón que deja de responder. Lo mismo hacia atrás.
   const siguiente = () => {
     panelAbierto = '';
     if (haySiguiente) indice += 1;
+    else irACapituloVecino(1);
   };
   const anterior = () => {
     panelAbierto = '';
     if (hayAnterior) indice -= 1;
+    else irACapituloVecino(-1);
   };
   const alternarNegro = () => {
     enNegro = !enNegro;
@@ -1081,10 +1153,22 @@
       </div>
 
       <div class="consola__pasos">
-        <button type="button" disabled={!hayAnterior} on:click={anterior} aria-label={$_('app.projection.key_prev')}>
+        <!-- Sólo se apagan cuando de verdad no hay adónde ir: con un capítulo
+             en marcha siempre lo hay, porque se salta al de al lado. -->
+        <button
+          type="button"
+          disabled={!hayAnterior && !recorriendo}
+          on:click={anterior}
+          aria-label={$_('app.projection.key_prev')}
+        >
           <Icon name="arrow-left" />
         </button>
-        <button type="button" disabled={!haySiguiente} on:click={siguiente} aria-label={$_('app.projection.key_next')}>
+        <button
+          type="button"
+          disabled={!haySiguiente && !recorriendo}
+          on:click={siguiente}
+          aria-label={$_('app.projection.key_next')}
+        >
           <Icon name="arrow-right" />
         </button>
       </div>

@@ -66,7 +66,10 @@ const RUTAS_ES = {
 export const BIBLE_VERSIONS = [
   {
     value: 'vdc',
-    label: 'Română',
+    // Entre paréntesis, la edición: es lo que distingue una versión de otra
+    // dentro del mismo idioma, y ahora el español tiene cuatro. Sin ella, las
+    // dos primeras eran las únicas que no decían cuál eran.
+    label: 'Română (Cornilescu)',
     code: 'RO',
     locale: 'ro',
     ogLocale: 'ro_RO',
@@ -106,7 +109,7 @@ export const BIBLE_VERSIONS = [
   },
   {
     value: 'rvl',
-    label: 'Español',
+    label: 'Español (Sencillo)',
     code: 'ES',
     locale: 'es',
     ogLocale: 'es_ES',

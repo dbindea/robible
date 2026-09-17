@@ -429,7 +429,9 @@
         "sand": "Sand",
         "aurora": "Aurora",
         "nebula": "Nebula",
-        "water": "Still water"
+        "water": "Still water",
+        "clouds": "Clouds in the sky",
+        "mist": "Mist over the field"
       },
       "share": "Share",
       "close": "Close",

@@ -109,7 +109,8 @@ export const IMAGE_BACKGROUNDS = [
       'linear-gradient(150deg, #0E1230, #070A1A)',
   },
   {
-    // Agua en calma: ondas anchas que se desplazan muy despacio.
+    // Agua: crestas de ola de verdad, no bandas de luz. Las bandas anchas que
+    // tenía antes se leían como un degradado a rayas y no como agua.
     key: 'water',
     style: 'water',
     animado: 'water',
@@ -118,11 +119,66 @@ export const IMAGE_BACKGROUNDS = [
     glow: 'rgba(120, 220, 240, 0.16)',
     ink: '#EAF7FB',
     accent: 'rgba(146, 226, 240, 0.92)',
+    // La cresta se dibuja con una curva en un SVG embebido, la misma que usa la
+    // capa animada. Dos reglas que no son opcionales:
+    //
+    //   `no-repeat`            repitiendo la baldosa, su borde inferior es una
+    //                          línea perfectamente horizontal que cruza la
+    //                          proyección de lado a lado.
+    //   `0 100%` + relleno
+    //   hasta el fondo del SVG el dibujo se ancla abajo y el color llega al
+    //                          borde de la pantalla, así que no queda corte.
+    //
+    // Esto lo pinta `--fondo` a pantalla completa, no sólo la muestra de 44 px
+    // del selector: lo que aquí sea una raya, allí es una raya de dos metros.
     swatch:
-      'radial-gradient(ellipse 80% 22% at 50% 30%, rgba(95,212,228,0.24) 0%, rgba(0,0,0,0) 72%),' +
-      'radial-gradient(ellipse 80% 20% at 50% 62%, rgba(95,212,228,0.18) 0%, rgba(0,0,0,0) 72%),' +
-      'radial-gradient(ellipse 80% 18% at 50% 88%, rgba(95,212,228,0.12) 0%, rgba(0,0,0,0) 72%),' +
+      "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 80' preserveAspectRatio='none'%3E%3Cpath d='M0 26 C 22 12 44 32 68 24 S 104 8 132 26 S 172 38 198 22 S 226 14 240 28 V80 H0 Z' fill='%235FD4E4' fill-opacity='.20'/%3E%3C/svg%3E\") no-repeat 0 100% / 100% 44%," +
+      "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 80' preserveAspectRatio='none'%3E%3Cpath d='M0 40 C 44 28 78 50 120 40 S 190 26 240 42 V80 H0 Z' fill='%235FD4E4' fill-opacity='.10'/%3E%3C/svg%3E\") no-repeat 0 100% / 100% 66%," +
       'linear-gradient(150deg, #0B3A4A, #062430)',
+  },
+  {
+    // Cielo azul con nubes blancas, las de un día despejado.
+    key: 'clouds',
+    style: 'clouds',
+    animado: 'clouds',
+    // De arriba abajo: azul más profundo arriba y más claro hacia el horizonte,
+    // que es como se ve un cielo de verdad.
+    stops: ['#4E97CF', '#8FC5E8', '#DCEEF9'],
+    glow: 'rgba(255, 255, 255, 0.5)',
+    // Tinta OSCURA: el cielo es claro y las nubes son blancas, así que el texto
+    // en blanco desaparecería justo encima de una nube.
+    ink: '#0E2D45',
+    accent: 'rgba(14, 45, 69, 0.8)',
+    swatch:
+      'radial-gradient(ellipse 26% 34% at 26% 42%, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0) 70%),' +
+      'radial-gradient(ellipse 30% 30% at 68% 32%, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0) 70%),' +
+      'radial-gradient(ellipse 22% 24% at 48% 66%, rgba(255,255,255,0.75) 0%, rgba(255,255,255,0) 72%),' +
+      'linear-gradient(180deg, #4E97CF, #8FC5E8, #DCEEF9)',
+  },
+  {
+    // Vapor levantándose de un campo verde, al amanecer.
+    key: 'mist',
+    style: 'mist',
+    animado: 'mist',
+    // Verde oscuro abajo para que el texto en blanco se lea: un campo a pleno
+    // sol dejaría el versículo ilegible en una pantalla de iglesia.
+    stops: ['#6E9B5B', '#41703C', '#1B3822'],
+    mistColor: '#FFFFFF',
+    glow: 'rgba(230, 245, 220, 0.3)',
+    ink: '#F4FAF2',
+    accent: 'rgba(214, 240, 200, 0.92)',
+    // El humo es ruido fractal deformado (`feTurbulence` + `feDisplacementMap`),
+    // no degradados: dos elipses difusas dan bruma, y lo que se pidió es humo —
+    // con grano, con hebras y sin poder adivinar por dónde va. La misma receta
+    // que las capas animadas de `ProjectionSurface`, donde está explicada al
+    // detalle, para que el fondo quieto y el que se mueve sean el mismo dibujo.
+    //
+    // Con OTRA semilla, eso sí: éste es el fondo que va debajo de aquéllas, y
+    // con la misma se superpondrían calcadas y el humo saldría al doble de
+    // denso justo donde ya lo estaba.
+    swatch:
+      "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='700'%3E%3Cfilter id='h' x='-30%25' y='-30%25' width='160%25' height='160%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.014 0.007' numOctaves='6' seed='5' result='humo'/%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.0035' numOctaves='2' seed='23' result='remolino'/%3E%3CfeDisplacementMap in='humo' in2='remolino' scale='110' xChannelSelector='R' yChannelSelector='G'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 1 0 0 0 0'/%3E%3CfeComponentTransfer result='denso'%3E%3CfeFuncA type='table' tableValues='0 0 0.24 0.85 1'/%3E%3C/feComponentTransfer%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.3' numOctaves='2' seed='12' result='motas'/%3E%3CfeColorMatrix in='motas' type='matrix' values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 1.5 0 0 0 -0.25' result='grano'/%3E%3CfeComposite in='denso' in2='grano' operator='arithmetic' k1='1' k2='0' k3='0' k4='0'/%3E%3C/filter%3E%3Crect width='700' height='700' filter='url(%23h)' opacity='.5' mask='url(%23m)'/%3E%3Cmask id='m'%3E%3ClinearGradient id='g' x1='0' y1='1' x2='0' y2='0'%3E%3Cstop offset='.04' stop-color='%23fff'/%3E%3Cstop offset='.3' stop-color='%236b6b6b'/%3E%3Cstop offset='.7' stop-color='%23000'/%3E%3C/linearGradient%3E%3Crect width='700' height='700' fill='url(%23g)'/%3E%3C/mask%3E%3C/svg%3E\") no-repeat 50% 100% / 150% 120%," +
+      'linear-gradient(180deg, #6E9B5B, #41703C, #1B3822)',
   },
 ];
 
@@ -344,6 +400,23 @@ export const ensureFontsReady = async () => {
   }
 };
 
+/**
+ * Un lienzo suelto para dibujar aparte y pegarlo después.
+ *
+ * `OffscreenCanvas` primero porque no toca el DOM; donde no exista, un
+ * `<canvas>` que nunca se inserta. Devuelve `null` si no hay ninguno de los dos
+ * —los tests corren en Node, sin ventana— y el pintor que lo pida se queda sin
+ * esa capa en vez de reventar.
+ */
+const lienzoAuxiliar = (w, h) => {
+  if (typeof OffscreenCanvas === 'function') return new OffscreenCanvas(w, h);
+  if (typeof document === 'undefined') return null;
+  const c = document.createElement('canvas');
+  c.width = w;
+  c.height = h;
+  return c;
+};
+
 /** `#RRGGBB` + alfa → `rgba(...)`. Los pintores necesitan desvanecer colores. */
 const conAlfa = (hex, alfa) => {
   const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || ''));
@@ -466,8 +539,13 @@ const pintarNebulosa = (ctx, bg, w, h) => {
 };
 
 /**
- * Agua en calma: bandas anchas de luz, como el reflejo sobre una superficie
- * quieta. En la proyección se desplazan muy despacio.
+ * Agua: olas de verdad, con cresta y valle.
+ *
+ * Antes eran tres bandas de luz difusas y no se leían como agua sino como un
+ * degradado a rayas — lo dijo el propietario viéndolo en la pantalla de la
+ * iglesia. Ahora cada capa es una superficie ondulada rellena: una senoide
+ * cerrada por abajo, con su propia frecuencia, amplitud y fase. Superpuestas y
+ * desfasadas entre sí es como se forma el relieve de un mar en calma.
  */
 const pintarAgua = (ctx, bg, w, h) => {
   const base = ctx.createLinearGradient(0, 0, w * 0.5, h);
@@ -475,39 +553,216 @@ const pintarAgua = (ctx, bg, w, h) => {
   ctx.fillStyle = base;
   ctx.fillRect(0, 0, w, h);
 
-  // Bandas horizontales difusas, cada una más tenue que la de arriba: así se
-  // lee como profundidad y no como unas rayas.
-  const bandas = [
-    { y: 0.3, alto: 0.22, a: 0.24 },
-    { y: 0.62, alto: 0.2, a: 0.18 },
-    { y: 0.88, alto: 0.18, a: 0.12 },
+  // De lejos a cerca: las de abajo son más grandes, más marcadas y más
+  // espaciadas, que es lo que da la sensación de profundidad.
+  const capas = [
+    { y: 0.52, amp: 0.012, ciclos: 5.0, fase: 0.0, a: 0.1 },
+    { y: 0.63, amp: 0.018, ciclos: 3.6, fase: 1.3, a: 0.14 },
+    { y: 0.76, amp: 0.026, ciclos: 2.7, fase: 2.4, a: 0.18 },
+    { y: 0.9, amp: 0.034, ciclos: 1.9, fase: 0.7, a: 0.22 },
   ];
-  bandas.forEach((b) => {
-    const g = ctx.createLinearGradient(0, h * (b.y - b.alto), 0, h * (b.y + b.alto));
-    g.addColorStop(0, conAlfa(bg.wave, 0));
-    g.addColorStop(0.5, conAlfa(bg.wave, b.a));
-    g.addColorStop(1, conAlfa(bg.wave, 0));
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, w, h);
-  });
 
-  // Ondulación fina encima: una senoide de trazo suave por banda. Es lo que
-  // hace que se lea «agua» y no «degradado a rayas».
-  ctx.save();
-  ctx.lineWidth = Math.max(1, w / 620);
-  bandas.forEach((b, i) => {
-    ctx.globalAlpha = 0.14 - i * 0.03;
-    ctx.strokeStyle = bg.wave;
+  const paso = Math.max(2, w / 400);
+  for (const c of capas) {
     ctx.beginPath();
-    for (let x = 0; x <= w; x += Math.max(2, w / 300)) {
+    ctx.moveTo(0, h);
+    for (let x = 0; x <= w; x += paso) {
       const t = x / w;
-      const y = h * b.y + Math.sin(t * Math.PI * 4 + i * 1.7) * h * 0.018;
+      ctx.lineTo(x, h * c.y + Math.sin(t * Math.PI * 2 * c.ciclos + c.fase) * h * c.amp);
+    }
+    ctx.lineTo(w, h);
+    ctx.closePath();
+    ctx.fillStyle = conAlfa(bg.wave, c.a);
+    ctx.fill();
+
+    // Un filo claro sobre la cresta: es lo que hace que se vea el borde del
+    // agua y no una mancha.
+    ctx.beginPath();
+    for (let x = 0; x <= w; x += paso) {
+      const t = x / w;
+      const y = h * c.y + Math.sin(t * Math.PI * 2 * c.ciclos + c.fase) * h * c.amp;
       if (x === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
     }
+    ctx.lineWidth = Math.max(1, w / 700);
+    ctx.strokeStyle = conAlfa(bg.wave, Math.min(0.55, c.a + 0.2));
     ctx.stroke();
-  });
-  ctx.restore();
+  }
+};
+
+/**
+ * Cielo despejado con nubes blancas.
+ *
+ * Cada nube son varios círculos difusos solapados con la base más plana que la
+ * cúspide: un cúmulo de verdad se apoya sobre una línea horizontal. Con un solo
+ * círculo por nube parecían pompas.
+ */
+const pintarNubes = (ctx, bg, w, h) => {
+  // Vertical y no en diagonal: un cielo se aclara hacia el horizonte, no hacia
+  // una esquina.
+  const cielo = ctx.createLinearGradient(0, 0, 0, h);
+  bg.stops.forEach((color, i) => cielo.addColorStop(i / (bg.stops.length - 1), color));
+  ctx.fillStyle = cielo;
+  ctx.fillRect(0, 0, w, h);
+
+  const nube = (cx, cy, escala, alfa) => {
+    // Los bultos de un cúmulo: el del medio más alto, los de los lados
+    // menores, y todos apoyados en la misma base.
+    const bultos = [
+      { dx: -0.9, dy: 0.1, r: 0.55 },
+      { dx: -0.35, dy: -0.25, r: 0.8 },
+      { dx: 0.3, dy: -0.15, r: 0.7 },
+      { dx: 0.95, dy: 0.12, r: 0.5 },
+      { dx: 0, dy: 0.22, r: 0.75 },
+    ];
+    for (const b of bultos) {
+      const x = cx + b.dx * escala;
+      const y = cy + b.dy * escala;
+      const r = b.r * escala;
+      const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+      g.addColorStop(0, conAlfa(bg.mistColor || '#FFFFFF', alfa));
+      g.addColorStop(0.6, conAlfa(bg.mistColor || '#FFFFFF', alfa * 0.55));
+      g.addColorStop(1, conAlfa(bg.mistColor || '#FFFFFF', 0));
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, w, h);
+    }
+  };
+
+  // Las de arriba, más grandes y opacas; las de abajo se van al horizonte.
+  nube(w * 0.24, h * 0.2, w * 0.17, 0.92);
+  nube(w * 0.72, h * 0.31, w * 0.2, 0.85);
+  nube(w * 0.45, h * 0.58, w * 0.14, 0.6);
+  nube(w * 0.86, h * 0.72, w * 0.12, 0.45);
+  nube(w * 0.12, h * 0.8, w * 0.1, 0.35);
+};
+
+/* ── Ruido fractal ───────────────────────────────────────────────────────
+   El equivalente en canvas del `feTurbulence` que usa el fondo animado. Canvas
+   2D no tiene primitiva de ruido, así que se calcula a mano: `ruidoValor` hace
+   la interpolación suave entre los valores de una retícula, y `ruidoFractal`
+   suma varias octavas —cada una al doble de frecuencia y a la mitad de
+   amplitud—, que es lo que produce detalle a todas las escalas a la vez. Eso
+   es lo que distingue el humo de una mancha difusa.
+
+   Es DETERMINISTA a propósito: misma semilla, misma imagen. La vista previa se
+   repinta en cada tecla (trampa 19), y con ruido aleatorio el fondo parpadearía
+   mientras se escribe. */
+const hashRuido = (x, y, semilla) => {
+  let n = Math.imul(x, 374761393) + Math.imul(y, 668265263) + Math.imul(semilla, 1274126177);
+  n = Math.imul(n ^ (n >>> 13), 1274126177);
+  return ((n ^ (n >>> 16)) >>> 0) / 4294967295;
+};
+
+// Smoothstep. Sin él, la interpolación lineal deja la retícula a la vista como
+// un enrejado de rombos.
+const suavizar = (t) => t * t * (3 - 2 * t);
+
+const ruidoValor = (x, y, semilla) => {
+  const xi = Math.floor(x);
+  const yi = Math.floor(y);
+  const fx = suavizar(x - xi);
+  const fy = suavizar(y - yi);
+  const a = hashRuido(xi, yi, semilla);
+  const b = hashRuido(xi + 1, yi, semilla);
+  const c = hashRuido(xi, yi + 1, semilla);
+  const d = hashRuido(xi + 1, yi + 1, semilla);
+  const arriba = a + (b - a) * fx;
+  const abajo = c + (d - c) * fx;
+  return arriba + (abajo - arriba) * fy;
+};
+
+const ruidoFractal = (x, y, semilla, octavas) => {
+  let suma = 0;
+  let total = 0;
+  let amplitud = 1;
+  let fx = x;
+  let fy = y;
+  for (let o = 0; o < octavas; o += 1) {
+    suma += ruidoValor(fx, fy, semilla + o * 131) * amplitud;
+    total += amplitud;
+    fx *= 2;
+    fy *= 2;
+    amplitud *= 0.5;
+  }
+  return suma / total;
+};
+
+/**
+ * Vapor levantándose de un campo verde.
+ *
+ * El campo es el propio degradado —verde y más oscuro abajo— y encima va humo
+ * de ruido fractal: denso junto al suelo, con hebras verticales y deshecho
+ * arriba. Antes eran cinco elipses difuminadas y el resultado era bruma, no
+ * humo: lo que se pidió es «más definido y más granulado», y eso no sale de un
+ * degradado radial por muchos que se solapen.
+ */
+const pintarVapor = (ctx, bg, w, h) => {
+  const campo = ctx.createLinearGradient(0, 0, 0, h);
+  bg.stops.forEach((color, i) => campo.addColorStop(i / (bg.stops.length - 1), color));
+  ctx.fillStyle = campo;
+  ctx.fillRect(0, 0, w, h);
+
+  // El humo se calcula a la MITAD de resolución y se estira al pintarlo: son
+  // cuatro veces menos píxeles que evaluar —el formato vertical tiene dos
+  // millones— y el grano sale de dos píxeles, que es justo lo que se quiere
+  // ver. A resolución completa el cálculo se notaba en la vista previa.
+  const nw = Math.ceil(w / 2);
+  const nh = Math.ceil(h / 2);
+  const humo = lienzoAuxiliar(nw, nh);
+  if (!humo) return;
+  const hctx = humo.getContext('2d');
+  const datos = hctx.createImageData(nw, nh);
+  const px = datos.data;
+
+  const m = /^#?([0-9a-f]{6})$/i.exec(String(bg.mistColor || '#FFFFFF'));
+  const tinta = m ? parseInt(m[1], 16) : 0xffffff;
+  const rojo = (tinta >> 16) & 255;
+  const verde = (tinta >> 8) & 255;
+  const azul = tinta & 255;
+
+  for (let y = 0; y < nh; y += 1) {
+    const t = y / nh;
+    // Denso abajo y sin nada en el tercio superior. Al cuadrado para que la
+    // transición no sea una banda recta.
+    const mascara = t <= 0.18 ? 0 : Math.min(1, (t - 0.18) / 0.62) ** 2;
+    if (mascara === 0) continue;
+
+    for (let x = 0; x < nw; x += 1) {
+      const u = x / nw;
+
+      // La misma deformación que hace `feDisplacementMap` en el fondo animado:
+      // un ruido de escala grande que mueve el punto de muestreo. Sin ella, un
+      // ruido estirado sale peinado —una empalizada de rayas verticales— en vez
+      // de humo, y ese fue el primer intento fallido de los dos.
+      const ondaX = (ruidoValor(u * 2.2, t * 2.2, 71) - 0.5) * 2.6;
+      const ondaY = (ruidoValor(u * 1.7, t * 1.7, 113) - 0.5) * 1.3;
+
+      // CATORCE ciclos de ancho contra cuatro y medio de alto: las manchas salen
+      // estrechas y largas, que es la forma de un penacho que sube. Ojo con
+      // invertirlo, que da bandas horizontales cruzando la pantalla.
+      const n = ruidoFractal(u * 14 + ondaX, t * 4.5 + ondaY, 17, 5);
+
+      // Umbral: lo que queda por debajo se va a cero en vez de quedarse en un
+      // velo gris. Es lo que abre huecos y deja los jirones DEFINIDOS.
+      const densidad = (n - 0.44) / 0.56;
+      if (densidad <= 0) continue;
+
+      // Y el grano: ruido fino que MULTIPLICA al humo, igual que el
+      // `feComposite operator='arithmetic'` del fondo animado. Las octavas
+      // afinan la forma, pero el humo seguiría siendo una mancha continua; la
+      // textura de partículas sólo sale de multiplicar por algo fino.
+      const grano = 0.35 + ruidoValor(u * 170, t * 170, 4) * 0.85;
+
+      const i = (y * nw + x) * 4;
+      px[i] = rojo;
+      px[i + 1] = verde;
+      px[i + 2] = azul;
+      px[i + 3] = Math.min(255, densidad ** 1.3 * mascara * grano * 245);
+    }
+  }
+
+  hctx.putImageData(datos, 0, 0);
+  ctx.drawImage(humo, 0, 0, w, h);
 };
 
 const PINTORES = {
@@ -515,6 +770,8 @@ const PINTORES = {
   aurora: pintarAurora,
   nebula: pintarNebulosa,
   water: pintarAgua,
+  clouds: pintarNubes,
+  mist: pintarVapor,
 };
 
 const paintBackground = (ctx, bg, w, h) => {
