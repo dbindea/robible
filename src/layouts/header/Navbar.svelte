@@ -2,7 +2,8 @@
   import Icon from '../../components/Icon.svelte';
   import { onDestroy, onMount } from 'svelte';
   import { _ } from '../../services/i18n.service';
-  import { bibleVersions, selectedBibleVersion } from '../../store/stores';
+  import { selectedBibleVersion } from '../../store/stores';
+  import { versionesDisponibles } from '../../store/bibleVersionsStore';
   import { appMenuOpen, closeAppMenu, openAppMenu } from '../../store/appMenuStore';
   import { isAuthenticated } from '../../store/authStore';
 
@@ -16,9 +17,15 @@
   // de código: es feo pero informativo, y mejor que un botón en blanco.
   $: selectedVersionCode = selectedVersionConfig?.code || selectedVersion?.toUpperCase() || '';
   $: selectedVersionName = selectedVersionConfig?.bibleName || '';
-  $: visibleBibleVersions = bibleVersions.some((version) => version.value === selectedVersion)
-    ? bibleVersions
-    : [{ value: selectedVersion, label: selectedVersion, code: selectedVersion?.toUpperCase() }, ...bibleVersions];
+  // Las que el usuario tenga activadas, no el catálogo entero. La que se está
+  // leyendo se añade siempre aunque esté apagada: si no, cambiar de versión y
+  // luego desactivarla dejaba el botón sin decir en qué Biblia estás.
+  $: visibleBibleVersions = $versionesDisponibles.some((version) => version.value === selectedVersion)
+    ? $versionesDisponibles
+    : [
+        { value: selectedVersion, label: selectedVersion, code: selectedVersion?.toUpperCase() },
+        ...$versionesDisponibles,
+      ];
 
   // Helpers para detectar ruta activa
   $: isOnCompare = currentPath.startsWith('/compara');
@@ -473,13 +480,22 @@
     height: 2px;
     background-color: currentcolor;
     border-radius: 2px;
-    transition: transform var(--motion-slow) ease, opacity var(--motion-fast) ease, top var(--motion-slow) ease;
+    transition:
+      transform var(--motion-slow) ease,
+      opacity var(--motion-fast) ease,
+      top var(--motion-slow) ease;
     transform-origin: center;
   }
 
-  .hamburger__line:nth-child(1) { top: 0; }
-  .hamburger__line:nth-child(2) { top: 0.45rem; }
-  .hamburger__line:nth-child(3) { top: 0.9rem; }
+  .hamburger__line:nth-child(1) {
+    top: 0;
+  }
+  .hamburger__line:nth-child(2) {
+    top: 0.45rem;
+  }
+  .hamburger__line:nth-child(3) {
+    top: 0.9rem;
+  }
 
   // Cuando está logueado: tinte verde (mismo estilo que footer__auth--signed)
   .hamburger--signed {
@@ -488,14 +504,12 @@
     color: var(--color-success-ink);
   }
 
-
   // Hover: tinte azul (estilo normal del header)
   .hamburger--signed:hover {
     border-color: var(--color-blue);
     background: color-mix(in srgb, var(--color-blue) 10%, var(--color-white));
     color: var(--color-text-dark);
   }
-
 
   // Cuando está abierto, las dos exteriores rotan y se cruzan
   // en el centro, la del medio se desvanece → forma una X.
@@ -519,17 +533,15 @@
     line-height: 1;
   }
 
-
-
-
-
   // ── Breakpoint 1: tablet (<60rem = 960px) ──
   // Los nav-links ocultan el texto, solo se ve el icono.
   // El version-picker se mantiene con su label pero más compacto.
   @media (max-width: 60rem) {
     .nav-link {
       padding: 0.5rem 0.65rem;
-      .nav-link__label { display: none; }
+      .nav-link__label {
+        display: none;
+      }
     }
     .version-picker__button {
       padding: 0 0.6rem;
@@ -547,7 +559,9 @@
     }
     .hamburger {
       padding: 0 0.55rem;
-      .hamburger__text { display: none; }
+      .hamburger__text {
+        display: none;
+      }
     }
     // En móvil se oculta el nombre de la versión, no el código.
     //
@@ -559,15 +573,24 @@
       padding: 0 0.45rem;
       gap: 0.3rem;
 
-      .version-picker__name { display: none; }
+      .version-picker__name {
+        display: none;
+      }
     }
   }
 
   // ── Breakpoint 3: ultra-strict (<22rem) — emergency fallback ──
   // Por si alguien rota el móvil a un ancho de tablet estrecho.
   @media (max-width: 22rem) {
-    .header { gap: 0.35rem; padding: 0.4rem 0.5rem; }
-    .header__actions { gap: 0.35rem; }
-    .nav-link { padding: 0.4rem 0.5rem; }
+    .header {
+      gap: 0.35rem;
+      padding: 0.4rem 0.5rem;
+    }
+    .header__actions {
+      gap: 0.35rem;
+    }
+    .nav-link {
+      padding: 0.4rem 0.5rem;
+    }
   }
 </style>

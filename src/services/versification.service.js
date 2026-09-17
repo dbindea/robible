@@ -56,8 +56,7 @@ export const DESPLAZAMIENTOS = {
  * Cuánto se desplaza una versión respecto de la numeración canónica.
  * Cero para todo lo que no esté en la tabla, que es el 99,94 % de los casos.
  */
-export const desplazamiento = (version, libro, capitulo) =>
-  DESPLAZAMIENTOS[version]?.[`${libro}:${capitulo}`] ?? 0;
+export const desplazamiento = (version, libro, capitulo) => DESPLAZAMIENTOS[version]?.[`${libro}:${capitulo}`] ?? 0;
 
 /**
  * El índice en el array de `version` del versículo canónico `versiculo`.

@@ -7,11 +7,11 @@
     selectedBibleVersion,
     compareWithVersion,
     getBibleVersionConfigOrDefault,
-    getAvailableBibleVersions,
     initCompareVersion,
   } from '../../store/stores';
   import { getBookIdFromSlug, getBookSlug } from '../../services/bible-route.service';
   import { indiceAlineado } from '../../services/versification.service';
+  import { versionesDisponibles } from '../../store/bibleVersionsStore';
   import BookDrawer from './BookDrawer.svelte';
 
   export let bible = [];
@@ -30,7 +30,8 @@
   let versionMenuElement;
 
   // Versiones disponibles para elegir como "compareWith" (excluye la primaria y las no disponibles)
-  $: availableVersions = getAvailableBibleVersions();
+  // Las que el usuario tenga activadas en «Mi cuenta», no el catálogo entero.
+  $: availableVersions = $versionesDisponibles;
   $: otherVersionOptions = availableVersions.filter((v) => v.value !== $selectedBibleVersion);
 
   // Labels for the two columns
@@ -48,10 +49,7 @@
   $: canGoPrev = selectedBook !== null && selectedChapter > 0;
   $: canGoNext = selectedBook !== null && selectedChapter < chapterArray.length - 1;
 
-  $: verses1 =
-    selectedBook !== null && selectedBook !== undefined
-      ? (bible[selectedBook]?.[selectedChapter] || [])
-      : [];
+  $: verses1 = selectedBook !== null && selectedBook !== undefined ? bible[selectedBook]?.[selectedChapter] || [] : [];
 
   /**
    * La columna derecha, ya ALINEADA con la izquierda.
@@ -79,7 +77,7 @@
 
   $: maxVerses = Math.max(verses1.length, verses2.length);
   $: selectedBookName = selectedBook !== null ? map[selectedBook] : null;
-  $: compareBookName = selectedBook !== null ? (compareMap[selectedBook] || selectedBookName) : null;
+  $: compareBookName = selectedBook !== null ? compareMap[selectedBook] || selectedBookName : null;
   $: selectedChapterLabel = selectedBook !== null && selectedChapter !== null ? Number(selectedChapter) + 1 : null;
 
   $: copyVerseLabel = $_('app.compare.copy_verse');
@@ -215,7 +213,9 @@
     const ratio = sourceEl.scrollTop / maxSource;
     isSyncingScroll = true;
     targetEl.scrollTop = ratio * maxTarget;
-    requestAnimationFrame(() => { isSyncingScroll = false; });
+    requestAnimationFrame(() => {
+      isSyncingScroll = false;
+    });
   };
 
   const onPaneTopScroll = () => {
@@ -316,11 +316,7 @@
   <div class="compare-header__inner">
     <!-- ROW 1: Book selector + Exit -->
     <div class="compare-header__row compare-header__row--top">
-      <button
-        type="button"
-        class="compare-book-btn"
-        on:click={() => (isBookDrawerOpen = true)}
-      >
+      <button type="button" class="compare-book-btn" on:click={() => (isBookDrawerOpen = true)}>
         <span class="compare-book-btn__label">{$_('app.compare.select_book')}</span>
         {#if selectedBookName}
           <strong class="compare-book-btn__book">{selectedBookName}</strong>
@@ -429,7 +425,7 @@
 <BookDrawer
   open={isBookDrawerOpen}
   {map}
-  selectedBook={selectedBook}
+  {selectedBook}
   onClose={() => (isBookDrawerOpen = false)}
   onSelect={selectBook}
 />
@@ -526,11 +522,7 @@
 
       <!-- Mobile: split horizontal (top + bottom) with synced scroll -->
       <div class="compare-split">
-        <div
-          class="compare-pane compare-pane--top"
-          bind:this={paneTopElement}
-          on:scroll={onPaneTopScroll}
-        >
+        <div class="compare-pane compare-pane--top" bind:this={paneTopElement} on:scroll={onPaneTopScroll}>
           <div class="compare-pane__header">
             <span class="compare-pane__name">{primaryBibleName}</span>
             <span class="compare-pane__ref">{selectedBookName} {selectedChapterLabel}</span>
@@ -560,11 +552,7 @@
           </div>
         </div>
 
-        <div
-          class="compare-pane compare-pane--bottom"
-          bind:this={paneBottomElement}
-          on:scroll={onPaneBottomScroll}
-        >
+        <div class="compare-pane compare-pane--bottom" bind:this={paneBottomElement} on:scroll={onPaneBottomScroll}>
           <div class="compare-pane__header">
             <span class="compare-pane__name">{otherBibleName}</span>
             <span class="compare-pane__ref">{compareBookName} {selectedChapterLabel}</span>
@@ -824,7 +812,9 @@
     &:focus-visible {
       background: var(--color-blue-hover);
       border-color: var(--color-blue-hover);
-      box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 35%, transparent), var(--box-shadow-down);
+      box-shadow:
+        0 0 0 3px color-mix(in srgb, var(--color-accent) 35%, transparent),
+        var(--box-shadow-down);
     }
 
     &:focus-visible {
@@ -1079,7 +1069,9 @@
   .compare-body {
     display: flex;
     flex-direction: column;
-    transition: transform var(--motion-fast) ease, opacity var(--motion-fast) ease;
+    transition:
+      transform var(--motion-fast) ease,
+      opacity var(--motion-fast) ease;
   }
 
   .compare-row {
@@ -1233,8 +1225,12 @@
     border-bottom: 2.5px solid var(--color-blue);
   }
 
-  .swipe-indicator--left .swipe-arrow { transform: rotate(135deg); }
-  .swipe-indicator--right .swipe-arrow { transform: rotate(-45deg); }
+  .swipe-indicator--left .swipe-arrow {
+    transform: rotate(135deg);
+  }
+  .swipe-indicator--right .swipe-arrow {
+    transform: rotate(-45deg);
+  }
 
   .swipe-blocked {
     font-size: 1rem;
@@ -1275,8 +1271,12 @@
       outline-offset: 2px;
     }
 
-    &--prev { left: 1rem; }
-    &--next { right: 1rem; }
+    &--prev {
+      left: 1rem;
+    }
+    &--next {
+      right: 1rem;
+    }
 
     &__arrow {
       display: block;
@@ -1287,10 +1287,16 @@
       flex-shrink: 0;
     }
 
-    &--prev &__arrow { transform: rotate(135deg); }
-    &--next &__arrow { transform: rotate(-45deg); }
+    &--prev &__arrow {
+      transform: rotate(135deg);
+    }
+    &--next &__arrow {
+      transform: rotate(-45deg);
+    }
 
-    &__label { white-space: nowrap; }
+    &__label {
+      white-space: nowrap;
+    }
   }
 
   // === RESPONSIVE ===

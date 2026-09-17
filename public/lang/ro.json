@@ -880,7 +880,11 @@
         "failed": "Parola nu a putut fi schimbată.",
         "mismatch": "Cele două parole noi nu coincid.",
         "too_short": "Parola nouă are nevoie de cel puțin 6 caractere."
-      }
+      },
+      "versions_title": "Versiuni ale Bibliei",
+      "versions_hint": "Alege ce versiuni apar în selectorul din bara de sus, la comparare și la proiecție. Fără cont se văd cele patru obișnuite.",
+      "versions_reading": "Este versiunea pe care o citești acum. Schimb-o mai întâi.",
+      "versions_last": "Trebuie să rămână cel puțin una activă."
     },
     "memorize": {
       "eyebrow": "Exercițiu",

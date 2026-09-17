@@ -880,7 +880,11 @@
         "failed": "The password could not be changed.",
         "mismatch": "The two new passwords do not match.",
         "too_short": "The new password needs at least 6 characters."
-      }
+      },
+      "versions_title": "Bible versions",
+      "versions_hint": "Choose which versions appear in the top selector, when comparing and when projecting. Without an account you get the usual four.",
+      "versions_reading": "It's the version you're reading right now. Switch first.",
+      "versions_last": "At least one has to stay on."
     },
     "memorize": {
       "eyebrow": "Practice",

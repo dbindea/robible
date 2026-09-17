@@ -880,7 +880,11 @@
         "failed": "无法更改密码。",
         "mismatch": "两次输入的新密码不一致。",
         "too_short": "新密码至少需要 6 个字符。"
-      }
+      },
+      "versions_title": "圣经译本",
+      "versions_hint": "选择哪些译本出现在顶部选择器、对照和投影中。未登录时显示常用的四个。",
+      "versions_reading": "这是你正在阅读的译本，请先切换。",
+      "versions_last": "至少要保留一个。"
     },
     "memorize": {
       "eyebrow": "练习",

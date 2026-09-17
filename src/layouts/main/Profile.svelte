@@ -15,6 +15,8 @@
   import { _ } from '../../services/i18n.service';
   import { applySeoMetadata } from '../../services/seo.service';
   import { getBibleVersionConfigOrDefault, selectedBibleVersion } from '../../store/stores';
+  import { BIBLE_VERSIONS } from '../../config/bible-versions.js';
+  import { alternarVersion, versionesActivas } from '../../store/bibleVersionsStore';
   import { isAuthenticated, currentUser, nombreVisible, apodoSecundario } from '../../store/authStore';
   import { openAuthMenu } from '../../store/authMenuStore';
   import { updateProfile, changePassword } from '../../services/auth.service';
@@ -33,7 +35,7 @@
   export let bible = [];
   export let map = {};
 
-  let versetulZilei = null;      // { book, chapter, verse }
+  let versetulZilei = null; // { book, chapter, verse }
   let ultimaLectura = null;
   let avisoDiario = true;
   let cambiandoTipo = false;
@@ -73,7 +75,9 @@
   const mostrar = (texto) => {
     aviso = texto;
     clearTimeout(avisoTimer);
-    avisoTimer = setTimeout(() => { aviso = ''; }, 2600);
+    avisoTimer = setTimeout(() => {
+      aviso = '';
+    }, 2600);
   };
 
   // ── Versículo del día ───────────────────────────────────────────────────
@@ -100,14 +104,30 @@
     mostrar($_(avisoDiario ? 'app.profile.daily_on' : 'app.profile.daily_off'));
   };
 
+  // ── Versiones de la Biblia ────────────────────────────────────────────────
+  //
+  // El aviso va aparte del general (`mostrar`) porque sale dentro de su propia
+  // tarjeta: puesto arriba del todo, quien acaba de pulsar un interruptor del
+  // final de la página no lo veía.
+  let avisoVersiones = '';
+  let avisoVersionesTimer;
+
+  const cambiarVersion = (valor) => {
+    const { ok, motivo } = alternarVersion(valor, $selectedBibleVersion);
+    window.clearTimeout(avisoVersionesTimer);
+    avisoVersiones = ok ? '' : $_(motivo === 'activa' ? 'app.profile.versions_reading' : 'app.profile.versions_last');
+    if (avisoVersiones) {
+      avisoVersionesTimer = window.setTimeout(() => (avisoVersiones = ''), 4000);
+    }
+  };
+
   // Se compara contra `$memorizeStore` escrito tal cual y no con un helper:
   // envuelto en una función, el compilador no ve la dependencia y el botón se
   // queda con la etiqueta vieja al pulsarlo (trampa 23).
   $: memorizandoElDelDia =
     !!versetulZilei &&
     $memorizeStore.some(
-      (m) =>
-        m.book === versetulZilei.book && m.chapter === versetulZilei.chapter && m.verse === versetulZilei.verse,
+      (m) => m.book === versetulZilei.book && m.chapter === versetulZilei.chapter && m.verse === versetulZilei.verse,
     );
 
   const alternarMemorizar = async () => {
@@ -141,9 +161,7 @@
         })
       : '';
   $: etiquetaContinuar =
-    ultimaLectura && map[ultimaLectura.book]
-      ? `${map[ultimaLectura.book]} ${ultimaLectura.chapter + 1}`
-      : '';
+    ultimaLectura && map[ultimaLectura.book] ? `${map[ultimaLectura.book]} ${ultimaLectura.chapter + 1}` : '';
 
   // ── Actividad ───────────────────────────────────────────────────────────
   $: esPredicator = $currentUser?.userType === 'preacher';
@@ -275,9 +293,7 @@
   // La comprobación de que las dos nuevas coinciden es del cliente; el servidor
   // sólo recibe una.
   $: contrasenaListaParaGuardar =
-    !!contrasenas.actual &&
-    contrasenas.nueva.length >= 6 &&
-    contrasenas.nueva === contrasenas.repetida;
+    !!contrasenas.actual && contrasenas.nueva.length >= 6 && contrasenas.nueva === contrasenas.repetida;
 
   const guardarContrasena = async () => {
     if (cambiandoContrasena) return;
@@ -389,7 +405,9 @@
               spellcheck="false"
               placeholder={$_('app.profile.motto.placeholder')}
               disabled={guardandoLema}
-              on:keydown={(e) => { if (e.key === 'Escape') cancelarLema(); }}
+              on:keydown={(e) => {
+                if (e.key === 'Escape') cancelarLema();
+              }}
             ></textarea>
             <div class="lema-editor__pie">
               <span class="lema-editor__contador">{textoLema.length}/{LEMA_MAX}</span>
@@ -544,6 +562,49 @@
         </ul>
       </article>
 
+      <!-- ── Versiones de la Biblia ─────────────────────────────────── -->
+      <!-- Sin sesión se ven las cuatro de siempre y no hay nada que tocar;
+           esta tarjeta es lo que se gana al registrarse. -->
+      <article class="tarjeta tarjeta--ancha">
+        <h2 class="tarjeta__titulo">
+          <span class="tarjeta__icono" aria-hidden="true"><Icon name="book" /></span>
+          {$_('app.profile.versions_title')}
+        </h2>
+        <p class="tarjeta__pista">{$_('app.profile.versions_hint')}</p>
+
+        <ul class="versiones">
+          {#each BIBLE_VERSIONS.filter((v) => v.available) as v (v.value)}
+            {@const activa = $versionesActivas.includes(v.value)}
+            {@const leyendo = v.value === $selectedBibleVersion}
+            <li>
+              <!-- Interruptor y no casilla: es un ajuste que surte efecto en el
+                   acto, no un formulario que haya que enviar. -->
+              <button
+                type="button"
+                class="version"
+                class:version--activa={activa}
+                role="switch"
+                aria-checked={activa}
+                disabled={leyendo && activa}
+                title={leyendo && activa ? $_('app.profile.versions_reading') : ''}
+                on:click={() => cambiarVersion(v.value)}
+              >
+                <span class="version__code">{v.code}</span>
+                <span class="version__texto">
+                  <span class="version__nombre">{v.bibleName}</span>
+                  <span class="version__idioma">{v.label}</span>
+                </span>
+                <span class="version__interruptor" aria-hidden="true"></span>
+              </button>
+            </li>
+          {/each}
+        </ul>
+
+        {#if avisoVersiones}
+          <p class="tarjeta__aviso" role="status">{avisoVersiones}</p>
+        {/if}
+      </article>
+
       <!-- ── Tipo de cuenta ─────────────────────────────────────────── -->
       <article class="tarjeta tarjeta--ancha">
         <h2 class="tarjeta__titulo">
@@ -602,7 +663,12 @@
         </div>
 
         <div class="tarjeta__acciones">
-          <button type="button" class="boton boton--primario" on:click={guardarDatosPersonales} disabled={guardandoDatos}>
+          <button
+            type="button"
+            class="boton boton--primario"
+            on:click={guardarDatosPersonales}
+            disabled={guardandoDatos}
+          >
             {$_(guardandoDatos ? 'app.profile.personal.saving' : 'app.profile.personal.save')}
           </button>
         </div>
@@ -717,7 +783,10 @@
       font: inherit;
       cursor: pointer;
 
-      &:disabled { opacity: 0.5; cursor: default; }
+      &:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
     }
   }
 
@@ -747,7 +816,11 @@
     cursor: pointer;
     transition: var(--transition);
 
-    &:hover { border-color: var(--color-accent); color: var(--color-accent-ink); text-decoration: none; }
+    &:hover {
+      border-color: var(--color-accent);
+      color: var(--color-accent-ink);
+      text-decoration: none;
+    }
   }
 
   .boton--primario {
@@ -756,7 +829,10 @@
     background: var(--color-accent-solid);
     color: var(--color-on-primary);
 
-    &:hover { background: var(--color-accent-solid-hover); color: var(--color-on-primary); }
+    &:hover {
+      background: var(--color-accent-solid-hover);
+      color: var(--color-on-primary);
+    }
   }
 
   // ── Cabecera ──────────────────────────────────────────────────────────────
@@ -772,12 +848,20 @@
   }
 
   @keyframes portada-entra {
-    from { opacity: 0; transform: translateY(0.75rem); }
-    to { opacity: 1; transform: none; }
+    from {
+      opacity: 0;
+      transform: translateY(0.75rem);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .portada { animation: none; }
+    .portada {
+      animation: none;
+    }
   }
 
   .portada__eyebrow {
@@ -844,7 +928,10 @@
     cursor: pointer;
     --icon-size: 0.85rem;
 
-    &:hover { text-decoration: underline; text-underline-offset: 0.18em; }
+    &:hover {
+      text-decoration: underline;
+      text-underline-offset: 0.18em;
+    }
   }
 
   .lema-editor {
@@ -865,7 +952,9 @@
     line-height: var(--line-height-body);
     resize: vertical;
 
-    &:disabled { opacity: 0.6; }
+    &:disabled {
+      opacity: 0.6;
+    }
   }
 
   .lema-editor__pie {
@@ -927,7 +1016,9 @@
 
   /* Ocupan la fila entera: la actividad y el tipo de cuenta son listas anchas
      y en media columna quedan apretadas. */
-  .tarjeta--ancha { grid-column: 1 / -1; }
+  .tarjeta--ancha {
+    grid-column: 1 / -1;
+  }
 
   .tarjeta {
     display: flex;
@@ -965,6 +1056,125 @@
     color: var(--color-ink-soft);
     font-size: 0.82rem;
     line-height: 1.45;
+  }
+
+  .tarjeta__aviso {
+    margin: 0.6rem 0 0;
+    color: var(--color-danger-ink);
+    font-size: 0.82rem;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  // ── Versiones de la Biblia ────────────────────────────────────────────────
+  .versiones {
+    display: grid;
+    gap: 0.4rem;
+    margin: 0.9rem 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .version {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.55rem 0.7rem;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+    color: var(--color-ink);
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: var(--transition);
+
+    &:hover:not(:disabled) {
+      border-color: var(--color-accent);
+    }
+
+    // La que se está leyendo no se puede apagar: apagada y sin marco, en vez
+    // de escondida, para que se entienda por qué no responde.
+    &:disabled {
+      cursor: default;
+      opacity: 0.75;
+    }
+  }
+
+  .version--activa {
+    border-color: var(--color-line-accent);
+    background: var(--wash-accent);
+  }
+
+  .version__code {
+    flex: 0 0 auto;
+    min-width: 2.4rem;
+    padding: 0.15rem 0.4rem;
+    border-radius: var(--radius-sm);
+    background: var(--color-accent-solid);
+    color: var(--color-on-primary);
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-align: center;
+    letter-spacing: 0.04em;
+  }
+
+  .version__texto {
+    display: grid;
+    gap: 0.1rem;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .version__nombre {
+    font-size: var(--font-size-small);
+    font-weight: 600;
+  }
+
+  .version__idioma {
+    color: var(--color-ink-soft);
+    font-size: 0.75rem;
+  }
+
+  // El interruptor. Dibujado a mano y no un <input type=checkbox>: el botón ya
+  // lleva `role="switch"` y `aria-checked`, que es lo que lee un lector de
+  // pantalla, y así el área pulsable es la fila entera.
+  .version__interruptor {
+    position: relative;
+    flex: 0 0 auto;
+    width: 2.2rem;
+    height: 1.25rem;
+    border-radius: var(--radius-pill);
+    background: var(--color-line-strong);
+    transition: background var(--motion-base) var(--ease-out);
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0.15rem;
+      left: 0.15rem;
+      width: 0.95rem;
+      height: 0.95rem;
+      border-radius: 50%;
+      background: var(--color-surface);
+      transition: transform var(--motion-base) var(--ease-out);
+    }
+  }
+
+  .version--activa .version__interruptor {
+    background: var(--color-accent-solid);
+
+    &::after {
+      transform: translateX(0.95rem);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .version__interruptor,
+    .version__interruptor::after {
+      transition: none;
+    }
   }
 
   .tarjeta__vacio {
@@ -1030,7 +1240,10 @@
     text-decoration: none;
     transition: var(--transition);
 
-    &:hover { border-color: var(--color-accent); text-decoration: none; }
+    &:hover {
+      border-color: var(--color-accent);
+      text-decoration: none;
+    }
   }
 
   .actividad__icono {
@@ -1077,8 +1290,13 @@
     cursor: pointer;
     transition: var(--transition);
 
-    &:disabled { opacity: 0.6; cursor: wait; }
-    &:hover:not(:disabled):not(.tipo--activo) { border-color: var(--color-accent); }
+    &:disabled {
+      opacity: 0.6;
+      cursor: wait;
+    }
+    &:hover:not(:disabled):not(.tipo--activo) {
+      border-color: var(--color-accent);
+    }
   }
 
   .tipo--activo {
@@ -1130,7 +1348,10 @@
     gap: 0.35rem;
     font-size: var(--font-size-small);
 
-    span { font-weight: 600; color: var(--color-ink); }
+    span {
+      font-weight: 600;
+      color: var(--color-ink);
+    }
 
     input {
       min-height: 2.4rem;
@@ -1141,7 +1362,9 @@
       color: var(--color-ink);
       font: inherit;
 
-      &:disabled { opacity: 0.6; }
+      &:disabled {
+        opacity: 0.6;
+      }
     }
   }
 </style>

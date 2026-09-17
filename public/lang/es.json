@@ -880,7 +880,11 @@
         "failed": "No se ha podido cambiar la contraseña.",
         "mismatch": "Las dos contraseñas nuevas no coinciden.",
         "too_short": "La contraseña nueva necesita al menos 6 caracteres."
-      }
+      },
+      "versions_title": "Versiones de la Biblia",
+      "versions_hint": "Elige qué versiones aparecen en el selector de arriba, al comparar y al proyectar. Sin cuenta se ven las cuatro de siempre.",
+      "versions_reading": "Es la versión que estás leyendo ahora. Cámbiala primero.",
+      "versions_last": "Tiene que quedar al menos una activada."
     },
     "memorize": {
       "eyebrow": "Ejercicio",
