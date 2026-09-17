@@ -60,6 +60,7 @@
   import ProjectionSurface from '../../components/ProjectionSurface.svelte';
   import ProjectionControls from '../../components/ProjectionControls.svelte';
   import { abrirCanal, abrirVentanaPantalla, MENSAJES, soportaCanal } from '../../services/projection-channel.service';
+  import { textoDeVersiculo } from '../../services/versification.service';
 
   export let bible = [];
   export let map = {};
@@ -141,9 +142,14 @@
    * otro delante de toda la congregación. Si esa versión no tiene ese
    * versículo, no se pinta nada: mejor un hueco que una línea equivocada.
    */
+  // Pasa por `textoDeVersiculo` y no por el array a pelo: en cuatro capítulos
+  // las ediciones numeran distinto —Números 13, 1 Samuel 24, Jonás 2 y
+  // 1 Crónicas 22— y leer `[versiculo - 1]` pondría el versículo de al lado
+  // debajo del principal, delante de toda la congregación. Si esa edición no
+  // tiene ese versículo, devuelve cadena vacía y no se pinta nada.
   $: textoSecundario =
     prefs.segundoIdioma && actual
-      ? String(compareBible?.[actual.book]?.[actual.chapter - 1]?.[actual.verse - 1] || '').trim()
+      ? textoDeVersiculo(compareBible, $compareWithVersion, actual.book, actual.chapter, actual.verse)
       : '';
   $: referenciaSecundaria =
     prefs.segundoIdioma && actual && compareMap?.[actual.book]

@@ -11,6 +11,7 @@
     initCompareVersion,
   } from '../../store/stores';
   import { getBookIdFromSlug, getBookSlug } from '../../services/bible-route.service';
+  import { indiceAlineado } from '../../services/versification.service';
   import BookDrawer from './BookDrawer.svelte';
 
   export let bible = [];
@@ -52,10 +53,29 @@
       ? (bible[selectedBook]?.[selectedChapter] || [])
       : [];
 
-  $: verses2 =
-    selectedBook !== null && selectedBook !== undefined
-      ? (compareBible?.[selectedBook]?.[selectedChapter] || [])
-      : [];
+  /**
+   * La columna derecha, ya ALINEADA con la izquierda.
+   *
+   * Las dos columnas se pintan por posición (`verses1[i]` contra `verses2[i]`),
+   * y eso es correcto en 1.185 de los 1.189 capítulos. En los otros cuatro las
+   * ediciones numeran distinto —Números 13, 1 Samuel 24, Jonás 2 y 1 Crónicas
+   * 22— y enfrentaban el versículo de al lado, que es el peor fallo posible en
+   * una pantalla que existe justamente para comparar.
+   *
+   * Se corrige aquí, al construir el array, y no en la plantilla: así el
+   * marcado sigue siendo `verses2[i]` y no hay dos sitios que puedan discrepar.
+   * Un hueco significa que esa edición no tiene ese versículo en ese capítulo.
+   */
+  $: verses2 = (() => {
+    if (selectedBook === null || selectedBook === undefined) return [];
+    const crudo = compareBible?.[selectedBook]?.[selectedChapter] || [];
+    const capitulo = selectedChapter + 1;
+    const largo = Math.max(verses1.length, crudo.length);
+    return Array.from({ length: largo }, (_, i) => {
+      const j = indiceAlineado(i, $selectedBibleVersion, otherVersion, selectedBook, capitulo);
+      return j >= 0 && j < crudo.length ? crudo[j] : undefined;
+    });
+  })();
 
   $: maxVerses = Math.max(verses1.length, verses2.length);
   $: selectedBookName = selectedBook !== null ? map[selectedBook] : null;
