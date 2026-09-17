@@ -11,8 +11,16 @@ número de capítulos) antes de escribir nada.
 | `rvl` | **Biblia en Español Sencillo (BES)** | Heredada del proyecto | **CC BY 4.0** |
 | `en_kjv` | King James Version | [churchstudio-org/openbible](https://github.com/churchstudio-org/openbible) (`KJV/bible.json`) | Texto de dominio público; el repositorio, MIT |
 | `zh_cuv` | 和合本 Chinese Union Version, chino simplificado | [seven1m/open-bibles](https://github.com/seven1m/open-bibles) (`chi-cuv-simp.usfx.xml`) | Dominio público (publicada en 1919) |
+| `es_rv1909` | **Reina-Valera 1909** | [seven1m/open-bibles](https://github.com/seven1m/open-bibles) (`spa-rv1909.usfx.xml`) | Dominio público |
+| `es_vbl` | **Versión Biblia Libre** | [seven1m/open-bibles](https://github.com/seven1m/open-bibles) (`spa-vbl.usfx.xml`) | **CC BY-SA 4.0** |
+| `es_pdt` | **Palabra de Dios para ti** | [seven1m/open-bibles](https://github.com/seven1m/open-bibles) (`spa-pddpt.usfx.xml`) | **CC BY-SA 4.0** |
 
-Las dos últimas se descargaron el 4 septiembre 2026.
+`en_kjv` y `zh_cuv` se descargaron el 4 septiembre 2026; las tres españolas, el
+17 septiembre 2026.
+
+**Las dos CC BY-SA 4.0 obligan a atribuir y a compartir igual.** Esta tabla es
+la atribución; si algún día se modifica el texto, la modificación hereda la
+misma licencia.
 
 ## Qué son de verdad `vdc` y `rvl`
 
@@ -52,6 +60,9 @@ bible.map.json  { "0": "Genesis", …, "65": "Revelation", ot: [...], nt: [...],
 |---|---|---|
 | `en_kjv` | 31.103 | 4,0 MB |
 | `zh_cuv` | 31.100 | 1,1 MB |
+| `es_rv1909` | 30.959 | 3,7 MB |
+| `es_vbl` | 31.102 | 3,9 MB |
+| `es_pdt` | 31.080 | 3,6 MB |
 
 Las diferencias de recuento entre versiones son normales: la versificación varía
 según la tradición textual.

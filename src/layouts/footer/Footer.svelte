@@ -10,7 +10,15 @@
   import { getBibleVersionConfigOrDefault, selectedBibleVersion } from '../../store/stores';
   import { navegarA } from '../../services/navigation.service';
   import DonarBoton from '../../components/DonarBoton.svelte';
+  import InstalarInsignia from '../../components/InstalarInsignia.svelte';
   import { CONTACTO } from '../../config/site';
+  import { estaInstalada, instalar, puedeInstalar } from '../../services/pwa-install.service';
+
+  // La insignia no se esconde cuando no se puede instalar: se apaga. Escondida,
+  // el pie cambiaba de forma según el navegador y quien la buscaba una segunda
+  // vez creía que la había soñado. Dentro de la aplicación ya instalada sí
+  // desaparece — ahí no hay nada que ofrecer.
+  $: dentroDeLaApp = estaInstalada();
 
   let isAboutOpen = false;
   const appVersion = packageInfo.version;
@@ -139,6 +147,17 @@
         <span>RoBible</span>
       </a>
       <p class="footer__slogan">{$_('landing.footer.tagline')}</p>
+
+      <!-- Descargarla cuando uno quiera, sin esperar a que el navegador lo
+           ofrezca. Sirve también para reinstalarla encima de lo que ya hay. -->
+      {#if !dentroDeLaApp}
+        <InstalarInsignia
+          onClick={instalar}
+          disabled={!$puedeInstalar}
+          eyebrow={$puedeInstalar ? '' : $_('app.pwa.badge_unavailable')}
+        />
+      {/if}
+
       <DonarBoton />
     </div>
 

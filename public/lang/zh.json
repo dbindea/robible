@@ -61,7 +61,10 @@
       "install_never": "不再显示此选项",
       "install_benefit_offline": "没有网络也能随时阅读",
       "install_benefit_screen": "全屏打开，没有浏览器地址栏",
-      "install_benefit_fast": "像应用一样即刻启动"
+      "install_benefit_fast": "像应用一样即刻启动",
+      "badge_eyebrow": "免费下载",
+      "badge_action": "安装 RoBible",
+      "badge_unavailable": "已安装，或此浏览器不支持"
     },
     "sidebar": {
       "all_bible": "全本圣经",
@@ -877,7 +880,11 @@
         "failed": "无法更改密码。",
         "mismatch": "两次输入的新密码不一致。",
         "too_short": "新密码至少需要 6 个字符。"
-      }
+      },
+      "versions_title": "圣经译本",
+      "versions_hint": "选择哪些译本出现在顶部选择器、对照和投影中。未登录时显示常用的四个。",
+      "versions_reading": "这是你正在阅读的译本，请先切换。",
+      "versions_last": "至少要保留一个。"
     },
     "memorize": {
       "eyebrow": "练习",
@@ -1042,7 +1049,11 @@
       "window_blocked": "浏览器拦截了该窗口。请为 robible.com 允许弹出窗口后重试。",
       "screen_hint": "把这个窗口拖到投影仪上，按 F11 进入全屏。",
       "on_screen": "当前画面",
-      "screen_waiting": "选择一节经文开始投影。"
+      "screen_waiting": "选择一节经文开始投影。",
+      "screen_fullscreen": "全屏 (F11)",
+      "screen_open": "投影窗口已打开",
+      "screen_open_hint": "即使停止显示经文，它也会留在投影仪上。要让位给其他程序，在那边按 Escape 或使用黑屏——不必重新摆放窗口。",
+      "screen_close": "关闭投影窗口"
     },
     "projection_landing": {
       "seo_title": "教会投影 | RoBible",

@@ -21,6 +21,8 @@
   import { _ } from '../../services/i18n.service';
   import Modal from '../../components/Modal.svelte';
   import Icon from '../../components/Icon.svelte';
+  import InstalarInsignia from '../../components/InstalarInsignia.svelte';
+  import { instalar } from '../../services/pwa-install.service';
 
   const INSTALL_DISMISSED_KEY = 'robible:pwa-install-dismissed';
   const IOS_HELP_DISMISSED_KEY = 'robible:pwa-ios-help-dismissed';
@@ -100,19 +102,13 @@
     }
   };
 
+  // El diálogo del navegador lo lanza el servicio, que es el único dueño del
+  // evento: el pie ofrece lo mismo desde su insignia y el navegador sólo deja
+  // usarlo una vez, así que dos copias del evento dejaban un botón muerto.
   const handleInstall = async () => {
-    if (!installPromptEvent) {
-      return;
-    }
-
     ofreciendo = '';
-    installPromptEvent.prompt();
-
-    try {
-      await installPromptEvent.userChoice;
-    } finally {
-      installPromptEvent = null;
-    }
+    installPromptEvent = null;
+    await instalar();
   };
 
   /**
@@ -242,9 +238,18 @@
     <li><Icon name="flame" size="0.95rem" /> {$_('app.pwa.install_benefit_fast')}</li>
   </ul>
 
+  <!-- La misma insignia que el pie. Es lo que hace que «instalar» se lea como
+       «descargar una aplicación» y no como un ajuste del navegador, y que los
+       dos sitios que lo ofrecen se reconozcan como lo mismo. -->
+  {#if ofreciendo === 'install'}
+    <div class="instalar__insignia">
+      <InstalarInsignia onClick={handleInstall} />
+    </div>
+  {/if}
+
   <svelte:fragment slot="footer">
     <!-- «No mostrarme más» a la izquierda y sin marco: es una salida, no una
-         de las dos acciones. Puestos los tres con el mismo aspecto, se pulsa
+         de las dos acciones. Puestos los dos con el mismo aspecto, se pulsa
          por error el que apaga el aviso para siempre. -->
     <button type="button" class="instalar__nunca" on:click={noMostrarMas}>
       {$_('app.pwa.install_never')}
@@ -252,11 +257,6 @@
     <button type="button" class="pwa-notice__ghost" on:click={masTarde}>
       {$_('app.pwa.install_later')}
     </button>
-    {#if ofreciendo === 'install'}
-      <button type="button" class="pwa-notice__primary" on:click={handleInstall}>
-        {$_('app.pwa.install_action')}
-      </button>
-    {/if}
   </svelte:fragment>
 </Modal>
 
@@ -337,6 +337,12 @@
   }
 
   // ── Diálogo de instalación ────────────────────────────────────────────────
+  .instalar__insignia {
+    display: flex;
+    justify-content: center;
+    margin-top: 1.1rem;
+  }
+
   .instalar__texto {
     margin: 0 0 0.9rem;
     color: var(--color-ink);

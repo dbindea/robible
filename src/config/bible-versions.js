@@ -11,6 +11,58 @@ export const DEFAULT_BIBLE_VERSION = 'vdc';
 // dos versiones del mismo idioma (dos rumanas, por ejemplo) el código lo tendrán
 // que compartir y el nombre de la versión será lo que las distinga. Dejarlo
 // explícito evita tener que desenredar eso más tarde.
+//
+// Desde el 17 sep 2026 eso ya pasa: el español tiene cuatro versiones y todas
+// llevan `code: 'ES'`.
+//
+//   indexable  si `false`, la versión NO genera páginas estáticas ni entra en
+//              el sitemap. Se lee y se compara igual dentro de la aplicación.
+//
+// Hace falta porque cada versión indexada añade ~1.190 páginas de capítulo al
+// rastreo, y en septiembre de 2026 el rastreo de Google se comió 100 GB de
+// ancho de banda en quince días (CLAUDE.md, trampa 83). Una versión por idioma
+// es la que se posiciona; las demás existen para leerlas, no para que Google
+// las recorra. Si algún día interesa indexar otra, se cambia esta bandera y se
+// mide antes.
+
+/**
+ * El bloque SEO de una versión en español.
+ *
+ * Son cuatro versiones con textos idénticos salvo el nombre, así que va en una
+ * fábrica: copiados a mano, el día que se corrija una frase se corregiría en
+ * una sola y nadie se enteraría.
+ */
+const seoEspanol = () => ({
+  homeTitle: 'Biblia Español Online | RoBible',
+  homeDescription:
+    'Lee la Biblia Español online en una experiencia rápida, limpia y fácil de usar. Encuentra libros, capítulos y versículos al instante.',
+  searchTitle: (query, bibleName) => `Busca “${query}” en ${bibleName} | RoBible`,
+  searchDescription: (query, bibleName) =>
+    `Busca “${query}” en ${bibleName} y encuentra rápidamente versículos relevantes, con resultados claros y acceso directo al contexto bíblico.`,
+  bookTitle: (bookName, bibleName) => `${bookName} | ${bibleName} Online`,
+  bookDescription: (bookName, bibleName) =>
+    `Lee el libro de ${bookName} en ${bibleName} online, en un formato limpio, rápido y cómodo para lectura, oración y estudio bíblico.`,
+  chapterTitle: (reference, bibleName) => `${reference} | ${bibleName}`,
+  chapterDescription: (bookName, chapter, bibleName) =>
+    `Lee ${bookName}, capítulo ${chapter}, en ${bibleName}. Recorre los versículos online en una experiencia clara, rápida y optimizada para cualquier dispositivo.`,
+  readingDescription:
+    'RoBible ofrece una lectura bíblica clara, con acceso rápido a la Escritura, búsqueda intuitiva y una interfaz pensada para el estudio diario.',
+  onlineReadingDescription:
+    'Lee la Biblia online gratis, con navegación rápida por libros, capítulos y versículos, en una página accesible y optimizada para una lectura atenta.',
+  verseDescription: (reference, bibleName) =>
+    `Medita en el versículo ${reference} de ${bibleName}, con acceso rápido al texto, al contexto y a la lectura online.`,
+});
+
+/** Los segmentos de ruta del español. Los comparten las cuatro versiones. */
+const RUTAS_ES = {
+  pathPrefix: '',
+  searchPath: 'buscar',
+  comparePath: 'comparar',
+  indexPath: 'indice',
+  favoritesPath: 'favorites',
+  notesPath: 'notes',
+};
+
 export const BIBLE_VERSIONS = [
   {
     value: 'vdc',
@@ -92,6 +144,63 @@ export const BIBLE_VERSIONS = [
         `Medita en el versículo ${reference} de ${bibleName}, con acceso rápido al texto, al contexto y a la lectura online.`,
     },
   },
+  // ── Las otras tres españolas ────────────────────────────────────────────
+  //
+  // Datos generados con `node scripts/build-bible-data.mjs es_rv1909 …`.
+  // Van con `indexable: false`: se leen y se comparan igual, pero no añaden
+  // 3.567 páginas de capítulo al rastreo. Ver la nota de arriba.
+  {
+    value: 'es_rv1909',
+    label: 'Español (RV 1909)',
+    code: 'ES',
+    locale: 'es',
+    ogLocale: 'es_ES',
+    hreflang: 'es',
+    slug: 'reina-valera-1909',
+    ...RUTAS_ES,
+    bibleName: 'Reina-Valera 1909',
+    shortName: 'RV1909',
+    chapterLabel: 'Capítulo',
+    searchResultsLabel: 'Resultados para',
+    available: true,
+    indexable: false,
+    seo: seoEspanol(),
+  },
+  {
+    value: 'es_vbl',
+    label: 'Español (Biblia Libre)',
+    code: 'ES',
+    locale: 'es',
+    ogLocale: 'es_ES',
+    hreflang: 'es',
+    slug: 'version-biblia-libre',
+    ...RUTAS_ES,
+    bibleName: 'Versión Biblia Libre',
+    shortName: 'VBL',
+    chapterLabel: 'Capítulo',
+    searchResultsLabel: 'Resultados para',
+    available: true,
+    indexable: false,
+    seo: seoEspanol(),
+  },
+  {
+    value: 'es_pdt',
+    label: 'Español (Palabra de Dios para ti)',
+    code: 'ES',
+    locale: 'es',
+    ogLocale: 'es_ES',
+    hreflang: 'es',
+    slug: 'palabra-de-dios-para-ti',
+    ...RUTAS_ES,
+    bibleName: 'Palabra de Dios para ti',
+    shortName: 'PDT',
+    chapterLabel: 'Capítulo',
+    searchResultsLabel: 'Resultados para',
+    available: true,
+    indexable: false,
+    seo: seoEspanol(),
+  },
+
   // Datos generados con `node scripts/build-bible-data.mjs en_kjv`.
   {
     value: 'en_kjv',

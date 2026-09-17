@@ -24,7 +24,8 @@
   import { favoritesStore } from '../../store/favoritesStore';
   import { highlightsStore } from '../../store/highlightsStore';
   import { notesStore } from '../../store/notesStore';
-  import { compareWithVersion, filter, getAvailableBibleVersions, getBibleVersionConfigOrDefault, immersiveMode, selectedBibleVersion, toggleImmersiveMode } from '../../store/stores';
+  import { compareWithVersion, filter, getBibleVersionConfigOrDefault, immersiveMode, selectedBibleVersion, toggleImmersiveMode } from '../../store/stores';
+  import { versionesDisponibles } from '../../store/bibleVersionsStore';
   import { topicsContainingVerse, topicsStore } from '../../store/topicsStore';
   import { ttsState } from '../../store/ttsStore.js';
 
@@ -115,7 +116,7 @@
   // Compare-by-verse menu state
   let compareMenuVerseKey = null;
   let compareMenuItem = null;
-  $: availableOtherVersions = getAvailableBibleVersions().filter((v) => v.value !== $selectedBibleVersion);
+  $: availableOtherVersions = $versionesDisponibles.filter((v) => v.value !== $selectedBibleVersion);
 
   // Save-to-topic menu state
   let saveToTopicVerseKey = null;

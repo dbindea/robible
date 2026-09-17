@@ -61,7 +61,10 @@
       "install_never": "Don't show this again",
       "install_benefit_offline": "Read without internet, anywhere",
       "install_benefit_screen": "Opens full screen, without the browser bar",
-      "install_benefit_fast": "Starts instantly, like any app"
+      "install_benefit_fast": "Starts instantly, like any app",
+      "badge_eyebrow": "Free download",
+      "badge_action": "Install RoBible",
+      "badge_unavailable": "Already installed, or not available in this browser"
     },
     "sidebar": {
       "all_bible": "Whole Bible",
@@ -877,7 +880,11 @@
         "failed": "The password could not be changed.",
         "mismatch": "The two new passwords do not match.",
         "too_short": "The new password needs at least 6 characters."
-      }
+      },
+      "versions_title": "Bible versions",
+      "versions_hint": "Choose which versions appear in the top selector, when comparing and when projecting. Without an account you get the usual four.",
+      "versions_reading": "It's the version you're reading right now. Switch first.",
+      "versions_last": "At least one has to stay on."
     },
     "memorize": {
       "eyebrow": "Practice",
@@ -1042,7 +1049,11 @@
       "window_blocked": "The browser blocked the window. Allow pop-ups for robible.com and try again.",
       "screen_hint": "Drag this window to the projector and press F11 for full screen.",
       "on_screen": "On screen now",
-      "screen_waiting": "Pick a verse to start projecting."
+      "screen_waiting": "Pick a verse to start projecting.",
+      "screen_fullscreen": "Full screen (F11)",
+      "screen_open": "The projection window is open",
+      "screen_open_hint": "It stays on the projector even if you stop the verses. To make room for another program, press Escape there or black out the screen — no need to place it again.",
+      "screen_close": "Close the projection window"
     },
     "projection_landing": {
       "seo_title": "Projection for churches | RoBible",

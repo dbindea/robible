@@ -40,6 +40,108 @@ const CANON = [
 
 const INDICE_PRIMER_LIBRO_NT = 39; // Mateo
 
+// ── USFX ────────────────────────────────────────────────────────────────────
+//
+// Cinco de las fuentes vienen en USFX, así que el conversor es uno solo:
+//
+//   <book id="GEN"><h>Génesis</h><c id="1"/><v id="1"/>texto<ve/>…
+//
+// Se parsea con expresiones regulares y no con un parser XML a propósito: son
+// ficheros de 11-12 MB con una estructura plana y siempre la misma, y meter una
+// dependencia de parseo para esto sería el único paquete del proyecto.
+//
+// **Las notas al pie se quitan ANTES de nada.** `<f caller="+">…</f>` va dentro
+// del versículo, así que limpiando etiquetas a secas su contenido se quedaba
+// pegado al texto — «Versión Biblia Libre» trae 4.492 notas y el resultado era
+// un versículo con el comentario del traductor incrustado a media frase. No es
+// teórico: se vio en la primera prueba.
+const limpiarNotas = (xml) =>
+  xml
+    .replace(/<f\b[^>]*>[\s\S]*?<\/f>/g, '')
+    .replace(/<x\b[^>]*>[\s\S]*?<\/x>/g, '');
+
+/**
+ * Marcadores de versificación al FINAL de un capítulo.
+ *
+ * Las versiones no numeran igual. La Reina-Valera 1909 cierra Job 38 en el
+ * versículo 38 y empieza el 39 con lo que otras numeran como 38:39-41, y el
+ * fichero de origen lo refleja dejando `<v id="39"/><ve/>` vacíos al final del
+ * capítulo — placeholders, no texto perdido.
+ *
+ * Se recortan sólo los del final, y a propósito: un hueco EN MEDIO sí sería
+ * una descarga incompleta, y el validador tiene que seguir cazándolo. Si algún
+ * día una fuente viene rota por el medio, quiero que el build falle.
+ */
+const recortarVaciosFinales = (versiculos) => {
+  let fin = versiculos.length;
+  while (fin > 0 && versiculos[fin - 1] === '') fin -= 1;
+  return versiculos.slice(0, fin);
+};
+
+/**
+ * Los 66 libros por su código USFX, en orden canónico.
+ *
+ * Hace falta porque un fichero USFX no contiene sólo los 66: «Versión Biblia
+ * Libre» abre con `<book id="FRT">`, que es la introducción del traductor. Sin
+ * filtrar, ese bloque entraba como libro 0 y **desplazaba la Biblia entera un
+ * puesto** — Génesis salía vacío, Éxodo tenía 50 capítulos y el validador
+ * escupía 1.239 problemas. Tomando sólo estos códigos y en este orden, da igual
+ * lo que traiga de más la fuente: prólogos, apócrifos o glosarios.
+ */
+const CODIGOS_USFX = [
+  'GEN', 'EXO', 'LEV', 'NUM', 'DEU', 'JOS', 'JDG', 'RUT', '1SA', '2SA',
+  '1KI', '2KI', '1CH', '2CH', 'EZR', 'NEH', 'EST', 'JOB', 'PSA', 'PRO',
+  'ECC', 'SNG', 'ISA', 'JER', 'LAM', 'EZK', 'DAN', 'HOS', 'JOL', 'AMO',
+  'OBA', 'JON', 'MIC', 'NAM', 'HAB', 'ZEP', 'HAG', 'ZEC', 'MAL',
+  'MAT', 'MRK', 'LUK', 'JHN', 'ACT', 'ROM', '1CO', '2CO', 'GAL', 'EPH',
+  'PHP', 'COL', '1TH', '2TH', '1TI', '2TI', 'TIT', 'PHM', 'HEB', 'JAS',
+  '1PE', '2PE', '1JN', '2JN', '3JN', 'JUD', 'REV',
+];
+
+const convertirUsfx = async (respuesta) => {
+  const xml = limpiarNotas(await respuesta.text());
+  const porCodigo = new Map();
+
+  const bloquesLibro = xml.split(/<book id="/).slice(1);
+  for (const bloque of bloquesLibro) {
+    const codigo = bloque.slice(0, bloque.indexOf('"'));
+    if (!CODIGOS_USFX.includes(codigo)) continue;
+
+    const capitulos = [];
+    // El texto anterior al primer <c/> es la cabecera del libro: se descarta.
+    for (const trozoCapitulo of bloque.split(/<c id="\d+"\s*\/>/).slice(1)) {
+      // `[^>]*` y no `\s*`: hay fuentes que añaden atributos al marcador de
+      // versículo —«Versión Biblia Libre» escribe `<v id="1" bcv="GEN.1.1" />`—
+      // y con la expresión pegada al id no casaba ninguno. El síntoma era
+      // desconcertante: 66 libros correctos y todos los capítulos vacíos.
+      const versiculos = [...trozoCapitulo.matchAll(/<v id="[\d-]+"[^>]*\/>(.*?)<ve\s*\/>/gs)].map((m) =>
+        m[1]
+          .replace(/<[^>]+>/g, '')
+          .replace(/\s+/g, ' ')
+          .trim(),
+      );
+      capitulos.push(recortarVaciosFinales(versiculos));
+    }
+
+    // El nombre del libro, por orden de preferencia. No todas las fuentes
+    // traen `<h>`: «Versión Biblia Libre» lo deja fuera en doce libros y sólo
+    // pone `<toc level="1">`, así que sin la cadena de alternativas Génesis,
+    // Éxodo o Isaías salían sin nombre.
+    const nombre =
+      bloque.match(/<h>(.*?)<\/h>/s)?.[1] ??
+      bloque.match(/<toc level="1">(.*?)<\/toc>/s)?.[1] ??
+      bloque.match(/<p sfm="mt"[^>]*>(.*?)<\/p>/s)?.[1] ??
+      '';
+
+    porCodigo.set(codigo, { capitulos, nombre: nombre.trim() });
+  }
+
+  return {
+    libros: CODIGOS_USFX.map((c) => porCodigo.get(c)?.capitulos ?? []),
+    nombres: CODIGOS_USFX.map((c) => porCodigo.get(c)?.nombre ?? ''),
+  };
+};
+
 // ── Fuentes ─────────────────────────────────────────────────────────────────
 
 const FUENTES = {
@@ -58,38 +160,63 @@ const FUENTES = {
     etiqueta: '和合本 Chinese Union Version (chino simplificado)',
     url: 'https://raw.githubusercontent.com/seven1m/open-bibles/master/chi-cuv-simp.usfx.xml',
     origen: 'seven1m/open-bibles; la CUV (1919) es de dominio público',
-    // USFX: <book id="GEN"><h>创世纪</h><c id="1"/><v id="1"/>texto<ve/>…
-    // El archivo solo usa las etiquetas book/h/c/v/ve, sin marcado anidado ni
-    // notas al pie, así que un parseo por expresiones regulares es fiable aquí.
-    async convertir(respuesta) {
-      const xml = await respuesta.text();
-      const libros = [];
-      const nombres = [];
+    convertir: convertirUsfx,
+  },
 
-      const bloquesLibro = xml.split(/<book id="/).slice(1);
-      for (const bloque of bloquesLibro) {
-        nombres.push(bloque.match(/<h>(.*?)<\/h>/s)?.[1].trim() ?? '');
+  // ── Español: tres más, todas con licencia comprobada ─────────────────────
+  //
+  // Se añadieron el 17 sep 2026. Antes el español tenía UNA sola versión —la
+  // Biblia en Español Sencillo, que el código llama `rvl` y que no es una
+  // Reina-Valera (CLAUDE.md, trampa 4)—, así que «comparar versiones» no servía
+  // de nada para quien lee en español.
 
-        const capitulos = [];
-        // El texto anterior al primer <c/> es la cabecera del libro: se descarta.
-        for (const trozoCapitulo of bloque.split(/<c id="\d+"\s*\/>/).slice(1)) {
-          const versiculos = [...trozoCapitulo.matchAll(/<v id="[\d-]+"\s*\/>(.*?)<ve\s*\/>/gs)].map((m) =>
-            m[1].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim(),
-          );
-          capitulos.push(versiculos);
-        }
-        libros.push(capitulos);
-      }
+  es_rv1909: {
+    etiqueta: 'Reina-Valera 1909 (español)',
+    url: 'https://raw.githubusercontent.com/seven1m/open-bibles/master/spa-rv1909.usfx.xml',
+    origen: 'seven1m/open-bibles; la Reina-Valera 1909 es de dominio público',
+    convertir: convertirUsfx,
+  },
 
-      return { libros, nombres };
-    },
+  es_vbl: {
+    etiqueta: 'Versión Biblia Libre (español)',
+    url: 'https://raw.githubusercontent.com/seven1m/open-bibles/master/spa-vbl.usfx.xml',
+    origen: 'seven1m/open-bibles; Versión Biblia Libre, CC BY-SA 4.0',
+    convertir: convertirUsfx,
+    // Traducción del texto crítico: omite a propósito los versículos que no
+    // están en los manuscritos más antiguos (Mateo 17:21, 18:11, 23:14…). Ver
+    // `omitidos` en la validación.
+    omitidos: 20,
+  },
+
+  es_pdt: {
+    etiqueta: 'Palabra de Dios para ti (español)',
+    url: 'https://raw.githubusercontent.com/seven1m/open-bibles/master/spa-pddpt.usfx.xml',
+    origen: 'seven1m/open-bibles; Palabra de Dios para ti, CC BY-SA 4.0',
+    convertir: convertirUsfx,
+    omitidos: 5,
   },
 };
 
 // ── Validación ──────────────────────────────────────────────────────────────
 
-function validar(version, libros, nombres) {
+/**
+ * `omitidos` — cuántos versículos en blanco se aceptan en toda la versión.
+ *
+ * Un versículo vacío no siempre es una descarga rota. Las traducciones hechas
+ * sobre el texto crítico **omiten a propósito** los pasajes que no están en los
+ * manuscritos más antiguos (Mateo 17:21, 18:11, 23:14, Marcos 9:44…), y dejan
+ * el hueco para no descolocar la numeración. Borrar el hueco desalinearía la
+ * versión con las demás, y en el Modo Proyección el segundo idioma se resuelve
+ * POR REFERENCIA: un desfase pondría dos versículos distintos en la pantalla de
+ * la iglesia, uno debajo del otro.
+ *
+ * Así que se aceptan, pero contados y declarados por la fuente. El guardia
+ * sigue sirviendo para lo que se puso: si una descarga se rompe, no salen tres
+ * huecos, salen miles.
+ */
+function validar(version, libros, nombres, omitidosPermitidos = 0) {
   const problemas = [];
+  const huecos = [];
 
   if (libros.length !== 66) problemas.push(`${libros.length} libros en vez de 66`);
   if (nombres.length !== 66) problemas.push(`${nombres.length} nombres de libro en vez de 66`);
@@ -108,11 +235,22 @@ function validar(version, libros, nombres) {
         problemas.push(`${nombreCanon} ${c + 1}: capítulo vacío`);
         return;
       }
-      const vacios = cap.filter((v) => typeof v !== 'string' || v.trim() === '').length;
-      if (vacios) problemas.push(`${nombreCanon} ${c + 1}: ${vacios} versículo(s) sin texto`);
+      cap.forEach((v, indice) => {
+        if (typeof v !== 'string' || v.trim() === '') {
+          huecos.push(`${nombreCanon} ${c + 1}:${indice + 1}`);
+        }
+      });
     });
     if (!nombres[i]?.trim()) problemas.push(`libro ${i} (${nombreCanon}) sin nombre`);
   });
+
+  if (huecos.length > omitidosPermitidos) {
+    problemas.push(
+      `${huecos.length} versículo(s) sin texto, se permitían ${omitidosPermitidos}: ${huecos.slice(0, 10).join(', ')}`,
+    );
+  } else if (huecos.length) {
+    console.log(`  · ${huecos.length} versículo(s) omitidos por la traducción: ${huecos.join(', ')}`);
+  }
 
   if (problemas.length) {
     const muestra = problemas.slice(0, 15).join('\n  ');
@@ -133,7 +271,7 @@ async function generar(version) {
   if (!respuesta.ok) throw new Error(`${version}: HTTP ${respuesta.status} al descargar`);
 
   const { libros, nombres } = await fuente.convertir(respuesta);
-  validar(version, libros, nombres);
+  validar(version, libros, nombres, fuente.omitidos || 0);
 
   const mapa = Object.fromEntries(nombres.map((n, i) => [String(i), n]));
   mapa.ot = Array.from({ length: INDICE_PRIMER_LIBRO_NT }, (_, i) => i);
