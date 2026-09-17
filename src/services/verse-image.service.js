@@ -167,17 +167,22 @@ export const IMAGE_BACKGROUNDS = [
     glow: 'rgba(230, 245, 220, 0.3)',
     ink: '#F4FAF2',
     accent: 'rgba(214, 240, 200, 0.92)',
-    // El humo es ruido fractal deformado (`feTurbulence` + `feDisplacementMap`),
-    // no degradados: dos elipses difusas dan bruma, y lo que se pidió es humo —
-    // con grano, con hebras y sin poder adivinar por dónde va. La misma receta
-    // que las capas animadas de `ProjectionSurface`, donde está explicada al
-    // detalle, para que el fondo quieto y el que se mueve sean el mismo dibujo.
+    // El humo es ruido fractal deformado (`feTurbulence` + `feDisplacementMap`)
+    // y bien desenfocado, no degradados: dos elipses difusas dan bruma, y lo
+    // que se quiere es humo de tabaco — cintas translúcidas que suben y de las
+    // que no se adivina por dónde van a ir. La misma receta que las capas
+    // animadas de `ProjectionSurface`, donde está explicada al detalle, para
+    // que el fondo quieto y el que se mueve sean el mismo dibujo.
     //
     // Con OTRA semilla, eso sí: éste es el fondo que va debajo de aquéllas, y
     // con la misma se superpondrían calcadas y el humo saldría al doble de
     // denso justo donde ya lo estaba.
+    //
+    // El `feGaussianBlur` va DENTRO del filtro y no en un `filter:` de CSS
+    // porque esto es una imagen de fondo: un filtro CSS sobre la caja
+    // desenfocaría también el degradado verde y los bordes de la muestra.
     swatch:
-      "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='700'%3E%3Cfilter id='h' x='-30%25' y='-30%25' width='160%25' height='160%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.014 0.007' numOctaves='6' seed='5' result='humo'/%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.0035' numOctaves='2' seed='23' result='remolino'/%3E%3CfeDisplacementMap in='humo' in2='remolino' scale='110' xChannelSelector='R' yChannelSelector='G'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 1 0 0 0 0'/%3E%3CfeComponentTransfer result='denso'%3E%3CfeFuncA type='table' tableValues='0 0 0.24 0.85 1'/%3E%3C/feComponentTransfer%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.3' numOctaves='2' seed='12' result='motas'/%3E%3CfeColorMatrix in='motas' type='matrix' values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 1.5 0 0 0 -0.25' result='grano'/%3E%3CfeComposite in='denso' in2='grano' operator='arithmetic' k1='1' k2='0' k3='0' k4='0'/%3E%3C/filter%3E%3Crect width='700' height='700' filter='url(%23h)' opacity='.5' mask='url(%23m)'/%3E%3Cmask id='m'%3E%3ClinearGradient id='g' x1='0' y1='1' x2='0' y2='0'%3E%3Cstop offset='.04' stop-color='%23fff'/%3E%3Cstop offset='.3' stop-color='%236b6b6b'/%3E%3Cstop offset='.7' stop-color='%23000'/%3E%3C/linearGradient%3E%3Crect width='700' height='700' fill='url(%23g)'/%3E%3C/mask%3E%3C/svg%3E\") no-repeat 50% 100% / 150% 120%," +
+      "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='700'%3E%3Cfilter id='h' x='-30%25' y='-30%25' width='160%25' height='160%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.014 0.007' numOctaves='5' seed='5' result='humo'/%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.0035' numOctaves='2' seed='23' result='remolino'/%3E%3CfeDisplacementMap in='humo' in2='remolino' scale='110' xChannelSelector='R' yChannelSelector='G'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 1 0 0 0 0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='table' tableValues='0 0.06 0.3 0.68 1'/%3E%3C/feComponentTransfer%3E%3CfeGaussianBlur stdDeviation='9'/%3E%3C/filter%3E%3Crect width='700' height='700' filter='url(%23h)' opacity='.55' mask='url(%23m)'/%3E%3Cmask id='m'%3E%3ClinearGradient id='g' x1='0' y1='1' x2='0' y2='0'%3E%3Cstop offset='.04' stop-color='%23fff'/%3E%3Cstop offset='.3' stop-color='%236b6b6b'/%3E%3Cstop offset='.7' stop-color='%23000'/%3E%3C/linearGradient%3E%3Crect width='700' height='700' fill='url(%23g)'/%3E%3C/mask%3E%3C/svg%3E\") no-repeat 50% 100% / 150% 120%," +
       'linear-gradient(180deg, #6E9B5B, #41703C, #1B3822)',
   },
 ];
@@ -688,13 +693,18 @@ const ruidoFractal = (x, y, semilla, octavas) => {
 };
 
 /**
- * Vapor levantándose de un campo verde.
+ * Humo levantándose de un campo verde.
  *
  * El campo es el propio degradado —verde y más oscuro abajo— y encima va humo
- * de ruido fractal: denso junto al suelo, con hebras verticales y deshecho
- * arriba. Antes eran cinco elipses difuminadas y el resultado era bruma, no
- * humo: lo que se pidió es «más definido y más granulado», y eso no sale de un
- * degradado radial por muchos que se solapen.
+ * de ruido fractal deformado: denso junto al suelo, en cintas que suben y se
+ * deshacen arriba. Antes eran cinco elipses difuminadas y salía bruma, que no
+ * es lo mismo: la bruma está quieta y no tiene forma.
+ *
+ * Es humo de TABACO —difuminado, translúcido, sin grano—, no de hoguera. Hubo
+ * una versión granulada (un ruido fino multiplicado encima) y se retiró por
+ * decisión del propietario el 17 sep 2026; está en el historial de git. El
+ * desenfoque de la última línea es lo que hace ese carácter, y por eso no es
+ * cosmético: sin él vuelve el humo de partículas.
  */
 const pintarVapor = (ctx, bg, w, h) => {
   const campo = ctx.createLinearGradient(0, 0, 0, h);
@@ -704,8 +714,9 @@ const pintarVapor = (ctx, bg, w, h) => {
 
   // El humo se calcula a la MITAD de resolución y se estira al pintarlo: son
   // cuatro veces menos píxeles que evaluar —el formato vertical tiene dos
-  // millones— y el grano sale de dos píxeles, que es justo lo que se quiere
-  // ver. A resolución completa el cálculo se notaba en la vista previa.
+  // millones— y como además va desenfocado, el detalle que se pierde por el
+  // camino no se echa de menos. A resolución completa el cálculo se notaba en
+  // la vista previa, que se repinta en cada cambio.
   const nw = Math.ceil(w / 2);
   const nh = Math.ceil(h / 2);
   const humo = lienzoAuxiliar(nw, nh);
@@ -743,26 +754,30 @@ const pintarVapor = (ctx, bg, w, h) => {
       const n = ruidoFractal(u * 14 + ondaX, t * 4.5 + ondaY, 17, 5);
 
       // Umbral: lo que queda por debajo se va a cero en vez de quedarse en un
-      // velo gris. Es lo que abre huecos y deja los jirones DEFINIDOS.
+      // velo gris. Es lo que abre los huecos entre cinta y cinta, pero con
+      // exponente suave (1.3) para que el borde de cada una siga siendo blando.
       const densidad = (n - 0.44) / 0.56;
       if (densidad <= 0) continue;
-
-      // Y el grano: ruido fino que MULTIPLICA al humo, igual que el
-      // `feComposite operator='arithmetic'` del fondo animado. Las octavas
-      // afinan la forma, pero el humo seguiría siendo una mancha continua; la
-      // textura de partículas sólo sale de multiplicar por algo fino.
-      const grano = 0.35 + ruidoValor(u * 170, t * 170, 4) * 0.85;
 
       const i = (y * nw + x) * 4;
       px[i] = rojo;
       px[i + 1] = verde;
       px[i + 2] = azul;
-      px[i + 3] = Math.min(255, densidad ** 1.3 * mascara * grano * 245);
+      px[i + 3] = Math.min(255, densidad ** 1.3 * mascara * 215);
     }
   }
 
   hctx.putImageData(datos, 0, 0);
+
+  // El desenfoque va AQUÍ y no sobre `datos`: `putImageData` escribe píxeles en
+  // crudo y se salta el estado del contexto, filtro incluido. Sobre el dibujo
+  // ya hecho sí se aplica, y es lo que convierte el ruido en humo de tabaco.
+  // Un navegador sin `ctx.filter` lo ignora en silencio y pinta el humo más
+  // marcado: se ve distinto, pero no se rompe nada.
+  ctx.save();
+  ctx.filter = `blur(${Math.round(w * 0.022)}px)`;
   ctx.drawImage(humo, 0, 0, w, h);
+  ctx.restore();
 };
 
 const PINTORES = {
