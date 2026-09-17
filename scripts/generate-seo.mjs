@@ -448,8 +448,15 @@ function getCuratedContent(tema, versiculos) {
 }
 
 async function loadVersionData() {
-  // Filtrar solo versiones con datos disponibles (excluir placeholders)
-  const available = BIBLE_VERSIONS.filter((v) => v.available !== false);
+  // Sólo las versiones con datos Y marcadas como indexables.
+  //
+  // `indexable: false` no es lo mismo que no estar disponible: esas versiones
+  // se leen y se comparan igual dentro de la aplicación, pero no generan
+  // páginas estáticas ni entran en el sitemap. Cada versión indexada añade
+  // ~1.190 páginas de capítulo al rastreo, y el rastreo de Google ya se comió
+  // 100 GB de ancho de banda en quince días (CLAUDE.md, trampa 83). Una versión
+  // por idioma es la que se posiciona; las demás existen para leerlas.
+  const available = BIBLE_VERSIONS.filter((v) => v.available !== false && v.indexable !== false);
   return Promise.all(
     available.map(async (config) => {
       const [map, bible] = await Promise.all([
