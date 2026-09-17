@@ -86,6 +86,20 @@
   on:touchend
   on:wheel
 >
+  <!-- Las estrellas van en TRES capas y no en una, que es lo que hace que
+       titilen en vez de latir. Con las doce en un solo elemento sólo cabe una
+       animación, así que se encienden y se apagan todas a la vez y el cielo
+       entero parece respirar — el efecto de una bombilla con mal contacto, no
+       el de un cielo. Repartidas en tres grupos con el ciclo desfasado, en
+       cualquier instante hay unas subiendo y otras bajando.
+       Son elementos de verdad y no pseudo porque `.proyeccion` sólo tiene dos y
+       las dos están ocupadas: `::before` son las nubes de la nebulosa. -->
+  {#if animado === 'nebula' && !enNegro}
+    <span class="estrellas estrellas--a" aria-hidden="true"></span>
+    <span class="estrellas estrellas--b" aria-hidden="true"></span>
+    <span class="estrellas estrellas--c" aria-hidden="true"></span>
+  {/if}
+
   {#if !enNegro && principal.texto}
     <!-- `{#key}` vuelve a montar la lámina en cada versículo, que es lo que
          dispara la transición de entrada. Sin él, Svelte reutiliza el nodo y
@@ -196,30 +210,68 @@
     animation: nebulosa 18s ease-in-out infinite alternate;
   }
 
-  /* Las estrellas, en su propia capa y QUIETAS: el pintor del canvas las
-     dibuja, así que sin ellas la imagen compartida y la proyección no eran el
-     mismo fondo. Van aparte de las nubes para que no se estiren con su escala
-     —unas estrellas que crecen delatan el truco— y sin parpadeo, que es
-     precisamente el tipo de movimiento que roba la vista mientras se lee.
-     Son posiciones fijas y no una trama repetida: repetida se ve la rejilla. */
-  .proyeccion--nebula::after {
-    content: '';
+  /* Las estrellas TITILAN desde el 17 sep 2026, en ciclo de 5 segundos.
+     Antes iban quietas a propósito —un parpadeo es justo el movimiento que roba
+     la vista mientras se lee— y es una decisión de producto que se ha revertido:
+     lo pidió el propietario. Se ha conservado lo que hacía que aquella razón
+     tuviera sentido: la oscilación no baja del 30 %, así que ninguna estrella
+     llega a desaparecer, y el ciclo es largo y suave. Lo que molesta de un
+     parpadeo es el corte, no el brillo.
+
+     Van aparte de las nubes para que no se estiren con su escala —unas
+     estrellas que crecen delatan el truco—, y son posiciones fijas y no una
+     trama repetida: repetida se le ve la rejilla. El pintor del canvas las
+     dibuja también, ahí quietas: una imagen para compartir es una foto. */
+  .estrellas {
     position: absolute;
     inset: 0;
     pointer-events: none;
+    // Sólo cambia la opacidad, que el compositor resuelve sin repintar nada.
+    will-change: opacity;
+    animation: titilar 5s ease-in-out infinite;
+  }
+
+  .estrellas--a {
     background-image:
       radial-gradient(1.5px 1.5px at 12% 18%, rgba(244, 247, 255, 0.75), transparent),
-      radial-gradient(1px 1px at 27% 61%, rgba(244, 247, 255, 0.55), transparent),
-      radial-gradient(1.5px 1.5px at 41% 12%, rgba(244, 247, 255, 0.65), transparent),
       radial-gradient(1px 1px at 56% 78%, rgba(244, 247, 255, 0.5), transparent),
-      radial-gradient(2px 2px at 68% 26%, rgba(244, 247, 255, 0.8), transparent),
-      radial-gradient(1px 1px at 79% 55%, rgba(244, 247, 255, 0.45), transparent),
       radial-gradient(1.5px 1.5px at 88% 84%, rgba(244, 247, 255, 0.6), transparent),
+      radial-gradient(1px 1px at 63% 8%, rgba(244, 247, 255, 0.55), transparent);
+  }
+
+  // Los retardos son NEGATIVOS: así los tres grupos arrancan ya repartidos por
+  // el ciclo. Con retardos positivos, los cinco primeros segundos las doce
+  // estrellas estarían a la vez en el mismo punto de la animación, que es
+  // exactamente lo que se quería evitar.
+  .estrellas--b {
+    animation-delay: -1.7s;
+    background-image:
+      radial-gradient(1px 1px at 27% 61%, rgba(244, 247, 255, 0.55), transparent),
+      radial-gradient(2px 2px at 68% 26%, rgba(244, 247, 255, 0.8), transparent),
       radial-gradient(1px 1px at 33% 88%, rgba(244, 247, 255, 0.5), transparent),
-      radial-gradient(1px 1px at 63% 8%, rgba(244, 247, 255, 0.55), transparent),
+      radial-gradient(1px 1px at 94% 34%, rgba(244, 247, 255, 0.45), transparent);
+  }
+
+  .estrellas--c {
+    animation-delay: -3.4s;
+    background-image:
+      radial-gradient(1.5px 1.5px at 41% 12%, rgba(244, 247, 255, 0.65), transparent),
+      radial-gradient(1px 1px at 79% 55%, rgba(244, 247, 255, 0.45), transparent),
       radial-gradient(1.5px 1.5px at 8% 72%, rgba(244, 247, 255, 0.5), transparent),
-      radial-gradient(1px 1px at 94% 34%, rgba(244, 247, 255, 0.45), transparent),
       radial-gradient(1px 1px at 47% 44%, rgba(244, 247, 255, 0.4), transparent);
+  }
+
+  /* Cinco segundos de encendido a apagado y vuelta: el ciclo COMPLETO son los
+     cinco, no diez. Por eso no lleva `alternate` —que duplicaría la duración—
+     sino una curva propia con el mínimo en el 50 %. */
+  @keyframes titilar {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.3;
+    }
   }
 
   /* ── Agua, nubes y vapor: sin mosaico ───────────────────────────────────
@@ -386,17 +438,24 @@
      (`feDisplacementMap`). Esa deformación es la que curva los penachos y hace
      que no se repitan: es la diferencia entre una textura y humo.
 
-     `feComponentTransfer` es lo que lo hace DEFINIDO. El ruido en crudo se
-     agolpa alrededor del medio y pinta un velo gris parejo; la tabla estira esa
-     franja central, así que lo flojo se va a cero y lo denso se queda. De ahí
-     salen los huecos entre jirón y jirón.
+     `feComponentTransfer` decide cuánto se recorta. El ruido en crudo se agolpa
+     alrededor del medio y pinta un velo gris parejo; la tabla estira esa franja
+     central. Va SUAVE a propósito: con una curva dura salen jirones de bordes
+     marcados, y el humo de un cigarrillo no tiene bordes.
 
      El `filter` lleva región ampliada (`x/y/width/height`): la de por defecto
-     es un 10 % alrededor, y al desplazar 90 unidades entraban los bordes
+     es un 10 % alrededor, y al desplazar 110 unidades entraban los bordes
      transparentes y el humo se cortaba en seco por los lados.
 
+     **Humo de tabaco, no vapor granulado** (17 sep 2026). Hubo una versión con
+     grano —un ruido fino multiplicado encima con `feComposite`— que daba humo de
+     partículas, como el de una hoguera. Se retiró por decisión del propietario:
+     lo que se quiere es la cinta translúcida y difuminada de un cigarrillo. La
+     forma es la misma; lo que cambia es que el grano se fue y el desenfoque
+     subió de 1 px a 16. Si vuelve a hacer falta, está en el historial de git.
+
      La máscara los deja densos junto al suelo y deshechos arriba, que es lo
-     que los hace vapor que se levanta y no una bruma parada. */
+     que los hace humo que se levanta y no una bruma parada. */
   .proyeccion--mist::before,
   .proyeccion--mist::after {
     -webkit-mask-image: linear-gradient(to top, #000 4%, rgba(0, 0, 0, 0.42) 30%, transparent 70%);
@@ -404,14 +463,11 @@
   }
 
   .proyeccion--mist::before {
-    // Apenas desenfoque: el grano ES el efecto. A 30px se deshacía en la misma
-    // mancha lisa de antes, y a 7 seguía comiéndose las octavas finas.
-    filter: blur(1px);
-    // El `feComposite operator='arithmetic'` con k1=1 y el resto a cero es una
-    // MULTIPLICACIÓN: el humo ya formado por su propio grano. Es lo que le da la
-    // textura de partículas en suspensión, y no se consigue con más octavas —
-    // ésas afinan la forma, pero siguen siendo la misma mancha continua.
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='700'%3E%3Cfilter id='h' x='-30%25' y='-30%25' width='160%25' height='160%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.014 0.007' numOctaves='6' seed='17' result='humo'/%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.0035' numOctaves='2' seed='9' result='remolino'/%3E%3CfeDisplacementMap in='humo' in2='remolino' scale='110' xChannelSelector='R' yChannelSelector='G'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 1 0 0 0 0'/%3E%3CfeComponentTransfer result='denso'%3E%3CfeFuncA type='table' tableValues='0 0 0.24 0.85 1'/%3E%3C/feComponentTransfer%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.3' numOctaves='2' seed='4' result='motas'/%3E%3CfeColorMatrix in='motas' type='matrix' values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 1.5 0 0 0 -0.25' result='grano'/%3E%3CfeComposite in='denso' in2='grano' operator='arithmetic' k1='1' k2='0' k3='0' k4='0'/%3E%3C/filter%3E%3Crect width='700' height='700' filter='url(%23h)' opacity='.75'/%3E%3C/svg%3E");
+    // Desenfoque generoso: es lo que convierte el ruido en cinta de humo. El
+    // desenfoque va sobre una capa que sólo se transforma, así que el navegador
+    // lo rasteriza una vez y a partir de ahí sólo compone.
+    filter: blur(16px);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='700'%3E%3Cfilter id='h' x='-30%25' y='-30%25' width='160%25' height='160%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.014 0.007' numOctaves='5' seed='17' result='humo'/%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.0035' numOctaves='2' seed='9' result='remolino'/%3E%3CfeDisplacementMap in='humo' in2='remolino' scale='110' xChannelSelector='R' yChannelSelector='G'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 1 0 0 0 0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='table' tableValues='0 0.06 0.3 0.68 1'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='700' height='700' filter='url(%23h)' opacity='.6'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-size: 150% 120%;
     background-position: 50% 100%;
@@ -419,12 +475,12 @@
   }
 
   .proyeccion--mist::after {
-    filter: blur(9px);
+    filter: blur(26px);
     // Otras semillas y otra escala de deformación: dos capas del mismo ruido se
     // delatarían como una sola moviéndose en paralelo. Ésta va más difusa y más
     // ancha, y hace de penacho de fondo para que el de delante se recorte contra
     // algo en vez de contra el verde liso.
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='700'%3E%3Cfilter id='h2' x='-30%25' y='-30%25' width='160%25' height='160%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.009 0.005' numOctaves='5' seed='53' result='humo'/%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.0025' numOctaves='2' seed='31' result='remolino'/%3E%3CfeDisplacementMap in='humo' in2='remolino' scale='150' xChannelSelector='G' yChannelSelector='B'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 1 0 0 0 0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='table' tableValues='0 0 0.2 0.75 1'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='700' height='700' filter='url(%23h2)' opacity='.42'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='700'%3E%3Cfilter id='h2' x='-30%25' y='-30%25' width='160%25' height='160%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.009 0.005' numOctaves='4' seed='53' result='humo'/%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.0025' numOctaves='2' seed='31' result='remolino'/%3E%3CfeDisplacementMap in='humo' in2='remolino' scale='150' xChannelSelector='G' yChannelSelector='B'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 1 0 0 0 0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='table' tableValues='0 0.05 0.26 0.62 1'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='700' height='700' filter='url(%23h2)' opacity='.45'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-size: 190% 140%;
     background-position: 50% 100%;
@@ -471,7 +527,10 @@
     .proyeccion--clouds::before,
     .proyeccion--clouds::after,
     .proyeccion--mist::before,
-    .proyeccion--mist::after {
+    .proyeccion--mist::after,
+    // Las estrellas se quedan encendidas del todo, no a medio brillo: sin la
+    // animación, la opacidad vuelve a su valor de reposo, que es 1.
+    .estrellas {
       animation: none;
     }
   }
