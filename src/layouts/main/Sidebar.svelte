@@ -11,6 +11,13 @@
   import DictadoBoton from '../../components/DictadoBoton.svelte';
 
   export let map;
+  /**
+   * La Biblia cargada. Sólo se usa para que `searchReferences` descarte lo que
+   * no existe: «ioan 4 4» ofrecía también 2 Ioan 4:4 y 3 Ioan 4:4, y esos dos
+   * libros tienen UN capítulo. Sin ella el buscador funciona igual, pero
+   * sugiriendo referencias que no llevan a ninguna parte.
+   */
+  export let bible = [];
   export let result = [];
   export let count = 0;
 
@@ -65,7 +72,6 @@
     }
   }
 
-
   // Cambiar de modo resetea el ESTADO de la búsqueda anterior, pero nunca el
   // texto que ha escrito el usuario.
   //
@@ -113,7 +119,7 @@
       return;
     }
 
-    const matches = searchReferences(text, map, 5);
+    const matches = searchReferences(text, map, 5, bible);
     referenceMatches = matches;
     referenceSelectedIdx = -1;
     referenceDropdownOpen = matches.length > 0;
@@ -144,7 +150,9 @@
 
   function handleReferenceBlur() {
     // Cerrar dropdown con delay para permitir clicks
-    setTimeout(() => { referenceDropdownOpen = false; }, 150);
+    setTimeout(() => {
+      referenceDropdownOpen = false;
+    }, 150);
   }
 
   let searchTextInput;
@@ -166,7 +174,9 @@
   }
   $: selectedBook = Array.isArray(searchForm.book) ? searchForm.book[0] : null;
   $: selectedBookName =
-    selectedBook !== null && selectedBook !== undefined ? map[selectedBook] : $_('app.sidebar.scope.'+searchForm.testament);
+    selectedBook !== null && selectedBook !== undefined
+      ? map[selectedBook]
+      : $_('app.sidebar.scope.' + searchForm.testament);
 
   // Nota historica: antes habia un cleanup aqui que reseteaba book/chapter
   // cuando testament='all' y book tenia elementos. Eso era para un bug de
@@ -317,7 +327,7 @@
   const applyRecentSearch = (s) => {
     // Para busquedas por referencia, parsear y navegar
     if (s.searchType === 'reference') {
-      const matches = searchReferences(s.searchText, map, 5);
+      const matches = searchReferences(s.searchText, map, 5, bible);
       if (matches.length === 1) {
         selectReferenceMatch(matches[0]);
       } else if (matches.length > 1) {
@@ -425,11 +435,19 @@
 
 <div class="sidebar sticky">
   <form
-    on:change|stopPropagation={() => { if (searchForm.searchType !== 'reference') updateFilter(searchForm); }}
-    on:input|stopPropagation={() => { if (searchForm.searchType !== 'reference') updateFilter(searchForm); }}
+    on:change|stopPropagation={() => {
+      if (searchForm.searchType !== 'reference') updateFilter(searchForm);
+    }}
+    on:input|stopPropagation={() => {
+      if (searchForm.searchType !== 'reference') updateFilter(searchForm);
+    }}
   >
     <div class="block-erase">
-      <span class="filter-text"><span class="filter-text__icono" aria-hidden="true"><Icon name="filter" /></span>{$_('app.sidebar.filter')}</span>
+      <span class="filter-text"
+        ><span class="filter-text__icono" aria-hidden="true"><Icon name="filter" /></span>{$_(
+          'app.sidebar.filter',
+        )}</span
+      >
       <button class="button__erase" on:click|stopPropagation={resetForm} type="button">
         <span class="icon-delete icon--M" aria-hidden="true"></span>{$_('app.sidebar.clear_search')}
       </button>
@@ -443,7 +461,9 @@
         autocomplete="off"
         spellcheck="false"
         bind:value={searchForm.searchText}
-        placeholder={searchForm.searchType === 'reference' ? $_('app.sidebar.form.reference_placeholder') : $_('app.sidebar.form.search_placeholder')}
+        placeholder={searchForm.searchType === 'reference'
+          ? $_('app.sidebar.form.reference_placeholder')
+          : $_('app.sidebar.form.search_placeholder')}
         bind:this={searchTextInput}
         on:focus={handleInputFocus}
         on:blur={searchForm.searchType === 'reference' ? handleReferenceBlur : handleInputBlur}
@@ -459,7 +479,9 @@
         <DictadoBoton
           modo={searchForm.searchType === 'reference' ? 'referencia' : 'libre'}
           locale={getBibleVersionConfigOrDefault($selectedBibleVersion)?.locale}
-          etiqueta={searchForm.searchType === 'reference' ? $_('app.speech.start_reference') : $_('app.speech.start_phrase')}
+          etiqueta={searchForm.searchType === 'reference'
+            ? $_('app.speech.start_reference')
+            : $_('app.speech.start_phrase')}
           alDictar={alDictarBusqueda}
         />
       </span>
@@ -493,7 +515,12 @@
 
     <!-- Recent references dropdown (solo en modo referencia) -->
     {#if searchForm.searchType === 'reference' && recentReferencesOpen && recentReferences.length > 0}
-      <div class="recent-searches" bind:this={recentSearchesPanel} role="listbox" aria-label={$_('app.sidebar.search_type.reference')}>
+      <div
+        class="recent-searches"
+        bind:this={recentSearchesPanel}
+        role="listbox"
+        aria-label={$_('app.sidebar.search_type.reference')}
+      >
         {#each recentReferences as s (s.id)}
           <div
             class="recent-search-item"
@@ -522,7 +549,12 @@
 
     <!-- Recent word searches dropdown (solo en modos que no son referencia) -->
     {#if searchForm.searchType !== 'reference' && recentSearchesOpen && recentSearches.length > 0}
-      <div class="recent-searches" bind:this={recentSearchesPanel} role="listbox" aria-label={$_('app.sidebar.recent_searches_label')}>
+      <div
+        class="recent-searches"
+        bind:this={recentSearchesPanel}
+        role="listbox"
+        aria-label={$_('app.sidebar.recent_searches_label')}
+      >
         {#each recentSearches as s (s.id)}
           <div
             class="recent-search-item"
@@ -577,12 +609,26 @@
     <div class="margin-up">{$_('app.sidebar.search_type_label')}</div>
 
     <label class="radio__label" for="match">
-      <input type="radio" id="match" name="searchType" value="match" bind:group={searchForm.searchType} on:change={onSearchTypeChange} />
+      <input
+        type="radio"
+        id="match"
+        name="searchType"
+        value="match"
+        bind:group={searchForm.searchType}
+        on:change={onSearchTypeChange}
+      />
       <span>{$_('app.sidebar.search_type.match')}</span>
     </label>
 
     <label class="radio__label" for="exact">
-      <input type="radio" id="exact" name="searchType" value="every" bind:group={searchForm.searchType} on:change={onSearchTypeChange} />
+      <input
+        type="radio"
+        id="exact"
+        name="searchType"
+        value="every"
+        bind:group={searchForm.searchType}
+        on:change={onSearchTypeChange}
+      />
       <span>{$_('app.sidebar.search_type.every')}</span></label
     >
 
@@ -601,7 +647,14 @@
     -->
 
     <label class="radio__label radio__label--with-badge" for="reference">
-      <input type="radio" id="reference" name="searchType" value="reference" bind:group={searchForm.searchType} on:change={onSearchTypeChange} />
+      <input
+        type="radio"
+        id="reference"
+        name="searchType"
+        value="reference"
+        bind:group={searchForm.searchType}
+        on:change={onSearchTypeChange}
+      />
       <span>{$_('app.sidebar.search_type.reference')}<span class="badge-new">New</span></span>
     </label>
 
@@ -1033,7 +1086,9 @@
       font-weight: 700;
       cursor: pointer;
 
-      &:hover { background: var(--color-accent-solid-hover); }
+      &:hover {
+        background: var(--color-accent-solid-hover);
+      }
     }
   }
 
@@ -1119,7 +1174,9 @@
     font-family: inherit;
     border-bottom: 1px solid color-mix(in srgb, var(--color-on-sidebar) 8%, transparent);
 
-    &:last-child { border-bottom: 0; }
+    &:last-child {
+      border-bottom: 0;
+    }
 
     &__book {
       font-weight: 500;
@@ -1187,7 +1244,9 @@
       background: transparent;
       color: color-mix(in srgb, var(--color-on-sidebar) 40%, transparent);
       cursor: pointer;
-      transition: color var(--motion-fast), background var(--motion-fast);
+      transition:
+        color var(--motion-fast),
+        background var(--motion-fast);
       padding: 0;
 
       &:hover,

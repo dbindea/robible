@@ -8,7 +8,15 @@
   import AuthModal from './layouts/auth/AuthModal.svelte';
   import DailyVerseModal from './components/DailyVerseModal.svelte';
   import { authMenuOpen } from './store/authMenuStore';
-  import { _, currentLocale, DEFAULT_LOCALE, setupI18n, loadLocaleSync, localeVersion, _pendingLocale } from './services/i18n.service';
+  import {
+    _,
+    currentLocale,
+    DEFAULT_LOCALE,
+    setupI18n,
+    loadLocaleSync,
+    localeVersion,
+    _pendingLocale,
+  } from './services/i18n.service';
   import { applySeoMetadata, applyLandingSeoMetadata } from './services/seo.service';
   import {
     getBibleVersionConfigOrDefault,
@@ -63,6 +71,16 @@
     }
   };
 
+  /**
+   * La ventana que se manda al proyector (`/proiectie?ecran=1`).
+   *
+   * Es una constante y no una variable reactiva porque no cambia en toda la
+   * vida de la pestaña: o se abrió con el parámetro o no. Ver
+   * `projection-channel.service.js` para el porqué de esa ventana.
+   */
+  const esVentanaProyectada =
+    typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('ecran') === '1';
+
   const loadBibleVersion = async (version) => {
     const requestId = ++bibleLoadRequestId;
 
@@ -80,9 +98,17 @@
     }
 
     try {
+      // La ventana del proyector NO se descarga la Biblia: recibe el versículo
+      // ya resuelto por el canal y no busca nada. Son entre 1 y 4 MB que no se
+      // bajan dos veces, pero sobre todo es lo que la deja lista en seguida —y
+      // eso decide si entra sola a pantalla completa, porque la activación que
+      // hereda del `window.open` caduca en unos segundos. Con la Biblia por
+      // medio, en un portátil lento llegaba tarde y había que pulsar F11 a mano
+      // delante de la congregación. El mapa de nombres sí, que son dos kilobytes
+      // y es lo que la pantalla de carga espera para dar paso.
       const [nextMap, nextBible] = await Promise.all([
         fetchBibleJson(version, 'bible.map.json'),
-        fetchBibleJson(version, 'bible.json'),
+        esVentanaProyectada ? Promise.resolve([]) : fetchBibleJson(version, 'bible.json'),
       ]);
 
       if (requestId !== bibleLoadRequestId) {
@@ -92,8 +118,11 @@
       map = nextMap;
       bible = nextBible;
 
-      // Cachear también para uso futuro
-      bibleCache = { ...bibleCache, [version]: { map: nextMap, bible: nextBible } };
+      // Cachear también para uso futuro. La ventana proyectada no cachea nada:
+      // guardaría una Biblia vacía y la daría por buena si algún día navegase.
+      if (!esVentanaProyectada) {
+        bibleCache = { ...bibleCache, [version]: { map: nextMap, bible: nextBible } };
+      }
     } catch (error) {
       if (requestId !== bibleLoadRequestId) {
         return;
@@ -111,7 +140,9 @@
 
   // Carga la versión de comparación (compareWithVersion) y expone compareMap/compareBible
   const loadCompareVersion = async (version) => {
-    if (!version || version === $selectedBibleVersion) {
+    // Por lo mismo que la principal: la ventana del proyector recibe los dos
+    // textos ya resueltos y no tiene nada que buscar en ninguna de las dos.
+    if (!version || version === $selectedBibleVersion || esVentanaProyectada) {
       compareMap = {};
       compareBible = [];
       return;
@@ -141,7 +172,9 @@
   };
 
   $: isImmersive = $immersiveMode;
-  $: isLandingRoute = typeof window !== 'undefined' && (window.location.pathname === '/landing' || window.location.pathname === '/landing/');
+  $: isLandingRoute =
+    typeof window !== 'undefined' &&
+    (window.location.pathname === '/landing' || window.location.pathname === '/landing/');
 
   // SEO para la landing: aplica metadata + hreflang multi-idioma cuando estamos en /landing.
   $: if (isLandingRoute && typeof window !== 'undefined') {
@@ -197,7 +230,6 @@
     compareMap = {};
     compareBible = [];
   }
-
 </script>
 
 <!--
@@ -208,46 +240,46 @@
 {#if isLandingRoute}
   <Landing />
 {:else}
-<main class="main" class:main--immersive={isImmersive}>
-  {#key $localeVersion}
-    {#if !isImmersive}
-      <Navbar />
-    {/if}
+  <main class="main" class:main--immersive={isImmersive}>
+    {#key $localeVersion}
+      {#if !isImmersive}
+        <Navbar />
+      {/if}
 
-    {#if bibleLoadError}
-      <section class="load-error" role="alert">
-        <h1>{$_('app.errors.invalid_bible_version')}</h1>
-        <p>
-          {$_('app.errors.bible_file_hint')}
-          <code>public/data/{failedBibleVersion}/bible.map.json</code>
-          {$_('app.errors.and')}
-          <code>public/data/{failedBibleVersion}/bible.json</code>.
-        </p>
-      </section>
-    {:else if isBibleLoading || !Object.keys(map).length}
-      <p class="loading" role="status">{$_('app.loading')}</p>
-    {:else}
-      <Main {map} {bible} {compareMap} {compareBible} />
-    {/if}
+      {#if bibleLoadError}
+        <section class="load-error" role="alert">
+          <h1>{$_('app.errors.invalid_bible_version')}</h1>
+          <p>
+            {$_('app.errors.bible_file_hint')}
+            <code>public/data/{failedBibleVersion}/bible.map.json</code>
+            {$_('app.errors.and')}
+            <code>public/data/{failedBibleVersion}/bible.json</code>.
+          </p>
+        </section>
+      {:else if isBibleLoading || !Object.keys(map).length}
+        <p class="loading" role="status">{$_('app.loading')}</p>
+      {:else}
+        <Main {map} {bible} {compareMap} {compareBible} />
+      {/if}
 
-    {#if !isImmersive}
-      <Footer />
-    {/if}
-    <AppMenu {onNavigate} />
-  {/key}
-  <PwaManager />
-  <!--
+      {#if !isImmersive}
+        <Footer />
+      {/if}
+      <AppMenu {onNavigate} />
+    {/key}
+    <PwaManager />
+    <!--
     Fuera del {#key $localeVersion} a propósito: dentro se remontaría en cada
     cambio de locale y volvería a lanzar su temporizador. Usa $_() en plantilla,
     así que se traduce igual sin necesidad del {#key}.
   -->
-  {#if !isBibleLoading && !bibleLoadError && Object.keys(map).length}
-    <DailyVerseModal {bible} {map} />
-  {/if}
-  {#if $authMenuOpen}
-    <AuthModal />
-  {/if}
-</main>
+    {#if !isBibleLoading && !bibleLoadError && Object.keys(map).length}
+      <DailyVerseModal {bible} {map} />
+    {/if}
+    {#if $authMenuOpen}
+      <AuthModal />
+    {/if}
+  </main>
 {/if}
 
 <style>

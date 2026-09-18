@@ -1072,7 +1072,15 @@
       "key_prev_chapter": "Capitolul anterior",
       "chapter_nav": "Capitol",
       "permission_hint": "Browserul nu are încă voie să pună ferestre pe celălalt ecran, așa că proiecția se va deschide pe laptop și va trebui să o tragi de fiecare dată. Dă-i voie o singură dată și își va găsi singură proiectorul.",
-      "permission_ask": "Permite fereastra pe proiector"
+      "permission_ask": "Permite fereastra pe proiector",
+      "clear_verse": "Golește ecranul",
+      "blank_image": "Imaginea ecranului gol",
+      "blank_image_pick": "Alege o imagine",
+      "blank_image_change": "Schimbă imaginea",
+      "blank_image_clear": "Scoate imaginea",
+      "blank_image_hint": "Apare în locul ecranului negru. Rămâne pe acest calculator — nu se trimite nicăieri — și se păstrează și după ce închizi browserul.",
+      "blank_image_too_big": "Imaginea e prea mare. Alege una sub 8 MB.",
+      "blank_image_invalid": "Fișierul acesta nu este o imagine."
     },
     "projection_landing": {
       "seo_title": "Proiecție pentru biserici | RoBible",

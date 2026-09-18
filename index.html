@@ -14,6 +14,27 @@
         document.documentElement.dataset.theme = 'light';
       }
     </script>
+    <script>
+      // La ventana del proyector (`/proiectie?ecran=1`) se pone a pantalla
+      // completa AQUÍ, antes de cargar nada.
+      //
+      // Por qué tan pronto: entrar a pantalla completa exige activación del
+      // usuario, y esta ventana la hereda del `window.open` que la abrió — pero
+      // esa activación caduca en unos segundos. Pedirlo desde el bundle, con el
+      // tema, las traducciones y el arranque de Svelte por medio, llegaba tarde
+      // en un portátil lento: la ventana aparecía con la barra del navegador y
+      // había que pulsar F11 a mano delante de la congregación.
+      //
+      // Si el navegador no lo permite no pasa nada: la propia pantalla lo
+      // reintenta con el primer clic o la primera tecla.
+      try {
+        if (location.search.indexOf('ecran=1') !== -1 && document.documentElement.requestFullscreen) {
+          document.documentElement.requestFullscreen().catch(function () {});
+        }
+      } catch {
+        /* sin pantalla completa se proyecta igual */
+      }
+    </script>
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-MX8YYQ3DRY"></script>
     <script>

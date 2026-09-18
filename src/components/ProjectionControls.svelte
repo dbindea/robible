@@ -47,6 +47,20 @@
   export let onSalirDeControles = () => {};
   /** Recibe el porcentaje ya escrito a mano en el campo. */
   export let onOcupacion = () => {};
+  /** Sello de la imagen de la pantalla en blanco, o '' si no hay ninguna. */
+  export let selloBlanco = '';
+  /** Mensaje de error al elegir la imagen. Lo compone el dueño del estado. */
+  export let avisoBlanco = '';
+  export let onImagenBlanco = () => {};
+  export let onQuitarBlanco = () => {};
+
+  const elegirImagen = (e) => {
+    const file = e.currentTarget.files?.[0];
+    // El campo se vacía siempre: si no, elegir el mismo fichero dos veces
+    // seguidas —después de un fallo, por ejemplo— no dispara ningún evento.
+    e.currentTarget.value = '';
+    if (file) onImagenBlanco(file);
+  };
 
   /**
    * El campo del porcentaje.
@@ -91,6 +105,29 @@
         ></button>
       {/each}
     </div>
+
+    <!-- La imagen de la pantalla en blanco. Va en este panel y no en uno propio
+         porque es «cómo se ve la pantalla», igual que el fondo; y va al final
+         porque se elige una vez y no se vuelve a tocar en todo el culto. -->
+    <p class="panel__titulo panel__titulo--segundo">{$_('app.projection.blank_image')}</p>
+    <div class="opciones">
+      <!-- El `input` va escondido dentro de la etiqueta: el control que pinta
+           el navegador no se puede vestir, y aquí tiene que parecerse a los
+           demás botones del panel. -->
+      <label class="opcion">
+        {selloBlanco ? $_('app.projection.blank_image_change') : $_('app.projection.blank_image_pick')}
+        <input type="file" accept="image/*" on:change={elegirImagen} />
+      </label>
+      {#if selloBlanco}
+        <button type="button" class="opcion" on:click={onQuitarBlanco}>
+          {$_('app.projection.blank_image_clear')}
+        </button>
+      {/if}
+    </div>
+    <p class="panel__nota">{$_('app.projection.blank_image_hint')}</p>
+    {#if avisoBlanco}
+      <p class="panel__nota panel__nota--error" role="alert">{avisoBlanco}</p>
+    {/if}
   </div>
 {:else if panelAbierto === 'animacion'}
   <div class="panel">
@@ -418,6 +455,38 @@
     letter-spacing: 0.06em;
   }
 
+  // Un filete separa la imagen de la pantalla en blanco de las muestras de
+  // fondo: son dos ajustes distintos y pegados se leían como una sola lista.
+  .panel__titulo--segundo {
+    margin-top: 0.85rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.14);
+  }
+
+  .panel__nota {
+    max-width: 34ch;
+    margin: 0.5rem 0 0;
+    color: #98a2b3;
+    font-size: 0.72rem;
+    line-height: 1.45;
+  }
+
+  .panel__nota--error {
+    color: #f7a8a8;
+    font-weight: 600;
+  }
+
+  // El selector de fichero: la etiqueta hace de botón y el campo de verdad se
+  // esconde. `display: none` lo dejaría fuera del alcance del teclado, así que
+  // se tapa sin sacarlo del flujo de foco.
+  .opcion input[type='file'] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+  }
+
   .muestras {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(2.75rem, 1fr));
@@ -444,6 +513,8 @@
   }
 
   .opcion {
+    // Para el campo de fichero escondido, que se posiciona contra su etiqueta.
+    position: relative;
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;

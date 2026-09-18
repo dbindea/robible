@@ -64,6 +64,12 @@
     limpiarHistorial,
   } from '../../services/projection-history.service';
   import {
+    borrarImagenBlanco,
+    ERROR_TAMANO,
+    guardarImagenBlanco,
+    selloImagenBlanco,
+  } from '../../services/projection-blank.service';
+  import {
     acotarOcupacion,
     cargarGeometriaPantalla,
     cargarPreferencias,
@@ -632,6 +638,31 @@
     persistir();
   };
 
+  // ── La imagen de la pantalla en blanco ────────────────────────────────────
+  //
+  // La elige la iglesia y se queda en el dispositivo. Aquí sólo vive el SELLO:
+  // la imagen la lee cada ventana de su propio disco, porque mandarla por el
+  // canal sería copiar megabytes en cada cambio de versículo.
+  let selloBlanco = '';
+  let avisoBlanco = '';
+
+  const ponerImagenBlanco = async (file) => {
+    avisoBlanco = '';
+    try {
+      selloBlanco = await guardarImagenBlanco(file);
+    } catch (error) {
+      avisoBlanco = $_(
+        error?.message === ERROR_TAMANO ? 'app.projection.blank_image_too_big' : 'app.projection.blank_image_invalid',
+      );
+    }
+  };
+
+  const quitarImagenBlanco = async () => {
+    avisoBlanco = '';
+    await borrarImagenBlanco();
+    selloBlanco = '';
+  };
+
   const cerrarPanel = () => {
     panelAbierto = '';
     mostrarControles();
@@ -682,6 +713,27 @@
     enNegro = !enNegro;
   };
 
+  /**
+   * Quitar el versículo de la pantalla y dejar sólo el fondo.
+   *
+   * No es lo mismo que la pantalla en negro ni que salir de la proyección: la
+   * proyección sigue en marcha, con su fondo, su marca y su reloj, pero sin
+   * texto. Hacía falta al recuperar el proyector después de una canción: lo que
+   * volvía era el último versículo puesto, y lo que se quiere ahí es el fondo
+   * limpio hasta que el predicador diga la referencia siguiente.
+   *
+   * Se tira también `recorriendo`: sin versículo no hay capítulo que seguir, y
+   * dejarlo apuntando al anterior haría que las flechas de capítulo saltaran a
+   * un sitio que el operador ya no tiene en pantalla.
+   */
+  const limpiarVersiculo = () => {
+    pasajes = [];
+    indice = 0;
+    recorriendo = null;
+    enNegro = false;
+    panelAbierto = '';
+  };
+
   const salir = () => {
     // La ventana del segundo monitor NO se cierra: se queda en negro.
     //
@@ -716,6 +768,7 @@
     secundario: { texto: secundario.texto, referencia: secundario.referencia, version: secundario.version },
     fondoKey: prefs.fondo,
     ocupacion: prefs.ocupacion,
+    selloBlanco,
     animacion: prefs.animacion,
     indice,
     enNegro,
@@ -807,13 +860,21 @@
   const alRecibirDeLaPantalla = (mensaje) => {
     if (!mensaje) return;
     if (mensaje.tipo === MENSAJES.LISTO) {
+      // Saluda una ventana: o es la que se acaba de abrir, o es la misma
+      // después de recargarse. En los dos casos hay que mandarle el estado y
+      // dar el proyector por recuperado.
+      pantallaLibre = false;
       canal?.enviar({ tipo: MENSAJES.ESTADO, estado: estadoPantalla });
     } else if (mensaje.tipo === MENSAJES.CERRANDO) {
-      // La ha cerrado el operador con la cruz del sistema. Es exactamente lo
-      // mismo que ceder la pantalla, así que se trata igual: la consola sigue
-      // con su lista y su índice, y ofrece recuperarla de un clic. Antes se
-      // volvía a la antesala y había que empezar de cero.
-      cerrarVentanaPantalla();
+      // `pagehide` no distingue un cierre de una RECARGA, así que aquí no se
+      // cierra nada: ni la ventana ni el canal. Si era una recarga, el `listo`
+      // que llega un instante después la reconecta sola; cerrando el canal —y
+      // de paso la ventana, que es lo que hacía— pulsar F5 en el proyector la
+      // mataba del todo, que es justo el reflejo de cualquiera cuando algo se
+      // queda raro en mitad de un culto.
+      //
+      // El cierre de verdad lo confirma el vigilante, que es el único que mira
+      // `closed`, y para entonces ya se ha visto si vuelve o no.
       pantallaLibre = true;
     } else if (mensaje.tipo === MENSAJES.TECLA) {
       manejarTecla(mensaje.key, { desdeLaPantalla: true });
@@ -922,6 +983,9 @@
       case 'ArrowLeft':
         irACapitulo(-1);
         break;
+      case 'Delete':
+        limpiarVersiculo();
+        break;
       case 'Home':
         indice = 0;
         break;
@@ -985,6 +1049,7 @@
     'ArrowUp',
     'PageUp',
     'Backspace',
+    'Delete',
     'Home',
     'End',
     'n',
@@ -1186,6 +1251,7 @@
     animacion: 'fade',
     indice: 0,
     enNegro: false,
+    selloBlanco: '',
   };
   let enPantallaCompleta = false;
 
@@ -1273,6 +1339,7 @@
     prefs = cargarPreferencias();
     geometriaPantalla = cargarGeometriaPantalla();
     historial = cargarHistorial();
+    selloBlanco = selloImagenBlanco();
     revisarPermiso();
     ultimaLectura = getLastRead();
     // Si quedó encendido el segundo idioma de una sesión anterior, hay que
@@ -1319,6 +1386,7 @@
     animacion={estadoRecibido.animacion}
     indice={estadoRecibido.indice}
     enNegro={estadoRecibido.enNegro}
+    selloBlanco={estadoRecibido.selloBlanco}
   >
     <!-- Fuera de pantalla completa, TODA la ventana es el botón que la pone.
          El navegador exige un gesto en esta ventana para entrar —no se puede
@@ -1544,6 +1612,7 @@
           <li><kbd>→</kbd> <span>{$_('app.projection.key_next_chapter')}</span></li>
           <li><kbd>←</kbd> <span>{$_('app.projection.key_prev_chapter')}</span></li>
           <li><kbd>Shift</kbd> <span>{$_('app.projection.key_yield')}</span></li>
+          <li><kbd>Supr</kbd> <span>{$_('app.projection.clear_verse')}</span></li>
           <li><kbd>N</kbd> <span>{$_('app.projection.key_black')}</span></li>
           <li><kbd>F</kbd> <span>{$_('app.projection.key_fullscreen')}</span></li>
           <li><kbd>L</kbd> <span>{$_('app.projection.panel_language')}</span></li>
@@ -1693,6 +1762,17 @@
         >
           <Icon name="arrow-right" />
         </button>
+        <!-- Dejar el fondo limpio, sin versículo. Al lado de las flechas
+             porque se usa entre pasaje y pasaje, no al terminar. -->
+        <button
+          type="button"
+          disabled={!pasajes.length}
+          on:click={limpiarVersiculo}
+          title={$_('app.projection.clear_verse')}
+          aria-label={$_('app.projection.clear_verse')}
+        >
+          <Icon name="trash" />
+        </button>
         <!-- Ceder y recuperar el proyector, a mano y sin buscar nada: es lo
              que más veces se pulsa en un culto después de avanzar. Marcado en
              ámbar cuando la pantalla está cedida, que es un estado que no
@@ -1721,6 +1801,10 @@
         onMasGrande={masGrande}
         onMasPequeno={masPequeno}
         onOcupacion={fijarOcupacion}
+        {selloBlanco}
+        {avisoBlanco}
+        onImagenBlanco={ponerImagenBlanco}
+        onQuitarBlanco={quitarImagenBlanco}
         onNegro={alternarNegro}
         onFondo={elegirFondo}
         onAnimacion={elegirAnimacion}
@@ -1740,6 +1824,7 @@
     animacion={prefs.animacion}
     {indice}
     {enNegro}
+    {selloBlanco}
     on:mousemove={mostrarControles}
     on:touchstart={alEmpezarToque}
     on:touchend={alTerminarToque}
@@ -1764,6 +1849,10 @@
       onMasGrande={masGrande}
       onMasPequeno={masPequeno}
       onOcupacion={fijarOcupacion}
+      {selloBlanco}
+      {avisoBlanco}
+      onImagenBlanco={ponerImagenBlanco}
+      onQuitarBlanco={quitarImagenBlanco}
       onNegro={alternarNegro}
       onPantallaCompleta={alternarPantallaCompleta}
       onFondo={elegirFondo}
