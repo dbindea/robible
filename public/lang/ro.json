@@ -1080,7 +1080,8 @@
       "blank_image_clear": "Scoate imaginea",
       "blank_image_hint": "Apare în locul ecranului negru. Rămâne pe acest calculator — nu se trimite nicăieri — și se păstrează și după ce închizi browserul.",
       "blank_image_too_big": "Imaginea e prea mare. Alege una sub 8 MB.",
-      "blank_image_invalid": "Fișierul acesta nu este o imagine."
+      "blank_image_invalid": "Fișierul acesta nu este o imagine.",
+      "swipe_hint": "Glisează într-o parte pentru controale"
     },
     "projection_landing": {
       "seo_title": "Proiecție pentru biserici | RoBible",

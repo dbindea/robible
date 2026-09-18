@@ -1080,7 +1080,8 @@
       "blank_image_clear": "移除图片",
       "blank_image_hint": "用来代替黑屏。图片只留在这台电脑上，不会上传到任何地方，关闭浏览器后依然保留。",
       "blank_image_too_big": "图片太大，请选择小于 8 MB 的。",
-      "blank_image_invalid": "该文件不是图片。"
+      "blank_image_invalid": "该文件不是图片。",
+      "swipe_hint": "左右滑动可显示控件"
     },
     "projection_landing": {
       "seo_title": "教会投影 | RoBible",

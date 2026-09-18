@@ -26,6 +26,15 @@
   /** Sólo se esconden solos sobre la lámina; en la consola están siempre. */
   export let visibles = true;
   /**
+   * De qué borde entra la barra: 'izq' | 'der' | '' (sin entrada lateral).
+   *
+   * Sólo lo usa el modo lectura del móvil, donde la barra se pide deslizando de
+   * lado: que aparezca desde el borde hacia el que ha ido el dedo es lo que
+   * conecta el gesto con el resultado. En proyección se queda vacío y la barra
+   * aparece y desaparece como siempre, sólo con opacidad.
+   */
+  export let lado = '';
+  /**
    * En la consola NO se ofrece pantalla completa: pondría a pantalla completa
    * el portátil del operador, que es justo lo contrario de lo que hace falta.
    * La pantalla completa del proyector se pone en su propia ventana con F11.
@@ -181,7 +190,14 @@
 {/if}
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="controles" class:controles--ocultos={!visibles} on:mouseenter={onEntrar} on:mouseleave={onSalirDeControles}>
+<div
+  class="controles"
+  class:controles--ocultos={!visibles}
+  class:controles--izq={lado === 'izq'}
+  class:controles--der={lado === 'der'}
+  on:mouseenter={onEntrar}
+  on:mouseleave={onSalirDeControles}
+>
   <button
     type="button"
     on:click={onSalir}
@@ -311,6 +327,40 @@
     // Sin esto seguirían recibiendo clics invisibles justo donde el operador
     // toca para avanzar.
     pointer-events: none;
+  }
+
+  // Entrada lateral, sólo en el modo lectura del móvil. Las reglas van aquí y
+  // no en la media query de abajo porque el `transform` que se compone es el de
+  // esa media query (`translateX(-50%)`), y separarlos deja media regla sin la
+  // otra mitad si alguien toca una de las dos.
+  @media (max-width: 40rem) {
+    .controles {
+      transition:
+        opacity var(--motion-base, 200ms) ease,
+        transform 280ms cubic-bezier(0.22, 0.61, 0.36, 1);
+    }
+
+    // El `translateX(-50%)` de la media query centra la barra; el segundo la
+    // saca por el borde. Los dos en el mismo `transform` o el centrado se
+    // pierde.
+    .controles--ocultos.controles--izq {
+      transform: translateX(-50%) translateX(-150%);
+    }
+
+    .controles--ocultos.controles--der {
+      transform: translateX(-50%) translateX(150%);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .controles {
+      transition: opacity var(--motion-base, 200ms) ease;
+    }
+
+    .controles--ocultos.controles--izq,
+    .controles--ocultos.controles--der {
+      transform: translateX(-50%);
+    }
   }
 
   .controles__activo {
