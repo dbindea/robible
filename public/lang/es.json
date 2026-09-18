@@ -373,8 +373,13 @@
         "projection": {
           "label": "Proyección",
           "hint": "Versículos en la pantalla de la iglesia"
+        },
+        "scroll": {
+          "label": "Biblia en scroll",
+          "hint": "Un versículo por pantalla, con el dedo"
         }
-      }
+      },
+      "new": "Nuevo"
     },
     "tts": {
       "start": "Leer con música",
@@ -1081,7 +1086,9 @@
       "blank_image_hint": "Aparece en lugar de la pantalla en negro. Se queda en este ordenador —no se envía a ninguna parte— y sigue ahí aunque cierres el navegador.",
       "blank_image_too_big": "La imagen es demasiado grande. Elige una de menos de 8 MB.",
       "blank_image_invalid": "Ese archivo no es una imagen.",
-      "swipe_hint": "Desliza a un lado para los controles"
+      "swipe_hint": "Desliza a un lado para los controles",
+      "scroll_seo_title": "Biblia en scroll | RoBible",
+      "scroll_seo_description": "Lee la Biblia versículo a versículo, a pantalla completa, deslizando con el dedo."
     },
     "projection_landing": {
       "seo_title": "Proyección para iglesias | RoBible",
@@ -1416,11 +1423,20 @@
       "badge": "Novedad",
       "title": "Los versículos, en la pantalla de la iglesia",
       "lead": "Abres una página, escribes la referencia y proyectas. Sin programa que instalar, sin cuota y sin cuenta.",
-      "p1": "Un versículo por pantalla, tan grande como quepa: se lee desde la última fila.",
-      "p2": "Dos idiomas a la vez, con uno de ellos más grande.",
-      "p3": "Funciona con el mando de presentación que ya tienes.",
+      "p1": "Un versículo por pantalla, tan grande como quepa — se lee desde la última fila.",
+      "p2": "Cedes el proyector a otro programa con una tecla y lo recuperas igual.",
+      "p3": "Reloj en pantalla, dos idiomas a la vez y la imagen de tu iglesia entre pasajes.",
       "cta_detail": "Ver cómo funciona",
       "cta_open": "Abrir la proyección"
+    },
+    "scroll": {
+      "badge": "Nuevo",
+      "title": "La Biblia en scroll",
+      "lead": "Un versículo a toda pantalla y el dedo hacia arriba. No se acaba: después del último viene el capítulo siguiente, y luego el libro siguiente.",
+      "p1": "El texto se ajusta solo a la pantalla: ni pequeño ni cortado.",
+      "p2": "Sigue por donde lo dejaste, sin buscar nada.",
+      "p3": "Dos idiomas a la vez, si quieres.",
+      "cta": "Empieza a leer"
     }
   }
 }

@@ -505,6 +505,75 @@
     </ol>
   </section>
 
+  <!-- ─── BIBLIA A SCROLL ─────────────────────────────────────────
+       Va aquí, justo después de las cuatro razones y antes del «por qué»: es
+       la forma de leer que se quiere empujar, así que se cuenta pronto y no al
+       final con las herramientas de iglesia. Reutiliza las clases `.proy*`
+       porque es la misma pieza —texto, lista y maqueta— y duplicar sus estilos
+       las habría separado al primer ajuste. -->
+  <section class="proy proy--scroll" aria-labelledby="scroll-title">
+    <div class="proy__caja" data-reveal>
+      <div class="proy__texto">
+        <p class="proy__badge">{$_('landing.scroll.badge')}</p>
+        <h2 id="scroll-title" class="section-title">{$_('landing.scroll.title')}</h2>
+        <p class="proy__lead">{$_('landing.scroll.lead')}</p>
+        <ul class="proy__lista">
+          {#each ['p1', 'p2', 'p3'] as p (p)}
+            <li>
+              <span class="proy__tick" aria-hidden="true"><Icon name="check" /></span>
+              {$_(`landing.scroll.${p}`)}
+            </li>
+          {/each}
+        </ul>
+        <div class="proy__acciones">
+          <a class="btn btn--primary" href="/scroll">{$_('landing.scroll.cta')}</a>
+        </div>
+      </div>
+
+      <!-- Un móvil con el versículo a toda pantalla y el siguiente asomando por
+           abajo: enseña el gesto sin tener que explicarlo. -->
+      <div class="proy__maqueta" aria-hidden="true">
+        <svg viewBox="0 0 220 420" class="proy__svg">
+          <defs>
+            <linearGradient id="scroll-pantalla" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#25402F" />
+              <stop offset="60%" stop-color="#16271D" />
+              <stop offset="100%" stop-color="#0C1712" />
+            </linearGradient>
+            <linearGradient id="scroll-fundido" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#0C1712" stop-opacity="0" />
+              <stop offset="100%" stop-color="#0C1712" stop-opacity="0.95" />
+            </linearGradient>
+          </defs>
+          <rect x="4" y="4" width="212" height="412" rx="28" fill="#0f1319" />
+          <rect x="12" y="12" width="196" height="396" rx="22" fill="url(#scroll-pantalla)" />
+
+          <!-- El versículo que se está leyendo -->
+          <rect x="34" y="118" width="152" height="13" rx="6.5" fill="#EDF3F7" opacity="0.94" />
+          <rect x="30" y="140" width="160" height="13" rx="6.5" fill="#EDF3F7" opacity="0.94" />
+          <rect x="46" y="162" width="128" height="13" rx="6.5" fill="#EDF3F7" opacity="0.94" />
+          <rect x="74" y="196" width="72" height="9" rx="4.5" fill="#8FD6A8" opacity="0.92" />
+
+          <!-- El siguiente, asomando: es lo que dice «sigue deslizando» -->
+          <rect x="40" y="296" width="140" height="11" rx="5.5" fill="#EDF3F7" opacity="0.5" />
+          <rect x="34" y="316" width="152" height="11" rx="5.5" fill="#EDF3F7" opacity="0.5" />
+          <rect x="12" y="272" width="196" height="136" fill="url(#scroll-fundido)" />
+
+          <!-- El gesto -->
+          <path
+            d="M110 392 v-34 m0 0 l-11 11 m11-11 l11 11"
+            stroke="#8FD6A8"
+            stroke-width="3.4"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            fill="none"
+            opacity="0.9"
+          />
+        </svg>
+      </div>
+    </div>
+  </section>
+
   <!-- ─── WHY ────────────────────────────────────────────────────── -->
   <section class="why" aria-labelledby="why-title">
     <div class="why__inner">
@@ -2090,6 +2159,16 @@
     height: auto;
     max-width: none;
     filter: drop-shadow(0 16px 30px rgba(0, 0, 0, 0.26));
+  }
+
+  /* La maqueta de la Biblia a scroll es un móvil, no una pantalla de sala: a
+     todo el ancho de su columna saldría un teléfono de medio metro.
+     Comentarios con `/* *\/` y no con `//`: el `<style>` de esta página es CSS
+     a secas, sin `lang="scss"`, al revés que el de los componentes. */
+  .proy--scroll .proy__svg {
+    display: block;
+    max-width: 14rem;
+    margin: 0 auto;
   }
 
   /* ── Perfiles ─────────────────────────────────────────────

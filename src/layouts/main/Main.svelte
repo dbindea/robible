@@ -130,6 +130,18 @@
     typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('ecran') === '1';
   let isProjectionMode = typeof window !== 'undefined' ? isProjectionPath(window.location.pathname) : false;
 
+  // Biblia a scroll (`/scroll`). Es la MISMA pantalla que la proyección, pero
+  // entrando ya en modo lectura y desde donde se dejó: un versículo por
+  // pantalla y el dedo hacia arriba, sin pasar por el buscador.
+  //
+  // Ruta propia y no un parámetro de `/proiectie` porque se anuncia en la
+  // portada y está en el menú: tiene que ser una dirección que se pueda
+  // enlazar y entender. No se traduce por idioma ni entra en el sitemap —es
+  // una herramienta del dispositivo, y el texto bíblico ya se indexa en
+  // `/biblia/…`—, así que de los cuatro ficheros de la trampa 11 sólo toca dos.
+  const isScrollPath = (path) => path === '/scroll' || path === '/scroll/';
+  let isScrollMode = typeof window !== 'undefined' ? isScrollPath(window.location.pathname) : false;
+
   // Presentación del Modo Proyección (`/proiectie-biserici`). Al revés que la
   // herramienta, ésta SÍ se indexa: es la página con la que se quiere aparecer
   // al buscar «proiecție versete biserică», y va dirigida a quien todavía no
@@ -198,6 +210,7 @@
     isGuideMode = isGuidePath(window.location.pathname);
     isAdminMode = isAdminPath(window.location.pathname);
     isProjectionMode = isProjectionPath(window.location.pathname);
+    isScrollMode = isScrollPath(window.location.pathname);
     isProjectionLandingMode = isProjectionLandingPath(window.location.pathname);
     isSermonsMode = isSermonsPath(window.location.pathname);
     sermonId = sermonIdFromPath(window.location.pathname);
@@ -261,9 +274,10 @@
     isGuideMode ||
     isAdminMode ||
     isProjectionMode ||
+    isScrollMode ||
     isProjectionLandingMode}
 >
-  {#if !isImmersive && !isCompareMode && !isIndexMode && !isFavoritesMode && !isNotesMode && !isPublicTopicMode && !isPublicSermonMode && !isSermonsMode && !isPublicSermonsMode && !isPublicTopicsMode && !isProfileMode && !isCuratedMode && !isMemorizeMode && !isGuideMode && !isAdminMode && !isProjectionMode && !isProjectionLandingMode}
+  {#if !isImmersive && !isCompareMode && !isIndexMode && !isFavoritesMode && !isNotesMode && !isPublicTopicMode && !isPublicSermonMode && !isSermonsMode && !isPublicSermonsMode && !isPublicTopicsMode && !isProfileMode && !isCuratedMode && !isMemorizeMode && !isGuideMode && !isAdminMode && !isProjectionMode && !isScrollMode && !isProjectionLandingMode}
     <div class="sidebar">
       <Sidebar {map} {bible} {result} {count} />
     </div>
@@ -298,11 +312,13 @@
         <GuidePredicare />
       {:else if isAdminMode}
         <Admin />
-      {:else if isProjectionMode}
+      {:else if isProjectionMode || isScrollMode}
         <!-- `compareBible` y `compareMap` son el segundo idioma. Llegan vacíos
              hasta que el usuario lo enciende: App.svelte sólo baja esa Biblia
-             cuando `compareWithVersion` deja de ser null (son ~4 MB). -->
-        <Projection {bible} {map} {compareBible} {compareMap} />
+             cuando `compareWithVersion` deja de ser null (son ~4 MB).
+             `modoScroll` es la Biblia a scroll: la misma pantalla, pero
+             entrando ya en modo lectura. -->
+        <Projection {bible} {map} {compareBible} {compareMap} modoScroll={isScrollMode} />
       {:else if isProjectionLandingMode}
         <ProjectionLanding />
       {:else if isPublicSermonMode}
@@ -330,7 +346,7 @@
      Biblia, y sobre un formulario de preparación no significa nada. Además se
      plantaba encima del texto del guía de homilética, que es contenido que hay
      que poder leer entero. El Modo Amvon tiene su propia pantalla completa. -->
-{#if !isImmersive && !isCompareMode && !isSermonsMode && !isProjectionMode && !isProjectionLandingMode}
+{#if !isImmersive && !isCompareMode && !isSermonsMode && !isProjectionMode && !isScrollMode && !isProjectionLandingMode}
   <button
     type="button"
     class="immersive-toggle"
