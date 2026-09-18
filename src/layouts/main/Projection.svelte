@@ -860,13 +860,21 @@
   const alRecibirDeLaPantalla = (mensaje) => {
     if (!mensaje) return;
     if (mensaje.tipo === MENSAJES.LISTO) {
+      // Saluda una ventana: o es la que se acaba de abrir, o es la misma
+      // después de recargarse. En los dos casos hay que mandarle el estado y
+      // dar el proyector por recuperado.
+      pantallaLibre = false;
       canal?.enviar({ tipo: MENSAJES.ESTADO, estado: estadoPantalla });
     } else if (mensaje.tipo === MENSAJES.CERRANDO) {
-      // La ha cerrado el operador con la cruz del sistema. Es exactamente lo
-      // mismo que ceder la pantalla, así que se trata igual: la consola sigue
-      // con su lista y su índice, y ofrece recuperarla de un clic. Antes se
-      // volvía a la antesala y había que empezar de cero.
-      cerrarVentanaPantalla();
+      // `pagehide` no distingue un cierre de una RECARGA, así que aquí no se
+      // cierra nada: ni la ventana ni el canal. Si era una recarga, el `listo`
+      // que llega un instante después la reconecta sola; cerrando el canal —y
+      // de paso la ventana, que es lo que hacía— pulsar F5 en el proyector la
+      // mataba del todo, que es justo el reflejo de cualquiera cuando algo se
+      // queda raro en mitad de un culto.
+      //
+      // El cierre de verdad lo confirma el vigilante, que es el único que mira
+      // `closed`, y para entonces ya se ha visto si vuelve o no.
       pantallaLibre = true;
     } else if (mensaje.tipo === MENSAJES.TECLA) {
       manejarTecla(mensaje.key, { desdeLaPantalla: true });

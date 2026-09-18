@@ -265,7 +265,7 @@
 >
   {#if !isImmersive && !isCompareMode && !isIndexMode && !isFavoritesMode && !isNotesMode && !isPublicTopicMode && !isPublicSermonMode && !isSermonsMode && !isPublicSermonsMode && !isPublicTopicsMode && !isProfileMode && !isCuratedMode && !isMemorizeMode && !isGuideMode && !isAdminMode && !isProjectionMode && !isProjectionLandingMode}
     <div class="sidebar">
-      <Sidebar {map} {result} {count} />
+      <Sidebar {map} {bible} {result} {count} />
     </div>
   {/if}
   <div class="layout">
