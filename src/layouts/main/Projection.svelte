@@ -55,6 +55,8 @@
   import { keepScreenAwake } from '../../services/sermon-pulpit.service';
   import { getLastRead } from '../../services/reading-progress.service';
   import {
+    OCUPACION_POR_DEFECTO,
+    acotarOcupacion,
     cargarGeometriaPantalla,
     cargarPreferencias,
     guardarGeometriaPantalla,
@@ -154,7 +156,13 @@
 
   // Preferencias persistidas. Se leen en `onMount` y no aquí: en el arranque del
   // módulo `localStorage` puede no estar listo en algunos navegadores.
-  let prefs = { fondo: 'night', animacion: 'fade', escala: 1, segundoIdioma: false, invertido: false };
+  let prefs = {
+    fondo: 'night',
+    animacion: 'fade',
+    ocupacion: OCUPACION_POR_DEFECTO,
+    segundoIdioma: false,
+    invertido: false,
+  };
 
   // El fondo ya no se resuelve aquí: lo hace `ProjectionSurface` a partir de la
   // clave, porque lo necesitan las dos ventanas y sólo una de ellas tiene estas
@@ -240,7 +248,11 @@
   const buscarReferencia = () => {
     consultaTexto = '';
     resultadosTexto = [];
-    sugerencias = consultaRef.trim().length >= 2 ? searchReferences(consultaRef, map, 6) : [];
+    // La Biblia va como cuarto argumento para que no se ofrezca lo que no
+    // existe: «ioan 4 4» sugería también 2 Ioan 4:4 y 3 Ioan 4:4, y esos dos
+    // libros tienen UN capítulo. Pulsarlo no llevaba a ninguna parte, y aquí se
+    // pulsa con prisa y con la congregación delante.
+    sugerencias = consultaRef.trim().length >= 2 ? searchReferences(consultaRef, map, 6, bible) : [];
   };
 
   const buscarPorTexto = () => {
@@ -383,7 +395,7 @@
   const empezarDesdeSugerencia = (s) => empezarDesde(s.book, s.chapter, s.verse);
 
   const empezarDesdeConsulta = () => {
-    const encontrado = parseReference(consultaRef, map) || sugerencias[0];
+    const encontrado = parseReference(consultaRef, map, bible) || sugerencias[0];
     if (encontrado) empezarDesdeSugerencia(encontrado);
   };
 
@@ -405,10 +417,11 @@
   // más abajo…» y hay que encontrarlo en dos segundos. Con el contexto delante
   // no hay que buscar nada: está escrito ahí y se pulsa.
   //
-  // Cinco arriba y diez abajo porque el salto normal es hacia delante: se
-  // vuelve atrás a lo que se acaba de leer y se avanza a lo que viene.
-  const CONTEXTO_ANTES = 5;
-  const CONTEXTO_DESPUES = 10;
+  // Va el CAPÍTULO ENTERO y no una ventana de unos pocos versículos. Empezó
+  // siendo cinco arriba y diez abajo, y el salto que se quería cubrir se sale
+  // de ahí en cuanto el predicador dice «y más adelante, en el 28». Con la
+  // columna llegando hasta abajo hay sitio de sobra, el versículo proyectado se
+  // centra solo, y por debajo quedan las flechas de capítulo: nunca falta nada.
 
   /**
    * Se calcula contra la Biblia y NO contra `pasajes`, y esa es la gracia:
@@ -424,15 +437,16 @@
     if (!actual) return [];
     const versos = bible?.[actual.book]?.[actual.chapter - 1] || [];
     if (!versos.length) return [];
-    const desde = Math.max(1, actual.verse - CONTEXTO_ANTES);
-    const hasta = Math.min(versos.length, actual.verse + CONTEXTO_DESPUES);
     const lista = [];
-    for (let v = desde; v <= hasta; v += 1) {
+    for (let v = 1; v <= versos.length; v += 1) {
       const texto = String(versos[v - 1] || '').trim();
       if (texto) lista.push({ verse: v, texto });
     }
     return lista;
   })();
+
+  /** La cabecera de la columna: de qué capítulo se está viendo el contexto. */
+  $: referenciaContexto = actual && map[actual.book] ? `${map[actual.book]} ${actual.chapter}` : '';
 
   let cajaContexto = null;
 
@@ -482,6 +496,31 @@
       empezarDesde(actual.book, actual.chapter, verse);
     }
   };
+
+  /**
+   * Cambiar de CAPÍTULO. En horizontal se navega por capítulos y en vertical
+   * por versículos: son dos ejes distintos y confundirlos era justo lo que
+   * hacía falta tocar el ratón a mitad de una lectura.
+   *
+   * Sirve igual cuando lo proyectado es un capítulo (se sigue recorriendo) que
+   * cuando es una búsqueda por expresión: ahí `recorriendo` vale `null`, así que
+   * se toma el capítulo del versículo que esté en pantalla y se empieza a
+   * recorrer el de al lado.
+   */
+  const irACapitulo = (paso) => {
+    panelAbierto = '';
+    if (recorriendo) {
+      if (irACapituloVecino(paso)) apuntarEnHistorial(pasajes[indice]);
+      return;
+    }
+    if (!actual) return;
+    const destino = capituloVecino({ book: actual.book, chapter: actual.chapter }, paso);
+    empezarDesde(destino.book, destino.chapter);
+  };
+
+  // Hacia atrás siempre hay capítulo —se da la vuelta en Geneza 1— así que los
+  // botones sólo se apagan cuando no hay nada proyectado.
+  $: hayCapitulos = !!actual;
 
   // ── Historial ─────────────────────────────────────────────────────────────
   //
@@ -564,12 +603,18 @@
     persistir();
     cerrarPanel();
   };
+  // Lo que suben y bajan estos dos es **cuánto de la pantalla llena el texto**,
+  // no el cuerpo de la letra: el cuerpo lo calcula la lámina para cada
+  // versículo. Cinco puntos por pulsación, que es el salto más pequeño que se
+  // nota desde la última fila.
+  const PASO_OCUPACION = 5;
+
   const masGrande = () => {
-    prefs.escala = Math.min(prefs.escala + 0.1, 2);
+    prefs.ocupacion = acotarOcupacion(prefs.ocupacion + PASO_OCUPACION);
     persistir();
   };
   const masPequeno = () => {
-    prefs.escala = Math.max(prefs.escala - 0.1, 0.5);
+    prefs.ocupacion = acotarOcupacion(prefs.ocupacion - PASO_OCUPACION);
     persistir();
   };
 
@@ -584,23 +629,18 @@
   };
 
   /**
-   * La rueda del ratón cambia el tamaño del texto.
+   * La rueda del ratón cambia cuánto de la pantalla ocupa el texto.
    *
    * Es el reflejo de cualquiera que se sienta delante de una pantalla, y aquí
    * no compite con nada: la proyección no tiene scroll. `preventDefault` evita
    * que el gesto se lo quede la página de debajo.
    *
-   * El paso es la mitad que el de los botones: con la rueda se hacen varios
-   * clics seguidos sin querer, y a 0,1 por muesca se pasaba de largo.
+   * Dos puntos por muesca, menos que los cinco de los botones: con la rueda se
+   * hacen varios clics seguidos sin querer y a saltos grandes se pasa de largo.
    */
   const alGirarRueda = (e) => {
     e.preventDefault();
-    const paso = e.deltaY < 0 ? 0.05 : -0.05;
-    // Redondeado a dos decimales: el error del coma flotante se acumula muesca
-    // a muesca —cuatro vueltas y ya vale 1.2000000000000002— y eso se guarda en
-    // localStorage y se manda a la otra ventana en cada cambio.
-    const bruto = Math.min(Math.max(prefs.escala + paso, 0.5), 2);
-    prefs.escala = Math.round(bruto * 100) / 100;
+    prefs.ocupacion = acotarOcupacion(prefs.ocupacion + (e.deltaY < 0 ? 2 : -2));
     persistir();
     mostrarControles();
   };
@@ -659,7 +699,7 @@
     principal: { texto: principal.texto, referencia: principal.referencia },
     secundario: { texto: secundario.texto, referencia: secundario.referencia },
     fondoKey: prefs.fondo,
-    escala: prefs.escala,
+    ocupacion: prefs.ocupacion,
     animacion: prefs.animacion,
     indice,
     enNegro,
@@ -800,15 +840,19 @@
   };
 
   /**
-   * Teclas. Son las que mandan los mandos de presentación: el botón de avanzar
-   * emite Flecha derecha o AvPág, y el de retroceder Flecha izquierda o RePág.
-   * Por eso hay varias teclas para lo mismo — no es indecisión.
-   */
-  /**
    * La acción de cada tecla, separada del evento.
    *
-   * Está aparte porque ahora las teclas llegan de DOS sitios: del teclado de
-   * esta ventana y, por el canal, del de la ventana proyectada — el mando de
+   * **Dos ejes.** En vertical se cambia de VERSÍCULO y en horizontal de
+   * CAPÍTULO. Es la forma en que se lee de verdad —se avanza versículo a
+   * versículo y de vez en cuando se salta de capítulo— y separarlo así evita
+   * tener que tocar el ratón a mitad de una lectura.
+   *
+   * AvPág y RePág siguen cambiando de versículo aunque sean «horizontales» en
+   * el teclado: son las que emiten los mandos de presentación para pasar de
+   * diapositiva, y ahí lo que se espera es el versículo siguiente.
+   *
+   * Está aparte del evento porque las teclas llegan de DOS sitios: del teclado
+   * de esta ventana y, por el canal, del de la ventana proyectada — el mando de
    * presentación puede tener el foco en cualquiera de las dos y tiene que
    * funcionar igual.
    *
@@ -818,18 +862,21 @@
    */
   const manejarTecla = (key, { desdeLaPantalla = false } = {}) => {
     switch (key) {
-      case 'ArrowRight':
       case 'ArrowDown':
       case 'PageDown':
-      case ' ':
       case 'Enter':
         siguiente();
         break;
-      case 'ArrowLeft':
       case 'ArrowUp':
       case 'PageUp':
       case 'Backspace':
         anterior();
+        break;
+      case 'ArrowRight':
+        irACapitulo(1);
+        break;
+      case 'ArrowLeft':
+        irACapitulo(-1);
         break;
       case 'Home':
         indice = 0;
@@ -858,13 +905,6 @@
       case 'L':
         alternarSegundoIdioma();
         break;
-      // Ceder el proyector a otro programa y recuperarlo. Sólo desde la consola:
-      // en la ventana proyectada la tecla cerraría la ventana en la que se está
-      // pulsando, y recuperarla desde allí ya no sería posible.
-      case 'c':
-      case 'C':
-        if (!desdeLaPantalla && modo === 'remoto') alternarCesion();
-        break;
       case '+':
       case '=':
         masGrande();
@@ -885,12 +925,17 @@
     }
   };
 
-  /** Las teclas que consumimos. Las demás siguen su curso. */
+  /**
+   * Las teclas que consumimos. Las demás siguen su curso.
+   *
+   * **Espacio ya no está.** Avanzaba un versículo, y es la tecla que se pulsa
+   * sin pensar para bajar una página: se proyectaba el versículo siguiente sin
+   * querer. Para avanzar están AvPág, Intro y la flecha abajo.
+   */
   const TECLAS = new Set([
     'ArrowRight',
     'ArrowDown',
     'PageDown',
-    ' ',
     'Enter',
     'ArrowLeft',
     'ArrowUp',
@@ -909,8 +954,6 @@
     'S',
     'l',
     'L',
-    'c',
-    'C',
     '+',
     '=',
     '-',
@@ -927,13 +970,43 @@
    * abajo hacen eso; izquierda y derecha se quedan para mover el cursor dentro
    * del texto, que es lo que cualquiera espera de ellas dentro de un campo.
    *
-   * Fuera de un campo siguen valiendo las cuatro, porque los mandos de
-   * presentación emiten una u otra según el modelo.
+   * Fuera de un campo, izquierda y derecha cambian de capítulo.
    */
   const TECLAS_AUNQUE_SE_ESCRIBA = new Set(['ArrowUp', 'ArrowDown']);
 
+  /**
+   * Ceder y recuperar el proyector va con un TOQUE de Mayúsculas.
+   *
+   * Es la tecla que se encuentra a oscuras sin mirar, que es la condición del
+   * puesto. Pero Mayúsculas es también un modificador, así que se actúa al
+   * SOLTARLA y sólo si entre medias no se ha pulsado nada más: si no, escribir
+   * una mayúscula en el buscador —o un Mayús+clic— cerraría la proyección. Por
+   * eso hace falta este pequeño estado en vez de un `case` más.
+   */
+  let mayusculasSola = false;
+
+  const desarmarMayusculas = () => {
+    mayusculasSola = false;
+  };
+
+  const alSoltarTecla = (e) => {
+    if (e.key !== 'Shift') return;
+    const armada = mayusculasSola;
+    mayusculasSola = false;
+    if (!armada || modo !== 'remoto') return;
+    alternarCesion();
+  };
+
   const alPulsarTecla = (e) => {
     if (!proyectando) return;
+
+    // Mayúsculas se arma al pulsarla y se desarma con cualquier otra tecla.
+    if (e.key === 'Shift') {
+      if (!e.repeat) mayusculasSola = true;
+      return;
+    }
+    mayusculasSola = false;
+
     if (!TECLAS.has(e.key)) return;
     // Un atajo del navegador (Ctrl+L, Alt+←…) no es una tecla de proyección.
     if (e.ctrlKey || e.altKey || e.metaKey) return;
@@ -1065,7 +1138,7 @@
     principal: { texto: '', referencia: '' },
     secundario: { texto: '', referencia: '' },
     fondoKey: 'night',
-    escala: 1,
+    ocupacion: OCUPACION_POR_DEFECTO,
     animacion: 'fade',
     indice: 0,
     enNegro: false,
@@ -1151,7 +1224,17 @@
     // volver a pedir la Biblia: `compareWithVersion` arranca en null.
     if (prefs.segundoIdioma) initCompareVersion();
     window.addEventListener('keydown', alPulsarTecla);
-    return () => window.removeEventListener('keydown', alPulsarTecla);
+    window.addEventListener('keyup', alSoltarTecla);
+    // Un Mayús+clic no es un toque de Mayúsculas, y salir de la ventana con la
+    // tecla apretada dejaría el toque «armado» hasta la próxima vez.
+    window.addEventListener('mousedown', desarmarMayusculas);
+    window.addEventListener('blur', desarmarMayusculas);
+    return () => {
+      window.removeEventListener('keydown', alPulsarTecla);
+      window.removeEventListener('keyup', alSoltarTecla);
+      window.removeEventListener('mousedown', desarmarMayusculas);
+      window.removeEventListener('blur', desarmarMayusculas);
+    };
   });
 
   onDestroy(() => {
@@ -1177,7 +1260,7 @@
     principal={estadoRecibido.principal}
     secundario={estadoRecibido.secundario}
     fondoKey={estadoRecibido.fondoKey}
-    escala={estadoRecibido.escala}
+    ocupacion={estadoRecibido.ocupacion}
     animacion={estadoRecibido.animacion}
     indice={estadoRecibido.indice}
     enNegro={estadoRecibido.enNegro}
@@ -1386,9 +1469,11 @@
       <div class="atajos">
         <h2>{$_('app.projection.keys_title')}</h2>
         <ul>
-          <li><kbd>↓</kbd> <kbd>→</kbd> <kbd>Space</kbd> <span>{$_('app.projection.key_next')}</span></li>
-          <li><kbd>↑</kbd> <kbd>←</kbd> <span>{$_('app.projection.key_prev')}</span></li>
-          <li><kbd>C</kbd> <span>{$_('app.projection.key_yield')}</span></li>
+          <li><kbd>↓</kbd> <span>{$_('app.projection.key_next')}</span></li>
+          <li><kbd>↑</kbd> <span>{$_('app.projection.key_prev')}</span></li>
+          <li><kbd>→</kbd> <span>{$_('app.projection.key_next_chapter')}</span></li>
+          <li><kbd>←</kbd> <span>{$_('app.projection.key_prev_chapter')}</span></li>
+          <li><kbd>Shift</kbd> <span>{$_('app.projection.key_yield')}</span></li>
           <li><kbd>N</kbd> <span>{$_('app.projection.key_black')}</span></li>
           <li><kbd>F</kbd> <span>{$_('app.projection.key_fullscreen')}</span></li>
           <li><kbd>L</kbd> <span>{$_('app.projection.panel_language')}</span></li>
@@ -1408,7 +1493,14 @@
          proyecta, sin escribir la referencia. -->
     {#if modo === 'remoto'}
       <aside class="columna">
-        <h2 class="columna__titulo">{$_('app.projection.context_title')}</h2>
+        <div class="columna__cabecera">
+          <h2 class="columna__titulo">{$_('app.projection.context_title')}</h2>
+          <!-- De qué capítulo. Con las flechas de abajo se cambia de capítulo
+               sin tocar el buscador, así que hay que poder ver dónde se está. -->
+          {#if referenciaContexto}
+            <p class="columna__ref">{referenciaContexto}</p>
+          {/if}
+        </div>
         {#if contexto.length}
           <div class="columna__caja" bind:this={cajaContexto}>
             {#each contexto as v (v.verse)}
@@ -1427,6 +1519,32 @@
         {:else}
           <p class="columna__vacio">{$_('app.projection.context_empty')}</p>
         {/if}
+
+        <!-- Capítulo anterior y siguiente, el mismo eje que las flechas ← y →
+             del teclado: en horizontal se cambia de capítulo y en vertical de
+             versículo. Nunca se apagan por estar al principio o al final de un
+             libro, porque se salta al libro de al lado. -->
+        <div class="contexto__capitulos">
+          <button
+            type="button"
+            disabled={!hayCapitulos}
+            on:click={() => irACapitulo(-1)}
+            aria-label={$_('app.projection.key_prev_chapter')}
+            title={$_('app.projection.key_prev_chapter')}
+          >
+            <Icon name="arrow-left" />
+          </button>
+          <span>{$_('app.projection.chapter_nav')}</span>
+          <button
+            type="button"
+            disabled={!hayCapitulos}
+            on:click={() => irACapitulo(1)}
+            aria-label={$_('app.projection.key_next_chapter')}
+            title={$_('app.projection.key_next_chapter')}
+          >
+            <Icon name="arrow-right" />
+          </button>
+        </div>
       </aside>
 
       <!-- ── Historial ──────────────────────────────────────────────────── -->
@@ -1540,7 +1658,7 @@
     {principal}
     {secundario}
     fondoKey={prefs.fondo}
-    escala={prefs.escala}
+    ocupacion={prefs.ocupacion}
     animacion={prefs.animacion}
     {indice}
     {enNegro}
@@ -1629,12 +1747,24 @@
 
   @media (min-width: 64rem) {
     .taller--consola .columna {
-      display: block;
+      // Columna flexible y de alto fijo: así las dos acaban a la misma altura y
+      // la caja de dentro se estira hasta abajo. Antes tenían el alto de su
+      // contenido y quedaban dos rectángulos desparejos con medio panel vacío.
+      display: flex;
+      flex-direction: column;
       position: sticky;
       // Se quedan a la vista al desplazar la lista de resultados, que puede ser
       // larga: el contexto del versículo que está en la pantalla de la iglesia
       // no puede irse hacia arriba justo cuando hace falta.
       top: 1rem;
+      // Hasta abajo, pero descontando el caso PEOR: sin desplazar la página, la
+      // columna no empieza en `top: 1rem` sino por debajo de la barra superior,
+      // ~6,5 rem más abajo. Calculado sobre la posición pegajosa, las flechas de
+      // capítulo —que van al final de la columna— quedaban por detrás de la
+      // franja de la consola justo en el estado inicial, que es el que más se
+      // ve. Se paga con algo de aire por abajo una vez desplazada la página, y
+      // eso no le estorba a nadie.
+      height: calc(100dvh - 12.5rem);
     }
   }
 
@@ -1652,6 +1782,15 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: var(--letter-spacing-eyebrow);
+  }
+
+  // De qué capítulo es el contexto. Va en la cabecera y no dentro de la caja
+  // para que no se desplace con ella.
+  .columna__ref {
+    margin: 0 0 0.5rem;
+    color: var(--color-accent-ink);
+    font-size: 0.8rem;
+    font-weight: 700;
   }
 
   .columna__accion {
@@ -1675,9 +1814,17 @@
   // cualquiera en cada versículo.
   .columna__caja {
     position: relative;
+    // `align-content: start` y no `grid` a secas: con la caja estirada hasta
+    // abajo y pocos versículos, las filas se repartían el hueco y salían
+    // separadas por dedos de aire.
     display: grid;
+    align-content: start;
     gap: 0.25rem;
-    max-height: min(32rem, calc(100dvh - 12rem));
+    // `min-height: 0` es obligatorio dentro de un flex: sin él la caja se niega
+    // a encoger por debajo de su contenido y se sale de la columna en vez de
+    // desplazarse por dentro.
+    flex: 1 1 auto;
+    min-height: 0;
     overflow-y: auto;
     padding: 0.35rem;
     border: 1px solid var(--color-line);
@@ -1685,8 +1832,10 @@
     background: var(--color-surface);
   }
 
+  // `margin-bottom: auto` empuja hacia abajo lo que venga después —las flechas
+  // de capítulo— en vez de dejar un recuadro punteado de pantalla y media.
   .columna__vacio {
-    margin: 0;
+    margin: 0 0 auto;
     padding: 0.85rem;
     border: 1px dashed var(--color-line);
     border-radius: var(--radius-md);
@@ -1740,6 +1889,51 @@
   .contexto__texto {
     font-size: 0.82rem;
     line-height: 1.45;
+  }
+
+  // ── Capítulo anterior / siguiente ─────────────────────────────────────────
+  //
+  // Debajo del contexto y en horizontal, que es el eje que les corresponde: las
+  // mismas dos flechas del teclado. Pegado al fondo de la columna porque es una
+  // salida, no parte de la lista.
+  .contexto__capitulos {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    margin-top: 0.5rem;
+
+    span {
+      color: var(--color-ink-soft);
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: var(--letter-spacing-eyebrow);
+    }
+
+    button {
+      display: inline-grid;
+      place-items: center;
+      // 2.25rem = 36 px, por encima del mínimo de 24 px de WCAG 2.5.8.
+      width: 2.25rem;
+      height: 2.25rem;
+      border: 1px solid var(--color-line-strong);
+      border-radius: 50%;
+      background: var(--color-surface);
+      color: var(--color-ink);
+      cursor: pointer;
+      --icon-size: 1rem;
+
+      &:hover:not(:disabled) {
+        border-color: var(--color-accent);
+        color: var(--color-accent-ink);
+      }
+
+      &:disabled {
+        opacity: 0.35;
+        cursor: default;
+      }
+    }
   }
 
   // ── Historial ─────────────────────────────────────────────────────────────
@@ -1970,6 +2164,10 @@
       font-family: monospace;
       font-size: 0.78rem;
       text-align: center;
+      // Sin esto «Shift» se parte por la mitad dentro de su tecla y se lee
+      // «Shi / ft»: la rejilla de la leyenda es estrecha y el `min-width` del
+      // `kbd` no impide que el texto de dentro se envuelva.
+      white-space: nowrap;
     }
   }
 

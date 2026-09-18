@@ -128,6 +128,10 @@
   </button>
   <button type="button" on:click={onMasPequeno} aria-label={$_('app.projection.key_size')}><Icon name="minus" /></button
   >
+  <!-- Cuánto de la pantalla llena el texto. Es un número, no una sensación: sin
+       verlo, el operador no sabe si está al 60 o al 95 y acaba pulsando hasta
+       que «se vea bien», que en una pantalla de iglesia es tarde. -->
+  <span class="controles__ocupacion">{prefs.ocupacion}%</span>
   <button type="button" on:click={onMasGrande} aria-label={$_('app.projection.key_size')}><Icon name="plus" /></button>
   <button
     type="button"
@@ -226,6 +230,17 @@
     background: rgba(255, 255, 255, 0.2) !important;
   }
 
+  .controles__ocupacion {
+    min-width: 2.6rem;
+    color: #f2f4f7;
+    font-size: 0.78rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    text-align: center;
+    // «100 %» no puede partirse en dos renglones y doblar el alto de la barra.
+    white-space: nowrap;
+  }
+
   .controles__posicion {
     padding: 0 0.35rem;
     color: #98a2b3;
@@ -270,6 +285,11 @@
     .controles__posicion {
       padding: 0 0.25rem;
       font-size: 0.72rem;
+    }
+
+    .controles__ocupacion {
+      min-width: 2.2rem;
+      font-size: 0.68rem;
     }
 
     // El panel se apoya justo encima de los controles, también centrado.

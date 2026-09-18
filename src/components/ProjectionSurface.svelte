@@ -16,9 +16,11 @@
    * los necesita tenga el operador puesta Sepia, Lumină o Nocturn. Cada fondo
    * trae su `ink` y su `accent` ya comprobados contra él.
    */
+  import { onDestroy, onMount } from 'svelte';
   import { fade, fly, scale } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
   import { backgroundCss, getBackground } from '../services/verse-image.service';
+  import { OCUPACION_POR_DEFECTO } from '../services/projection.service';
 
   /** `{ texto, referencia }` — lo que va grande, arriba. */
   export let principal = { texto: '', referencia: '' };
@@ -26,7 +28,8 @@
   export let secundario = { texto: '', referencia: '' };
   /** Clave del fondo (`IMAGE_BACKGROUNDS`). */
   export let fondoKey = 'night';
-  export let escala = 1;
+  /** Qué porcentaje de la pantalla llena el texto. Ver `autoajustar`. */
+  export let ocupacion = OCUPACION_POR_DEFECTO;
   /** 'none' | 'fade' | 'slide' | 'zoom' */
   export let animacion = 'fade';
   /** Cambiarlo vuelve a montar la lámina, que es lo que dispara la animación. */
@@ -66,6 +69,108 @@
         return { duration: 0 };
     }
   };
+
+  // ── Autoajuste ────────────────────────────────────────────────────────────
+  //
+  // El tamaño de letra NO es un ajuste del usuario: lo que se elige es cuánto
+  // de la pantalla tiene que llenar el texto, y la letra sale de ahí.
+  //
+  // Por qué. Antes había un multiplicador fijo sobre un `clamp()` de `vw`+`vh`,
+  // así que un versículo de seis palabras y otro de sesenta salían con el mismo
+  // cuerpo: el corto se perdía en mitad de una pantalla vacía y el largo se
+  // salía por abajo. En una pantalla de iglesia eso se corrige a mano, con
+  // prisa y delante de todo el mundo. Ahora cada versículo busca el cuerpo más
+  // grande que quepa en la caja, así que todos ocupan lo mismo.
+  //
+  // Se hace midiendo y no con una fórmula sobre el número de caracteres: el
+  // ancho de la caja, el idioma, si hay segundo idioma y dónde caen los saltos
+  // de línea cambian el resultado, y sólo el navegador sabe todo eso.
+  const CUERPO_MINIMO = 12;
+  const CUERPO_MAXIMO = 420;
+  /** Doce pasadas dejan el error por debajo de 0,1 px sobre ese rango. */
+  const PASADAS = 12;
+
+  /**
+   * Busca por bisección el mayor `--cuerpo` que no desborde la caja.
+   *
+   * La caja es `.lamina`, cuya altura la limita `max-height` en función de
+   * `--ocupacion`; con `overflow: hidden`, desbordar significa
+   * `scrollHeight > clientHeight`. La relación entre cuerpo y alto es monótona
+   * —más letra nunca ocupa menos—, que es lo que hace válida la bisección.
+   */
+  const medirYAjustar = (nodo) => {
+    if (!nodo || !nodo.isConnected) return;
+    let bajo = CUERPO_MINIMO;
+    let alto = CUERPO_MAXIMO;
+    let mejor = CUERPO_MINIMO;
+    for (let i = 0; i < PASADAS; i += 1) {
+      const medio = (bajo + alto) / 2;
+      nodo.style.setProperty('--cuerpo', `${medio}px`);
+      // Leer `scrollHeight` fuerza el recálculo, así que no hace falta nada más.
+      if (nodo.scrollHeight <= nodo.clientHeight + 1) {
+        mejor = medio;
+        bajo = medio;
+      } else {
+        alto = medio;
+      }
+    }
+    nodo.style.setProperty('--cuerpo', `${mejor}px`);
+  };
+
+  /**
+   * Acción de Svelte, y no un `bind:this` con un bloque reactivo, porque la
+   * lámina vive dentro de un `{#key}`: se destruye y se vuelve a crear en cada
+   * versículo, y la acción sigue ese ciclo sola.
+   */
+  const autoajustar = (nodo) => {
+    let pendiente = 0;
+    const ajustar = () => {
+      cancelAnimationFrame(pendiente);
+      // Tras el pintado: antes de él la caja todavía no tiene su alto final.
+      pendiente = requestAnimationFrame(() => medirYAjustar(nodo));
+    };
+
+    ajustar();
+    // Con una tipografía que llega tarde, lo medido era la de sustitución y el
+    // texto quedaba una talla por debajo el resto del culto.
+    document.fonts?.ready?.then(ajustar).catch(() => {});
+
+    // Se observa el CONTENEDOR, no la lámina: observar la lámina sería un bucle
+    // —la ajustamos, cambia de tamaño, vuelve a disparar—. El contenedor sólo
+    // cambia cuando cambia la ventana, que es justo cuando hay que repetirlo.
+    const contenedor = nodo.parentElement;
+    const observador = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(ajustar) : null;
+    if (observador && contenedor) observador.observe(contenedor);
+
+    return {
+      update: ajustar,
+      destroy: () => {
+        cancelAnimationFrame(pendiente);
+        observador?.disconnect();
+      },
+    };
+  };
+
+  // ── Reloj ─────────────────────────────────────────────────────────────────
+  //
+  // Arriba a la derecha y con el mismo tratamiento tenue que la marca: el que
+  // predica mira a la pantalla, no a su muñeca, y saber la hora sin buscarla es
+  // media razón por la que un culto acaba a tiempo. Un poco mayor que la marca
+  // porque esto sí se lee a propósito.
+  let hora = '';
+
+  const ponerHora = () => {
+    hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  let relojTimer;
+  onMount(() => {
+    ponerHora();
+    // Cada quince segundos: el minuto cambia como mucho con ese retraso y no
+    // hay ningún coste en una pantalla que está encendida una hora seguida.
+    relojTimer = setInterval(ponerHora, 15000);
+  });
+  onDestroy(() => clearInterval(relojTimer));
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -80,7 +185,7 @@
   class:proyeccion--water={animado === 'water' && !enNegro}
   class:proyeccion--clouds={animado === 'clouds' && !enNegro}
   class:proyeccion--mist={animado === 'mist' && !enNegro}
-  style="--escala: {escala}; --fondo: {fondoCss}; --tinta: {fondo.ink}; --acento: {fondo.accent}"
+  style="--ocupacion: {ocupacion}; --fondo: {fondoCss}; --tinta: {fondo.ink}; --acento: {fondo.accent}"
   on:mousemove
   on:touchstart
   on:touchend
@@ -110,7 +215,16 @@
          de un solo versículo sería 0 antes y 0 después — misma clave, ninguna
          transición. Con la referencia delante, cada versículo tiene la suya. -->
     {#key `${principal.referencia}#${indice}`}
-      <figure class="lamina" class:lamina--dos={!!secundario.texto} in:animarEntrada|global={{ tipo: animacion }}>
+      <!-- `use:autoajustar` recibe los textos y la ocupación para que su
+           `update` se dispare cuando cambian: dentro no los usa, los mide del
+           DOM ya pintado. Sin pasárselos, cambiar la ocupación no reajustaría
+           nada hasta el versículo siguiente. -->
+      <figure
+        class="lamina"
+        class:lamina--dos={!!secundario.texto}
+        use:autoajustar={{ ocupacion, principal, secundario }}
+        in:animarEntrada|global={{ tipo: animacion }}
+      >
         <blockquote class="lamina__texto">{principal.texto}</blockquote>
 
         {#if secundario.texto}
@@ -140,6 +254,12 @@
        Va tenue a propósito —compite con el texto si se nota demasiado— y
        desaparece con la pantalla en negro, que existe justamente para que no
        se vea nada. -->
+  <!-- La hora, arriba a la derecha y tenue como la marca. Desaparece con la
+       pantalla en negro, que existe para que no se vea nada. -->
+  {#if !enNegro && hora}
+    <p class="reloj" aria-hidden="true">{hora}</p>
+  {/if}
+
   {#if !enNegro}
     <p class="marca" aria-hidden="true">robible.com</p>
   {/if}
@@ -538,10 +658,20 @@
   // `position: relative` y `z-index`, o la capa animada de arriba le pasa por
   // encima: una caja posicionada se pinta después que sus hermanas normales,
   // así que las nubes quedaban delante del versículo.
+  // La CAJA del autoajuste: mide `--ocupacion` por ciento de la pantalla, y
+  // dentro de ella la bisección busca la letra más grande que quepa. El `min()`
+  // con el 100 % es el que impide que al 100 % se salga por el relleno del
+  // contenedor, que es lo que deja aire alrededor del texto.
+  //
+  // `overflow: hidden` no es sólo estética: es lo que hace que `scrollHeight`
+  // signifique «cuánto ocuparía» y `clientHeight` «cuánto cabe». Sin él la
+  // medida no distingue una cosa de la otra.
   .lamina {
     position: relative;
     z-index: 1;
-    max-width: 90vw;
+    width: min(100%, calc(var(--ocupacion, 80) * 1vw));
+    max-height: min(100%, calc(var(--ocupacion, 80) * 1vh));
+    overflow: hidden;
     margin: 0;
     text-align: center;
     // No recibe clics, por lo mismo que la marca de agua: las dos mitades que
@@ -553,37 +683,33 @@
     pointer-events: none;
   }
 
-  // El tamaño se calcula con `vw` y `vh` a la vez: sólo con `vw`, un televisor
-  // panorámico daba letras enormes que no cabían a lo alto, y sólo con `vh`
-  // quedaban pequeñas en una pantalla ancha. `--escala` es el ajuste manual.
+  // Todo cuelga de `--cuerpo`, que lo escribe la bisección del autoajuste. Las
+  // proporciones son fijas y los tamaños absolutos ya no existen: el `clamp()`
+  // de `vw`+`vh` que había aquí daba la misma letra a un versículo de seis
+  // palabras y a uno de sesenta.
+  //
+  // Los márgenes también van en proporción al cuerpo. Con un margen en `vh` y
+  // una letra que cambia de tamaño en cada versículo, el hueco entre el texto y
+  // la referencia bailaba de una diapositiva a otra.
   .lamina__texto {
-    margin: 0 0 clamp(1rem, 3vh, 2.5rem);
-    font-size: calc(clamp(1.75rem, 4.2vw + 1.2vh, 5.5rem) * var(--escala, 1));
+    margin: 0 0 calc(var(--cuerpo, 3rem) * 0.55);
+    font-size: var(--cuerpo, 3rem);
     font-weight: 600;
     line-height: 1.3;
     text-wrap: balance;
   }
 
-  // Con dos idiomas hay que repartir el alto de la pantalla entre los dos, así
-  // que el principal se encoge. Sin esto, un versículo largo en dos idiomas
-  // —Ioan 3:2, por ejemplo— llenaba la pantalla de borde a borde y el operador
-  // tenía que bajar el tamaño a mano justo cuando menos tiempo tiene.
   .lamina--dos .lamina__texto {
-    font-size: calc(clamp(1.4rem, 3.1vw + 0.9vh, 4rem) * var(--escala, 1));
-    margin-bottom: clamp(0.75rem, 2vh, 1.5rem);
+    margin-bottom: calc(var(--cuerpo, 3rem) * 0.3);
   }
 
   // El segundo idioma: más pequeño, debajo y con menos peso — pero LEGIBLE.
-  // Estaba al 58 % del principal y en una pantalla de iglesia eso no se leía
+  // Estuvo al 58 % del principal y en una pantalla de iglesia eso no se leía
   // desde las últimas filas: quien sigue el texto en el segundo idioma tiene el
-  // mismo derecho a leerlo que el resto. Subido a ~72 %, que es donde se lee sin
-  // llegar a discutirle el sitio al principal.
-  .lamina--dos .lamina__texto--secundario {
-    font-size: calc(clamp(1.2rem, 2.4vw + 0.7vh, 3.1rem) * var(--escala, 1));
-  }
-
+  // mismo derecho a leerlo que el resto. Al 72 % se lee sin llegar a discutirle
+  // el sitio al principal.
   .lamina__texto--secundario {
-    font-size: calc(clamp(1.1rem, 2.4vw + 0.7vh, 3.2rem) * var(--escala, 1));
+    font-size: calc(var(--cuerpo, 3rem) * 0.72);
     font-weight: 400;
     opacity: 0.9;
   }
@@ -593,20 +719,24 @@
   .lamina__filete {
     width: min(18%, 9rem);
     height: 0;
-    margin: clamp(0.7rem, 2vh, 1.6rem) auto;
+    margin: calc(var(--cuerpo, 3rem) * 0.28) auto;
     border: 0;
     border-top: 2px solid var(--acento, #f0c674);
     opacity: 0.55;
   }
 
+  // La referencia va en proporción al cuerpo, pero acotada: con un versículo
+  // corto el cuerpo se dispara y una referencia proporcional competiría con el
+  // texto, que es lo único que hay que leer.
   .lamina__ref {
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
     justify-content: center;
     gap: 0.6rem;
+    margin-top: calc(var(--cuerpo, 3rem) * 0.2);
     color: var(--acento, #f0c674);
-    font-size: calc(clamp(1rem, 1.4vw + 0.6vh, 2rem) * var(--escala, 1));
+    font-size: clamp(0.95rem, calc(var(--cuerpo, 3rem) * 0.34), 2.4rem);
     font-weight: 700;
   }
 
@@ -628,6 +758,27 @@
     // No recibe clics: está justo donde la mitad derecha avanza de versículo.
     pointer-events: none;
     transition: opacity var(--motion-base, 200ms) ease;
+  }
+
+  // ── Reloj ─────────────────────────────────────────────────────────────────
+  //
+  // Mismo tratamiento que la marca —hereda la tinta del fondo, así que se lee
+  // sobre los once sin comprobarlo a mano— pero algo mayor: la marca se
+  // reconoce, la hora se lee. Arriba a la derecha, donde no hay nada más: la
+  // pista de montaje va arriba al centro y los controles abajo.
+  .reloj {
+    position: absolute;
+    top: 0.9rem;
+    right: 1rem;
+    margin: 0;
+    color: var(--tinta, #f2f4f7);
+    opacity: 0.38;
+    font-size: clamp(1rem, 1.5vw, 1.9rem);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+    // Sin esto se traga el toque de la mitad derecha, que es la que avanza.
+    pointer-events: none;
   }
 
   // Con los controles a la vista, la marca se aparta: comparten esquina y
