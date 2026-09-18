@@ -35,8 +35,12 @@
   // Detect compare mode from window.location (updated on navigation)
   // Initialize immediately from pathname so it works on first render
   const isComparePath = (path) =>
-    path === '/compare' || path === '/compara' || path === '/comparar' ||
-    path.startsWith('/compare/') || path.startsWith('/compara/') || path.startsWith('/comparar/');
+    path === '/compare' ||
+    path === '/compara' ||
+    path === '/comparar' ||
+    path.startsWith('/compare/') ||
+    path.startsWith('/compara/') ||
+    path.startsWith('/comparar/');
 
   let isCompareMode = typeof window !== 'undefined' ? isComparePath(window.location.pathname) : false;
 
@@ -120,6 +124,10 @@
   // así que cuatro URLs distintas no aportarían nada. Mientras proyecta se pinta
   // como capa propia a pantalla completa, igual que el Amvon.
   const isProjectionPath = (path) => path === '/proiectie' || path === '/proiectie/';
+  // La ventana que se manda al proyector. Constante: no cambia en toda la vida
+  // de la pestaña. Ver `projection-channel.service.js`.
+  const esVentanaProyectada =
+    typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('ecran') === '1';
   let isProjectionMode = typeof window !== 'undefined' ? isProjectionPath(window.location.pathname) : false;
 
   // Presentación del Modo Proyección (`/proiectie-biserici`). Al revés que la
@@ -235,14 +243,39 @@
 </script>
 
 <!-- La ruta /landing la resuelve App.svelte antes de montar Main. -->
-<div class="main" class:main--immersive={isImmersive} class:main--compare={isCompareMode} class:main--index={isIndexMode} class:main--favorites={isFavoritesMode} class:main--notes={isNotesMode || isPublicTopicMode || isPublicSermonMode || isSermonsMode || isPublicSermonsMode || isPublicTopicsMode || isProfileMode || isCuratedMode || isMemorizeMode || isGuideMode || isAdminMode || isProjectionMode || isProjectionLandingMode}>
+<div
+  class="main"
+  class:main--immersive={isImmersive}
+  class:main--compare={isCompareMode}
+  class:main--index={isIndexMode}
+  class:main--favorites={isFavoritesMode}
+  class:main--notes={isNotesMode ||
+    isPublicTopicMode ||
+    isPublicSermonMode ||
+    isSermonsMode ||
+    isPublicSermonsMode ||
+    isPublicTopicsMode ||
+    isProfileMode ||
+    isCuratedMode ||
+    isMemorizeMode ||
+    isGuideMode ||
+    isAdminMode ||
+    isProjectionMode ||
+    isProjectionLandingMode}
+>
   {#if !isImmersive && !isCompareMode && !isIndexMode && !isFavoritesMode && !isNotesMode && !isPublicTopicMode && !isPublicSermonMode && !isSermonsMode && !isPublicSermonsMode && !isPublicTopicsMode && !isProfileMode && !isCuratedMode && !isMemorizeMode && !isGuideMode && !isAdminMode && !isProjectionMode && !isProjectionLandingMode}
     <div class="sidebar">
       <Sidebar {map} {result} {count} />
     </div>
   {/if}
   <div class="layout">
-    {#if Object.keys(bible).length}
+    <!-- La guarda existe para no pintar una vista sin datos. La ventana del
+         proyector es la excepción: no carga ninguna Biblia a propósito —recibe
+         el versículo ya resuelto por el canal— y sin esta salida se quedaba en
+         blanco, con la barra y el pie pero sin lámina. Se pide además
+         `isProjectionMode` para que el parámetro no sirva de atajo en otra
+         ruta, donde sí haría falta la Biblia. -->
+    {#if Object.keys(bible).length || (isProjectionMode && esVentanaProyectada)}
       {#if isSermonsMode}
         {#if pulpitId}
           <SermonPulpit sermonId={pulpitId} />
@@ -434,7 +467,9 @@
     background: var(--color-accent-solid);
     color: var(--color-on-primary);
     border-color: var(--color-blue);
-    box-shadow: var(--box-shadow-down), 0 0 0 3px color-mix(in srgb, var(--color-accent) 25%, transparent);
+    box-shadow:
+      var(--box-shadow-down),
+      0 0 0 3px color-mix(in srgb, var(--color-accent) 25%, transparent);
 
     // El tamaño va al contenedor: una regla `svg` de aquí no alcanza al
     // <svg> de Icon.svelte, que lleva otra clase de scope.
@@ -444,7 +479,9 @@
     &:focus-visible {
       background: var(--color-blue-hover);
       border-color: var(--color-blue-hover);
-      box-shadow: var(--box-shadow-down), 0 0 0 3px color-mix(in srgb, var(--color-accent) 35%, transparent);
+      box-shadow:
+        var(--box-shadow-down),
+        0 0 0 3px color-mix(in srgb, var(--color-accent) 35%, transparent);
     }
   }
 

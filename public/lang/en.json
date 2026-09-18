@@ -1072,7 +1072,15 @@
       "key_prev_chapter": "Previous chapter",
       "chapter_nav": "Chapter",
       "permission_hint": "The browser is not allowed to place windows on the other screen yet, so the projection will open on the laptop and you will have to drag it every time. Allow it once and it will find the projector by itself.",
-      "permission_ask": "Allow the window on the projector"
+      "permission_ask": "Allow the window on the projector",
+      "clear_verse": "Clear the screen",
+      "blank_image": "Blank screen image",
+      "blank_image_pick": "Choose an image",
+      "blank_image_change": "Change the image",
+      "blank_image_clear": "Remove the image",
+      "blank_image_hint": "Shown instead of the black screen. It stays on this computer — it is never sent anywhere — and survives closing the browser.",
+      "blank_image_too_big": "That image is too large. Pick one under 8 MB.",
+      "blank_image_invalid": "That file is not an image."
     },
     "projection_landing": {
       "seo_title": "Projection for churches | RoBible",

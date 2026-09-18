@@ -1072,7 +1072,15 @@
       "key_prev_chapter": "上一章",
       "chapter_nav": "章",
       "permission_hint": "浏览器尚未获准把窗口放到另一块屏幕上，所以投影会在笔记本上打开，每次都得手动拖过去。授权一次，它就能自己找到投影屏幕。",
-      "permission_ask": "允许窗口放到投影屏幕"
+      "permission_ask": "允许窗口放到投影屏幕",
+      "clear_verse": "清空屏幕",
+      "blank_image": "空白屏幕的图片",
+      "blank_image_pick": "选择图片",
+      "blank_image_change": "更换图片",
+      "blank_image_clear": "移除图片",
+      "blank_image_hint": "用来代替黑屏。图片只留在这台电脑上，不会上传到任何地方，关闭浏览器后依然保留。",
+      "blank_image_too_big": "图片太大，请选择小于 8 MB 的。",
+      "blank_image_invalid": "该文件不是图片。"
     },
     "projection_landing": {
       "seo_title": "教会投影 | RoBible",

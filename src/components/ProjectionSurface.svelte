@@ -21,6 +21,7 @@
   import { cubicOut } from 'svelte/easing';
   import { backgroundCss, getBackground } from '../services/verse-image.service';
   import { OCUPACION_POR_DEFECTO } from '../services/projection.service';
+  import { leerImagenBlanco } from '../services/projection-blank.service';
 
   /** `{ texto, referencia, version }` — lo que va grande, arriba. */
   export let principal = { texto: '', referencia: '', version: '' };
@@ -35,6 +36,12 @@
   /** Cambiarlo vuelve a montar la lámina, que es lo que dispara la animación. */
   export let indice = 0;
   export let enNegro = false;
+  /**
+   * Marca de tiempo de la imagen que la iglesia haya puesto para la pantalla en
+   * blanco. No viaja la imagen, sólo el sello: la imagen la lee cada ventana de
+   * su propio disco (ver `projection-blank.service.js`).
+   */
+  export let selloBlanco = '';
 
   $: fondo = getBackground(fondoKey);
   $: fondoCss = backgroundCss(fondo);
@@ -163,6 +170,24 @@
     hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  // ── Imagen de la pantalla en blanco ───────────────────────────────────────
+  //
+  // Se relee del disco cada vez que cambia el sello. La URL de objeto anterior
+  // se revoca: sin eso, cambiar de imagen varias veces deja todos los blobs
+  // vivos en una pantalla que está encendida una hora.
+  let urlBlanco = '';
+  let selloCargado = null;
+
+  const cargarBlanco = async (sello) => {
+    if (sello === selloCargado) return;
+    selloCargado = sello;
+    const anterior = urlBlanco;
+    urlBlanco = sello ? await leerImagenBlanco() : '';
+    if (anterior) URL.revokeObjectURL(anterior);
+  };
+
+  $: cargarBlanco(selloBlanco);
+
   let relojTimer;
   onMount(() => {
     ponerHora();
@@ -170,7 +195,10 @@
     // hay ningún coste en una pantalla que está encendida una hora seguida.
     relojTimer = setInterval(ponerHora, 15000);
   });
-  onDestroy(() => clearInterval(relojTimer));
+  onDestroy(() => {
+    clearInterval(relojTimer);
+    if (urlBlanco) URL.revokeObjectURL(urlBlanco);
+  });
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -203,6 +231,13 @@
     <span class="estrellas estrellas--a" aria-hidden="true"></span>
     <span class="estrellas estrellas--b" aria-hidden="true"></span>
     <span class="estrellas estrellas--c" aria-hidden="true"></span>
+  {/if}
+
+  <!-- La pantalla en blanco con la imagen de la iglesia. Va `contain` y no
+       `cover`: lo normal es un logotipo, y recortarlo para llenar la pantalla
+       sería cortarle el nombre. Lo que sobra queda en el negro de debajo. -->
+  {#if enNegro && urlBlanco}
+    <img class="blanco" src={urlBlanco} alt="" />
   {/if}
 
   {#if !enNegro && principal.texto}
@@ -294,9 +329,22 @@
   }
 
   // Negro de verdad: es el «apaga la pantalla» de entre canto y canto, así que
-  // ignora el fondo elegido a propósito.
+  // ignora el fondo elegido a propósito. Si la iglesia ha puesto una imagen, va
+  // encima de este negro.
   .proyeccion--negro {
     background: #000;
+  }
+
+  .blanco {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    // Como todo lo que se pinta encima de las mitades táctiles: sin esto se
+    // traga el toque que avanza de versículo.
+    pointer-events: none;
   }
 
   /* ── Los fondos que se mueven ───────────────────────────────────────────
