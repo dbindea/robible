@@ -536,6 +536,57 @@
   // botones sólo se apagan cuando no hay nada proyectado.
   $: hayCapitulos = !!actual;
 
+  // ── Modo lectura del móvil ────────────────────────────────────────────────
+  //
+  // En un móvil esta pantalla no es un proyector: es alguien leyendo la Biblia
+  // con el versículo a toda página. Ahí, ir de uno en uno tocando media
+  // pantalla es peor que deslizar, así que la lámina se convierte en una lista
+  // encajada —una pantalla por versículo— que **no se acaba**: al llegar al
+  // final se engancha el capítulo siguiente, y después el libro siguiente.
+  //
+  // Sólo en el móvil y sólo proyectando en esta misma pantalla. En el proyector
+  // manda el operador, no el dedo, y un deslizamiento sin querer delante de la
+  // congregación es justo lo que no puede pasar.
+  let esMovil = false;
+  $: modoLectura = esMovil && modo === 'local' && !esPantalla;
+
+  /** Cuántos versículos antes del final se trae ya el capítulo siguiente. */
+  const MARGEN_LECTURA = 3;
+
+  $: versiculosLectura = modoLectura
+    ? pasajes.map((p) => ({
+        clave: `${p.book}-${p.chapter}-${p.verse}`,
+        principal: { texto: p.texto, referencia: p.referencia, version: versionConfig?.bibleName || '' },
+        secundario: prefs.segundoIdioma
+          ? {
+              texto: textoDeVersiculo(compareBible, $compareWithVersion, p.book, p.chapter, p.verse),
+              referencia: compareMap?.[p.book] ? `${compareMap[p.book]} ${p.chapter}:${p.verse}` : '',
+              version: versionSecundariaConfig?.bibleName || '',
+            }
+          : { texto: '', referencia: '', version: '' },
+      }))
+    : null;
+
+  /**
+   * Se ha deslizado hasta otro versículo.
+   *
+   * Además de mover el cursor, mira si queda poco para el final y engancha el
+   * capítulo siguiente. Se añade AL FINAL y nunca al principio: prepender
+   * obligaría a corregir el `scrollTop` en el mismo fotograma y el salto se ve.
+   * Hacia atrás se llega con las flechas de capítulo.
+   */
+  const alVerVersiculo = (visible) => {
+    if (visible < 0 || visible >= pasajes.length) return;
+    indice = visible;
+    if (!recorriendo || visible < pasajes.length - MARGEN_LECTURA) return;
+
+    const destino = capituloVecino(recorriendo, 1);
+    const lista = construirPasajes(destino.book, destino.chapter);
+    if (!lista.length) return;
+    recorriendo = destino;
+    pasajes = [...pasajes, ...lista];
+  };
+
   // ── Historial ─────────────────────────────────────────────────────────────
   //
   // Lo que ya se ha proyectado, para cuando el predicador vuelve sobre ello.
@@ -1345,6 +1396,12 @@
     // Si quedó encendido el segundo idioma de una sesión anterior, hay que
     // volver a pedir la Biblia: `compareWithVersion` arranca en null.
     if (prefs.segundoIdioma) initCompareVersion();
+    // El modo lectura depende del ancho, y el ancho cambia al girar el móvil.
+    const anchoMovil = window.matchMedia('(max-width: 40rem)');
+    const mirarAncho = () => (esMovil = anchoMovil.matches);
+    mirarAncho();
+    anchoMovil.addEventListener('change', mirarAncho);
+
     window.addEventListener('keydown', alPulsarTecla);
     window.addEventListener('keyup', alSoltarTecla);
     // Un Mayús+clic no es un toque de Mayúsculas, y salir de la ventana con la
@@ -1352,6 +1409,7 @@
     window.addEventListener('mousedown', desarmarMayusculas);
     window.addEventListener('blur', desarmarMayusculas);
     return () => {
+      anchoMovil.removeEventListener('change', mirarAncho);
       window.removeEventListener('keydown', alPulsarTecla);
       window.removeEventListener('keyup', alSoltarTecla);
       window.removeEventListener('mousedown', desarmarMayusculas);
@@ -1816,6 +1874,9 @@
   {/if}
 {:else}
   <!-- ── Proyectando en ESTA pantalla ─────────────────────────────────── -->
+  <!-- `versiculos` sólo llega en el móvil: es lo que convierte la lámina en la
+       lista deslizable. La rueda se desconecta ahí, porque en ese modo desplaza
+       en vez de cambiar el tamaño — y en un móvil no hay rueda. -->
   <ProjectionSurface
     {principal}
     {secundario}
@@ -1825,18 +1886,25 @@
     {indice}
     {enNegro}
     {selloBlanco}
+    versiculos={versiculosLectura}
+    onVisible={alVerVersiculo}
     on:mousemove={mostrarControles}
     on:touchstart={alEmpezarToque}
     on:touchend={alTerminarToque}
-    on:wheel={alGirarRueda}
+    on:wheel={modoLectura ? () => {} : alGirarRueda}
   >
     <!-- Zonas de toque para avanzar sin teclado: la mitad derecha avanza, la
          izquierda retrocede. Invisibles a propósito — es una pantalla, no una
-         interfaz. -->
-    <button type="button" class="zona zona--anterior" aria-label={$_('app.projection.key_prev')} on:click={anterior}
-    ></button>
-    <button type="button" class="zona zona--siguiente" aria-label={$_('app.projection.key_next')} on:click={siguiente}
-    ></button>
+         interfaz.
+
+         En el modo lectura NO se ponen: van por encima de todo y se tragarían
+         el deslizamiento, que ahí es la forma de pasar de versículo. -->
+    {#if !modoLectura}
+      <button type="button" class="zona zona--anterior" aria-label={$_('app.projection.key_prev')} on:click={anterior}
+      ></button>
+      <button type="button" class="zona zona--siguiente" aria-label={$_('app.projection.key_next')} on:click={siguiente}
+      ></button>
+    {/if}
 
     <ProjectionControls
       {prefs}
