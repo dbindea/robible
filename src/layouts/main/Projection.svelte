@@ -1580,7 +1580,14 @@
        necesita ver sin tapar el buscador: qué hay puesto ahora mismo y los
        mismos controles de siempre. -->
   {#if modo === 'remoto'}
-    <div class="consola">
+    <!-- La rueda del ratón sobre la franja cambia la ocupación, igual que sobre
+         la lámina. Hace falta aquí porque en el modo de dos pantallas la lámina
+         está en el proyector y el operador no pasa el ratón por ella: sin esto,
+         el ajuste con la rueda existía sólo en el caso de una sola pantalla.
+         Va en la franja y no en toda la página para no secuestrar el
+         desplazamiento de la lista de resultados, que puede ser larga.
+         `|nonpassive` porque el manejador llama a `preventDefault`. -->
+    <div class="consola" on:wheel|nonpassive={alGirarRueda}>
       <div class="consola__ahora">
         <p class="consola__eyebrow">{$_('app.projection.on_screen')}</p>
         {#if pantallaLibre}
