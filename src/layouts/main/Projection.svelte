@@ -40,7 +40,7 @@
    * es perezosa: no se descarga hasta que se enciende el interruptor. Son ~4 MB
    * y en una iglesia con conexión mala eso importa.
    */
-  import { onDestroy, onMount } from 'svelte';
+  import { onDestroy, onMount, tick } from 'svelte';
   import { _ } from '../../services/i18n.service';
   import { applySeoMetadata } from '../../services/seo.service';
   import {
@@ -54,7 +54,18 @@
   import { getFilterResult } from '../../services/filter.service';
   import { keepScreenAwake } from '../../services/sermon-pulpit.service';
   import { getLastRead } from '../../services/reading-progress.service';
-  import { cargarPreferencias, guardarPreferencias } from '../../services/projection.service';
+  import {
+    cargarGeometriaPantalla,
+    cargarPreferencias,
+    guardarGeometriaPantalla,
+    guardarPreferencias,
+  } from '../../services/projection.service';
+  import {
+    anadirEntrada,
+    cargarHistorial,
+    guardarHistorial,
+    limpiarHistorial,
+  } from '../../services/projection-history.service';
   import Icon from '../../components/Icon.svelte';
   import DictadoBoton from '../../components/DictadoBoton.svelte';
   import ProjectionSurface from '../../components/ProjectionSurface.svelte';
@@ -117,6 +128,29 @@
   let ocultarControlesTimer;
   let soltarPantalla = null;
   let panelAbierto = ''; // '' | 'fondo' | 'animacion' | 'idioma'
+
+  /**
+   * El proyector está libre: RoBible no tiene ninguna ventana encima de él.
+   *
+   * Es el estado que hacía falta para un culto de verdad. En el proyector no
+   * sólo van versículos —hay canciones, un vídeo, un anuncio—, y hasta ahora
+   * ceder el sitio significaba cerrar la proyección y volver a colocarla a mano
+   * delante de la congregación. Y ponerla en negro no basta: una ventana en
+   * negro **sigue siendo una ventana**, tapa lo que haya debajo y el programa
+   * de las canciones se queda por detrás sin que nada lo explique.
+   *
+   * Así que ceder la pantalla CIERRA la ventana del proyector. Es lo único que
+   * deja ver de verdad lo que hay detrás —el escritorio de la iglesia, con su
+   * logotipo— y lo único que permite a otro programa ponerse delante. Lo que
+   * se guarda son sus coordenadas, así que recuperarla es un clic y vuelve al
+   * mismo sitio con el mismo versículo puesto.
+   *
+   * `modo` sigue valiendo 'remoto' mientras tanto: la lista, el índice y los
+   * ajustes no se tocan. Lo único que ha desaparecido es la ventana.
+   */
+  let pantallaLibre = false;
+  /** Dónde estaba la ventana del proyector. Ver `projection.service.js`. */
+  let geometriaPantalla = null;
 
   // Preferencias persistidas. Se leen en `onMount` y no aquí: en el arranque del
   // módulo `localStorage` puede no estar listo en algunos navegadores.
@@ -273,6 +307,10 @@
     if (!lista.length) return;
     pasajes = lista;
     indice = Math.min(Math.max(desde, 0), lista.length - 1);
+    // Al historial va el versículo ELEGIDO, no los que vengan detrás al
+    // avanzar: recorriendo un capítulo se proyectan cuarenta y ninguno es una
+    // referencia que nadie vaya a volver a buscar.
+    apuntarEnHistorial(lista[indice]);
     if (modo === 'antesala') modo = 'local';
     enNegro = false;
     panelAbierto = '';
@@ -356,6 +394,119 @@
   const empezarDesdeTexto = (i) => {
     recorriendo = null;
     arrancar(resultadosTexto, i);
+  };
+
+  // ── Contexto ──────────────────────────────────────────────────────────────
+  //
+  // Los versículos de alrededor del que está proyectado, en la consola del
+  // operador. Es la pantalla de trabajo, no la de la iglesia.
+  //
+  // Para qué: el predicador no lee un capítulo seguido. Dice «y tres versículos
+  // más abajo…» y hay que encontrarlo en dos segundos. Con el contexto delante
+  // no hay que buscar nada: está escrito ahí y se pulsa.
+  //
+  // Cinco arriba y diez abajo porque el salto normal es hacia delante: se
+  // vuelve atrás a lo que se acaba de leer y se avanza a lo que viene.
+  const CONTEXTO_ANTES = 5;
+  const CONTEXTO_DESPUES = 10;
+
+  /**
+   * Se calcula contra la Biblia y NO contra `pasajes`, y esa es la gracia:
+   * cuando lo proyectado es una búsqueda por expresión, `pasajes` son versículos
+   * de libros distintos y no tienen contexto entre ellos. El contexto siempre es
+   * el del capítulo del versículo que está en pantalla.
+   *
+   * Se lee `actual` y `bible` directamente, sin envolverlo en un helper: metido
+   * en una función el compilador no ve la dependencia y la columna se quedaría
+   * congelada en el primer versículo (trampa 23).
+   */
+  $: contexto = (() => {
+    if (!actual) return [];
+    const versos = bible?.[actual.book]?.[actual.chapter - 1] || [];
+    if (!versos.length) return [];
+    const desde = Math.max(1, actual.verse - CONTEXTO_ANTES);
+    const hasta = Math.min(versos.length, actual.verse + CONTEXTO_DESPUES);
+    const lista = [];
+    for (let v = desde; v <= hasta; v += 1) {
+      const texto = String(versos[v - 1] || '').trim();
+      if (texto) lista.push({ verse: v, texto });
+    }
+    return lista;
+  })();
+
+  let cajaContexto = null;
+
+  /**
+   * Deja el versículo proyectado a la vista dentro de su columna.
+   *
+   * Se calcula el `scrollTop` a mano en vez de usar `scrollIntoView`: ese
+   * desplaza también a los antepasados, y con la columna pegajosa dentro de una
+   * página larga movía la página entera cada vez que se cambiaba de versículo.
+   * La caja lleva `position: relative` para que `offsetTop` se mida contra ella
+   * y no contra lo primero que haya posicionado más arriba — es la misma
+   * lección del selector de capítulos.
+   */
+  const enfocarContexto = async () => {
+    await tick();
+    // El nodo se copia a una variable local antes de escribirle: asignando
+    // directamente sobre `cajaContexto`, el analizador lo lee como «esta
+    // función modifica una variable reactiva» y avisa de un bucle que no
+    // existe. Aquí sólo se mueve el scroll de un elemento.
+    const caja = cajaContexto;
+    const nodo = caja?.querySelector('[data-activo="1"]');
+    if (!caja || !nodo) return;
+    caja.scrollTop = nodo.offsetTop - caja.clientHeight / 2 + nodo.offsetHeight / 2;
+  };
+
+  $: if (actual) enfocarContexto();
+
+  /**
+   * Saltar a un versículo del contexto.
+   *
+   * Si ya se está recorriendo ese capítulo basta con mover el cursor: cambiar
+   * la lista tiraría el sitio por el que se iba. Si lo proyectado es una
+   * búsqueda por expresión, entonces sí se pasa a recorrer el capítulo, que es
+   * lo que el operador está pidiendo al pulsar un versículo de alrededor.
+   */
+  const irAVersiculoDelContexto = (verse) => {
+    if (!actual) return;
+    const enLaLista =
+      recorriendo && recorriendo.book === actual.book && recorriendo.chapter === actual.chapter
+        ? pasajes.findIndex((p) => p.verse === verse)
+        : -1;
+    if (enLaLista >= 0) {
+      indice = enLaLista;
+      panelAbierto = '';
+      apuntarEnHistorial(pasajes[enLaLista]);
+    } else {
+      empezarDesde(actual.book, actual.chapter, verse);
+    }
+  };
+
+  // ── Historial ─────────────────────────────────────────────────────────────
+  //
+  // Lo que ya se ha proyectado, para cuando el predicador vuelve sobre ello.
+  // El detalle de qué se apunta y por qué está en el servicio.
+  let historial = [];
+
+  const apuntarEnHistorial = (pasaje) => {
+    if (!pasaje) return;
+    historial = anadirEntrada(historial, {
+      book: pasaje.book,
+      chapter: pasaje.chapter,
+      verse: pasaje.verse,
+      referencia: pasaje.referencia,
+      texto: pasaje.texto,
+      version: $selectedBibleVersion,
+    });
+    guardarHistorial(historial);
+  };
+
+  const desdeElHistorial = (e) => empezarDesde(e.book, e.chapter, e.verse);
+
+  const vaciarHistorial = () => {
+    historial = [];
+    limpiarHistorial();
   };
 
   // Atajo: seguir por donde se iba leyendo.
@@ -486,7 +637,7 @@
     // era rehacer toda la maniobra delante de la congregación; dejándola
     // abierta y a oscuras, volver es elegir el versículo siguiente y ya está.
     // Para cerrarla de verdad está su propio botón.
-    modo = ventanaPantalla && !ventanaPantalla.closed ? 'remoto' : 'antesala';
+    modo = (ventanaPantalla && !ventanaPantalla.closed) || pantallaLibre ? 'remoto' : 'antesala';
     enNegro = modo === 'remoto';
     panelAbierto = '';
     pasajes = [];
@@ -529,9 +680,41 @@
   const cerrarProyeccion = () => {
     cerrarVentanaPantalla();
     modo = 'antesala';
+    pantallaLibre = false;
     enNegro = false;
     panelAbierto = '';
     pasajes = [];
+  };
+
+  /**
+   * Ceder el proyector a otro programa, y recuperarlo.
+   *
+   * Ceder cierra la ventana; recuperar la vuelve a abrir en las mismas
+   * coordenadas y le manda el estado con el saludo, así que reaparece con el
+   * mismo versículo. Entre medias, en el proyector se ve lo que la iglesia
+   * tenga de fondo de escritorio y cualquier otro programa puede ponerse
+   * delante sin pelearse con nosotros.
+   *
+   * No hay forma de dejar una ventana del navegador transparente ni de mandarla
+   * detrás desde JavaScript: cerrarla es lo único que libera la pantalla de
+   * verdad. Por eso todo lo caro —dónde está el proyector, qué se estaba
+   * proyectando— se guarda aquí en la consola, que no se cierra.
+   */
+  const cederPantalla = () => {
+    if (ventanaPantalla && !ventanaPantalla.closed) cerrarVentanaPantalla();
+    pantallaLibre = true;
+    panelAbierto = '';
+  };
+
+  // Sin `async`: `window.open` tiene que salir del propio gesto (clic o tecla)
+  // o el bloqueador de emergentes la descarta en silencio.
+  const recuperarPantalla = () => {
+    abrirSegundaPantalla();
+  };
+
+  const alternarCesion = () => {
+    if (pantallaLibre) recuperarPantalla();
+    else cederPantalla();
   };
 
   const cerrarVentanaPantalla = () => {
@@ -561,10 +744,12 @@
     if (mensaje.tipo === MENSAJES.LISTO) {
       canal?.enviar({ tipo: MENSAJES.ESTADO, estado: estadoPantalla });
     } else if (mensaje.tipo === MENSAJES.CERRANDO) {
-      // Se cierra la proyección pero NO se tira la lista: el operador vuelve a
-      // abrir la ventana y sigue donde estaba.
+      // La ha cerrado el operador con la cruz del sistema. Es exactamente lo
+      // mismo que ceder la pantalla, así que se trata igual: la consola sigue
+      // con su lista y su índice, y ofrece recuperarla de un clic. Antes se
+      // volvía a la antesala y había que empezar de cero.
       cerrarVentanaPantalla();
-      modo = 'antesala';
+      pantallaLibre = true;
     } else if (mensaje.tipo === MENSAJES.TECLA) {
       manejarTecla(mensaje.key, { desdeLaPantalla: true });
     }
@@ -573,7 +758,13 @@
   // Sin `async`: `window.open` tiene que ejecutarse dentro del clic o el
   // navegador bloquea la ventana (ver `abrirVentanaPantalla`).
   const abrirSegundaPantalla = () => {
-    ventanaPantalla = abrirVentanaPantalla();
+    // Se le pasan las coordenadas de la última vez para que nazca ya en el
+    // proyector: colocarla es lo único caro de todo esto, y se hace una vez por
+    // culto en vez de una vez por canción.
+    ventanaPantalla = abrirVentanaPantalla(geometriaPantalla, (destino) => {
+      geometriaPantalla = destino;
+      guardarGeometriaPantalla(destino);
+    });
     // Un bloqueador de ventanas emergentes devuelve null. No es un fallo de la
     // aplicación y hay que decirlo, o el botón parece roto.
     if (!ventanaPantalla) {
@@ -583,6 +774,7 @@
     avisoPantalla = '';
     canal = abrirCanal(alRecibirDeLaPantalla);
     modo = 'remoto';
+    pantallaLibre = false;
     panelAbierto = '';
     // Si el operador cierra la ventana con la cruz del sistema no llega ningún
     // evento a esta: `closed` es la única forma de enterarse.
@@ -590,7 +782,7 @@
     vigilanteVentana = setInterval(() => {
       if (ventanaPantalla?.closed) {
         cerrarVentanaPantalla();
-        modo = 'antesala';
+        pantallaLibre = true;
       }
     }, 1000);
   };
@@ -666,6 +858,13 @@
       case 'L':
         alternarSegundoIdioma();
         break;
+      // Ceder el proyector a otro programa y recuperarlo. Sólo desde la consola:
+      // en la ventana proyectada la tecla cerraría la ventana en la que se está
+      // pulsando, y recuperarla desde allí ya no sería posible.
+      case 'c':
+      case 'C':
+        if (!desdeLaPantalla && modo === 'remoto') alternarCesion();
+        break;
       case '+':
       case '=':
         masGrande();
@@ -710,6 +909,8 @@
     'S',
     'l',
     'L',
+    'c',
+    'C',
     '+',
     '=',
     '-',
@@ -717,8 +918,26 @@
     'Escape',
   ]);
 
+  /**
+   * Las dos que funcionan **tenga el foco donde lo tenga**, incluso escribiendo.
+   *
+   * Es el reparto que pidió el uso real de la consola: mientras se teclea la
+   * referencia siguiente hay que poder mover el versículo que está en la
+   * pantalla de la iglesia, sin tocar el ratón ni salir del campo. Arriba y
+   * abajo hacen eso; izquierda y derecha se quedan para mover el cursor dentro
+   * del texto, que es lo que cualquiera espera de ellas dentro de un campo.
+   *
+   * Fuera de un campo siguen valiendo las cuatro, porque los mandos de
+   * presentación emiten una u otra según el modelo.
+   */
+  const TECLAS_AUNQUE_SE_ESCRIBA = new Set(['ArrowUp', 'ArrowDown']);
+
   const alPulsarTecla = (e) => {
     if (!proyectando) return;
+    if (!TECLAS.has(e.key)) return;
+    // Un atajo del navegador (Ctrl+L, Alt+←…) no es una tecla de proyección.
+    if (e.ctrlKey || e.altKey || e.metaKey) return;
+
     // Si se está escribiendo en un campo, las teclas son texto y no atajos.
     //
     // No es teórico: el Enter que arranca la proyección desde el buscador
@@ -726,7 +945,8 @@
     // proyectando, avanzaba un versículo en el mismo gesto. Se empezaba siempre
     // en el segundo versículo del capítulo sin que nada lo explicara.
     const donde = e.target?.tagName;
-    if (donde === 'INPUT' || donde === 'TEXTAREA' || e.target?.isContentEditable) return;
+    const escribiendo = donde === 'INPUT' || donde === 'TEXTAREA' || e.target?.isContentEditable;
+    if (escribiendo && !TECLAS_AUNQUE_SE_ESCRIBA.has(e.key)) return;
 
     // Y con un botón enfocado, Espacio y Enter son «pulsa este botón». En la
     // proyección a pantalla completa daba igual porque no había botones que
@@ -734,7 +954,6 @@
     // y sin esto avanzar de versículo también disparaba el botón enfocado.
     if (donde === 'BUTTON' && (e.key === ' ' || e.key === 'Enter')) return;
 
-    if (!TECLAS.has(e.key)) return;
     e.preventDefault();
     manejarTecla(e.key);
   };
@@ -851,7 +1070,6 @@
     indice: 0,
     enNegro: false,
   };
-  let pistaPantalla = true;
   let enPantallaCompleta = false;
 
   /**
@@ -905,11 +1123,15 @@
     window.addEventListener('pagehide', alCerrar);
     document.addEventListener('fullscreenchange', alCambiarPantallaCompleta);
     alCambiarPantallaCompleta();
-    // La pista de «ponla a pantalla completa» sobra en cuanto se ha leído.
-    const quitarPista = setTimeout(() => (pistaPantalla = false), 8000);
 
+    // Se intenta entrar solo. Una ventana recién abierta desde un clic hereda
+    // la activación del usuario en algunas configuraciones y entra sin más; en
+    // el resto, el navegador exige un gesto EN ESTA ventana y esto no hace nada
+    // — para eso está el botón, y toda la superficie es pulsable. Cuesta una
+    // línea y ahorra un clic delante de la congregación cada vez que se
+    // recupera el proyector.
+    document.documentElement.requestFullscreen?.().catch(() => {});
     return () => {
-      clearTimeout(quitarPista);
       window.removeEventListener('keydown', alTeclear);
       window.removeEventListener('pagehide', alCerrar);
       document.removeEventListener('fullscreenchange', alCambiarPantallaCompleta);
@@ -922,6 +1144,8 @@
     if (esPantalla) return montarPantalla();
 
     prefs = cargarPreferencias();
+    geometriaPantalla = cargarGeometriaPantalla();
+    historial = cargarHistorial();
     ultimaLectura = getLastRead();
     // Si quedó encendido el segundo idioma de una sesión anterior, hay que
     // volver a pedir la Biblia: `compareWithVersion` arranca en null.
@@ -958,18 +1182,25 @@
     indice={estadoRecibido.indice}
     enNegro={estadoRecibido.enNegro}
   >
-    <!-- Cómo dejarla lista, y se quita sola a los ocho segundos: es una
-         instrucción de montaje, no parte de la proyección. -->
-    {#if pistaPantalla && !enPantallaCompleta}
-      <p class="pista-pantalla">{$_('app.projection.screen_hint')}</p>
-    {/if}
-
-    <!-- Volver a pantalla completa, de un clic.
-         Sale SÓLO cuando no lo está, así que durante el culto no se ve nunca.
-         Existe porque salir de pantalla completa es lo normal —se pulsa Escape
-         para dejar paso a otro programa— y volver a entrar no puede costar
-         arrastrar la ventana otra vez. -->
+    <!-- Fuera de pantalla completa, TODA la ventana es el botón que la pone.
+         El navegador exige un gesto en esta ventana para entrar —no se puede
+         pedir desde la consola por el canal—, así que lo que se puede hacer es
+         que ese gesto no tenga que acertar en ningún sitio: el operador da un
+         clic en cualquier punto del proyector y ya está. En pantalla completa
+         no existe, así que durante el culto no hay nada que pueda pulsarse sin
+         querer. -->
     {#if !enPantallaCompleta}
+      <button
+        type="button"
+        class="pedir-completa"
+        aria-label={$_('app.projection.screen_fullscreen')}
+        on:click={ponerPantallaCompleta}
+      ></button>
+
+      <p class="pista-pantalla">{$_('app.projection.screen_hint')}</p>
+
+      <!-- Y el botón de siempre, visible, para quien no adivine que vale
+           cualquier sitio. Va por encima de la superficie pulsable. -->
       <button type="button" class="volver-completa" on:click={ponerPantallaCompleta}>
         <Icon name="expand" size="1.1rem" />
         {$_('app.projection.screen_fullscreen')}
@@ -978,161 +1209,253 @@
   </ProjectionSurface>
 {:else if modo !== 'local'}
   <!-- ── Antesala y consola ───────────────────────────────────────────── -->
-  <section class="antesala" class:antesala--consola={modo === 'remoto'}>
-    <header class="antesala__cabecera">
-      <p class="antesala__eyebrow">{$_('app.projection.eyebrow')}</p>
-      <h1>{$_('app.projection.title')}</h1>
-      <p class="antesala__lead">{$_('app.projection.lead')}</p>
-    </header>
+  <!-- En la antesala esto es una columna y no hace nada. En cuanto la
+       proyección se va al segundo monitor, esta ventana pasa a ser la mesa de
+       trabajo del operador y se abre en tres: buscador, contexto e historial.
+       Sólo en escritorio — en un móvil no hay dos monitores que operar. -->
+  <div class="taller" class:taller--consola={modo === 'remoto'}>
+    <section class="antesala" class:antesala--consola={modo === 'remoto'}>
+      <header class="antesala__cabecera">
+        <p class="antesala__eyebrow">{$_('app.projection.eyebrow')}</p>
+        <h1>{$_('app.projection.title')}</h1>
+        <p class="antesala__lead">{$_('app.projection.lead')}</p>
+      </header>
 
-    <div class="buscadores">
-      <label class="campo">
-        <span>{$_('app.projection.search_label')}</span>
-        <span class="campo__fila">
-          <input
-            type="search"
-            bind:value={consultaRef}
-            on:input={buscarReferencia}
-            on:keydown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                empezarDesdeConsulta();
-              }
-            }}
-            placeholder={$_('app.projection.search_placeholder')}
-            autocomplete="off"
-            spellcheck="false"
-          />
-          <!-- Dictar la referencia. Es el motivo por el que existe esto: en el
+      <div class="buscadores">
+        <label class="campo">
+          <span>{$_('app.projection.search_label')}</span>
+          <span class="campo__fila">
+            <input
+              type="search"
+              bind:value={consultaRef}
+              on:input={buscarReferencia}
+              on:keydown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  empezarDesdeConsulta();
+                }
+              }}
+              placeholder={$_('app.projection.search_placeholder')}
+              autocomplete="off"
+              spellcheck="false"
+            />
+            <!-- Dictar la referencia. Es el motivo por el que existe esto: en el
                púlpito no se teclea. -->
-          <DictadoBoton
-            modo="referencia"
-            locale={versionConfig?.locale}
-            etiqueta={$_('app.speech.start_reference')}
-            alDictar={dictadoReferencia}
-          />
-        </span>
-      </label>
+            <DictadoBoton
+              modo="referencia"
+              locale={versionConfig?.locale}
+              etiqueta={$_('app.speech.start_reference')}
+              alDictar={dictadoReferencia}
+            />
+          </span>
+        </label>
 
-      <label class="campo">
-        <span>{$_('app.projection.phrase_label')}</span>
-        <span class="campo__fila">
-          <input
-            type="search"
-            bind:value={consultaTexto}
-            on:input={buscarPorTexto}
-            on:keydown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                buscarPorTexto();
-              }
-            }}
-            placeholder={$_('app.projection.phrase_placeholder')}
-            autocomplete="off"
-            spellcheck="false"
-          />
-          <DictadoBoton
-            modo="libre"
-            locale={versionConfig?.locale}
-            etiqueta={$_('app.speech.start_phrase')}
-            alDictar={dictadoFrase}
-          />
-        </span>
-      </label>
-    </div>
+        <label class="campo">
+          <span>{$_('app.projection.phrase_label')}</span>
+          <span class="campo__fila">
+            <input
+              type="search"
+              bind:value={consultaTexto}
+              on:input={buscarPorTexto}
+              on:keydown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  buscarPorTexto();
+                }
+              }}
+              placeholder={$_('app.projection.phrase_placeholder')}
+              autocomplete="off"
+              spellcheck="false"
+            />
+            <DictadoBoton
+              modo="libre"
+              locale={versionConfig?.locale}
+              etiqueta={$_('app.speech.start_phrase')}
+              alDictar={dictadoFrase}
+            />
+          </span>
+        </label>
+      </div>
 
-    {#if sugerencias.length}
-      <ul class="resultados">
-        {#each sugerencias as s (`${s.book}-${s.chapter}-${s.verse || 0}`)}
-          <li>
-            <button type="button" on:click={() => empezarDesdeSugerencia(s)}>
-              <span class="resultados__ref">{map[s.book]} {s.chapter}{s.verse ? `:${s.verse}` : ''}</span>
-            </button>
-          </li>
-        {/each}
-      </ul>
-    {:else if consultaTexto.trim().length >= 3}
-      {#if resultadosTexto.length}
-        <p class="resultados__cuenta">
-          {$_('app.projection.phrase_count', { count: resultadosTexto.length })}
-        </p>
+      {#if sugerencias.length}
         <ul class="resultados">
-          {#each resultadosTexto.slice(0, 20) as v, i (`${v.book}-${v.chapter}-${v.verse}`)}
+          {#each sugerencias as s (`${s.book}-${s.chapter}-${s.verse || 0}`)}
             <li>
-              <button type="button" on:click={() => empezarDesdeTexto(i)}>
-                <span class="resultados__ref">{v.referencia}</span>
-                <span class="resultados__texto">{v.texto}</span>
+              <button type="button" on:click={() => empezarDesdeSugerencia(s)}>
+                <span class="resultados__ref">{map[s.book]} {s.chapter}{s.verse ? `:${s.verse}` : ''}</span>
               </button>
             </li>
           {/each}
         </ul>
-      {:else if !buscandoTexto}
-        <p class="resultados__cuenta">{$_('app.projection.phrase_empty')}</p>
+      {:else if consultaTexto.trim().length >= 3}
+        {#if resultadosTexto.length}
+          <p class="resultados__cuenta">
+            {$_('app.projection.phrase_count', { count: resultadosTexto.length })}
+          </p>
+          <ul class="resultados">
+            {#each resultadosTexto.slice(0, 20) as v, i (`${v.book}-${v.chapter}-${v.verse}`)}
+              <li>
+                <button type="button" on:click={() => empezarDesdeTexto(i)}>
+                  <span class="resultados__ref">{v.referencia}</span>
+                  <span class="resultados__texto">{v.texto}</span>
+                </button>
+              </li>
+            {/each}
+          </ul>
+        {:else if !buscandoTexto}
+          <p class="resultados__cuenta">{$_('app.projection.phrase_empty')}</p>
+        {/if}
       {/if}
-    {/if}
 
-    {#if etiquetaUltima}
-      <button
-        type="button"
-        class="antesala__continuar"
-        on:click={() => empezarDesde(ultimaLectura.book, ultimaLectura.chapter + 1)}
-      >
-        <Icon name="book-open" />
-        {$_('app.projection.continue', { reference: etiquetaUltima })}
-      </button>
-    {/if}
+      {#if etiquetaUltima}
+        <button
+          type="button"
+          class="antesala__continuar"
+          on:click={() => empezarDesde(ultimaLectura.book, ultimaLectura.chapter + 1)}
+        >
+          <Icon name="book-open" />
+          {$_('app.projection.continue', { reference: etiquetaUltima })}
+        </button>
+      {/if}
 
-    <!-- ── Dos pantallas ───────────────────────────────────────────────── -->
-    <!-- El caso de la iglesia: portátil + proyector. Abre una segunda ventana
+      <!-- ── Dos pantallas ───────────────────────────────────────────────── -->
+      <!-- El caso de la iglesia: portátil + proyector. Abre una segunda ventana
          que se arrastra al proyector, y deja ÉSTA con el buscador a la vista
          para preparar el versículo siguiente sin cortar lo que se está
          proyectando. -->
-    {#if modo === 'antesala' && soportaCanal()}
-      <div class="dos-pantallas">
-        <!-- Icono de MONITOR, no el de proyección: el de proyección ya está en
+      {#if modo === 'antesala' && soportaCanal()}
+        <div class="dos-pantallas">
+          <!-- Icono de MONITOR, no el de proyección: el de proyección ya está en
              la barra de arriba, a dos dedos de aquí, y con el mismo dibujo en
              los dos botones nadie acertaba con prisa cuál era cuál. -->
-        <button type="button" class="dos-pantallas__boton" on:click={abrirSegundaPantalla}>
-          <Icon name="monitor" />
-          {$_('app.projection.open_screen')}
-        </button>
-        <p class="dos-pantallas__pista">{$_('app.projection.open_screen_hint')}</p>
-        {#if avisoPantalla}
-          <p class="dos-pantallas__aviso" role="alert">{avisoPantalla}</p>
-        {/if}
-      </div>
-    {:else if modo === 'remoto'}
-      <!-- La ventana ya está colocada en el proyector. Lo que hace falta aquí
-           es RECORDARLO —para que nadie la vuelva a abrir por las bravas— y
-           dar la única salida que no es reversible: cerrarla. -->
-      <div class="dos-pantallas dos-pantallas--abierta">
-        <p class="dos-pantallas__estado">
-          <Icon name="monitor" size="1rem" />
-          {$_('app.projection.screen_open')}
-        </p>
-        <p class="dos-pantallas__pista">{$_('app.projection.screen_open_hint')}</p>
-        <button type="button" class="dos-pantallas__cerrar" on:click={cerrarProyeccion}>
-          {$_('app.projection.screen_close')}
-        </button>
-      </div>
-    {/if}
+          <button type="button" class="dos-pantallas__boton" on:click={abrirSegundaPantalla}>
+            <Icon name="monitor" />
+            {$_('app.projection.open_screen')}
+          </button>
+          <p class="dos-pantallas__pista">{$_('app.projection.open_screen_hint')}</p>
+          {#if avisoPantalla}
+            <p class="dos-pantallas__aviso" role="alert">{avisoPantalla}</p>
+          {/if}
+        </div>
+      {:else if modo === 'remoto'}
+        <!-- Dos estados, y la diferencia importa en mitad de un culto: o nuestra
+           ventana está en el proyector, o el proyector está libre para que lo
+           use otro programa. Ceder y recuperar es lo que se hace entre una
+           canción y la lectura, así que ambos botones están aquí y en la tecla
+           C — y el estado se ve de un vistazo, sin mirar al proyector. -->
+        <div
+          class="dos-pantallas"
+          class:dos-pantallas--abierta={!pantallaLibre}
+          class:dos-pantallas--libre={pantallaLibre}
+        >
+          {#if pantallaLibre}
+            <p class="dos-pantallas__estado dos-pantallas__estado--libre">
+              <Icon name="monitor" size="1rem" />
+              {$_('app.projection.screen_free')}
+            </p>
+            <p class="dos-pantallas__pista">{$_('app.projection.screen_free_hint')}</p>
+            <button type="button" class="dos-pantallas__boton" on:click={recuperarPantalla}>
+              <Icon name="monitor" />
+              {$_('app.projection.resume')}
+            </button>
+            <button type="button" class="dos-pantallas__cerrar" on:click={cerrarProyeccion}>
+              {$_('app.projection.session_end')}
+            </button>
+          {:else}
+            <p class="dos-pantallas__estado">
+              <Icon name="monitor" size="1rem" />
+              {$_('app.projection.screen_open')}
+            </p>
+            <p class="dos-pantallas__pista">{$_('app.projection.screen_open_hint')}</p>
+            <button type="button" class="dos-pantallas__boton" on:click={cederPantalla}>
+              <Icon name="collapse" />
+              {$_('app.projection.yield')}
+            </button>
+            <button type="button" class="dos-pantallas__cerrar" on:click={cerrarProyeccion}>
+              {$_('app.projection.screen_close')}
+            </button>
+          {/if}
+          {#if avisoPantalla}
+            <p class="dos-pantallas__aviso" role="alert">{avisoPantalla}</p>
+          {/if}
+        </div>
+      {/if}
 
-    <!-- Las teclas se enseñan ANTES de empezar, no durante: en mitad del culto
+      <!-- Las teclas se enseñan ANTES de empezar, no durante: en mitad del culto
          no hay dónde mirarlas, y quien proyecta las repasa mientras prepara. -->
-    <div class="atajos">
-      <h2>{$_('app.projection.keys_title')}</h2>
-      <ul>
-        <li><kbd>→</kbd> <kbd>Space</kbd> <span>{$_('app.projection.key_next')}</span></li>
-        <li><kbd>←</kbd> <span>{$_('app.projection.key_prev')}</span></li>
-        <li><kbd>N</kbd> <span>{$_('app.projection.key_black')}</span></li>
-        <li><kbd>F</kbd> <span>{$_('app.projection.key_fullscreen')}</span></li>
-        <li><kbd>L</kbd> <span>{$_('app.projection.panel_language')}</span></li>
-        <li><kbd>S</kbd> <span>{$_('app.projection.key_swap')}</span></li>
-        <li><kbd>+</kbd> <kbd>−</kbd> <span>{$_('app.projection.key_size')}</span></li>
-        <li><kbd>Esc</kbd> <span>{$_('app.projection.key_exit')}</span></li>
-      </ul>
-    </div>
-  </section>
+      <div class="atajos">
+        <h2>{$_('app.projection.keys_title')}</h2>
+        <ul>
+          <li><kbd>↓</kbd> <kbd>→</kbd> <kbd>Space</kbd> <span>{$_('app.projection.key_next')}</span></li>
+          <li><kbd>↑</kbd> <kbd>←</kbd> <span>{$_('app.projection.key_prev')}</span></li>
+          <li><kbd>C</kbd> <span>{$_('app.projection.key_yield')}</span></li>
+          <li><kbd>N</kbd> <span>{$_('app.projection.key_black')}</span></li>
+          <li><kbd>F</kbd> <span>{$_('app.projection.key_fullscreen')}</span></li>
+          <li><kbd>L</kbd> <span>{$_('app.projection.panel_language')}</span></li>
+          <li><kbd>S</kbd> <span>{$_('app.projection.key_swap')}</span></li>
+          <li><kbd>+</kbd> <kbd>−</kbd> <span>{$_('app.projection.key_size')}</span></li>
+          <li><kbd>Esc</kbd> <span>{$_('app.projection.key_exit')}</span></li>
+        </ul>
+        <!-- El reparto de las flechas no se adivina, y es justo lo que hace que
+           se pueda escribir la referencia siguiente sin soltar la proyección. -->
+        <p class="atajos__nota">{$_('app.projection.keys_arrows_hint')}</p>
+      </div>
+    </section>
+
+    <!-- ── Contexto ─────────────────────────────────────────────────────── -->
+    <!-- Los versículos de alrededor del que está en la pantalla de la iglesia.
+         Existe porque el predicador salta: «y tres más abajo…». Pulsando uno se
+         proyecta, sin escribir la referencia. -->
+    {#if modo === 'remoto'}
+      <aside class="columna">
+        <h2 class="columna__titulo">{$_('app.projection.context_title')}</h2>
+        {#if contexto.length}
+          <div class="columna__caja" bind:this={cajaContexto}>
+            {#each contexto as v (v.verse)}
+              <button
+                type="button"
+                class="contexto__verso"
+                class:contexto__verso--activo={actual && v.verse === actual.verse}
+                data-activo={actual && v.verse === actual.verse ? '1' : '0'}
+                on:click={() => irAVersiculoDelContexto(v.verse)}
+              >
+                <span class="contexto__num">{v.verse}</span>
+                <span class="contexto__texto">{v.texto}</span>
+              </button>
+            {/each}
+          </div>
+        {:else}
+          <p class="columna__vacio">{$_('app.projection.context_empty')}</p>
+        {/if}
+      </aside>
+
+      <!-- ── Historial ──────────────────────────────────────────────────── -->
+      <!-- Lo ya proyectado, lo más reciente arriba. Sobrevive al refresco y al
+           reinicio: está en localStorage. -->
+      <aside class="columna">
+        <div class="columna__cabecera">
+          <h2 class="columna__titulo">{$_('app.projection.history_title')}</h2>
+          {#if historial.length}
+            <button type="button" class="columna__accion" on:click={vaciarHistorial}>
+              {$_('app.projection.history_clear')}
+            </button>
+          {/if}
+        </div>
+        {#if historial.length}
+          <div class="columna__caja">
+            {#each historial as e (`${e.book}-${e.chapter}-${e.verse}`)}
+              <button type="button" class="historial__item" on:click={() => desdeElHistorial(e)}>
+                <span class="historial__ref">{e.referencia}</span>
+                <span class="historial__texto">{e.texto}</span>
+              </button>
+            {/each}
+          </div>
+        {:else}
+          <p class="columna__vacio">{$_('app.projection.history_empty')}</p>
+        {/if}
+      </aside>
+    {/if}
+  </div>
 
   <!-- ── Consola del modo remoto ─────────────────────────────────────── -->
   <!-- La proyección está en la OTRA ventana. Aquí queda lo que el operador
@@ -1142,7 +1465,11 @@
     <div class="consola">
       <div class="consola__ahora">
         <p class="consola__eyebrow">{$_('app.projection.on_screen')}</p>
-        {#if enNegro}
+        {#if pantallaLibre}
+          <!-- Lo primero que hay que poder contestar sin levantar la vista:
+               ¿está RoBible en el proyector o no? -->
+          <p class="consola__ref consola__ref--libre">{$_('app.projection.screen_free')}</p>
+        {:else if enNegro}
           <p class="consola__ref">{$_('app.projection.key_black')}</p>
         {:else if principal.referencia}
           <p class="consola__ref">{principal.referencia}</p>
@@ -1170,6 +1497,20 @@
           aria-label={$_('app.projection.key_next')}
         >
           <Icon name="arrow-right" />
+        </button>
+        <!-- Ceder y recuperar el proyector, a mano y sin buscar nada: es lo
+             que más veces se pulsa en un culto después de avanzar. Marcado en
+             ámbar cuando la pantalla está cedida, que es un estado que no
+             puede pasar desapercibido. -->
+        <button
+          type="button"
+          class="consola__ceder"
+          class:consola__ceder--libre={pantallaLibre}
+          on:click={alternarCesion}
+          title={pantallaLibre ? $_('app.projection.resume') : $_('app.projection.yield')}
+          aria-label={pantallaLibre ? $_('app.projection.resume') : $_('app.projection.yield')}
+        >
+          <Icon name={pantallaLibre ? 'monitor' : 'collapse'} />
         </button>
       </div>
 
@@ -1248,6 +1589,191 @@
     max-width: 44rem;
     margin: 0 auto;
     padding: 0 0 4rem;
+  }
+
+  // ── La mesa de trabajo ────────────────────────────────────────────────────
+  //
+  // En la antesala no hace nada: una columna centrada, como siempre. Cuando la
+  // proyección se va al segundo monitor, esta ventana deja de ser una pantalla
+  // de lectura y pasa a ser la mesa del operador, con el contexto y el
+  // historial a la derecha.
+  //
+  // Sólo a partir de 64 rem. Por debajo no hay sitio para tres columnas, y
+  // apiladas empujarían el buscador —lo único que se usa con prisa— fuera de
+  // la pantalla. Quien proyecta desde un móvil no tiene dos monitores que
+  // operar: para eso está el modo local.
+  .taller {
+    width: 100%;
+  }
+
+  @media (min-width: 64rem) {
+    .taller--consola {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 21rem 17rem;
+      align-items: start;
+      gap: 1.5rem;
+      max-width: 84rem;
+      margin: 0 auto;
+
+      .antesala {
+        max-width: none;
+        margin: 0;
+      }
+    }
+  }
+
+  // Las dos columnas de la derecha. Fuera del escritorio no existen.
+  .columna {
+    display: none;
+  }
+
+  @media (min-width: 64rem) {
+    .taller--consola .columna {
+      display: block;
+      position: sticky;
+      // Se quedan a la vista al desplazar la lista de resultados, que puede ser
+      // larga: el contexto del versículo que está en la pantalla de la iglesia
+      // no puede irse hacia arriba justo cuando hace falta.
+      top: 1rem;
+    }
+  }
+
+  .columna__cabecera {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .columna__titulo {
+    margin: 0 0 0.5rem;
+    color: var(--color-ink-strong);
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: var(--letter-spacing-eyebrow);
+  }
+
+  .columna__accion {
+    padding: 0.15rem 0.5rem;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: transparent;
+    color: var(--color-ink-soft);
+    font: inherit;
+    font-size: 0.75rem;
+    cursor: pointer;
+
+    &:hover {
+      color: var(--color-danger-ink);
+    }
+  }
+
+  // `position: relative` no es decorativo: el desplazamiento del contexto se
+  // calcula con `offsetTop`, que se mide contra el antepasado posicionado más
+  // cercano. Sin esto se mediría contra otra cosa y la caja saltaría a un sitio
+  // cualquiera en cada versículo.
+  .columna__caja {
+    position: relative;
+    display: grid;
+    gap: 0.25rem;
+    max-height: min(32rem, calc(100dvh - 12rem));
+    overflow-y: auto;
+    padding: 0.35rem;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+  }
+
+  .columna__vacio {
+    margin: 0;
+    padding: 0.85rem;
+    border: 1px dashed var(--color-line);
+    border-radius: var(--radius-md);
+    color: var(--color-ink-soft);
+    font-size: 0.8rem;
+    line-height: 1.45;
+  }
+
+  // ── Contexto ──────────────────────────────────────────────────────────────
+  .contexto__verso {
+    display: grid;
+    grid-template-columns: 1.6rem minmax(0, 1fr);
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.4rem 0.45rem;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--color-ink);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+
+    &:hover {
+      background: var(--wash-hover);
+    }
+  }
+
+  // El que está en la pantalla de la iglesia. Verde, que es lo que significa
+  // «versículo en lectura» en toda la aplicación.
+  .contexto__verso--activo {
+    background: color-mix(in srgb, var(--color-success) 16%, transparent);
+
+    .contexto__num,
+    .contexto__texto {
+      color: var(--color-success-ink);
+      font-weight: 600;
+    }
+  }
+
+  .contexto__num {
+    color: var(--color-accent-ink);
+    font-size: 0.75rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    // Alineado con la primera línea del texto, que va a otro tamaño.
+    padding-top: 0.1rem;
+  }
+
+  .contexto__texto {
+    font-size: 0.82rem;
+    line-height: 1.45;
+  }
+
+  // ── Historial ─────────────────────────────────────────────────────────────
+  .historial__item {
+    display: grid;
+    gap: 0.1rem;
+    width: 100%;
+    padding: 0.4rem 0.5rem;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--color-ink);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+
+    &:hover {
+      background: var(--wash-hover);
+    }
+  }
+
+  .historial__ref {
+    color: var(--color-accent-ink);
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+
+  // Una sola línea: es un recordatorio, no el versículo para leerlo.
+  .historial__texto {
+    overflow: hidden;
+    color: var(--color-ink-soft);
+    font-size: 0.75rem;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
 
   .antesala__cabecera {
@@ -1447,6 +1973,13 @@
     }
   }
 
+  .atajos__nota {
+    margin: 0.7rem 0 0;
+    color: var(--color-ink-soft);
+    font-size: 0.8rem;
+    line-height: 1.45;
+  }
+
   // ── Proyección ────────────────────────────────────────────────────────────
   //
   // Capa fija a pantalla completa, como el Modo Amvon: es lo que impide que se
@@ -1563,6 +2096,18 @@
     --icon-size: 1rem;
   }
 
+  // Pantalla cedida: ni verde (proyectando) ni acento (pulsa aquí). Es una
+  // pausa, y se pinta como tal — pero el texto lo dice, que es lo que se lee
+  // con prisa.
+  .dos-pantallas--libre {
+    border-color: var(--color-line-strong);
+    background: var(--wash-hover);
+  }
+
+  .dos-pantallas__estado--libre {
+    color: var(--color-ink-strong);
+  }
+
   .dos-pantallas__cerrar {
     min-height: 2.25rem;
     padding: 0 0.9rem;
@@ -1578,6 +2123,33 @@
     &:hover {
       border-color: var(--color-danger);
       color: var(--color-danger-ink);
+    }
+  }
+
+  // ── Pantalla completa desde la ventana proyectada ─────────────────────────
+  //
+  // Toda la ventana es el botón. El navegador exige un gesto EN ESTA ventana
+  // para entrar a pantalla completa —no vale pedirlo desde la consola por el
+  // canal—, así que lo único que se puede hacer es que ese gesto no requiera
+  // puntería: un clic en cualquier parte del proyector. Sólo existe fuera de
+  // pantalla completa, así que durante el culto no hay nada que pulsar.
+  //
+  // Sin contorno de foco por lo mismo que las zonas de avance: ocupa la
+  // pantalla entera y el borde interior se vería como un marco oscuro.
+  .pedir-completa {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+
+    &::-moz-focus-inner {
+      border: 0;
     }
   }
 
@@ -1664,6 +2236,13 @@
     font-weight: 600;
   }
 
+  // «El proyector está libre». Es el estado que no puede confundirse con
+  // ninguno: si el operador cree que está proyectando y no lo está, habla de un
+  // versículo que nadie ve.
+  .consola__ref--libre {
+    color: #f2f4f7;
+  }
+
   // Una sola línea: es un recordatorio de qué hay puesto, no el texto para
   // leerlo. Leerlo es lo que hace la congregación en la otra pantalla.
   .consola__texto {
@@ -1700,6 +2279,17 @@
         cursor: default;
       }
     }
+  }
+
+  // Ceder / recuperar el proyector. Encendido cuando la pantalla está cedida,
+  // que es el estado del que hay que acordarse para volver.
+  //
+  // El selector va con el contenedor delante y no suelto: la regla de arriba
+  // (`.consola__pasos button`) tiene una clase y un elemento, así que una clase
+  // sola perdería y el botón se quedaría exactamente igual que los otros dos.
+  .consola__pasos .consola__ceder--libre {
+    border-color: rgba(255, 255, 255, 0.55);
+    background: rgba(255, 255, 255, 0.2);
   }
 
   // La botonera va dentro de la franja y no flotando en una esquina: aquí no
@@ -1740,12 +2330,17 @@
   //
   // La instrucción de montaje, arriba y centrada: abajo a la derecha se habría
   // superpuesto con la marca de agua.
+  // `pointer-events: none` no es un detalle: va por encima de la superficie
+  // pulsable, así que sin esto el clic que cae justo sobre la propia frase
+  // «pulsa donde quieras» es el único que no hace nada. Se comprueba con
+  // `document.elementFromPoint()`, no leyendo el CSS.
   .pista-pantalla {
     position: absolute;
     top: 1.25rem;
     left: 50%;
     transform: translateX(-50%);
     z-index: 4;
+    pointer-events: none;
     max-width: min(34rem, calc(100vw - 2rem));
     margin: 0;
     padding: 0.6rem 1rem;

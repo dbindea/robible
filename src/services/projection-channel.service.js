@@ -21,6 +21,8 @@
  * Modo Amvon (CLAUDE.md, trampa 30).
  */
 
+import { esGeometria } from './projection.service.js';
+
 /** Un solo canal para todo. El nombre lleva el prefijo del proyecto. */
 export const NOMBRE_CANAL = 'robible:proiectie';
 
@@ -143,9 +145,32 @@ export const buscarPantallaSecundaria = async () => {
  * Reutiliza por nombre: pulsar dos veces el botón trae al frente la que ya
  * está abierta en vez de dejar dos proyecciones discutiendo por el mismo
  * proyector.
+ *
+ * `geometria` son las coordenadas del proyector de la vez anterior. Van en la
+ * cadena de rasgos y no sólo en el `moveTo` de después porque así la ventana
+ * **nace** donde tiene que estar: con el `moveTo` a secas aparece un instante
+ * en el portátil y salta, y ese salto se ve en la pantalla de la iglesia cada
+ * vez que se recupera el proyector. Si el navegador no hace caso —sin permiso
+ * de gestión de ventanas las coordenadas se recortan a la pantalla actual—
+ * queda el `moveTo` de siempre.
+ *
+ * `alColocar` recibe las medidas reales cuando se encuentra el segundo
+ * monitor, para poder guardarlas.
  */
-export const abrirVentanaPantalla = () => {
-  const ventana = window.open(RUTA_PANTALLA, NOMBRE_VENTANA, 'popup=yes,width=1280,height=720');
+export const abrirVentanaPantalla = (geometria = null, alColocar = null) => {
+  const rasgos = ['popup=yes'];
+  if (esGeometria(geometria)) {
+    rasgos.push(
+      `left=${Math.round(geometria.left)}`,
+      `top=${Math.round(geometria.top)}`,
+      `width=${Math.round(geometria.width)}`,
+      `height=${Math.round(geometria.height)}`,
+    );
+  } else {
+    rasgos.push('width=1280', 'height=720');
+  }
+
+  const ventana = window.open(RUTA_PANTALLA, NOMBRE_VENTANA, rasgos.join(','));
   if (!ventana) return null;
   ventana.focus();
 
@@ -156,6 +181,7 @@ export const abrirVentanaPantalla = () => {
       if (!destino) return;
       ventana.moveTo(destino.left, destino.top);
       ventana.resizeTo(destino.width, destino.height);
+      if (typeof alColocar === 'function') alColocar(destino);
     })
     .catch(() => {
       /* se queda donde esté; la mueve el operador */
