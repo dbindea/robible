@@ -93,16 +93,28 @@
   export let map = {};
   export let compareBible = [];
   export let compareMap = {};
+  /**
+   * Biblia a scroll (`/scroll`): la misma pantalla, pero se entra ya leyendo.
+   *
+   * Arranca sola por donde se quedó la última vez —o por Geneza 1— y pone el
+   * modo lectura **en cualquier tamaño**, no sólo en el móvil: es una ruta que
+   * se anuncia en la portada y está en el menú, así que abrirla en un portátil
+   * y encontrarse el buscador de la proyección sería un enlace roto.
+   */
+  export let modoScroll = false;
 
   $: versionConfig = getBibleVersionConfigOrDefault($selectedBibleVersion);
   $: versionSecundariaConfig = $compareWithVersion ? getBibleVersionConfigOrDefault($compareWithVersion) : null;
 
   // `noindex` y sin traducir por idioma: es una herramienta del dispositivo, no
   // contenido que se comparta. Una sola URL para las cuatro versiones.
+  // `noindex` las dos: son herramientas del dispositivo, no contenido que se
+  // comparta — y el texto bíblico ya se indexa en `/biblia/…`. Lo que sí se
+  // indexa es la presentación de la portada, que es la que las anuncia.
   $: applySeoMetadata({
-    title: $_('app.projection.seo_title'),
-    description: $_('app.projection.seo_description'),
-    canonicalPath: '/proiectie',
+    title: $_(modoScroll ? 'app.projection.scroll_seo_title' : 'app.projection.seo_title'),
+    description: $_(modoScroll ? 'app.projection.scroll_seo_description' : 'app.projection.seo_description'),
+    canonicalPath: modoScroll ? '/scroll' : '/proiectie',
     versionConfig,
     robots: 'noindex, nofollow',
   });
@@ -548,7 +560,7 @@
   // manda el operador, no el dedo, y un deslizamiento sin querer delante de la
   // congregación es justo lo que no puede pasar.
   let esMovil = false;
-  $: modoLectura = esMovil && modo === 'local' && !esPantalla;
+  $: modoLectura = (esMovil || modoScroll) && modo === 'local' && !esPantalla;
 
   /** Cuántos versículos antes del final se trae ya el capítulo siguiente. */
   const MARGEN_LECTURA = 3;
@@ -594,7 +606,11 @@
   let historial = [];
 
   const apuntarEnHistorial = (pasaje) => {
-    if (!pasaje) return;
+    // La Biblia a scroll no apunta nada: el historial es «lo que el operador ha
+    // puesto en la pantalla de la iglesia», y leer en el sofá no es eso. Sin
+    // esta guarda, abrir `/scroll` metía una entrada automática en cada visita
+    // y la lista del culto se llenaba de ruido.
+    if (modoScroll || !pasaje) return;
     historial = anadirEntrada(historial, {
       book: pasaje.book,
       chapter: pasaje.chapter,
@@ -1431,6 +1447,15 @@
     // Si quedó encendido el segundo idioma de una sesión anterior, hay que
     // volver a pedir la Biblia: `compareWithVersion` arranca en null.
     if (prefs.segundoIdioma) initCompareVersion();
+
+    // En `/scroll` no hay antesala: se empieza a leer por donde se quedó. El
+    // `+ 1` convierte el índice de capítulo (base 0, como lo guarda la lectura)
+    // al número — NO es «el capítulo siguiente». Sin nada guardado, Geneza 1,
+    // que es por donde se empieza una Biblia.
+    if (modoScroll) {
+      if (ultimaLectura) empezarDesde(ultimaLectura.book, ultimaLectura.chapter + 1);
+      else empezarDesde(0, 1);
+    }
     // El modo lectura depende del ancho, y el ancho cambia al girar el móvil.
     const anchoMovil = window.matchMedia('(max-width: 40rem)');
     const mirarAncho = () => (esMovil = anchoMovil.matches);

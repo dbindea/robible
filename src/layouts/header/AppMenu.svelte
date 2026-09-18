@@ -13,6 +13,11 @@
   // Items estáticos del menú. Los href se resuelven reactivamente
   // según el idioma de la biblia activa (rumano/español).
   const staticItemDefs = [
+    // Arriba del todo, por encima de «Acasă», y con distintivo. Es una decisión
+    // de producto: leer a scroll es la forma que se quiere empujar frente a la
+    // lectura de siempre, y un item a mitad de lista no lo consigue. Sin path
+    // por idioma, como el resto de herramientas del dispositivo.
+    { key: 'scroll', icon: 'scroll', enabled: true, defaultHref: '/scroll', nuevo: true },
     { key: 'home', icon: 'home', enabled: true },
     { key: 'compare', icon: 'compare', enabled: true, pathKey: 'comparePath', defaultHref: '/compara' },
     { key: 'index', icon: 'bookmark', enabled: true, pathKey: 'indexPath', defaultHref: '/indice' },
@@ -117,7 +122,13 @@
             aria-label={$_(`app.app_menu.items.${item.key}.label`)}
           >
             <span class="app-menu__icon" aria-hidden="true">
-              {#if item.icon === 'home'}
+              {#if item.icon === 'scroll'}
+                <!-- Un rollo de pergamino: el soporte en el que se escribió la
+                     Biblia y, a la vez, lo que se hace con el dedo para leerla
+                     así. Una flecha explicaría el gesto pero no diría qué se
+                     lee. -->
+                <Icon name="scroll" />
+              {:else if item.icon === 'home'}
                 <Icon name="book-open" />
               {:else if item.icon === 'compare'}
                 <Icon name="swap" />
@@ -148,6 +159,10 @@
             </span>
             {#if !item.enabled}
               <span class="app-menu__soon" aria-hidden="true">{$_('app.app_menu.coming_soon')}</span>
+            {:else if item.nuevo}
+              <!-- Mismo distintivo que «próximamente», en acento sólido: es lo
+                   que hace que el ojo pare ahí antes que en «Acasă». -->
+              <span class="app-menu__nuevo" aria-hidden="true">{$_('app.app_menu.new')}</span>
             {/if}
           </button>
         </li>
@@ -352,7 +367,8 @@
       line-height: 1.2;
     }
 
-    .app-menu__soon {
+    .app-menu__soon,
+    .app-menu__nuevo {
       font-size: 0.65rem;
       font-weight: 700;
       padding: 0.15rem 0.5rem;
@@ -362,6 +378,14 @@
       text-transform: uppercase;
       letter-spacing: 0.04em;
       flex-shrink: 0;
+    }
+
+    // «Nuevo» va en relleno de acento y no en veladura: «próximamente» informa,
+    // esto llama. Con texto encima hace falta `--color-accent-solid`, porque
+    // `--color-accent` a secas da 3.30:1 y AA pide 4.5:1.
+    .app-menu__nuevo {
+      background: var(--color-accent-solid);
+      color: var(--color-on-primary);
     }
 
     &:hover:not(:disabled),
@@ -399,10 +423,6 @@
       transition: none;
     }
   }
-
-
-
-
 
   // ── Cristal ───────────────────────────────────────────────────────────
   // El fondo opaco de la regla de arriba es la base y se queda: si el

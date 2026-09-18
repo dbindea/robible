@@ -373,8 +373,13 @@
         "projection": {
           "label": "Projection",
           "hint": "Verses on the church screen"
+        },
+        "scroll": {
+          "label": "Scroll Bible",
+          "hint": "One verse per screen, with your thumb"
         }
-      }
+      },
+      "new": "New"
     },
     "tts": {
       "start": "Read with music",
@@ -1081,7 +1086,9 @@
       "blank_image_hint": "Shown instead of the black screen. It stays on this computer — it is never sent anywhere — and survives closing the browser.",
       "blank_image_too_big": "That image is too large. Pick one under 8 MB.",
       "blank_image_invalid": "That file is not an image.",
-      "swipe_hint": "Swipe sideways for the controls"
+      "swipe_hint": "Swipe sideways for the controls",
+      "scroll_seo_title": "Scroll Bible | RoBible",
+      "scroll_seo_description": "Read the Bible verse by verse, full screen, by swiping."
     },
     "projection_landing": {
       "seo_title": "Projection for churches | RoBible",
@@ -1417,10 +1424,19 @@
       "title": "Verses, on the church screen",
       "lead": "Open a page, type the reference, project. Nothing to install, no subscription, no account.",
       "p1": "One verse per screen, as large as it fits — readable from the back row.",
-      "p2": "Two languages at once, one of them larger.",
-      "p3": "Works with the presenter remote you already own.",
+      "p2": "Hand the projector to another program with one key, and take it back the same way.",
+      "p3": "A clock on screen, two languages at once, and your church’s own image between passages.",
       "cta_detail": "See how it works",
       "cta_open": "Open projection"
+    },
+    "scroll": {
+      "badge": "New",
+      "title": "The Bible, one swipe at a time",
+      "lead": "One verse filling the screen and your thumb going up. It never ends: after the last verse comes the next chapter, then the next book.",
+      "p1": "The text sizes itself to the screen — never tiny, never cut off.",
+      "p2": "Picks up where you left off, with nothing to look up.",
+      "p3": "Two languages at once, if you want.",
+      "cta": "Start reading"
     }
   }
 }

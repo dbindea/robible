@@ -99,6 +99,13 @@ const ICONOS = {
   plus: 'plus',
   eye: 'eye',
   brain: 'brain',
+
+  // ── Biblia a scroll ──
+  // Un rollo de pergamino, y el doble sentido es a propósito: es el soporte en
+  // el que se escribió la Biblia y es lo que se hace con el dedo para leerla
+  // así. Una flecha o una mano deslizando explicarían el gesto, pero no dirían
+  // que lo que hay dentro es la Escritura.
+  scroll: 'scroll',
 };
 
 // Sólo estos llevan versión rellena: son los que tienen estado marcado o
