@@ -22,10 +22,10 @@
   import { backgroundCss, getBackground } from '../services/verse-image.service';
   import { OCUPACION_POR_DEFECTO } from '../services/projection.service';
 
-  /** `{ texto, referencia }` — lo que va grande, arriba. */
-  export let principal = { texto: '', referencia: '' };
-  /** `{ texto, referencia }` — el segundo idioma, más pequeño. Puede ir vacío. */
-  export let secundario = { texto: '', referencia: '' };
+  /** `{ texto, referencia, version }` — lo que va grande, arriba. */
+  export let principal = { texto: '', referencia: '', version: '' };
+  /** `{ texto, referencia, version }` — el segundo idioma. Puede ir vacío. */
+  export let secundario = { texto: '', referencia: '', version: '' };
   /** Clave del fondo (`IMAGE_BACKGROUNDS`). */
   export let fondoKey = 'night';
   /** Qué porcentaje de la pantalla llena el texto. Ver `autoajustar`. */
@@ -225,7 +225,20 @@
         use:autoajustar={{ ocupacion, principal, secundario }}
         in:animarEntrada|global={{ tipo: animacion }}
       >
-        <blockquote class="lamina__texto">{principal.texto}</blockquote>
+        <!-- Cada texto con SU referencia justo debajo, y la versión entre
+             paréntesis. Hasta el 18 sep 2026 había una sola referencia al pie
+             de la lámina y sin nombre de versión: con dos idiomas en pantalla
+             eso no vale, porque la referencia de arriba parecía la de los dos
+             textos y nada decía qué Biblia era cada uno. -->
+        <div class="bloque">
+          <blockquote class="lamina__texto">{principal.texto}</blockquote>
+          <p class="lamina__ref">
+            {principal.referencia}
+            {#if principal.version}
+              <span class="lamina__version">({principal.version})</span>
+            {/if}
+          </p>
+        </div>
 
         {#if secundario.texto}
           <!-- El mismo filete corto y centrado que lleva la imagen para
@@ -233,14 +246,16 @@
                pegados, y con el segundo ya bastante más pequeño, se leían como
                un solo párrafo que cambia de letra a media frase. -->
           <hr class="lamina__filete" />
-          <blockquote class="lamina__texto lamina__texto--secundario">{secundario.texto}</blockquote>
+          <div class="bloque bloque--secundario">
+            <blockquote class="lamina__texto lamina__texto--secundario">{secundario.texto}</blockquote>
+            <p class="lamina__ref lamina__ref--secundaria">
+              {secundario.referencia}
+              {#if secundario.version}
+                <span class="lamina__version">({secundario.version})</span>
+              {/if}
+            </p>
+          </div>
         {/if}
-
-        <!-- Sólo la referencia. El nombre de la versión no pinta nada en una
-             pantalla de iglesia: la congregación sabe qué Biblia se usa, y
-             ocupaba sitio al lado de lo único que de verdad hay que leer ahí.
-             Sigue estando en la antesala, donde se elige. -->
-        <figcaption class="lamina__ref">{principal.referencia}</figcaption>
       </figure>
     {/key}
   {/if}
@@ -691,16 +706,15 @@
   // Los márgenes también van en proporción al cuerpo. Con un margen en `vh` y
   // una letra que cambia de tamaño en cada versículo, el hueco entre el texto y
   // la referencia bailaba de una diapositiva a otra.
+  // Sin margen inferior: ahora debajo va su propia referencia, y el hueco lo
+  // pone ella. Con los dos, el versículo y su referencia quedaban tan separados
+  // como los dos idiomas entre sí y no se leían como una unidad.
   .lamina__texto {
-    margin: 0 0 calc(var(--cuerpo, 3rem) * 0.55);
+    margin: 0;
     font-size: var(--cuerpo, 3rem);
     font-weight: 600;
     line-height: 1.3;
     text-wrap: balance;
-  }
-
-  .lamina--dos .lamina__texto {
-    margin-bottom: calc(var(--cuerpo, 3rem) * 0.3);
   }
 
   // El segundo idioma: más pequeño, debajo y con menos peso — pero LEGIBLE.
@@ -719,10 +733,16 @@
   .lamina__filete {
     width: min(18%, 9rem);
     height: 0;
-    margin: calc(var(--cuerpo, 3rem) * 0.28) auto;
+    margin: calc(var(--cuerpo, 3rem) * 0.42) auto;
     border: 0;
     border-top: 2px solid var(--acento, #f0c674);
     opacity: 0.55;
+  }
+
+  // Cada texto con su referencia forman un bloque. Existe para que la
+  // referencia quede pegada a SU traducción y no flotando entre las dos.
+  .bloque {
+    margin: 0;
   }
 
   // La referencia va en proporción al cuerpo, pero acotada: con un versículo
@@ -733,11 +753,30 @@
     flex-wrap: wrap;
     align-items: baseline;
     justify-content: center;
-    gap: 0.6rem;
-    margin-top: calc(var(--cuerpo, 3rem) * 0.2);
+    gap: 0.45em;
+    margin: calc(var(--cuerpo, 3rem) * 0.16) 0 0;
     color: var(--acento, #f0c674);
-    font-size: clamp(0.95rem, calc(var(--cuerpo, 3rem) * 0.34), 2.4rem);
+    font-size: clamp(0.95rem, calc(var(--cuerpo, 3rem) * 0.3), 2.1rem);
     font-weight: 700;
+    // Las mayúsculas espaciadas la separan del versículo sin necesidad de
+    // hacerla más grande: se lee como un pie, no como parte del texto.
+    letter-spacing: 0.04em;
+  }
+
+  // La del segundo idioma, algo menor: acompaña a un texto que ya va al 72 %.
+  .lamina__ref--secundaria {
+    font-size: clamp(0.85rem, calc(var(--cuerpo, 3rem) * 0.22), 1.6rem);
+  }
+
+  // El nombre de la Biblia, entre paréntesis y en la tinta del fondo en vez del
+  // acento: es un dato de procedencia, no la referencia. Al 62 % de opacidad se
+  // lee de cerca y no le quita sitio al versículo desde la última fila.
+  .lamina__version {
+    color: var(--tinta, #f2f4f7);
+    opacity: 0.62;
+    font-size: 0.78em;
+    font-weight: 600;
+    letter-spacing: 0.02em;
   }
 
   // ── Marca de agua ─────────────────────────────────────────────────────────

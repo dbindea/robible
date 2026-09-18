@@ -1049,7 +1049,7 @@
       "open_screen": "投影到第二个屏幕",
       "open_screen_hint": "会打开一个新窗口：把它拖到投影上并按 F11。下次会自动在那里打开。笔记本保持可用，可以在不停止投影的情况下查找下一节经文。",
       "window_blocked": "浏览器拦截了该窗口。请为 robible.com 允许弹出窗口后重试。",
-      "screen_hint": "点击本屏幕任意位置即可全屏（或按 F11）。",
+      "screen_hint": "按任意键或点击任意位置即可全屏（或按 F11）。",
       "on_screen": "当前画面",
       "screen_waiting": "选择一节经文开始投影。",
       "screen_fullscreen": "全屏 (F11)",
@@ -1070,7 +1070,9 @@
       "history_clear": "清空",
       "key_next_chapter": "下一章",
       "key_prev_chapter": "上一章",
-      "chapter_nav": "章"
+      "chapter_nav": "章",
+      "permission_hint": "浏览器尚未获准把窗口放到另一块屏幕上，所以投影会在笔记本上打开，每次都得手动拖过去。授权一次，它就能自己找到投影屏幕。",
+      "permission_ask": "允许窗口放到投影屏幕"
     },
     "projection_landing": {
       "seo_title": "教会投影 | RoBible",

@@ -19,11 +19,11 @@ import {
 
 // ── Ocupación ───────────────────────────────────────────────────────────────
 
-test('la ocupación por defecto es el 80 % de la pantalla', () => {
+test('la ocupación por defecto es el 70 % de la pantalla', () => {
   // Es el valor que se pidió y el que ve alguien que abre esto por primera vez.
-  assert.equal(OCUPACION_POR_DEFECTO, 80);
-  assert.equal(POR_DEFECTO.ocupacion, 80);
-  assert.equal(cargarPreferencias().ocupacion, 80);
+  assert.equal(OCUPACION_POR_DEFECTO, 70);
+  assert.equal(POR_DEFECTO.ocupacion, 70);
+  assert.equal(cargarPreferencias().ocupacion, 70);
 });
 
 test('se acota al rango utilizable', () => {

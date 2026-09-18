@@ -1049,7 +1049,7 @@
       "open_screen": "Proyectar en la segunda pantalla",
       "open_screen_hint": "Se abre una ventana nueva: arrástrala al proyector y pulsa F11. La próxima vez se abrirá sola allí. El portátil queda libre para buscar el versículo siguiente sin cortar la proyección.",
       "window_blocked": "El navegador ha bloqueado la ventana. Permite las ventanas emergentes para robible.com y vuelve a intentarlo.",
-      "screen_hint": "Pulsa en cualquier parte de esta pantalla para ponerla a pantalla completa (o F11).",
+      "screen_hint": "Pulsa cualquier tecla o haz clic en cualquier parte para pantalla completa (o F11).",
       "on_screen": "En pantalla ahora",
       "screen_waiting": "Elige un versículo para empezar a proyectar.",
       "screen_fullscreen": "Pantalla completa (F11)",
@@ -1070,7 +1070,9 @@
       "history_clear": "Vaciar",
       "key_next_chapter": "Capítulo siguiente",
       "key_prev_chapter": "Capítulo anterior",
-      "chapter_nav": "Capítulo"
+      "chapter_nav": "Capítulo",
+      "permission_hint": "El navegador todavía no tiene permiso para poner ventanas en la otra pantalla, así que la proyección se abrirá en el portátil y tendrás que arrastrarla cada vez. Dáselo una sola vez y encontrará el proyector sola.",
+      "permission_ask": "Permitir la ventana en el proyector"
     },
     "projection_landing": {
       "seo_title": "Proyección para iglesias | RoBible",

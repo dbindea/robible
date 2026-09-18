@@ -1049,7 +1049,7 @@
       "open_screen": "Project on the second screen",
       "open_screen_hint": "A new window opens: drag it to the projector and press F11. Next time it opens there by itself. The laptop stays free, so you can look up the next verse without stopping the projection.",
       "window_blocked": "The browser blocked the window. Allow pop-ups for robible.com and try again.",
-      "screen_hint": "Click anywhere on this screen to go full screen (or press F11).",
+      "screen_hint": "Press any key or click anywhere to go full screen (or press F11).",
       "on_screen": "On screen now",
       "screen_waiting": "Pick a verse to start projecting.",
       "screen_fullscreen": "Full screen (F11)",
@@ -1070,7 +1070,9 @@
       "history_clear": "Clear",
       "key_next_chapter": "Next chapter",
       "key_prev_chapter": "Previous chapter",
-      "chapter_nav": "Chapter"
+      "chapter_nav": "Chapter",
+      "permission_hint": "The browser is not allowed to place windows on the other screen yet, so the projection will open on the laptop and you will have to drag it every time. Allow it once and it will find the projector by itself.",
+      "permission_ask": "Allow the window on the projector"
     },
     "projection_landing": {
       "seo_title": "Projection for churches | RoBible",

@@ -41,39 +41,47 @@
    * y en una iglesia con conexión mala eso importa.
    */
   import { onDestroy, onMount, tick } from 'svelte';
-  import { _ } from '../../services/i18n.service';
-  import { applySeoMetadata } from '../../services/seo.service';
-  import {
-    getBibleVersionConfigOrDefault,
-    selectedBibleVersion,
-    compareWithVersion,
-    initCompareVersion,
-  } from '../../store/stores';
+  import DictadoBoton from '../../components/DictadoBoton.svelte';
+  import Icon from '../../components/Icon.svelte';
+  import ProjectionControls from '../../components/ProjectionControls.svelte';
+  import ProjectionSurface from '../../components/ProjectionSurface.svelte';
   import { BIBLE_VERSIONS } from '../../config/bible-versions.js';
-  import { searchReferences, parseReference } from '../../services/referenceSearch.service';
   import { getFilterResult } from '../../services/filter.service';
-  import { keepScreenAwake } from '../../services/sermon-pulpit.service';
-  import { getLastRead } from '../../services/reading-progress.service';
+  import { _ } from '../../services/i18n.service';
   import {
-    OCUPACION_POR_DEFECTO,
-    acotarOcupacion,
-    cargarGeometriaPantalla,
-    cargarPreferencias,
-    guardarGeometriaPantalla,
-    guardarPreferencias,
-  } from '../../services/projection.service';
+    abrirCanal,
+    abrirVentanaPantalla,
+    estadoPermisoVentanas,
+    leerGeometria,
+    MENSAJES,
+    pedirPermisoVentanas,
+    soportaCanal,
+  } from '../../services/projection-channel.service';
   import {
     anadirEntrada,
     cargarHistorial,
     guardarHistorial,
     limpiarHistorial,
   } from '../../services/projection-history.service';
-  import Icon from '../../components/Icon.svelte';
-  import DictadoBoton from '../../components/DictadoBoton.svelte';
-  import ProjectionSurface from '../../components/ProjectionSurface.svelte';
-  import ProjectionControls from '../../components/ProjectionControls.svelte';
-  import { abrirCanal, abrirVentanaPantalla, MENSAJES, soportaCanal } from '../../services/projection-channel.service';
+  import {
+    acotarOcupacion,
+    cargarGeometriaPantalla,
+    cargarPreferencias,
+    guardarGeometriaPantalla,
+    guardarPreferencias,
+    OCUPACION_POR_DEFECTO,
+  } from '../../services/projection.service';
+  import { getLastRead } from '../../services/reading-progress.service';
+  import { parseReference, searchReferences } from '../../services/referenceSearch.service';
+  import { applySeoMetadata } from '../../services/seo.service';
+  import { keepScreenAwake } from '../../services/sermon-pulpit.service';
   import { textoDeVersiculo } from '../../services/versification.service';
+  import {
+    compareWithVersion,
+    getBibleVersionConfigOrDefault,
+    initCompareVersion,
+    selectedBibleVersion,
+  } from '../../store/stores';
 
   export let bible = [];
   export let map = {};
@@ -618,6 +626,12 @@
     persistir();
   };
 
+  /** El porcentaje escrito a mano en el campo de la botonera. */
+  const fijarOcupacion = (valor) => {
+    prefs.ocupacion = acotarOcupacion(valor);
+    persistir();
+  };
+
   const cerrarPanel = () => {
     panelAbierto = '';
     mostrarControles();
@@ -696,8 +710,10 @@
 
   /** Lo que tiene que pintar la ventana proyectada. Va entero en cada cambio. */
   $: estadoPantalla = {
-    principal: { texto: principal.texto, referencia: principal.referencia },
-    secundario: { texto: secundario.texto, referencia: secundario.referencia },
+    // Va también el nombre de la versión: la lámina lo pinta entre paréntesis
+    // bajo cada traducción, y esa ventana no tiene el catálogo de versiones.
+    principal: { texto: principal.texto, referencia: principal.referencia, version: principal.version },
+    secundario: { texto: secundario.texto, referencia: secundario.referencia, version: secundario.version },
     fondoKey: prefs.fondo,
     ocupacion: prefs.ocupacion,
     animacion: prefs.animacion,
@@ -741,6 +757,15 @@
    * proyectando— se guarda aquí en la consola, que no se cierra.
    */
   const cederPantalla = () => {
+    // Se apunta dónde está ANTES de cerrarla, que es la única ocasión de
+    // saberlo. Y es la medida buena: dice dónde la dejó el operador de verdad
+    // —pantalla completa incluida— en vez de dónde cree la API que está el
+    // segundo monitor. Sin esto, recuperarla la devolvía al portátil.
+    const donde = leerGeometria(ventanaPantalla);
+    if (donde) {
+      geometriaPantalla = donde;
+      guardarGeometriaPantalla(donde);
+    }
     if (ventanaPantalla && !ventanaPantalla.closed) cerrarVentanaPantalla();
     pantallaLibre = true;
     panelAbierto = '';
@@ -828,6 +853,25 @@
   };
 
   let avisoPantalla = '';
+
+  /**
+   * Si el navegador nos deja colocar la ventana en la otra pantalla.
+   *
+   * 'granted' | 'prompt' | 'denied' | 'unsupported'. Importa enseñarlo: **sin
+   * ese permiso Chrome recorta las coordenadas a la pantalla actual**, así que
+   * por muy bien que recordemos dónde estaba el proyector, al recuperarlo la
+   * ventana reaparece en el portátil y hay que arrastrarla otra vez. Sin un
+   * aviso, eso parece un fallo de la aplicación.
+   */
+  let permisoVentanas = 'prompt';
+
+  const revisarPermiso = async () => {
+    permisoVentanas = await estadoPermisoVentanas();
+  };
+
+  const solicitarPermiso = async () => {
+    permisoVentanas = await pedirPermisoVentanas();
+  };
 
   const alternarPantallaCompleta = async () => {
     try {
@@ -1135,8 +1179,8 @@
   //
   // Sólo pinta lo que le mandan. No carga Biblias, no busca y no guarda nada.
   let estadoRecibido = {
-    principal: { texto: '', referencia: '' },
-    secundario: { texto: '', referencia: '' },
+    principal: { texto: '', referencia: '', version: '' },
+    secundario: { texto: '', referencia: '', version: '' },
     fondoKey: 'night',
     ocupacion: OCUPACION_POR_DEFECTO,
     animacion: 'fade',
@@ -1183,6 +1227,16 @@
      */
     const alTeclear = (e) => {
       if (e.key === 'F11' || e.key === 'Escape') return;
+      // Fuera de pantalla completa, la PRIMERA tecla la pone a pantalla
+      // completa en vez de reenviarse. Entrar exige un gesto en ESTA ventana
+      // —no se puede pedir desde la consola por el canal—, y cuando el intento
+      // automático no cuela, esto evita tener que ir a dar un clic al proyector
+      // delante de la congregación: se recupera con Mayúsculas y se remata con
+      // cualquier tecla, sin soltar el teclado.
+      if (!document.fullscreenElement) {
+        ponerPantallaCompleta();
+        return;
+      }
       suCanal.enviar({ tipo: MENSAJES.TECLA, key: e.key });
     };
     const alCerrar = () => suCanal.enviar({ tipo: MENSAJES.CERRANDO });
@@ -1219,6 +1273,7 @@
     prefs = cargarPreferencias();
     geometriaPantalla = cargarGeometriaPantalla();
     historial = cargarHistorial();
+    revisarPermiso();
     ultimaLectura = getLastRead();
     // Si quedó encendido el segundo idioma de una sesión anterior, hay que
     // volver a pedir la Biblia: `compareWithVersion` arranca en null.
@@ -1416,6 +1471,12 @@
             {$_('app.projection.open_screen')}
           </button>
           <p class="dos-pantallas__pista">{$_('app.projection.open_screen_hint')}</p>
+          {#if permisoVentanas !== 'granted' && permisoVentanas !== 'unsupported'}
+            <div class="permiso">
+              <p>{$_('app.projection.permission_hint')}</p>
+              <button type="button" on:click={solicitarPermiso}>{$_('app.projection.permission_ask')}</button>
+            </div>
+          {/if}
           {#if avisoPantalla}
             <p class="dos-pantallas__aviso" role="alert">{avisoPantalla}</p>
           {/if}
@@ -1444,6 +1505,15 @@
             <button type="button" class="dos-pantallas__cerrar" on:click={cerrarProyeccion}>
               {$_('app.projection.session_end')}
             </button>
+            <!-- Aquí es donde más duele: sin permiso, «recuperar» devuelve la
+                 ventana al portátil en vez de al proyector, y eso parece un
+                 fallo nuestro. Se dice antes de que pase. -->
+            {#if permisoVentanas !== 'granted' && permisoVentanas !== 'unsupported'}
+              <div class="permiso">
+                <p>{$_('app.projection.permission_hint')}</p>
+                <button type="button" on:click={solicitarPermiso}>{$_('app.projection.permission_ask')}</button>
+              </div>
+            {/if}
           {:else}
             <p class="dos-pantallas__estado">
               <Icon name="monitor" size="1rem" />
@@ -1492,7 +1562,7 @@
          Existe porque el predicador salta: «y tres más abajo…». Pulsando uno se
          proyecta, sin escribir la referencia. -->
     {#if modo === 'remoto'}
-      <aside class="columna">
+      <aside class="columna columna--contexto">
         <div class="columna__cabecera">
           <h2 class="columna__titulo">{$_('app.projection.context_title')}</h2>
           <!-- De qué capítulo. Con las flechas de abajo se cambia de capítulo
@@ -1650,6 +1720,7 @@
         onSalir={salir}
         onMasGrande={masGrande}
         onMasPequeno={masPequeno}
+        onOcupacion={fijarOcupacion}
         onNegro={alternarNegro}
         onFondo={elegirFondo}
         onAnimacion={elegirAnimacion}
@@ -1692,6 +1763,7 @@
       onSalir={salir}
       onMasGrande={masGrande}
       onMasPequeno={masPequeno}
+      onOcupacion={fijarOcupacion}
       onNegro={alternarNegro}
       onPantallaCompleta={alternarPantallaCompleta}
       onFondo={elegirFondo}
@@ -1735,10 +1807,24 @@
     .taller--consola {
       display: grid;
       grid-template-columns: minmax(0, 1fr) 21rem 17rem;
-      align-items: start;
+      // `stretch` y no `start`: es lo que iguala el alto de las tres columnas
+      // sin decirlo en píxeles. Las dos de la derecha acaban exactamente donde
+      // acaba la izquierda —es decir, donde acaba la caja de teclas— en vez de
+      // bajar hasta el borde de la pantalla, que dejaba dos cajas larguísimas
+      // medio vacías.
+      align-items: stretch;
       gap: 1.5rem;
       max-width: 84rem;
       margin: 0 auto;
+      // Lo que la columna izquierda reserva por debajo para la franja de la
+      // consola. Está aquí y no repetido en dos sitios porque las columnas de
+      // la derecha tienen que descontar exactamente lo mismo, o dejan de
+      // cuadrar por abajo.
+      --reserva-consola: 7rem;
+      // El alto EXACTO de la fila de flechas de capítulo. Se declara aquí
+      // porque lo usan dos reglas que tienen que cuadrar entre sí: la que fija
+      // esa fila y la que deja bajar la columna del contexto justo eso.
+      --fila-capitulos: 2.75rem;
 
       .antesala {
         max-width: none;
@@ -1754,24 +1840,22 @@
 
   @media (min-width: 64rem) {
     .taller--consola .columna {
-      // Columna flexible y de alto fijo: así las dos acaban a la misma altura y
-      // la caja de dentro se estira hasta abajo. Antes tenían el alto de su
-      // contenido y quedaban dos rectángulos desparejos con medio panel vacío.
+      // Columna flexible: la caja de dentro se estira y el resto —cabecera y,
+      // en el contexto, las flechas de capítulo— ocupa lo suyo.
       display: flex;
       flex-direction: column;
-      position: sticky;
-      // Se quedan a la vista al desplazar la lista de resultados, que puede ser
-      // larga: el contexto del versículo que está en la pantalla de la iglesia
-      // no puede irse hacia arriba justo cuando hace falta.
-      top: 1rem;
-      // Hasta abajo, pero descontando el caso PEOR: sin desplazar la página, la
-      // columna no empieza en `top: 1rem` sino por debajo de la barra superior,
-      // ~6,5 rem más abajo. Calculado sobre la posición pegajosa, las flechas de
-      // capítulo —que van al final de la columna— quedaban por detrás de la
-      // franja de la consola justo en el estado inicial, que es el que más se
-      // ve. Se paga con algo de aire por abajo una vez desplazada la página, y
-      // eso no le estorba a nadie.
-      height: calc(100dvh - 12.5rem);
+      // El alto lo pone el `stretch` de la rejilla, que es el de la columna
+      // izquierda. Lo único que hay que descontar es el relleno que esa columna
+      // reserva para la franja de la consola: sin restarlo, estas dos bajarían
+      // 7 rem por debajo de la caja de teclas.
+      margin-bottom: var(--reserva-consola);
+    }
+
+    // El contexto baja exactamente el alto de su fila de flechas. Así las DOS
+    // cajas acaban en la misma línea —la de la caja de teclas— y por debajo de
+    // ella sólo asoman los botones, que es lo único que puede bajar.
+    .taller--consola .columna--contexto {
+      margin-bottom: calc(var(--reserva-consola) - var(--fila-capitulos));
     }
   }
 
@@ -1827,10 +1911,15 @@
     display: grid;
     align-content: start;
     gap: 0.25rem;
-    // `min-height: 0` es obligatorio dentro de un flex: sin él la caja se niega
-    // a encoger por debajo de su contenido y se sale de la columna en vez de
-    // desplazarse por dentro.
-    flex: 1 1 auto;
+    // `flex: 1 1 0` y no `1 1 auto`, y esto es lo que hace que la rejilla
+    // cuadre: con base `auto`, el alto que esta caja aporta al cálculo es el de
+    // TODO su contenido —un capítulo entero son miles de píxeles—, así que la
+    // fila de la rejilla crecía por su culpa y estiraba también la columna de
+    // la izquierda, que acababa 97 px por debajo de la caja de teclas. Con base
+    // cero no aporta nada y el alto lo manda quien debe: la columna izquierda.
+    // `min-height: 0` es obligatorio por lo mismo: sin él la caja se niega a
+    // encoger por debajo de su contenido.
+    flex: 1 1 0;
     min-height: 0;
     overflow-y: auto;
     padding: 0.35rem;
@@ -1903,11 +1992,16 @@
   // Debajo del contexto y en horizontal, que es el eje que les corresponde: las
   // mismas dos flechas del teclado. Pegado al fondo de la columna porque es una
   // salida, no parte de la lista.
+  // Alto fijo, no el de su contenido: el cálculo que deja bajar la columna del
+  // contexto justo esta fila (`--fila-capitulos`) depende de que midan lo
+  // mismo. 0,5 rem de margen + 2,25 rem de botón = 2,75 rem.
   .contexto__capitulos {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.6rem;
+    flex: 0 0 auto;
+    height: 2.25rem;
     margin-top: 0.5rem;
 
     span {
@@ -2161,7 +2255,6 @@
     }
 
     kbd {
-      min-width: 1.6rem;
       padding: 0.1rem 0.4rem;
       border: 1px solid var(--color-line-strong);
       border-bottom-width: 2px;
@@ -2280,6 +2373,44 @@
     color: var(--color-danger-ink);
     font-size: 0.8rem;
     font-weight: 600;
+  }
+
+  // El permiso de gestión de ventanas. Es un aviso, no un error: sin él todo
+  // funciona, sólo que la ventana hay que arrastrarla a mano cada vez.
+  .permiso {
+    display: grid;
+    justify-items: center;
+    gap: 0.5rem;
+    max-width: 46ch;
+    margin-top: 0.35rem;
+    padding: 0.7rem 0.85rem;
+    border: 1px solid var(--color-line-strong);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+
+    p {
+      margin: 0;
+      color: var(--color-ink-soft);
+      font-size: 0.78rem;
+      line-height: 1.45;
+    }
+
+    button {
+      min-height: 2.25rem;
+      padding: 0 0.9rem;
+      border: 1px solid var(--color-accent);
+      border-radius: var(--radius-pill);
+      background: transparent;
+      color: var(--color-accent-ink);
+      font: inherit;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+
+      &:hover {
+        background: var(--wash-accent);
+      }
+    }
   }
 
   // Con la ventana ya colocada, esta caja deja de ser una invitación y pasa a
@@ -2517,7 +2648,7 @@
   // Y la página deja sitio para la franja, o el último resultado de la
   // búsqueda queda debajo y no hay forma de pulsarlo.
   .antesala--consola {
-    padding-bottom: 7rem;
+    padding-bottom: var(--reserva-consola, 7rem);
   }
 
   @media (max-width: 40rem) {

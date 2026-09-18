@@ -39,8 +39,12 @@ export const ANIMACIONES = ['none', 'fade', 'slide', 'zoom'];
  *
  * El suelo es 30 y no 0: por debajo de eso no se lee desde la última fila, que
  * es la única razón de ser de este modo.
+ *
+ * El 70 salió de verlo proyectado: al 80 el texto llegaba casi al borde y
+ * resultaba invasivo —una pantalla de iglesia se mira de lejos y necesita aire
+ * alrededor—. Se sube con la rueda o escribiéndolo cuando el pasaje lo pide.
  */
-export const OCUPACION_POR_DEFECTO = 80;
+export const OCUPACION_POR_DEFECTO = 70;
 export const OCUPACION_MINIMA = 30;
 export const OCUPACION_MAXIMA = 100;
 
