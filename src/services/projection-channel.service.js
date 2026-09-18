@@ -174,13 +174,24 @@ export const abrirVentanaPantalla = (geometria = null, alColocar = null) => {
   if (!ventana) return null;
   ventana.focus();
 
+  // Y se insiste con `moveTo` sobre la ventana ya abierta. Los rasgos de
+  // `window.open` los interpreta cada navegador a su manera —y algunos los
+  // recortan a la pantalla actual—, mientras que `moveTo` sobre una ventana
+  // que hemos abierto nosotros sí se respeta en cuanto hay permiso de gestión
+  // de ventanas. Es la diferencia entre recuperar el proyector y encontrarse
+  // la proyección otra vez en el portátil.
+  colocar(ventana, geometria);
+
   // Sin `await`: no se hace esperar al operador por una colocación que es una
   // comodidad, no un requisito.
   buscarPantallaSecundaria()
     .then((destino) => {
-      if (!destino) return;
-      ventana.moveTo(destino.left, destino.top);
-      ventana.resizeTo(destino.width, destino.height);
+      // Lo recordado gana sobre lo que diga la API: si el operador la colocó a
+      // mano en un sitio concreto —un proyector que no es la pantalla
+      // «secundaria», una segunda pantalla con barra de tareas— ahí es donde
+      // tiene que volver. La API sólo sirve para la primera vez.
+      if (!destino || esGeometria(geometria)) return;
+      colocar(ventana, destino);
       if (typeof alColocar === 'function') alColocar(destino);
     })
     .catch(() => {
@@ -188,4 +199,81 @@ export const abrirVentanaPantalla = (geometria = null, alColocar = null) => {
     });
 
   return ventana;
+};
+
+const colocar = (ventana, geometria) => {
+  if (!esGeometria(geometria)) return;
+  try {
+    ventana.moveTo(Math.round(geometria.left), Math.round(geometria.top));
+    ventana.resizeTo(Math.round(geometria.width), Math.round(geometria.height));
+  } catch {
+    /* sin permiso de gestión de ventanas; la coloca el operador */
+  }
+};
+
+/**
+ * Dónde está AHORA la ventana proyectada.
+ *
+ * Es la medida buena, mejor que la de `getScreenDetails`: dice dónde la ha
+ * puesto el operador de verdad, incluida la pantalla completa —ahí `screenX` y
+ * `screenY` son el origen del proyector y `outerWidth`/`outerHeight` su tamaño
+ * exacto—. Se lee justo antes de cerrarla al ceder el proyector, que es cuando
+ * todavía se puede.
+ *
+ * Funciona sin ningún permiso: es una ventana nuestra, del mismo origen.
+ */
+export const leerGeometria = (ventana) => {
+  try {
+    if (!ventana || ventana.closed) return null;
+    const g = {
+      left: ventana.screenX,
+      top: ventana.screenY,
+      width: ventana.outerWidth,
+      height: ventana.outerHeight,
+    };
+    return esGeometria(g) ? g : null;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Si el navegador nos deja colocar ventanas en otra pantalla.
+ *
+ * Importa porque **sin este permiso Chrome recorta las coordenadas a la
+ * pantalla actual**: por muy bien que recordemos dónde estaba el proyector, la
+ * ventana reaparece en el portátil y hay que arrastrarla otra vez. Se consulta
+ * sin provocar el diálogo, para poder avisar en la consola antes de que pase.
+ *
+ * Devuelve 'granted' | 'prompt' | 'denied' | 'unsupported'.
+ */
+export const estadoPermisoVentanas = async () => {
+  if (typeof window === 'undefined' || !('getScreenDetails' in window)) return 'unsupported';
+  // El nombre cambió a mitad de camino: primero `window-placement`, luego
+  // `window-management`. Se prueban los dos, que es más corto que detectar
+  // versiones de navegador; consultarlo NO abre el diálogo.
+  for (const name of ['window-management', 'window-placement']) {
+    try {
+      const estado = await navigator.permissions?.query?.({ name });
+      if (estado?.state) return estado.state;
+    } catch {
+      /* ese nombre no lo conoce: se prueba el otro */
+    }
+  }
+  // Soporta la API pero no sabemos el estado: se trata como «aún no concedido»,
+  // que es lo que deja el aviso a la vista en vez de esconderlo.
+  return 'prompt';
+};
+
+/**
+ * Pide el permiso. Tiene que salir de un gesto del usuario, como cualquier
+ * diálogo de permisos, así que se llama desde el manejador de un clic.
+ */
+export const pedirPermisoVentanas = async () => {
+  try {
+    await window.getScreenDetails?.();
+  } catch {
+    /* lo ha denegado: el estado que se consulte después ya lo dirá */
+  }
+  return estadoPermisoVentanas();
 };

@@ -8,7 +8,12 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { searchReferences, formatReference, parseReference } from '../src/services/referenceSearch.service.js';
+import {
+  searchReferences,
+  formatReference,
+  parseReference,
+  referenceExists,
+} from '../src/services/referenceSearch.service.js';
 
 const MAPA = {
   0: 'Geneza',
@@ -208,4 +213,69 @@ test('nunca se devuelven más de 5 sugerencias', () => {
   for (const entrada of ['i', 'io', 'ioan', '1', 'ps']) {
     assert.ok(buscarReal(entrada).length <= 5, `"${entrada}" devolvió demasiadas`);
   }
+});
+
+// ── Referencias que no existen ──────────────────────────────────────────────
+//
+// El nombre del libro lo valida el mapa; el capítulo y el versículo no los
+// validaba nadie. «ioan 4 4» ofrecía las cuatro combinaciones —Ioan, 1, 2 y
+// 3 Ioan— y dos de ellas son imposibles: 2 Ioan y 3 Ioan tienen UN capítulo.
+// En el Modo Proyección se pulsa con prisa y delante de la congregación, así
+// que una sugerencia que no lleva a ninguna parte es peor que una de menos.
+
+const BIBLIA_REAL = JSON.parse(
+  readFileSync(path.join(import.meta.dirname, '..', 'public', 'data', 'vdc', 'bible.json'), 'utf8'),
+);
+
+test('sin Biblia no se filtra nada: es el comportamiento de siempre', () => {
+  // Mientras la Biblia se descarga, `bible` llega vacía. Quedarse sin
+  // sugerencias sería peor que enseñar alguna de más.
+  const r = searchReferences('ioan 4 4', MAPA_REAL, 6);
+  assert.ok(
+    r.some((m) => m.name === '3 Ioan'),
+    'sin Biblia, el filtro no debe actuar',
+  );
+});
+
+test('con la Biblia delante, 2 Ioan 4:4 y 3 Ioan 4:4 desaparecen', () => {
+  const r = searchReferences('ioan 4 4', MAPA_REAL, 6, BIBLIA_REAL);
+  const nombres = r.map((m) => m.name);
+  assert.ok(nombres.includes('Ioan'), 'Ioan 4:4 sí existe');
+  assert.ok(nombres.includes('1 Ioan'), '1 Ioan 4:4 sí existe');
+  assert.ok(!nombres.includes('2 Ioan'), '2 Ioan tiene un solo capítulo');
+  assert.ok(!nombres.includes('3 Ioan'), '3 Ioan tiene un solo capítulo');
+});
+
+test('un versículo que se sale del capítulo tampoco se sugiere', () => {
+  // Psalmul 23 tiene 6 versículos.
+  const bueno = searchReferences('psalmii 23 6', MAPA_REAL, 6, BIBLIA_REAL);
+  assert.ok(bueno.length >= 1);
+  const malo = searchReferences('psalmii 23 40', MAPA_REAL, 6, BIBLIA_REAL);
+  assert.equal(malo.length, 0);
+});
+
+test('un capítulo que no existe tampoco', () => {
+  const malo = searchReferences('iuda 5 1', MAPA_REAL, 6, BIBLIA_REAL);
+  assert.equal(malo.length, 0, 'Iuda tiene un solo capítulo');
+});
+
+test('el filtro no se come las sugerencias buenas por el corte de maxResults', () => {
+  // El corte a `maxResults` es lo primero que se hace, así que si el filtro
+  // fuera posterior las combinaciones imposibles se comerían el sitio de las
+  // buenas: con maxResults=2, «ioan 4 4» habría devuelto lista vacía.
+  const r = searchReferences('ioan 4 4', MAPA_REAL, 2, BIBLIA_REAL);
+  assert.equal(r.length, 2);
+  assert.deepEqual(r.map((m) => m.name).sort(), ['1 Ioan', 'Ioan']);
+});
+
+test('referenceExists distingue libro, capítulo y versículo', () => {
+  // `map.all` son índices, no nombres: los nombres están en `map[i]`.
+  const ioan = MAPA_REAL.all.find((i) => MAPA_REAL[i] === 'Ioan');
+  assert.ok(referenceExists(BIBLIA_REAL, ioan, 3, 16));
+  assert.ok(referenceExists(BIBLIA_REAL, ioan, 3, null), 'sin versículo basta con que exista el capítulo');
+  assert.ok(referenceExists(BIBLIA_REAL, ioan, null, null), 'sin capítulo basta con que exista el libro');
+  assert.ok(!referenceExists(BIBLIA_REAL, ioan, 99, 1));
+  assert.ok(!referenceExists(BIBLIA_REAL, ioan, 3, 999));
+  assert.ok(!referenceExists(BIBLIA_REAL, 999, 1, 1));
+  assert.ok(!referenceExists([], ioan, 3, 16), 'sin Biblia, nada existe');
 });

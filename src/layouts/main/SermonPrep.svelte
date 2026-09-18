@@ -137,14 +137,17 @@
   };
 
   const buscarRef = () => {
-    sugerenciasRef = consultaRef.trim() ? searchReferences(consultaRef, map, 5) : [];
+    // Con la Biblia delante, `searchReferences` descarta las combinaciones que
+    // no existen: «ioan 4 4» ofrecía también 2 Ioan 4:4 y 3 Ioan 4:4, y esos
+    // libros tienen un solo capítulo.
+    sugerenciasRef = consultaRef.trim() ? searchReferences(consultaRef, map, 5, bible) : [];
   };
 
   /** Lee o escribe un campo de texto libre, sea del desarrollo (con `:`) o de
    *  nivel superior (`intro`/`conclusion`). Un único punto de acceso para que
    *  `insertarCitaEnCampo` no tenga que saber de antemano dónde vive cada uno. */
   const leerCampoTexto = (clave) =>
-    clave.includes(':') ? (desarrolloDe(clave.split(':')[0])[clave.split(':')[1]] || '') : (content[clave] || '');
+    clave.includes(':') ? desarrolloDe(clave.split(':')[0])[clave.split(':')[1]] || '' : content[clave] || '';
 
   const escribirCampoTexto = (clave, valor) => {
     if (clave.includes(':')) {
@@ -247,7 +250,9 @@
   const avisar = (mensaje) => {
     avisoPublicar = mensaje;
     clearTimeout(avisoPublicarTimer);
-    avisoPublicarTimer = setTimeout(() => { avisoPublicar = ''; }, 2800);
+    avisoPublicarTimer = setTimeout(() => {
+      avisoPublicar = '';
+    }, 2800);
   };
 
   $: enlacePublico = sermon?.isPublic && sermon?.publicSlug ? buildPublicSermonUrl(sermon.publicSlug) : '';
@@ -299,13 +304,10 @@
   // La perícopa, resuelta desde la Biblia del cliente. No viaja por la API: el
   // texto ya está en el dispositivo y así la preparación funciona sin conexión.
   $: pericopa = sermon
-    ? Array.from(
-        { length: (sermon.verseEnd || sermon.verseStart) - sermon.verseStart + 1 },
-        (_, i) => ({
-          numero: sermon.verseStart + i,
-          texto: bible[sermon.book]?.[sermon.chapter - 1]?.[sermon.verseStart + i - 1] || '',
-        }),
-      ).filter((v) => v.texto)
+    ? Array.from({ length: (sermon.verseEnd || sermon.verseStart) - sermon.verseStart + 1 }, (_, i) => ({
+        numero: sermon.verseStart + i,
+        texto: bible[sermon.book]?.[sermon.chapter - 1]?.[sermon.verseStart + i - 1] || '',
+      })).filter((v) => v.texto)
     : [];
 
   $: referencia = sermon
@@ -315,8 +317,17 @@
     : '';
 
   // Contexto: los versículos de antes y de después, para leerlos sin salir.
-  $: contextoAntes = sermon ? textoDeRango(sermon.book, sermon.chapter, Math.max(1, sermon.verseStart - 4), sermon.verseStart - 1) : [];
-  $: contextoDespues = sermon ? textoDeRango(sermon.book, sermon.chapter, (sermon.verseEnd || sermon.verseStart) + 1, (sermon.verseEnd || sermon.verseStart) + 4) : [];
+  $: contextoAntes = sermon
+    ? textoDeRango(sermon.book, sermon.chapter, Math.max(1, sermon.verseStart - 4), sermon.verseStart - 1)
+    : [];
+  $: contextoDespues = sermon
+    ? textoDeRango(
+        sermon.book,
+        sermon.chapter,
+        (sermon.verseEnd || sermon.verseStart) + 1,
+        (sermon.verseEnd || sermon.verseStart) + 4,
+      )
+    : [];
 
   function textoDeRango(book, chapter, desde, hasta) {
     if (desde > hasta) return [];
@@ -344,7 +355,9 @@
       guardadoEnElAire = false;
       estadoGuardado = 'guardado';
       clearTimeout(etiquetaTimer);
-      etiquetaTimer = setTimeout(() => { estadoGuardado = ''; }, 2000);
+      etiquetaTimer = setTimeout(() => {
+        estadoGuardado = '';
+      }, 2000);
     }, RETARDO_MS);
   };
 
@@ -427,9 +440,7 @@
     if (value.slice(ini, fin).includes('\n')) {
       const desde = value.lastIndexOf('\n', ini - 1) + 1;
       const bloque = value.slice(desde, fin);
-      const nuevo = e.shiftKey
-        ? bloque.replace(/^ {1,4}/gm, '')
-        : bloque.replace(/^/gm, SANGRIA);
+      const nuevo = e.shiftKey ? bloque.replace(/^ {1,4}/gm, '') : bloque.replace(/^/gm, SANGRIA);
       area.value = value.slice(0, desde) + nuevo + value.slice(fin);
       area.selectionStart = desde;
       area.selectionEnd = desde + nuevo.length;
@@ -487,8 +498,7 @@
     guardarContenido();
   };
 
-  const estaMarcada = (numero, palabra) =>
-    content.marks.some((m) => m.verse === numero && m.word === palabra);
+  const estaMarcada = (numero, palabra) => content.marks.some((m) => m.verse === numero && m.word === palabra);
 
   // Se parte por espacios conservando la puntuación pegada, para que al marcar
   // «stâncă.» y «stâncă» no se traten como dos palabras distintas.
@@ -713,7 +723,9 @@
     // «etiqueta: N» en vez de frases: el rumano necesitaría singular y plural
     // para cada una de las cuatro, y ese par ya se ha escrito mal dos veces.
     const partes = [];
-    const añadir = (clave, n) => { if (n) partes.push(`${$_(`app.sermons.${clave}`)}: ${n}`); };
+    const añadir = (clave, n) => {
+      if (n) partes.push(`${$_(`app.sermons.${clave}`)}: ${n}`);
+    };
     añadir('merge_new', r.nuevos);
     añadir('merge_kept', r.conservados);
     añadir('merge_updated', r.actualizados);
@@ -753,7 +765,9 @@
     await sermonsStore.update(sermonId, { series: serie.trim() || null });
     estadoGuardado = 'guardado';
     clearTimeout(etiquetaTimer);
-    etiquetaTimer = setTimeout(() => { estadoGuardado = ''; }, 2000);
+    etiquetaTimer = setTimeout(() => {
+      estadoGuardado = '';
+    }, 2000);
   };
 
   const guardarSchita = () => {
@@ -765,7 +779,9 @@
       guardadoEnElAire = false;
       estadoGuardado = 'guardado';
       clearTimeout(etiquetaTimer);
-      etiquetaTimer = setTimeout(() => { estadoGuardado = ''; }, 2000);
+      etiquetaTimer = setTimeout(() => {
+        estadoGuardado = '';
+      }, 2000);
     }, RETARDO_MS);
   };
 
@@ -1026,8 +1042,8 @@
                     type="button"
                     class="texto__palabra"
                     class:texto__palabra--marcada={estaMarcada(v.numero, limpia(palabra))}
-                    on:click={() => alternarMarca(v.numero, limpia(palabra))}
-                  >{palabra}</button>
+                    on:click={() => alternarMarca(v.numero, limpia(palabra))}>{palabra}</button
+                  >
                 {/each}
               </p>
             {/each}
@@ -1081,7 +1097,7 @@
           </label>
         </div>
 
-      <!-- ── OBSERVARE ────────────────────────────────────────────────── -->
+        <!-- ── OBSERVARE ────────────────────────────────────────────────── -->
       {:else if paso === 'observation'}
         <div class="bloque">
           <h2>{$_('app.sermons.step_observation')}</h2>
@@ -1091,12 +1107,13 @@
           {#each ['repeats', 'contrasts', 'actions', 'tension', 'truth'] as clave (clave)}
             <label class="campo">
               <span>{$_(`app.sermons.obs_${clave}`)}</span>
-              <textarea spellcheck="false" rows="5" bind:value={content.observation[clave]} on:input={guardarContenido}></textarea>
+              <textarea spellcheck="false" rows="5" bind:value={content.observation[clave]} on:input={guardarContenido}
+              ></textarea>
             </label>
           {/each}
         </div>
 
-      <!-- ── CONTEXT ──────────────────────────────────────────────────── -->
+        <!-- ── CONTEXT ──────────────────────────────────────────────────── -->
       {:else if paso === 'context'}
         <div class="bloque">
           <h2>{$_('app.sermons.step_context')}</h2>
@@ -1127,12 +1144,13 @@
           {#each ['before', 'after', 'historical'] as clave (clave)}
             <label class="campo">
               <span>{$_(`app.sermons.ctx_${clave}`)}</span>
-              <textarea spellcheck="false" rows="5" bind:value={content.context[clave]} on:input={guardarContenido}></textarea>
+              <textarea spellcheck="false" rows="5" bind:value={content.context[clave]} on:input={guardarContenido}
+              ></textarea>
             </label>
           {/each}
         </div>
 
-      <!-- ── IDEE ─────────────────────────────────────────────────────────
+        <!-- ── IDEE ─────────────────────────────────────────────────────────
            El orden de los campos es el del curso: primero lo que el texto dijo
            entonces, después lo que Dios quiere cambiar hoy, y sólo con esos dos
            delante se formula la idea homilética. Invertirlo lleva a escribir
@@ -1145,26 +1163,30 @@
           <label class="campo">
             <span>{$_('app.sermons.idea_exegetical')}</span>
             <small class="campo__pista">{$_('app.sermons.idea_exegetical_help')}</small>
-            <textarea spellcheck="false" rows="3" bind:value={content.idea.exegetical} on:input={guardarContenido}></textarea>
+            <textarea spellcheck="false" rows="3" bind:value={content.idea.exegetical} on:input={guardarContenido}
+            ></textarea>
           </label>
           <label class="campo">
             <span>{$_('app.sermons.idea_purpose')}</span>
             <small class="campo__pista">{$_('app.sermons.idea_purpose_help')}</small>
-            <textarea spellcheck="false" rows="5" bind:value={content.idea.purpose} on:input={guardarContenido}></textarea>
+            <textarea spellcheck="false" rows="5" bind:value={content.idea.purpose} on:input={guardarContenido}
+            ></textarea>
           </label>
           <label class="campo">
             <span>{$_('app.sermons.idea_central')}</span>
             <small class="campo__pista">{$_('app.sermons.idea_central_help')}</small>
-            <textarea spellcheck="false" rows="3" bind:value={content.idea.central} on:input={guardarContenido}></textarea>
+            <textarea spellcheck="false" rows="3" bind:value={content.idea.central} on:input={guardarContenido}
+            ></textarea>
           </label>
           <label class="campo">
             <span>{$_('app.sermons.idea_question')}</span>
             <small class="campo__pista">{$_('app.sermons.idea_question_help')}</small>
-            <textarea spellcheck="false" rows="2" bind:value={content.idea.question} on:input={guardarContenido}></textarea>
+            <textarea spellcheck="false" rows="2" bind:value={content.idea.question} on:input={guardarContenido}
+            ></textarea>
           </label>
         </div>
 
-      <!-- ── STRUCTURA ────────────────────────────────────────────────── -->
+        <!-- ── STRUCTURA ────────────────────────────────────────────────── -->
       {:else if paso === 'structure'}
         <div class="bloque">
           <h2>{$_('app.sermons.step_structure')}</h2>
@@ -1210,7 +1232,8 @@
             <div class="punto">
               <div class="punto__cabecera">
                 <span class="punto__num">{i + 1}</span>
-                <input spellcheck="false"
+                <input
+                  spellcheck="false"
                   type="text"
                   class="punto__titulo"
                   bind:value={punto.title}
@@ -1218,17 +1241,43 @@
                   placeholder={$_('app.sermons.point_placeholder')}
                 />
                 <div class="punto__mover">
-                  <button type="button" on:click={() => mover(i, -1)} disabled={i === 0} aria-label={$_('app.sermons.move_up')}>↑</button>
-                  <button type="button" on:click={() => mover(i, 1)} disabled={i === content.structure.length - 1} aria-label={$_('app.sermons.move_down')}>↓</button>
-                  <button type="button" class="punto__borrar" on:click={() => borrarPunto(punto.id)} aria-label={$_('app.sermons.delete')}>✕</button>
+                  <button
+                    type="button"
+                    on:click={() => mover(i, -1)}
+                    disabled={i === 0}
+                    aria-label={$_('app.sermons.move_up')}>↑</button
+                  >
+                  <button
+                    type="button"
+                    on:click={() => mover(i, 1)}
+                    disabled={i === content.structure.length - 1}
+                    aria-label={$_('app.sermons.move_down')}>↓</button
+                  >
+                  <button
+                    type="button"
+                    class="punto__borrar"
+                    on:click={() => borrarPunto(punto.id)}
+                    aria-label={$_('app.sermons.delete')}>✕</button
+                  >
                 </div>
               </div>
 
               {#each punto.subpoints || [] as sub, j (sub.id)}
                 <div class="subpunto">
                   <span class="subpunto__num">{i + 1}.{j + 1}</span>
-                  <input spellcheck="false" type="text" bind:value={sub.title} on:input={guardarContenido} placeholder={$_('app.sermons.subpoint_placeholder')} />
-                  <button type="button" class="punto__borrar" on:click={() => borrarSubpunto(punto, sub.id)} aria-label={$_('app.sermons.delete')}>✕</button>
+                  <input
+                    spellcheck="false"
+                    type="text"
+                    bind:value={sub.title}
+                    on:input={guardarContenido}
+                    placeholder={$_('app.sermons.subpoint_placeholder')}
+                  />
+                  <button
+                    type="button"
+                    class="punto__borrar"
+                    on:click={() => borrarSubpunto(punto, sub.id)}
+                    aria-label={$_('app.sermons.delete')}>✕</button
+                  >
                 </div>
               {/each}
 
@@ -1252,7 +1301,7 @@
           </div>
         </div>
 
-      <!-- ── DEZVOLTARE ───────────────────────────────────────────────── -->
+        <!-- ── DEZVOLTARE ───────────────────────────────────────────────── -->
       {:else if paso === 'development'}
         <div class="bloque">
           <h2>{$_('app.sermons.step_development')}</h2>
@@ -1286,7 +1335,8 @@
               tip={sermon?.type}
               etiqueta={`${$_('app.homiletics.open')} — ${$_('app.sermons.intro')}`}
             />
-            <textarea spellcheck="false"
+            <textarea
+              spellcheck="false"
               rows="8"
               bind:this={areas['intro']}
               bind:value={content.intro}
@@ -1330,7 +1380,8 @@
                   {@const ds = desarrolloDe(sub.id)}
                   <div class="subdesarrollo">
                     <h4 class="subdesarrollo__nombre">
-                      {i + 1}.{j + 1} {quitarMarcas(sub.title) || $_('app.sermons.subpoint_placeholder')}
+                      {i + 1}.{j + 1}
+                      {quitarMarcas(sub.title) || $_('app.sermons.subpoint_placeholder')}
                     </h4>
                     <div class="campo">
                       <div class="campo__cabecera">
@@ -1357,7 +1408,8 @@
                           </button>
                         </div>
                       </div>
-                      <textarea spellcheck="false"
+                      <textarea
+                        spellcheck="false"
                         rows="5"
                         bind:this={areas[`${sub.id}:text`]}
                         bind:value={ds.text}
@@ -1435,7 +1487,8 @@
                         </button>
                       </div>
                     </div>
-                    <textarea spellcheck="false"
+                    <textarea
+                      spellcheck="false"
                       rows="6"
                       bind:this={areas[`${punto.id}:${campo}`]}
                       bind:value={d[campo]}
@@ -1482,11 +1535,11 @@
           {/if}
         </div>
 
-      <!-- INTRODUCERE ya no es un paso: se escribe dentro de DEZVOLTARE, en la
+        <!-- INTRODUCERE ya no es un paso: se escribe dentro de DEZVOLTARE, en la
            misma pantalla y antes de los puntos. El campo `content.intro` sigue
            existiendo igual; lo que cambió es dónde se edita. -->
 
-      <!-- ── FINALIZARE ───────────────────────────────────────────────── -->
+        <!-- ── FINALIZARE ───────────────────────────────────────────────── -->
       {:else if paso === 'final'}
         <div class="bloque">
           <h2>{$_('app.sermons.step_final')}</h2>
@@ -1507,7 +1560,8 @@
               </button>
             </div>
             <small class="campo__pista">{$_('app.sermons.conclusion_help')}</small>
-            <textarea spellcheck="false"
+            <textarea
+              spellcheck="false"
               rows="8"
               bind:this={areas['conclusion']}
               bind:value={content.conclusion}
@@ -1542,7 +1596,7 @@
         </button>
       </div>
 
-    <!-- ── PREDICA FINALĂ ─────────────────────────────────────────────── -->
+      <!-- ── PREDICA FINALĂ ─────────────────────────────────────────────── -->
     {:else if vista === 'final'}
       <article class="documento">
         <p class="documento__meta">
@@ -1558,7 +1612,9 @@
              sección de la predicación, es la frase con la que se sale de la
              introducción y se entra en el primer punto. -->
         {#if content.transition.trim()}
-          <p class="documento__parrafo documento__parrafo--transicion"><TextoFormateado texto={content.transition} /></p>
+          <p class="documento__parrafo documento__parrafo--transicion">
+            <TextoFormateado texto={content.transition} />
+          </p>
         {/if}
 
         {#each content.structure as punto, i (punto.id)}
@@ -1578,7 +1634,9 @@
             {#if ds.text}<p class="documento__parrafo"><TextoFormateado texto={ds.text} /></p>{/if}
           {/each}
           {#if d.explain}<p class="documento__parrafo"><TextoFormateado texto={d.explain} /></p>{/if}
-          {#if d.illustrate}<p class="documento__parrafo documento__parrafo--ilustra"><TextoFormateado texto={d.illustrate} /></p>{/if}
+          {#if d.illustrate}<p class="documento__parrafo documento__parrafo--ilustra">
+              <TextoFormateado texto={d.illustrate} />
+            </p>{/if}
           {#if d.apply}<p class="documento__parrafo"><TextoFormateado texto={d.apply} /></p>{/if}
         {/each}
 
@@ -1651,7 +1709,7 @@
         </div>
       {/if}
 
-    <!-- ── SCHIȚA ─────────────────────────────────────────────────────── -->
+      <!-- ── SCHIȚA ─────────────────────────────────────────────────────── -->
     {:else if vista === 'outline' && outline}
       <div class="bloque">
         <h2>{$_('app.sermons.outline')}</h2>
@@ -1665,11 +1723,15 @@
         <label class="campo">
           <span>{$_('app.sermons.outline_intro')}</span>
           <small class="campo__pista">{$_('app.sermons.outline_lines_help')}</small>
-          <textarea spellcheck="false"
+          <textarea
+            spellcheck="false"
             class="campo__lista"
             rows="3"
             bind:value={textoIntro}
-            on:input={() => { outline.intro = textoAClaves(textoIntro); guardarSchita(); }}
+            on:input={() => {
+              outline.intro = textoAClaves(textoIntro);
+              guardarSchita();
+            }}
           ></textarea>
         </label>
 
@@ -1682,18 +1744,28 @@
 
         {#each outline.points as p, i (p.id || i)}
           <div class="punto">
-            <textarea spellcheck="false" class="punto__titulo-area" rows="2" bind:value={p.title} on:input={guardarSchita}></textarea>
+            <textarea
+              spellcheck="false"
+              class="punto__titulo-area"
+              rows="2"
+              bind:value={p.title}
+              on:input={guardarSchita}
+            ></textarea>
             <label class="campo">
               <span>{$_('app.sermons.outline_keywords')}</span>
               <!-- Una idea por línea. El texto del `textarea` es estado propio
                    (`textoClaves`) y no se vuelve a derivar del array mientras se
                    escribe: si se derivara, borrar un guion reordenaría el valor
                    bajo el cursor y saltaría al final en cada tecla. -->
-              <textarea spellcheck="false"
+              <textarea
+                spellcheck="false"
                 class="campo__lista"
                 rows="4"
                 bind:value={textoClaves[p.id || i]}
-                on:input={() => { p.keywords = textoAClaves(textoClaves[p.id || i]); guardarSchita(); }}
+                on:input={() => {
+                  p.keywords = textoAClaves(textoClaves[p.id || i]);
+                  guardarSchita();
+                }}
               ></textarea>
             </label>
           </div>
@@ -1747,7 +1819,8 @@
 >
   <label class="campo">
     <span>{$_('app.sermons.refs_search')}</span>
-    <input spellcheck="false"
+    <input
+      spellcheck="false"
       type="text"
       bind:value={consultaRef}
       on:input={buscarRef}
@@ -2016,7 +2089,10 @@
     color: var(--color-ink-soft);
     cursor: pointer;
 
-    &:hover { background: var(--wash-hover); color: var(--color-danger); }
+    &:hover {
+      background: var(--wash-hover);
+      color: var(--color-danger);
+    }
   }
 
   .refs__añadir {
@@ -2034,7 +2110,9 @@
     font-weight: 700;
     cursor: pointer;
 
-    &:hover { background: var(--wash-accent); }
+    &:hover {
+      background: var(--wash-accent);
+    }
   }
 
   // ── Sugerencias del buscador ────────────────────────────
@@ -2057,7 +2135,8 @@
       cursor: pointer;
       transition: var(--transition);
 
-      &:hover, &:focus-visible {
+      &:hover,
+      &:focus-visible {
         border-color: var(--color-accent);
         background: var(--wash-accent);
       }
@@ -2114,7 +2193,9 @@
     text-decoration: none;
     white-space: nowrap;
 
-    &:hover { text-decoration: underline; }
+    &:hover {
+      text-decoration: underline;
+    }
   }
 
   .prep__actualizar {
@@ -2129,8 +2210,14 @@
     transition: var(--transition);
     white-space: nowrap;
 
-    &:hover:not(:disabled) { border-color: var(--color-accent); color: var(--color-accent); }
-    &:disabled { opacity: 0.6; cursor: not-allowed; }
+    &:hover:not(:disabled) {
+      border-color: var(--color-accent);
+      color: var(--color-accent);
+    }
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
   }
 
   .prep__volver {
@@ -2146,17 +2233,24 @@
     font-weight: 600;
     cursor: pointer;
 
-    &:hover { text-decoration: underline; }
+    &:hover {
+      text-decoration: underline;
+    }
   }
 
   // Indicador de guardado: discreto a propósito. Confirma sin pedir nada.
-  .prep__guardado { min-height: 1.2rem; }
+  .prep__guardado {
+    min-height: 1.2rem;
+  }
 
   .prep__guardado-texto {
     font-size: var(--font-size-tiny);
     color: var(--color-ink-soft);
 
-    &--ok { color: var(--color-success); font-weight: 600; }
+    &--ok {
+      color: var(--color-success);
+      font-weight: 600;
+    }
   }
 
   .prep__titulo {
@@ -2185,7 +2279,9 @@
     transition: var(--transition);
     --icon-size: 0.75em;
 
-    > span { min-width: 0; }
+    > span {
+      min-width: 0;
+    }
 
     /* El lápiz apagado hasta que se pasa por encima: presente para quien lo
        busca, callado para quien está leyendo. */
@@ -2201,7 +2297,10 @@
       border-color: var(--color-line);
       background: var(--color-surface-sunken);
 
-      :global(svg) { color: var(--color-accent); opacity: 1; }
+      :global(svg) {
+        color: var(--color-accent);
+        opacity: 1;
+      }
     }
 
     &:focus-visible {
@@ -2270,7 +2369,9 @@
     font-weight: 600;
   }
 
-  .pasos__nombre { display: none; }
+  .pasos__nombre {
+    display: none;
+  }
 
   @media (min-width: 48rem) {
     .pasos {
@@ -2279,8 +2380,12 @@
       gap: 0.35rem;
       margin-bottom: 1rem;
     }
-    .pasos__nombre { display: inline; }
-    .pasos__actual { display: none; }
+    .pasos__nombre {
+      display: inline;
+    }
+    .pasos__actual {
+      display: none;
+    }
   }
 
   .pasos__paso {
@@ -2311,7 +2416,10 @@
       color: var(--color-accent);
     }
 
-    &:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+    &:focus-visible {
+      outline: 2px solid var(--color-accent);
+      outline-offset: 2px;
+    }
   }
 
   .prep__vista {
@@ -2353,8 +2461,14 @@
     border-radius: var(--radius-lg);
     background: var(--color-surface);
 
-    h2 { margin: 0; font-size: var(--font-size-h3); }
-    h3 { margin: 0; font-size: var(--font-size-body); }
+    h2 {
+      margin: 0;
+      font-size: var(--font-size-h3);
+    }
+    h3 {
+      margin: 0;
+      font-size: var(--font-size-body);
+    }
   }
 
   .bloque__ayuda {
@@ -2384,7 +2498,10 @@
     font-weight: 600;
     cursor: pointer;
 
-    &:hover { border-color: var(--color-accent); color: var(--color-accent); }
+    &:hover {
+      border-color: var(--color-accent);
+      color: var(--color-accent);
+    }
   }
 
   /* Añadir un punto: la acción principal del paso.
@@ -2418,7 +2535,10 @@
     transition: var(--transition);
     --icon-size: 1.05rem;
 
-    &:hover { background: var(--color-accent-solid-hover); transform: translateY(-1px); }
+    &:hover {
+      background: var(--color-accent-solid-hover);
+      transform: translateY(-1px);
+    }
   }
 
   .añadir-punto__pista {
@@ -2431,7 +2551,9 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .añadir-punto__boton:hover { transform: none; }
+    .añadir-punto__boton:hover {
+      transform: none;
+    }
   }
 
   .campo {
@@ -2439,7 +2561,10 @@
     gap: 0.25rem;
     font-size: var(--font-size-small);
 
-    > span { font-weight: 600; color: var(--color-ink); }
+    > span {
+      font-weight: 600;
+      color: var(--color-ink);
+    }
 
     textarea,
     input {
@@ -2579,7 +2704,10 @@
     background: var(--color-surface-sunken);
   }
 
-  .texto__verso { margin: 0 0 0.5rem; line-height: 1.75; }
+  .texto__verso {
+    margin: 0 0 0.5rem;
+    line-height: 1.75;
+  }
 
   .texto__num {
     margin-right: 0.3rem;
@@ -2599,14 +2727,19 @@
     font: inherit;
     cursor: pointer;
 
-    &:hover { background: color-mix(in srgb, var(--color-accent) 14%, transparent); }
+    &:hover {
+      background: color-mix(in srgb, var(--color-accent) 14%, transparent);
+    }
 
     &--marcada {
       background: color-mix(in srgb, var(--color-marked-favorite) 32%, transparent);
       font-weight: 700;
     }
 
-    &:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 1px; }
+    &:focus-visible {
+      outline: 2px solid var(--color-accent);
+      outline-offset: 1px;
+    }
   }
 
   .contexto {
@@ -2706,7 +2839,9 @@
     font-weight: 600;
   }
 
-  .punto__nombre { color: var(--color-ink); }
+  .punto__nombre {
+    color: var(--color-ink);
+  }
 
   .punto__mover {
     display: flex;
@@ -2721,8 +2856,14 @@
       color: var(--color-ink-soft);
       cursor: pointer;
 
-      &:disabled { opacity: 0.35; cursor: not-allowed; }
-      &:hover:not(:disabled) { border-color: var(--color-accent); color: var(--color-accent); }
+      &:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+      }
+      &:hover:not(:disabled) {
+        border-color: var(--color-accent);
+        color: var(--color-accent);
+      }
     }
   }
 
@@ -2795,12 +2936,20 @@
       cursor: pointer;
       transition: var(--transition);
 
-      &:disabled { opacity: 0.35; cursor: not-allowed; }
-      &:hover:not(:disabled) { border-color: var(--color-accent); color: var(--color-accent); }
+      &:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+      }
+      &:hover:not(:disabled) {
+        border-color: var(--color-accent);
+        color: var(--color-accent);
+      }
     }
   }
 
-  .prep__acciones { justify-content: flex-end; }
+  .prep__acciones {
+    justify-content: flex-end;
+  }
 
   /* Después del bloque de arriba y anidado bajo `.prep__acciones`, para ganarle
      en especificidad a su regla `button` sin recurrir a !important: tres clases
@@ -2823,7 +2972,11 @@
     background: color-mix(in srgb, var(--color-success) 8%, transparent);
     text-align: center;
 
-    p { margin: 0; font-size: var(--font-size-small); color: var(--color-ink); }
+    p {
+      margin: 0;
+      font-size: var(--font-size-small);
+      color: var(--color-ink);
+    }
   }
 
   .prep__cta {
@@ -2837,7 +2990,9 @@
     font-weight: 700;
     cursor: pointer;
 
-    &:hover { background: var(--color-accent-hover) !important; }
+    &:hover {
+      background: var(--color-accent-hover) !important;
+    }
   }
 
   /* ── Acciones de la predicación final, por grupos ──────────────────────────
@@ -2866,7 +3021,9 @@
     font-weight: 600;
     cursor: pointer;
 
-    &:hover { text-decoration: underline; }
+    &:hover {
+      text-decoration: underline;
+    }
   }
 
   .acciones__grupo {
@@ -2906,13 +3063,21 @@
       cursor: pointer;
       transition: var(--transition);
 
-      &:disabled { opacity: 0.35; cursor: not-allowed; }
-      &:hover:not(:disabled) { border-color: var(--color-accent); color: var(--color-accent); }
+      &:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+      }
+      &:hover:not(:disabled) {
+        border-color: var(--color-accent);
+        color: var(--color-accent);
+      }
     }
 
     /* Tres clases contra dos clases y un elemento: le gana a la regla de
        arriba sin !important, igual que hace `.prep__deshacer`. */
-    .prep__cta { font-weight: 700; }
+    .prep__cta {
+      font-weight: 700;
+    }
   }
 
   .acciones__pista {
@@ -2934,7 +3099,9 @@
       margin: 1.25rem 0 0.4rem;
       font-size: var(--font-size-h3);
 
-      &:first-of-type { margin-top: 0; }
+      &:first-of-type {
+        margin-top: 0;
+      }
     }
 
     h3 {

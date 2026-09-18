@@ -15,7 +15,7 @@
   import { _ } from '../services/i18n.service';
   import { BIBLE_VERSIONS } from '../config/bible-versions.js';
   import { backgroundCss, IMAGE_BACKGROUNDS } from '../services/verse-image.service';
-  import { ANIMACIONES } from '../services/projection.service';
+  import { ANIMACIONES, OCUPACION_MAXIMA, OCUPACION_MINIMA, acotarOcupacion } from '../services/projection.service';
   import { compareWithVersion, selectedBibleVersion } from '../store/stores';
 
   export let prefs;
@@ -45,6 +45,33 @@
   export let onIntercambiar = () => {};
   export let onEntrar = () => {};
   export let onSalirDeControles = () => {};
+  /** Recibe el porcentaje ya escrito a mano en el campo. */
+  export let onOcupacion = () => {};
+
+  /**
+   * El campo del porcentaje.
+   *
+   * Es estado propio y no `prefs.ocupacion` a secas porque mientras se escribe
+   * el valor pasa por estados que no son un número —vacío, «7»— y derivarlo del
+   * store devolvería el texto al valor anterior en cada tecla. Se sincroniza
+   * cuando el porcentaje cambia por fuera (los botones, la rueda) y se aplica
+   * al salir del campo o al pulsar Intro. Es la misma lección del `textarea` de
+   * las palabras clave de la schiță.
+   */
+  let textoOcupacion = String(prefs.ocupacion);
+  let editando = false;
+  $: if (!editando) textoOcupacion = String(prefs.ocupacion);
+
+  const aplicarOcupacion = () => {
+    editando = false;
+    const valor = parseInt(textoOcupacion, 10);
+    // Un campo vacío o con basura vuelve a lo que había, no al mínimo: borrarlo
+    // para escribir otro número no puede dejar la pantalla de la iglesia con la
+    // letra más pequeña posible a mitad de la frase.
+    const destino = Number.isFinite(valor) ? acotarOcupacion(valor) : prefs.ocupacion;
+    textoOcupacion = String(destino);
+    if (destino !== prefs.ocupacion) onOcupacion(destino);
+  };
 </script>
 
 <!-- ── Paneles de ajuste ────────────────────────────────────────────────── -->
@@ -128,6 +155,33 @@
   </button>
   <button type="button" on:click={onMasPequeno} aria-label={$_('app.projection.key_size')}><Icon name="minus" /></button
   >
+  <!-- Cuánto de la pantalla llena el texto. Es un número, no una sensación: sin
+       verlo, el operador no sabe si está al 60 o al 95 y acaba pulsando hasta
+       que «se vea bien», que en una pantalla de iglesia es tarde.
+       Y se puede escribir: ir del 95 al 60 son siete pulsaciones del botón y
+       una sola tecleada. -->
+  <label class="controles__ocupacion">
+    <input
+      type="number"
+      min={OCUPACION_MINIMA}
+      max={OCUPACION_MAXIMA}
+      step="1"
+      inputmode="numeric"
+      bind:value={textoOcupacion}
+      on:focus={() => (editando = true)}
+      on:blur={aplicarOcupacion}
+      on:keydown={(e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          aplicarOcupacion();
+          e.currentTarget.blur();
+        }
+      }}
+      aria-label={$_('app.projection.key_size')}
+      title={$_('app.projection.key_size')}
+    />
+    <span aria-hidden="true">%</span>
+  </label>
   <button type="button" on:click={onMasGrande} aria-label={$_('app.projection.key_size')}><Icon name="plus" /></button>
   <button
     type="button"
@@ -226,6 +280,54 @@
     background: rgba(255, 255, 255, 0.2) !important;
   }
 
+  // El campo y su «%», como una sola pieza. Colores fijos igual que el resto de
+  // la botonera: se pinta sobre la lámina, que tiene su propio fondo.
+  .controles__ocupacion {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.1rem;
+    padding: 0 0.35rem;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: var(--radius-pill);
+    color: #f2f4f7;
+    font-size: 0.78rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    // «100 %» no puede partirse en dos renglones y doblar el alto de la barra.
+    white-space: nowrap;
+
+    &:focus-within {
+      border-color: rgba(255, 255, 255, 0.55);
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    input {
+      width: 2.1rem;
+      height: 1.9rem;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      text-align: right;
+      // Sin las flechitas del navegador: ya están los botones + y −, y arriba y
+      // abajo cambian de versículo aunque el foco esté aquí, así que un
+      // incrementador que no responde a las flechas sólo confundiría.
+      appearance: textfield;
+      -moz-appearance: textfield;
+
+      &::-webkit-outer-spin-button,
+      &::-webkit-inner-spin-button {
+        appearance: none;
+        margin: 0;
+      }
+
+      &:focus {
+        outline: none;
+      }
+    }
+  }
+
   .controles__posicion {
     padding: 0 0.35rem;
     color: #98a2b3;
@@ -270,6 +372,16 @@
     .controles__posicion {
       padding: 0 0.25rem;
       font-size: 0.72rem;
+    }
+
+    .controles__ocupacion {
+      padding: 0 0.2rem;
+      font-size: 0.68rem;
+
+      input {
+        width: 1.7rem;
+        height: 1.7rem;
+      }
     }
 
     // El panel se apoya justo encima de los controles, también centrado.

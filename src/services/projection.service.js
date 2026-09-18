@@ -29,15 +29,38 @@ export const ANIMACIONES = ['none', 'fade', 'slide', 'zoom'];
  * pantalla 16:9 el texto apilado deja menos alto para cada uno, y en una
  * congregación mixta interesa que el idioma de la mayoría sea el grande.
  */
+/**
+ * Cuánto de la pantalla ocupa el texto, en por ciento.
+ *
+ * NO es un tamaño de letra: la lámina mide cada versículo y busca el cuerpo más
+ * grande que quepa en ese porcentaje de la pantalla. Un multiplicador fijo no
+ * servía, porque un versículo de seis palabras y otro de sesenta salían con la
+ * misma letra y el corto se perdía en mitad de una pantalla vacía.
+ *
+ * El suelo es 30 y no 0: por debajo de eso no se lee desde la última fila, que
+ * es la única razón de ser de este modo.
+ *
+ * El 70 salió de verlo proyectado: al 80 el texto llegaba casi al borde y
+ * resultaba invasivo —una pantalla de iglesia se mira de lejos y necesita aire
+ * alrededor—. Se sube con la rueda o escribiéndolo cuando el pasaje lo pide.
+ */
+export const OCUPACION_POR_DEFECTO = 70;
+export const OCUPACION_MINIMA = 30;
+export const OCUPACION_MAXIMA = 100;
+
 export const POR_DEFECTO = {
   fondo: 'night', // de IMAGE_BACKGROUNDS
   animacion: 'fade',
-  escala: 1, // multiplicador del tamaño de letra
+  ocupacion: OCUPACION_POR_DEFECTO, // % de la pantalla que llena el texto
   segundoIdioma: false, // apagado: cargarlo baja otra Biblia de ~4 MB
   invertido: false, // true = el secundario pasa a ser el grande
 };
 
 const esFinito = (n) => typeof n === 'number' && Number.isFinite(n);
+
+/** Acota la ocupación al rango utilizable. Se usa al leer y al cambiarla. */
+export const acotarOcupacion = (n) =>
+  esFinito(n) ? Math.min(Math.max(Math.round(n), OCUPACION_MINIMA), OCUPACION_MAXIMA) : OCUPACION_POR_DEFECTO;
 
 /** Lee las preferencias guardadas, completadas con los valores por defecto. */
 export const cargarPreferencias = () => {
@@ -53,7 +76,11 @@ export const cargarPreferencias = () => {
       // animación que ya no existe dejaría la pantalla sin transición, y una
       // escala absurda haría que el texto no quepa y nadie sabría por qué.
       animacion: ANIMACIONES.includes(guardado?.animacion) ? guardado.animacion : POR_DEFECTO.animacion,
-      escala: esFinito(guardado?.escala) ? Math.min(Math.max(guardado.escala, 0.5), 2) : POR_DEFECTO.escala,
+      // Lo guardado antes del 18 sep 2026 era `escala`, un multiplicador entre
+      // 0,5 y 2. No se convierte: son dos cosas distintas y un 2 traducido a
+      // porcentaje no significa nada. Se cae al 80 % por defecto, que es lo que
+      // querría cualquiera que abra esto la primera vez.
+      ocupacion: acotarOcupacion(guardado?.ocupacion),
       segundoIdioma: !!guardado?.segundoIdioma,
       invertido: !!guardado?.invertido,
     };

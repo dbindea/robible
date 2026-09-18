@@ -28,11 +28,7 @@ function levenshtein(a, b) {
   for (let i = 1; i <= a.length; i++) {
     for (let j = 1; j <= b.length; j++) {
       const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-      matrix[i][j] = Math.min(
-        matrix[i - 1][j] + 1,
-        matrix[i][j - 1] + 1,
-        matrix[i - 1][j - 1] + cost,
-      );
+      matrix[i][j] = Math.min(matrix[i - 1][j] + 1, matrix[i][j - 1] + 1, matrix[i - 1][j - 1] + cost);
     }
   }
   return matrix[a.length][b.length];
@@ -304,6 +300,33 @@ function parseInputAll(input) {
   return interpretations;
 }
 
+// ── ¿Existe de verdad esa referencia? ───────────────────────────────
+//
+// El nombre del libro lo valida `map`, pero el capítulo y el versículo no los
+// valida nadie: con «ioan 4 4» salían las cuatro combinaciones —Ioan, 1, 2 y
+// 3 Ioan— y dos de ellas **no existen**, porque 2 Ioan y 3 Ioan tienen un solo
+// capítulo. En el buscador de la aplicación es ruido; en el modo proyección es
+// peor, porque se pulsa con prisa y delante de la congregación.
+//
+// Se comprueba contra la Biblia cargada y no contra una tabla de longitudes:
+// cada versión numera a su manera (CLAUDE.md, trampa 96) y una tabla se
+// quedaría vieja en cuanto se añada una edición.
+/**
+ * @param {Array} bible - la Biblia cargada: libros → capítulos → versículos
+ * @param {number} book - índice de libro (0-65)
+ * @param {number|null} chapter - número de capítulo (base 1), o null
+ * @param {number|null} verse - número de versículo (base 1), o null
+ */
+export function referenceExists(bible, book, chapter, verse) {
+  const chapters = bible?.[book];
+  if (!Array.isArray(chapters) || !chapters.length) return false;
+  if (chapter == null) return true;
+  const verses = chapters[chapter - 1];
+  if (!Array.isArray(verses) || !verses.length) return false;
+  if (verse == null) return true;
+  return verse >= 1 && verse <= verses.length;
+}
+
 // ── API principal ───────────────────────────────────────────────────
 /**
  * Busca referencias que coincidan con el input.
@@ -311,14 +334,22 @@ function parseInputAll(input) {
  * @param {string} input - Texto del usuario
  * @param {object} map - bible.map.json (libro → nombre)
  * @param {number} [maxResults=5] - Maximo de resultados a devolver
+ * @param {Array} [bible=null] - Biblia cargada. Si se pasa, se descartan las
+ *   referencias que no existen en ella. El filtro va DENTRO y no en el
+ *   llamante porque el corte a `maxResults` es lo primero que se hace: filtrando
+ *   después, las combinaciones imposibles se comían el sitio de las buenas.
  * @returns {Array<{book: number, name: string, chapter: number|null, verse: number|null}>}
  */
-export function searchReferences(input, map, maxResults = 5) {
+export function searchReferences(input, map, maxResults = 5, bible = null) {
   if (!input || !map) return [];
 
   // Generar TODAS las interpretaciones posibles
   const interpretations = parseInputAll(input);
   if (!interpretations.length) return [];
+
+  // Sin Biblia cargada no se filtra nada: es lo que pasa mientras se descarga,
+  // y quedarse sin sugerencias sería peor que enseñar alguna de más.
+  const validate = Array.isArray(bible) && bible.length > 0;
 
   const seen = new Set();
   const results = [];
@@ -331,6 +362,7 @@ export function searchReferences(input, map, maxResults = 5) {
       const key = `${m.book}-${chapter}-${verse}`;
       if (seen.has(key)) continue;
       seen.add(key);
+      if (validate && !referenceExists(bible, m.book, chapter, verse)) continue;
       results.push({
         book: m.book,
         name: m.name,
@@ -349,8 +381,8 @@ export function searchReferences(input, map, maxResults = 5) {
  * Parsea una entrada y devuelve un match unico si es inequivoco.
  * @returns {object|null} - Si solo hay 1 match con libro+cap+vers, lo devuelve
  */
-export function parseReference(input, map) {
-  const results = searchReferences(input, map, 5);
+export function parseReference(input, map, bible = null) {
+  const results = searchReferences(input, map, 5, bible);
   if (results.length === 1 && results[0].chapter && results[0].verse) {
     return results[0];
   }
