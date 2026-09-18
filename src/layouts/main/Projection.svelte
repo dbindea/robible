@@ -536,6 +536,57 @@
   // botones sólo se apagan cuando no hay nada proyectado.
   $: hayCapitulos = !!actual;
 
+  // ── Modo lectura del móvil ────────────────────────────────────────────────
+  //
+  // En un móvil esta pantalla no es un proyector: es alguien leyendo la Biblia
+  // con el versículo a toda página. Ahí, ir de uno en uno tocando media
+  // pantalla es peor que deslizar, así que la lámina se convierte en una lista
+  // encajada —una pantalla por versículo— que **no se acaba**: al llegar al
+  // final se engancha el capítulo siguiente, y después el libro siguiente.
+  //
+  // Sólo en el móvil y sólo proyectando en esta misma pantalla. En el proyector
+  // manda el operador, no el dedo, y un deslizamiento sin querer delante de la
+  // congregación es justo lo que no puede pasar.
+  let esMovil = false;
+  $: modoLectura = esMovil && modo === 'local' && !esPantalla;
+
+  /** Cuántos versículos antes del final se trae ya el capítulo siguiente. */
+  const MARGEN_LECTURA = 3;
+
+  $: versiculosLectura = modoLectura
+    ? pasajes.map((p) => ({
+        clave: `${p.book}-${p.chapter}-${p.verse}`,
+        principal: { texto: p.texto, referencia: p.referencia, version: versionConfig?.bibleName || '' },
+        secundario: prefs.segundoIdioma
+          ? {
+              texto: textoDeVersiculo(compareBible, $compareWithVersion, p.book, p.chapter, p.verse),
+              referencia: compareMap?.[p.book] ? `${compareMap[p.book]} ${p.chapter}:${p.verse}` : '',
+              version: versionSecundariaConfig?.bibleName || '',
+            }
+          : { texto: '', referencia: '', version: '' },
+      }))
+    : null;
+
+  /**
+   * Se ha deslizado hasta otro versículo.
+   *
+   * Además de mover el cursor, mira si queda poco para el final y engancha el
+   * capítulo siguiente. Se añade AL FINAL y nunca al principio: prepender
+   * obligaría a corregir el `scrollTop` en el mismo fotograma y el salto se ve.
+   * Hacia atrás se llega con las flechas de capítulo.
+   */
+  const alVerVersiculo = (visible) => {
+    if (visible < 0 || visible >= pasajes.length) return;
+    indice = visible;
+    if (!recorriendo || visible < pasajes.length - MARGEN_LECTURA) return;
+
+    const destino = capituloVecino(recorriendo, 1);
+    const lista = construirPasajes(destino.book, destino.chapter);
+    if (!lista.length) return;
+    recorriendo = destino;
+    pasajes = [...pasajes, ...lista];
+  };
+
   // ── Historial ─────────────────────────────────────────────────────────────
   //
   // Lo que ya se ha proyectado, para cuando el predicador vuelve sobre ello.
@@ -1154,34 +1205,50 @@
   // en la pantalla de la iglesia hasta el final del culto.
   const ESPERA_PANEL_MS = 9000;
 
+  // En el modo lectura la barra no se saca sin querer: se pide con un gesto
+  // aparte, así que aguanta más antes de irse. No hay puntero que la mantenga
+  // viva mientras se la mira, y cuatro segundos se acaban leyendo los iconos.
+  const ESPERA_LECTURA_MS = 8000;
+
   const mostrarControles = () => {
     controlesVisibles = true;
     clearTimeout(ocultarControlesTimer);
     // No se ocultan con el puntero encima: el operador está usándolos, y que se
     // desvanezcan mientras los miras es de las cosas que más enfadan.
-    ocultarControlesTimer = setTimeout(
-      () => {
-        if (punteroEncima) return;
-        panelAbierto = '';
-        controlesVisibles = false;
-      },
-      panelAbierto ? ESPERA_PANEL_MS : ESPERA_CONTROLES_MS,
-    );
+    const espera = panelAbierto ? ESPERA_PANEL_MS : modoLectura ? ESPERA_LECTURA_MS : ESPERA_CONTROLES_MS;
+    ocultarControlesTimer = setTimeout(() => {
+      if (punteroEncima) return;
+      panelAbierto = '';
+      controlesVisibles = false;
+    }, espera);
   };
 
   /**
-   * En el móvil, un TOQUE enseña la barra; un arrastre no.
+   * Los gestos del dedo, y son DOS reglas distintas.
    *
-   * Antes bastaba con `touchstart`, así que cualquier gesto la sacaba. Y esta
-   * pantalla se usa también para leer la Biblia en el móvil —con el dedo
-   * encima todo el rato—, así que la barra aparecía sola cada dos por tres
-   * justo encima de lo que se estaba leyendo.
+   * **Proyectando**, un TOQUE enseña la barra y un arrastre no. Antes bastaba
+   * con `touchstart`, así que cualquier gesto la sacaba. El umbral son 12 px:
+   * por debajo de eso nadie está arrastrando, es el temblor del pulgar.
    *
-   * El umbral son 12 px: por debajo de eso nadie está arrastrando, es el
-   * temblor normal del pulgar al tocar.
+   * **En el modo lectura** eso no vale, y por eso hay dos reglas. Ahí el dedo
+   * está en la pantalla todo el rato pasando versículos, y un golpe rápido
+   * —que recorre poco aunque lleve mucha velocidad— contaba como toque: la
+   * barra salía sola cada dos o tres versículos, justo encima de lo que se
+   * estaba leyendo. Así que leyendo **no se enseña con el toque**: se enseña y
+   * se esconde deslizando DE LADO, que es el único gesto que ahí no significa
+   * nada más, porque el scroll es vertical.
+   *
+   * Y entra por el lado hacia el que se ha deslizado: si el dedo va a la
+   * derecha, la barra viene de la izquierda, detrás de él.
    */
   const MOVIMIENTO_MAXIMO_TOQUE = 12;
+  /** Lo que hay que recorrer de lado para que cuente como gesto, no como roce. */
+  const DESLIZAMIENTO_MINIMO = 60;
   let toqueInicio = null;
+  /** 'izq' | 'der' — de qué borde entra la barra. */
+  let ladoControles = 'der';
+  /** La pista del gesto, hasta que se usa por primera vez. */
+  let pistaGesto = true;
 
   const alEmpezarToque = (e) => {
     const t = e.touches?.[0];
@@ -1191,9 +1258,28 @@
   const alTerminarToque = (e) => {
     if (!toqueInicio) return;
     const t = e.changedTouches?.[0];
-    const recorrido = t ? Math.hypot(t.clientX - toqueInicio.x, t.clientY - toqueInicio.y) : 0;
+    const dx = t ? t.clientX - toqueInicio.x : 0;
+    const dy = t ? t.clientY - toqueInicio.y : 0;
     toqueInicio = null;
-    if (recorrido < MOVIMIENTO_MAXIMO_TOQUE) mostrarControles();
+    if (!t) return;
+
+    if (!modoLectura) {
+      if (Math.hypot(dx, dy) < MOVIMIENTO_MAXIMO_TOQUE) mostrarControles();
+      return;
+    }
+
+    // De lado y con intención: el `1.4` descarta las diagonales de un scroll
+    // vertical hecho con el pulgar, que siempre se va un poco de lado.
+    if (Math.abs(dx) < DESLIZAMIENTO_MINIMO || Math.abs(dx) < Math.abs(dy) * 1.4) return;
+    pistaGesto = false;
+    if (controlesVisibles) {
+      clearTimeout(ocultarControlesTimer);
+      panelAbierto = '';
+      controlesVisibles = false;
+      return;
+    }
+    ladoControles = dx > 0 ? 'izq' : 'der';
+    mostrarControles();
   };
 
   const entrarEnControles = () => {
@@ -1345,6 +1431,12 @@
     // Si quedó encendido el segundo idioma de una sesión anterior, hay que
     // volver a pedir la Biblia: `compareWithVersion` arranca en null.
     if (prefs.segundoIdioma) initCompareVersion();
+    // El modo lectura depende del ancho, y el ancho cambia al girar el móvil.
+    const anchoMovil = window.matchMedia('(max-width: 40rem)');
+    const mirarAncho = () => (esMovil = anchoMovil.matches);
+    mirarAncho();
+    anchoMovil.addEventListener('change', mirarAncho);
+
     window.addEventListener('keydown', alPulsarTecla);
     window.addEventListener('keyup', alSoltarTecla);
     // Un Mayús+clic no es un toque de Mayúsculas, y salir de la ventana con la
@@ -1352,6 +1444,7 @@
     window.addEventListener('mousedown', desarmarMayusculas);
     window.addEventListener('blur', desarmarMayusculas);
     return () => {
+      anchoMovil.removeEventListener('change', mirarAncho);
       window.removeEventListener('keydown', alPulsarTecla);
       window.removeEventListener('keyup', alSoltarTecla);
       window.removeEventListener('mousedown', desarmarMayusculas);
@@ -1816,6 +1909,9 @@
   {/if}
 {:else}
   <!-- ── Proyectando en ESTA pantalla ─────────────────────────────────── -->
+  <!-- `versiculos` sólo llega en el móvil: es lo que convierte la lámina en la
+       lista deslizable. La rueda se desconecta ahí, porque en ese modo desplaza
+       en vez de cambiar el tamaño — y en un móvil no hay rueda. -->
   <ProjectionSurface
     {principal}
     {secundario}
@@ -1825,18 +1921,33 @@
     {indice}
     {enNegro}
     {selloBlanco}
-    on:mousemove={mostrarControles}
+    versiculos={versiculosLectura}
+    onVisible={alVerVersiculo}
+    on:mousemove={modoLectura ? () => {} : mostrarControles}
     on:touchstart={alEmpezarToque}
     on:touchend={alTerminarToque}
-    on:wheel={alGirarRueda}
+    on:wheel={modoLectura ? () => {} : alGirarRueda}
   >
     <!-- Zonas de toque para avanzar sin teclado: la mitad derecha avanza, la
          izquierda retrocede. Invisibles a propósito — es una pantalla, no una
-         interfaz. -->
-    <button type="button" class="zona zona--anterior" aria-label={$_('app.projection.key_prev')} on:click={anterior}
-    ></button>
-    <button type="button" class="zona zona--siguiente" aria-label={$_('app.projection.key_next')} on:click={siguiente}
-    ></button>
+         interfaz.
+
+         En el modo lectura NO se ponen: van por encima de todo y se tragarían
+         el deslizamiento, que ahí es la forma de pasar de versículo. -->
+    {#if !modoLectura}
+      <button type="button" class="zona zona--anterior" aria-label={$_('app.projection.key_prev')} on:click={anterior}
+      ></button>
+      <button type="button" class="zona zona--siguiente" aria-label={$_('app.projection.key_next')} on:click={siguiente}
+      ></button>
+    {/if}
+
+    <!-- El gesto no se adivina, así que se dice una vez: sale con la barra
+         mientras no se haya usado, y desaparece para siempre en cuanto se
+         desliza. No se guarda en ningún sitio — que vuelva a salir en la
+         sesión siguiente no molesta a nadie y sí ayuda a quien lo olvidó. -->
+    {#if modoLectura && pistaGesto && controlesVisibles}
+      <p class="pista-gesto">{$_('app.projection.swipe_hint')}</p>
+    {/if}
 
     <ProjectionControls
       {prefs}
@@ -1844,6 +1955,7 @@
       {indice}
       total={pasajes.length}
       visibles={controlesVisibles}
+      lado={modoLectura ? ladoControles : ''}
       onPanel={alternarPanel}
       onSalir={salir}
       onMasGrande={masGrande}
@@ -2549,6 +2661,30 @@
       border-color: var(--color-danger);
       color: var(--color-danger-ink);
     }
+  }
+
+  // ── La pista del gesto (modo lectura) ─────────────────────────────────────
+  //
+  // Encima de la barra y con su mismo tratamiento: acompaña a los controles y
+  // se va con ellos. `pointer-events: none` porque queda sobre la zona por la
+  // que se desliza — es la lección de la pista de montaje, que se tragaba el
+  // único clic que explicaba.
+  .pista-gesto {
+    position: absolute;
+    left: 50%;
+    bottom: 4.1rem;
+    transform: translateX(-50%);
+    z-index: 3;
+    max-width: calc(100vw - 2rem);
+    margin: 0;
+    padding: 0.4rem 0.8rem;
+    border-radius: var(--radius-pill);
+    background: rgba(20, 24, 30, 0.86);
+    color: #f2f4f7;
+    font-size: 0.74rem;
+    font-weight: 600;
+    text-align: center;
+    pointer-events: none;
   }
 
   // ── Pantalla completa desde la ventana proyectada ─────────────────────────

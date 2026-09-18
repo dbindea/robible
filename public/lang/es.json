@@ -1080,7 +1080,8 @@
       "blank_image_clear": "Quitar la imagen",
       "blank_image_hint": "Aparece en lugar de la pantalla en negro. Se queda en este ordenador —no se envía a ninguna parte— y sigue ahí aunque cierres el navegador.",
       "blank_image_too_big": "La imagen es demasiado grande. Elige una de menos de 8 MB.",
-      "blank_image_invalid": "Ese archivo no es una imagen."
+      "blank_image_invalid": "Ese archivo no es una imagen.",
+      "swipe_hint": "Desliza a un lado para los controles"
     },
     "projection_landing": {
       "seo_title": "Proyección para iglesias | RoBible",

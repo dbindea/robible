@@ -16,7 +16,7 @@
    * los necesita tenga el operador puesta Sepia, Lumină o Nocturn. Cada fondo
    * trae su `ink` y su `accent` ya comprobados contra él.
    */
-  import { onDestroy, onMount } from 'svelte';
+  import { onDestroy, onMount, tick } from 'svelte';
   import { fade, fly, scale } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
   import { backgroundCss, getBackground } from '../services/verse-image.service';
@@ -42,6 +42,83 @@
    * su propio disco (ver `projection-blank.service.js`).
    */
   export let selloBlanco = '';
+
+  /**
+   * Modo lectura del móvil: la lista entera de versículos, uno por pantalla y
+   * con scroll.
+   *
+   * Cuando llega, la lámina deja de pintar un solo versículo y pinta una
+   * diapositiva por cada uno, encajadas con `scroll-snap`. Es el mismo marcado y
+   * los mismos estilos —por eso vive aquí y no en `Projection.svelte`—, sólo que
+   * repetido: duplicarlo fuera habría dejado dos láminas que se separan al
+   * primer ajuste.
+   *
+   * `null` en la ventana del proyector y en la consola: allí manda el operador,
+   * no el dedo.
+   */
+  export let versiculos = null;
+  /** Avisa de qué versículo ha quedado a la vista al desplazarse. */
+  export let onVisible = () => {};
+
+  $: esReel = Array.isArray(versiculos) && versiculos.length > 0;
+
+  /**
+   * La lista que se pinta, sea una lámina o doscientas.
+   *
+   * En proyección tiene un elemento; en el modo lectura, uno por versículo. Así
+   * el marcado de la lámina se escribe una sola vez.
+   */
+  $: laminas = esReel
+    ? versiculos
+    : principal.texto
+      ? [{ clave: `${principal.referencia}#${indice}`, principal, secundario }]
+      : [];
+
+  // ── Desplazamiento del modo lectura ───────────────────────────────────────
+  let cajaReel = null;
+  let ultimoVisible = -1;
+  let claveBase = '';
+
+  /**
+   * Qué versículo ha quedado encajado. Se deduce del `scrollTop` y no con un
+   * `IntersectionObserver` por diapositiva: con `scroll-snap` cada una mide
+   * exactamente una pantalla, así que una división da la respuesta exacta y sin
+   * doscientos observadores.
+   */
+  const alDesplazar = () => {
+    if (!esReel || !cajaReel) return;
+    const alto = cajaReel.clientHeight || 1;
+    const visible = Math.round(cajaReel.scrollTop / alto);
+    if (visible === ultimoVisible) return;
+    ultimoVisible = visible;
+    onVisible(visible);
+  };
+
+  /**
+   * Coloca la lista en el versículo elegido al entrar, y sólo entonces.
+   *
+   * Se dispara con la clave del PRIMER versículo, no con `indice`: `indice` lo
+   * mueve el propio desplazamiento, y volver a colocar en cada cambio sería
+   * pelearse con el dedo del usuario. Añadir el capítulo siguiente al final
+   * tampoco cambia esa clave, que es justo lo que hace posible el scroll
+   * infinito sin saltos.
+   */
+  const colocarReel = async (clave) => {
+    if (!clave || clave === claveBase) return;
+    claveBase = clave;
+    // Se espera al pintado ANTES de mirar el contenedor: la primera vez que
+    // esto corre, el `bind:this` todavía no se ha resuelto. Y el nodo se copia
+    // a una variable local antes de escribirle, o el analizador lo lee como
+    // «esta función modifica una variable reactiva» y avisa de un bucle que no
+    // existe — aquí sólo se mueve el scroll de un elemento.
+    await tick();
+    const caja = cajaReel;
+    if (!caja) return;
+    ultimoVisible = indice;
+    caja.scrollTop = indice * caja.clientHeight;
+  };
+
+  $: if (esReel) colocarReel(versiculos[0]?.clave);
 
   $: fondo = getBackground(fondoKey);
   $: fondoCss = backgroundCss(fondo);
@@ -131,11 +208,34 @@
    */
   const autoajustar = (nodo) => {
     let pendiente = 0;
+    // En el modo lectura hay una lámina por versículo y un capítulo son hasta
+    // 176: medirlas todas al montar son dos mil pasadas de maquetación de golpe
+    // y el móvil se queda pillado. Sólo se mide lo que está cerca de la
+    // ventana, y lo demás espera a que se acerque.
+    let cerca = true;
     const ajustar = () => {
+      if (!cerca) return;
       cancelAnimationFrame(pendiente);
       // Tras el pintado: antes de él la caja todavía no tiene su alto final.
       pendiente = requestAnimationFrame(() => medirYAjustar(nodo));
     };
+
+    let mirilla = null;
+    if (typeof IntersectionObserver !== 'undefined') {
+      cerca = false;
+      // Un margen de una pantalla por arriba y por abajo: cuando la diapositiva
+      // entra de verdad, ya está ajustada y no se ve crecer la letra.
+      mirilla = new IntersectionObserver(
+        (entradas) => {
+          const visible = entradas.some((e) => e.isIntersecting);
+          if (!visible || cerca) return;
+          cerca = true;
+          ajustar();
+        },
+        { rootMargin: '100% 0px' },
+      );
+      mirilla.observe(nodo);
+    }
 
     ajustar();
     // Con una tipografía que llega tarde, lo medido era la de sustitución y el
@@ -154,6 +254,7 @@
       destroy: () => {
         cancelAnimationFrame(pendiente);
         observador?.disconnect();
+        mirilla?.disconnect();
       },
     };
   };
@@ -240,59 +341,67 @@
     <img class="blanco" src={urlBlanco} alt="" />
   {/if}
 
-  {#if !enNegro && principal.texto}
-    <!-- `{#key}` vuelve a montar la lámina en cada versículo, que es lo que
-         dispara la transición de entrada. Sin él, Svelte reutiliza el nodo y
-         el texto cambia de golpe.
+  {#if !enNegro && laminas.length}
+    <!-- Un solo `{#each}` para los dos modos, y el marcado de la lámina escrito
+         UNA vez. En proyección la lista tiene un elemento; en el modo lectura
+         del móvil, uno por versículo. Duplicarlo habría dejado dos láminas que
+         se separan al primer ajuste, que es justo el motivo por el que este
+         componente existe.
 
-         Va la referencia ADEMÁS del índice: al pasar del último versículo de un
-         capítulo al primero del siguiente, el índice vuelve a 0 y en un capítulo
-         de un solo versículo sería 0 antes y 0 después — misma clave, ninguna
-         transición. Con la referencia delante, cada versículo tiene la suya. -->
-    {#key `${principal.referencia}#${indice}`}
-      <!-- `use:autoajustar` recibe los textos y la ocupación para que su
-           `update` se dispare cuando cambian: dentro no los usa, los mide del
-           DOM ya pintado. Sin pasárselos, cambiar la ocupación no reajustaría
-           nada hasta el versículo siguiente. -->
-      <figure
-        class="lamina"
-        class:lamina--dos={!!secundario.texto}
-        use:autoajustar={{ ocupacion, principal, secundario }}
-        in:animarEntrada|global={{ tipo: animacion }}
-      >
-        <!-- Cada texto con SU referencia justo debajo, y la versión entre
-             paréntesis. Hasta el 18 sep 2026 había una sola referencia al pie
-             de la lámina y sin nombre de versión: con dos idiomas en pantalla
-             eso no vale, porque la referencia de arriba parecía la de los dos
-             textos y nada decía qué Biblia era cada uno. -->
-        <div class="bloque">
-          <blockquote class="lamina__texto">{principal.texto}</blockquote>
-          <p class="lamina__ref">
-            {principal.referencia}
-            {#if principal.version}
-              <span class="lamina__version">({principal.version})</span>
+         La clave hace de `{#key}`: al cambiar, Svelte destruye el bloque y crea
+         otro, que es lo que dispara la transición de entrada. Lleva la
+         referencia ADEMÁS del índice porque al pasar al capítulo siguiente el
+         índice vuelve a 0, y en un capítulo de un solo versículo sería 0 antes
+         y 0 después — misma clave, ninguna transición. -->
+    <div class="reel" class:reel--scroll={esReel} bind:this={cajaReel} on:scroll={alDesplazar}>
+      {#each laminas as l (l.clave)}
+        <div class="diapo">
+          <!-- `use:autoajustar` recibe los textos y la ocupación para que su
+               `update` se dispare cuando cambian: dentro no los usa, los mide
+               del DOM ya pintado. Sin pasárselos, cambiar la ocupación no
+               reajustaría nada hasta el versículo siguiente. -->
+          <figure
+            class="lamina"
+            class:lamina--dos={!!l.secundario?.texto}
+            use:autoajustar={{ ocupacion, l }}
+            in:animarEntrada|global={{ tipo: esReel ? 'none' : animacion }}
+          >
+            <!-- Cada texto con SU referencia justo debajo, y la versión entre
+                 paréntesis. Hasta el 18 sep 2026 había una sola referencia al
+                 pie de la lámina y sin nombre de versión: con dos idiomas en
+                 pantalla eso no vale, porque la referencia de arriba parecía la
+                 de los dos textos y nada decía qué Biblia era cada uno. -->
+            <div class="bloque">
+              <blockquote class="lamina__texto">{l.principal.texto}</blockquote>
+              <p class="lamina__ref">
+                {l.principal.referencia}
+                {#if l.principal.version}
+                  <span class="lamina__version">({l.principal.version})</span>
+                {/if}
+              </p>
+            </div>
+
+            {#if l.secundario?.texto}
+              <!-- El mismo filete corto y centrado que lleva la imagen para
+                   compartir encima de la referencia. Aquí separa los dos
+                   idiomas: pegados, y con el segundo ya bastante más pequeño,
+                   se leían como un solo párrafo que cambia de letra a media
+                   frase. -->
+              <hr class="lamina__filete" />
+              <div class="bloque bloque--secundario">
+                <blockquote class="lamina__texto lamina__texto--secundario">{l.secundario.texto}</blockquote>
+                <p class="lamina__ref lamina__ref--secundaria">
+                  {l.secundario.referencia}
+                  {#if l.secundario.version}
+                    <span class="lamina__version">({l.secundario.version})</span>
+                  {/if}
+                </p>
+              </div>
             {/if}
-          </p>
+          </figure>
         </div>
-
-        {#if secundario.texto}
-          <!-- El mismo filete corto y centrado que lleva la imagen para
-               compartir encima de la referencia. Aquí separa los dos idiomas:
-               pegados, y con el segundo ya bastante más pequeño, se leían como
-               un solo párrafo que cambia de letra a media frase. -->
-          <hr class="lamina__filete" />
-          <div class="bloque bloque--secundario">
-            <blockquote class="lamina__texto lamina__texto--secundario">{secundario.texto}</blockquote>
-            <p class="lamina__ref lamina__ref--secundaria">
-              {secundario.referencia}
-              {#if secundario.version}
-                <span class="lamina__version">({secundario.version})</span>
-              {/if}
-            </p>
-          </div>
-        {/if}
-      </figure>
-    {/key}
+      {/each}
+    </div>
   {/if}
 
   <!-- Controles, zonas táctiles y paneles: sólo los pone la ventana del
@@ -316,13 +425,13 @@
 </div>
 
 <style lang="scss">
+  // Sin `padding`: lo pone `.diapo`, que es quien contiene la lámina. Aquí
+  // sumaría al `inset: 0` del carril y dejaría el texto en una caja más
+  // estrecha de lo pedido.
   .proyeccion {
     position: fixed;
     inset: 0;
     z-index: 200;
-    display: grid;
-    place-items: center;
-    padding: clamp(1.5rem, 5vw, 4rem);
     background: var(--fondo, #0b0d10);
     color: var(--tinta, #f2f4f7);
     cursor: default;
@@ -654,7 +763,7 @@
     background-repeat: no-repeat;
     background-size: 150% 120%;
     background-position: 50% 100%;
-    animation: vapor-a 23s ease-in-out infinite alternate;
+    animation: vapor-a 15s ease-in-out infinite alternate;
   }
 
   .proyeccion--mist::after {
@@ -667,26 +776,37 @@
     background-repeat: no-repeat;
     background-size: 190% 140%;
     background-position: 50% 100%;
-    animation: vapor-b 31s ease-in-out infinite alternate;
+    animation: vapor-b 19s ease-in-out infinite alternate;
   }
 
   // Sube y se abre: el recorrido vertical manda sobre el lateral, y la escala
   // ensancha el penacho conforme sube, como hace el humo de verdad.
+  //
+  // El recorrido se amplió y los ciclos se acortaron el 18 sep 2026: con 20 %
+  // de subida en 23 segundos, un versículo que está en pantalla entre cinco y
+  // diez recorría una octava parte del ciclo y el campo parecía una foto. Ahora
+  // sube un 31 % en 15 segundos, que es casi cuatro veces más deprisa por
+  // segundo visible.
+  //
+  // El tope del recorrido son 16 %, y no es un número redondo: las capas llevan
+  // `inset: -25%`, así que miden el 150 % del contenedor y un 16 % de su propio
+  // alto son 24 % del contenedor — justo por dentro del sangrado. Más allá
+  // asomaría el borde de la capa por abajo.
   @keyframes vapor-a {
     from {
-      transform: translate3d(-2%, 9%, 0) rotate(-1deg) scale(1);
+      transform: translate3d(-4%, 15%, 0) rotate(-1.6deg) scale(1);
     }
     to {
-      transform: translate3d(2%, -11%, 0) rotate(1deg) scale(1.22);
+      transform: translate3d(4%, -16%, 0) rotate(1.6deg) scale(1.3);
     }
   }
 
   @keyframes vapor-b {
     from {
-      transform: translate3d(3%, 7%, 0) rotate(1.4deg) scale(1.16);
+      transform: translate3d(5%, 13%, 0) rotate(2.2deg) scale(1.24);
     }
     to {
-      transform: translate3d(-3%, -12%, 0) rotate(-1.4deg) scale(1);
+      transform: translate3d(-5%, -16%, 0) rotate(-2.2deg) scale(1);
     }
   }
   // Deriva y un punto de escala: las nubes se separan y se juntan sin llegar a
@@ -729,9 +849,45 @@
   // `overflow: hidden` no es sólo estética: es lo que hace que `scrollHeight`
   // signifique «cuánto ocuparía» y `clientHeight` «cuánto cabe». Sin él la
   // medida no distingue una cosa de la otra.
+  // El carril de las láminas. Con una sola es un contenedor centrado y no hace
+  // nada; con la lista del modo lectura se convierte en el scroll.
+  //
+  // `inset: 0` se resuelve contra la caja de relleno del padre, o sea que cubre
+  // también su relleno: por eso el aire alrededor del texto lo pone `.diapo` y
+  // `.proyeccion` se queda sin `padding`. Puestos los dos, se sumaban.
+  .reel {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+  }
+
+  .reel--scroll {
+    overflow-y: auto;
+    // Una pantalla por versículo, encajada: es lo que hace que se lea como un
+    // pase y no como una página larga en la que el texto se parte por la mitad.
+    scroll-snap-type: y mandatory;
+    -webkit-overflow-scrolling: touch;
+    // Sin barra a la vista: es una pantalla de lectura, no un documento.
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  .diapo {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+    // El relleno que antes llevaba `.proyeccion`.
+    padding: clamp(1.5rem, 5vw, 4rem);
+    scroll-snap-align: center;
+    scroll-snap-stop: always;
+  }
+
   .lamina {
     position: relative;
-    z-index: 1;
     width: min(100%, calc(var(--ocupacion, 80) * 1vw));
     max-height: min(100%, calc(var(--ocupacion, 80) * 1vh));
     overflow: hidden;
@@ -885,11 +1041,24 @@
   // En vertical, el relleno lateral de escritorio se comía media línea por
   // lado. El de abajo reserva la franja de los controles.
   @media (max-width: 40rem) {
-    .proyeccion {
+    .diapo {
       padding: 1.25rem 1rem 4.5rem;
     }
 
+    // **En el móvil el ancho lo manda la pantalla, no la ocupación.**
+    //
+    // En vertical, el 70 % de 390 px son 273 px: el texto salía en una columna
+    // estrecha, con seis o siete letras por línea y quince líneas, y el
+    // autoajuste tenía que bajar el cuerpo para que cupieran. El resultado eran
+    // palabras grandes en una tira larguísima — lo contrario de lo que se
+    // quiere.
+    //
+    // Con el ancho entero, cada línea lleva el triple de texto, hacen falta
+    // muchas menos líneas y el autoajuste puede subir el cuerpo. Es lo que hace
+    // la imagen para compartir, que usa el 78 % del ancho del lienzo y reparte
+    // el resto como margen. La ocupación sigue gobernando el ALTO.
     .lamina {
+      width: 100%;
       max-width: 100%;
     }
   }
