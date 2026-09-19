@@ -398,7 +398,10 @@
       "volume_music": "音乐",
       "ambient_ebraica": "希伯来",
       "ambient_rugaciune": "祷告",
-      "ambient_liniste": "宁静"
+      "ambient_liniste": "宁静",
+      "scroll_hint": "滑动逐节阅读圣经",
+      "cta_hide": "隐藏按钮",
+      "cta_show": "显示按钮"
     },
     "highlights": {
       "eyebrow": "标记",
@@ -1064,7 +1067,7 @@
       "yield": "让出屏幕",
       "resume": "收回投影屏幕",
       "screen_free": "投影屏幕已让出",
-      "screen_free_hint": "投影窗口已关闭：投影上显示电脑自己的桌面，其他程序可以切到前面。收回时，窗口会自动在原处重新打开，仍是同一节经文。",
+      "screen_free_hint": "投影窗口已移到笔记本上，投影屏幕空出来给别的程序。要收回时，点击那个小窗口——它会自动全屏回到投影屏幕，不用按 F11。",
       "session_end": "结束投影",
       "key_yield": "让出／收回投影屏幕",
       "keys_arrows_hint": "上下切换经节，左右切换章。即使正在搜索框里打字，↑ 和 ↓ 也能用，可以在不中断投影的情况下准备下一处引用；← 和 → 留给文本中移动光标。",
@@ -1088,7 +1091,9 @@
       "blank_image_invalid": "该文件不是图片。",
       "swipe_hint": "左右滑动可显示控件",
       "scroll_seo_title": "滚动读经 | RoBible",
-      "scroll_seo_description": "整屏逐节阅读圣经，用手指滑动即可。"
+      "scroll_seo_description": "整屏逐节阅读圣经，用手指滑动即可。",
+      "aside_back": "回到投影屏幕",
+      "aside_hint": "窗口已让开。点击这里让它全屏回到投影屏幕。"
     },
     "projection_landing": {
       "seo_title": "教会投影 | RoBible",

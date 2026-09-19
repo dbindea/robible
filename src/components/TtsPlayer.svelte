@@ -8,6 +8,7 @@
   // aplicación y no dejaba pulsarla, y es de las pocas cosas que justifican
   // registrarse en una Biblia que por lo demás no pide nada.
   import { isAuthenticated } from '../store/authStore';
+  import { navegarA } from '../services/navigation.service';
   import {
     ttsState,
     ttsPanelOpen,
@@ -38,6 +39,34 @@
   $: isPlaying = state.playing;
   $: isPaused = state.paused;
   $: available = musicService.isAvailable();
+
+  // ── La píldora plegable ───────────────────────────────────────────────────
+  //
+  // Se recuerda en el dispositivo, sin backend: es una preferencia de «cómo
+  // quiero ver ESTA pantalla», del mismo orden que el fondo de la proyección, y
+  // sincronizarla con el móvil del pastor no serviría de nada. Todo silencioso:
+  // sin `localStorage` se ve desplegada, que es el valor por defecto.
+  const CLAVE_CTA = 'robible:cta-plegada';
+
+  const leerCta = () => {
+    if (typeof window === 'undefined') return false;
+    try {
+      return localStorage.getItem(CLAVE_CTA) === '1';
+    } catch {
+      return false;
+    }
+  };
+
+  let ctaPlegada = leerCta();
+
+  const alternarCta = () => {
+    ctaPlegada = !ctaPlegada;
+    try {
+      localStorage.setItem(CLAVE_CTA, ctaPlegada ? '1' : '0');
+    } catch {
+      /* sin almacenamiento se pliega igual, sólo que no lo recuerda */
+    }
+  };
   $: isActive = isPlaying || isPaused;
 
   const SPEED_OPTIONS = [
@@ -364,20 +393,62 @@
       </div>
     {/if}
   </div>
-{:else if available && playlist.length && !isActive && $isAuthenticated}
-  <!-- ── BOTÓN DE INICIO — centrado abajo ──
-     Se muestra siempre que haya algo que leer en pantalla: un capítulo, o los
-     resultados de una búsqueda, y SÓLO con la sesión iniciada. -->
-  <button
-    type="button"
-    class="tts-start-btn tts-start-btn--music tts-start-btn--centered"
-    on:click={startPlayback}
-    aria-label={$_('app.tts.start')}
-    title={$_('app.tts.start_hint')}
-  >
-    <Icon name="music" />
-    <span>{$_('app.tts.start')}</span>
-  </button>
+{:else if playlist.length && !isActive}
+  <!-- ── LAS DOS FORMAS DE LEER — centradas abajo ──
+       Una sola píldora partida en dos: a la izquierda ScrollBible, que lleva a
+       la Biblia a scroll, y a la derecha MusicBible, que enciende la música.
+       Cada mitad con su color, porque son dos cosas distintas y no dos estados
+       de la misma.
+
+       **La mitad de scroll sale siempre**; la de música sólo con sesión
+       iniciada y con audio disponible, que es como estaba. Antes el botón
+       entero dependía de las dos condiciones, así que quien no había entrado
+       no veía nada aquí abajo — y lo que se quiere empujar es justamente lo que
+       no pide cuenta.
+
+       Todo se puede plegar con el asa: hay quien lee sin querer nada encima del
+       texto, y la preferencia se recuerda. -->
+  <div class="duo" class:duo--plegado={ctaPlegada}>
+    <div class="duo__par">
+      <button
+        type="button"
+        class="duo__mitad duo__mitad--scroll"
+        on:click={() => navegarA('/scroll')}
+        title={$_('app.tts.scroll_hint')}
+      >
+        <Icon name="scroll" />
+        <span>ScrollBible</span>
+      </button>
+
+      {#if available && $isAuthenticated}
+        <button
+          type="button"
+          class="duo__mitad duo__mitad--musica"
+          on:click={startPlayback}
+          title={$_('app.tts.start_hint')}
+        >
+          <Icon name="music" />
+          <span>MusicBible</span>
+        </button>
+      {/if}
+    </div>
+
+    <!-- El asa se queda siempre: es la única forma de recuperar lo plegado, y
+         ocupa lo que ocupa un pulgar y nada más. `class:` no compila sobre
+         <Icon>, así que el giro va en el <span> que lo envuelve. -->
+    <button
+      type="button"
+      class="duo__asa"
+      aria-expanded={!ctaPlegada}
+      aria-label={ctaPlegada ? $_('app.tts.cta_show') : $_('app.tts.cta_hide')}
+      title={ctaPlegada ? $_('app.tts.cta_show') : $_('app.tts.cta_hide')}
+      on:click={alternarCta}
+    >
+      <span class="duo__chevron" class:duo__chevron--abajo={!ctaPlegada}>
+        <Icon name="chevron-up" />
+      </span>
+    </button>
+  </div>
 {/if}
 
 <style lang="scss">
@@ -709,79 +780,127 @@
     min-width: 0;
   }
 
-  // ── START BUTTONS (idle state) ─────────────────────────────────────────────
-  .tts-start-btn {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.5rem 0.9rem 0.5rem 0.65rem;
-    background: var(--color-accent-solid);
-    color: var(--color-on-primary);
-    border: none;
-    border-radius: 2rem;
-    cursor: pointer;
-    font-size: 0.8rem;
-    font-weight: 600;
-    box-shadow: 0 4px 16px color-mix(in srgb, var(--color-accent) 35%, transparent);
-    transition:
-      transform var(--motion-base),
-      box-shadow var(--motion-base);
-
-    // El tamaño va al contenedor: una regla `svg` de aquí no alcanza al
-    // <svg> de Icon.svelte, que lleva otra clase de scope.
-    --icon-size: 1rem;
-
-    &:hover {
-      transform: scale(1.05);
-      box-shadow: 0 6px 20px color-mix(in srgb, var(--color-accent) 45%, transparent);
-    }
-    &:active {
-      transform: scale(0.96);
-    }
-  }
-
-  .tts-start-btn--music {
-    background: var(--color-success-solid);
-    box-shadow: 0 4px 16px color-mix(in srgb, var(--color-success) 35%, transparent);
-
-    &:hover {
-      box-shadow: 0 6px 20px color-mix(in srgb, var(--color-success) 45%, transparent);
-    }
-  }
-
-  // Boton centrado abajo (mitad de pantalla horizontalmente, parte inferior)
-  .tts-start-btn--centered {
+  // ── La píldora de las dos formas de leer ──────────────────────────────────
+  //
+  // Va donde iba el botón único: a la misma altura que los otros dos flotantes,
+  // los tres en la fila más baja de la pantalla.
+  .duo {
     position: fixed;
     left: 50%;
-    // A la misma altura que los otros dos flotantes: los tres forman la fila
-    // más baja de la pantalla, por debajo de los botones del pie.
     bottom: calc(1rem + var(--player-offset, 0px));
     transform: translateX(-50%);
     z-index: 60;
-    padding: 0.75rem 1.5rem 0.75rem 1.2rem;
-    font-size: 0.9rem;
-    box-shadow: 0 6px 24px color-mix(in srgb, var(--color-success) 40%, transparent);
-    border-radius: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
 
+  // Las dos mitades, pegadas y con un filete entre ellas: se leen como una sola
+  // pieza partida y no como dos botones que han quedado cerca.
+  .duo__par {
+    display: flex;
+    border-radius: 2rem;
+    overflow: hidden;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.22);
+    transition:
+      transform var(--motion-slow, 320ms) cubic-bezier(0.22, 0.61, 0.36, 1),
+      opacity 200ms ease;
+  }
+
+  // Plegada: se va por abajo del todo y deja sólo el asa. `pointer-events` a
+  // `none` o seguiría recibiendo pulsaciones invisibles justo donde ya no está.
+  .duo--plegado .duo__par {
+    transform: translateY(calc(100% + 2.5rem));
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .duo__mitad {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.75rem 1.25rem;
+    border: 0;
+    color: var(--color-on-primary);
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 700;
+    white-space: nowrap;
+    cursor: pointer;
     // El tamaño va al contenedor: una regla `svg` de aquí no alcanza al
     // <svg> de Icon.svelte, que lleva otra clase de scope.
-    --icon-size: 1.2rem;
+    --icon-size: 1.15rem;
+    transition: filter var(--motion-base) ease;
 
     &:hover {
-      transform: translateX(-50%) scale(1.05);
-      box-shadow: 0 8px 32px color-mix(in srgb, var(--color-success) 50%, transparent);
+      filter: brightness(1.08);
     }
     &:active {
-      transform: translateX(-50%) scale(0.96);
+      filter: brightness(0.94);
+    }
+  }
+
+  // Relleno de acento y de éxito, no los tokens a secas: los dos llevan texto
+  // encima y `--color-accent` da 3.30:1, por debajo del 4.5:1 que pide AA.
+  .duo__mitad--scroll {
+    background: var(--color-accent-solid);
+  }
+
+  .duo__mitad--musica {
+    background: var(--color-success-solid);
+    // El filete que parte la píldora. Va del lado de la música para que sea
+    // una línea sola aunque la mitad de scroll vaya sin hermana.
+    box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.35);
+  }
+
+  // El asa se queda siempre, plegada o no: es la única forma de recuperar lo
+  // escondido. Discreta —superficie y filete, no acento— porque no es una
+  // acción que se busque, es una que se encuentra cuando hace falta.
+  .duo__asa {
+    display: inline-grid;
+    place-items: center;
+    // 2.25rem = 36 px, por encima del mínimo de 24 px de WCAG 2.5.8.
+    width: 2.25rem;
+    height: 2.25rem;
+    border: 1px solid var(--color-line-strong);
+    border-radius: 50%;
+    background: var(--color-surface);
+    color: var(--color-ink-soft);
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
+    --icon-size: 1rem;
+
+    &:hover {
+      color: var(--color-accent-ink);
+      border-color: var(--color-accent);
+    }
+  }
+
+  .duo__chevron {
+    display: inline-grid;
+    place-items: center;
+    transition: transform var(--motion-base) ease;
+  }
+
+  .duo__chevron--abajo {
+    transform: rotate(180deg);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .duo__par,
+    .duo__chevron {
+      transition: none;
+    }
+  }
+
+  @media (max-width: 40rem) {
+    .duo {
+      bottom: 1.25rem;
     }
 
-    @media (max-width: 40rem) {
-      bottom: 1.25rem;
-      padding: 0.6rem 1rem 0.6rem 0.8rem;
+    .duo__mitad {
+      padding: 0.6rem 0.85rem;
       font-size: 0.8rem;
-
-      // El tamaño va al contenedor: una regla `svg` de aquí no alcanza al
-      // <svg> de Icon.svelte, que lleva otra clase de scope.
       --icon-size: 1rem;
     }
   }

@@ -398,7 +398,10 @@
       "volume_music": "Música",
       "ambient_ebraica": "hebrea",
       "ambient_rugaciune": "oración",
-      "ambient_liniste": "calma"
+      "ambient_liniste": "calma",
+      "scroll_hint": "Lee la Biblia versículo a versículo, deslizando",
+      "cta_hide": "Ocultar los botones",
+      "cta_show": "Mostrar los botones"
     },
     "highlights": {
       "eyebrow": "Subrayado",
@@ -1064,7 +1067,7 @@
       "yield": "Ceder la pantalla",
       "resume": "Recuperar el proyector",
       "screen_free": "El proyector está libre",
-      "screen_free_hint": "La ventana de proyección se ha cerrado: en el proyector se ve el fondo del ordenador y cualquier otro programa puede ponerse delante. Al volver, la ventana se abre sola en el mismo sitio y con el mismo versículo.",
+      "screen_free_hint": "La ventana de proyección se ha apartado al portátil: el proyector queda libre para otro programa. Para volver, pulsa en la ventana pequeña — vuelve sola al proyector y a pantalla completa, sin F11.",
       "session_end": "Terminar la proyección",
       "key_yield": "Ceder / recuperar el proyector",
       "keys_arrows_hint": "En vertical cambias de versículo y en horizontal de capítulo. ↑ y ↓ funcionan aunque estés escribiendo en el buscador, para preparar la referencia siguiente sin cortar la proyección; ← y → se quedan para mover el cursor dentro del texto.",
@@ -1088,7 +1091,9 @@
       "blank_image_invalid": "Ese archivo no es una imagen.",
       "swipe_hint": "Desliza a un lado para los controles",
       "scroll_seo_title": "Biblia en scroll | RoBible",
-      "scroll_seo_description": "Lee la Biblia versículo a versículo, a pantalla completa, deslizando con el dedo."
+      "scroll_seo_description": "Lee la Biblia versículo a versículo, a pantalla completa, deslizando con el dedo.",
+      "aside_back": "Volver al proyector",
+      "aside_hint": "La ventana se ha apartado. Pulsa aquí para devolverla al proyector, a pantalla completa."
     },
     "projection_landing": {
       "seo_title": "Proyección para iglesias | RoBible",
