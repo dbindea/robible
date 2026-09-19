@@ -54,19 +54,18 @@ export const MENSAJES = {
   CERRANDO: 'cerrando',
   TECLA: 'tecla',
   /**
-   * control → pantalla: «apártate del proyector».
+   * control → pantalla: «libera el proyector».
    *
-   * Existe porque **una ventana no se puede abrir ya a pantalla completa**: eso
-   * exige activación del usuario en ESE documento, y una ventana recién abierta
-   * no la tiene. Chrome lo probó con un `windowFeature` y abandonó el
-   * experimento en 2024. Así que la ventana **no se cierra**: se sale de
-   * pantalla completa, se encoge y se muda a la pantalla del portátil. Sigue
-   * viva, y por eso un clic suyo basta para volver al proyector a pantalla
-   * completa — la activación la pone ese clic.
+   * La ventana se cierra a sí misma. Cerrarla es lo único que libera la
+   * pantalla de verdad: una ventana, aunque esté en negro, sigue tapando lo que
+   * haya debajo y ningún otro programa puede ponerse delante.
+   *
+   * Hubo una versión en la que en vez de cerrarse se apartaba al portátil —para
+   * que un clic suyo la devolviera al proyector sin pasar por F11— y se retiró
+   * el 19 sep 2026: la ventanita tapaba la consola y dejaba al operador sin
+   * poder trabajar, que es peor que el clic que venía a ahorrar.
    */
   CEDER: 'ceder',
-  /** pantalla → control: 'proyector' | 'apartada'. Para que la consola lo diga. */
-  VENTANA: 'ventana',
 };
 
 /**
