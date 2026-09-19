@@ -99,6 +99,42 @@ export const guardarPreferencias = (prefs) => {
   }
 };
 
+// ── De dónde se entró a la Biblia a scroll ──────────────────────────────────
+//
+// `/scroll` tapa la pantalla entera, así que al salir hay que devolver a la
+// persona a donde estaba: al capítulo que leía, a los resultados de su
+// búsqueda. Sin esto se quedaba en la antesala de la proyección —con su
+// buscador y sus botones de proyector— que no es ni de lejos lo que venía a
+// hacer quien sólo estaba leyendo.
+//
+// En `sessionStorage` y no en `localStorage`: es de este viaje, no del
+// dispositivo. Si mañana abre `/scroll` desde un enlace, lo que hubiera
+// guardado la semana pasada no significa nada.
+
+const CLAVE_ORIGEN = 'robible:scroll:origen';
+
+/** Se llama JUSTO ANTES de navegar a `/scroll`, que es cuando aún se sabe. */
+export const guardarOrigenScroll = (href) => {
+  if (typeof window === 'undefined') return;
+  try {
+    // Guardarse a sí misma sería un bucle: salir devolvería a `/scroll`.
+    if (!href || href.startsWith('/scroll')) return;
+    sessionStorage.setItem(CLAVE_ORIGEN, href);
+  } catch {
+    /* sin sessionStorage se sale a la portada, que tampoco es un mal sitio */
+  }
+};
+
+/** A dónde volver. Cadena vacía si no se sabe: el llamante decide el destino. */
+export const leerOrigenScroll = () => {
+  if (typeof window === 'undefined') return '';
+  try {
+    return sessionStorage.getItem(CLAVE_ORIGEN) || '';
+  } catch {
+    return '';
+  }
+};
+
 // ── Dónde está el proyector ─────────────────────────────────────────────────
 //
 // Colocar la ventana en el segundo monitor es lo único caro de todo esto: o lo
