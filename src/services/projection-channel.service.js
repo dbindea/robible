@@ -53,6 +53,20 @@ export const MENSAJES = {
   LISTO: 'listo',
   CERRANDO: 'cerrando',
   TECLA: 'tecla',
+  /**
+   * control → pantalla: «apártate del proyector».
+   *
+   * Existe porque **una ventana no se puede abrir ya a pantalla completa**: eso
+   * exige activación del usuario en ESE documento, y una ventana recién abierta
+   * no la tiene. Chrome lo probó con un `windowFeature` y abandonó el
+   * experimento en 2024. Así que la ventana **no se cierra**: se sale de
+   * pantalla completa, se encoge y se muda a la pantalla del portátil. Sigue
+   * viva, y por eso un clic suyo basta para volver al proyector a pantalla
+   * completa — la activación la pone ese clic.
+   */
+  CEDER: 'ceder',
+  /** pantalla → control: 'proyector' | 'apartada'. Para que la consola lo diga. */
+  VENTANA: 'ventana',
 };
 
 /**

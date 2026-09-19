@@ -877,23 +877,49 @@
    * proyectando— se guarda aquí en la consola, que no se cierra.
    */
   const cederPantalla = () => {
-    // Se apunta dónde está ANTES de cerrarla, que es la única ocasión de
+    // Se apunta dónde está ANTES de moverla, que es la única ocasión de
     // saberlo. Y es la medida buena: dice dónde la dejó el operador de verdad
     // —pantalla completa incluida— en vez de dónde cree la API que está el
-    // segundo monitor. Sin esto, recuperarla la devolvía al portátil.
+    // segundo monitor.
     const donde = leerGeometria(ventanaPantalla);
     if (donde) {
       geometriaPantalla = donde;
       guardarGeometriaPantalla(donde);
     }
-    if (ventanaPantalla && !ventanaPantalla.closed) cerrarVentanaPantalla();
+
+    // **No se cierra: se le pide que se aparte.** Cerrarla obligaba a pulsar
+    // F11 a mano cada vez que se recuperaba el proyector, porque una ventana
+    // nueva no puede abrirse ya a pantalla completa —eso exige un gesto del
+    // usuario dentro de ella—. Apartada sigue viva en el portátil, y un clic
+    // suyo la devuelve al proyector a pantalla completa.
+    //
+    // Si no hay canal (la ventana ya no está) se cierra lo que quede y se marca
+    // el proyector como libre igual.
+    if (canal && ventanaPantalla && !ventanaPantalla.closed) {
+      canal.enviar({ tipo: MENSAJES.CEDER });
+    } else if (ventanaPantalla && !ventanaPantalla.closed) {
+      cerrarVentanaPantalla();
+    }
     pantallaLibre = true;
     panelAbierto = '';
   };
 
-  // Sin `async`: `window.open` tiene que salir del propio gesto (clic o tecla)
-  // o el bloqueador de emergentes la descarta en silencio.
+  /**
+   * Recuperar el proyector.
+   *
+   * Si la ventana sigue viva —apartada en el portátil— lo único que se puede
+   * hacer desde aquí es traerla al frente: la pantalla completa la tiene que
+   * pedir ella, con un gesto suyo. Si ya no está (la cerró el operador, o no
+   * había permiso para apartarla), se vuelve a abrir donde estaba.
+   *
+   * Sin `async`: `window.open` tiene que salir del propio gesto o el bloqueador
+   * de emergentes la descarta en silencio.
+   */
   const recuperarPantalla = () => {
+    if (ventanaPantalla && !ventanaPantalla.closed) {
+      ventanaPantalla.focus();
+      return;
+    }
     abrirSegundaPantalla();
   };
 
@@ -943,6 +969,10 @@
       // El cierre de verdad lo confirma el vigilante, que es el único que mira
       // `closed`, y para entonces ya se ha visto si vuelve o no.
       pantallaLibre = true;
+    } else if (mensaje.tipo === MENSAJES.VENTANA) {
+      // La ventana dice dónde está. Es la única fuente fiable: puede volver al
+      // proyector por su cuenta, con un clic suyo, sin que la consola lo sepa.
+      pantallaLibre = mensaje.estado !== 'proyector';
     } else if (mensaje.tipo === MENSAJES.TECLA) {
       manejarTecla(mensaje.key, { desdeLaPantalla: true });
     }
@@ -1358,28 +1388,105 @@
   let enPantallaCompleta = false;
 
   /**
-   * Volver a pantalla completa desde la propia ventana proyectada.
+   * Las pantallas del equipo, cacheadas. Y el avisador hacia la consola, que lo
+   * rellena `montarPantalla` porque el canal vive ahí dentro.
+   */
+  let detallesPantallas = null;
+  let avisarDeLaVentana = () => {};
+  /** La ventana está apartada en el portátil, no en el proyector. */
+  let apartada = false;
+
+  /**
+   * Volver al proyector a pantalla completa.
    *
-   * Tiene que ser un gesto EN ESTA ventana: la pantalla completa exige
-   * activación del usuario en el documento que la pide, así que no se puede
-   * pedir desde la consola por el canal. Como esta ventana está en el
-   * proyector, es un solo clic con el ratón — bastante mejor que arrastrar.
+   * **Tiene que salir de un gesto EN ESTA ventana.** La pantalla completa exige
+   * activación del usuario en el documento que la pide, y eso no se puede pedir
+   * desde la consola por el canal ni heredarlo al abrir una ventana nueva —
+   * Chrome lo probó con un `windowFeature` y abandonó el experimento en 2024.
+   * De ahí todo el diseño de ceder: la ventana no se cierra, se aparta, y así
+   * sigue existiendo para que un clic suyo la devuelva al proyector.
+   *
+   * Con `{ screen }` vuelve además a la pantalla correcta aunque ahora esté en
+   * el portátil. Sin permiso de gestión de ventanas no hay `screen` que pasar y
+   * se pone a pantalla completa donde esté, que es lo que había antes.
    */
   const ponerPantallaCompleta = async () => {
+    const proyector = detallesPantallas?.screens?.find((p) => !p.isPrimary);
     try {
-      await document.documentElement.requestFullscreen();
+      if (proyector) await document.documentElement.requestFullscreen({ screen: proyector });
+      else await document.documentElement.requestFullscreen();
     } catch {
-      // Si el navegador no deja, queda F11, que es lo que dice el botón.
+      try {
+        await document.documentElement.requestFullscreen();
+      } catch {
+        // Si el navegador no deja, queda F11, que es lo que dice el botón.
+      }
     }
+    apartada = false;
+    avisarDeLaVentana('proyector');
+  };
+
+  /**
+   * Apartarse del proyector sin cerrarse.
+   *
+   * Sale de pantalla completa, se encoge y se muda a la pantalla del portátil,
+   * donde no estorba a nadie: el proyector queda libre para el programa de las
+   * canciones. Sigue viva, que es lo único que importa — cerrarla obligaba a
+   * pulsar F11 a mano cada vez que se recuperaba.
+   *
+   * Sin permiso de gestión de ventanas no se puede mudar a ninguna parte, y una
+   * ventanita en mitad de la pantalla de la iglesia es peor que nada: entonces
+   * sí se cierra, que es lo que había antes.
+   */
+  const apartarse = async () => {
+    const principal = detallesPantallas?.screens?.find((p) => p.isPrimary);
+    if (!principal) {
+      window.close();
+      return;
+    }
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+    } catch {
+      /* ya estaba fuera */
+    }
+    const ancho = 460;
+    const alto = 300;
+    try {
+      window.resizeTo(ancho, alto);
+      // Arriba a la derecha del portátil: la consola ocupa el centro y la
+      // franja de abajo, así que ahí es donde no tapa lo que se está usando.
+      window.moveTo(principal.availLeft + principal.availWidth - ancho - 24, principal.availTop + 24);
+    } catch {
+      /* se queda donde esté; sigue siendo pulsable */
+    }
+    apartada = true;
+    avisarDeLaVentana('apartada');
+    // Al frente: si queda detrás de la consola, el clic que la devuelve al
+    // proyector hay que ir a buscarlo, y eso es medio culto.
+    window.focus();
   };
 
   const montarPantalla = () => {
     const suCanal = abrirCanal((mensaje) => {
       if (mensaje?.tipo === MENSAJES.ESTADO) estadoRecibido = mensaje.estado;
+      else if (mensaje?.tipo === MENSAJES.CEDER) apartarse();
     });
     // El saludo: la ventana de control responde con el estado actual. Sin esto
     // la pantalla se queda en negro hasta que alguien cambie de versículo.
     suCanal.enviar({ tipo: MENSAJES.LISTO });
+
+    // Las pantallas, cacheadas al montar. Se necesitan en un manejador de clic
+    // —para volver al proyector a pantalla completa— y ahí no se puede esperar
+    // a una promesa sin gastar la activación del usuario.
+    if ('getScreenDetails' in window) {
+      window
+        .getScreenDetails()
+        .then((d) => (detallesPantallas = d))
+        .catch(() => {
+          /* sin permiso: se cae al plan B, que es cerrar la ventana al ceder */
+        });
+    }
+    avisarDeLaVentana = (estado) => suCanal.enviar({ tipo: MENSAJES.VENTANA, estado });
 
     /**
      * Las teclas de ESTA ventana se reenvían a la de control, que es la que
@@ -1521,13 +1628,13 @@
         on:click={ponerPantallaCompleta}
       ></button>
 
-      <p class="pista-pantalla">{$_('app.projection.screen_hint')}</p>
+      <p class="pista-pantalla">{apartada ? $_('app.projection.aside_hint') : $_('app.projection.screen_hint')}</p>
 
       <!-- Y el botón de siempre, visible, para quien no adivine que vale
            cualquier sitio. Va por encima de la superficie pulsable. -->
       <button type="button" class="volver-completa" on:click={ponerPantallaCompleta}>
-        <Icon name="expand" size="1.1rem" />
-        {$_('app.projection.screen_fullscreen')}
+        <Icon name={apartada ? 'monitor' : 'expand'} size="1.1rem" />
+        {apartada ? $_('app.projection.aside_back') : $_('app.projection.screen_fullscreen')}
       </button>
     {/if}
   </ProjectionSurface>

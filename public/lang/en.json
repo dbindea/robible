@@ -398,7 +398,10 @@
       "volume_music": "Music",
       "ambient_ebraica": "Hebrew",
       "ambient_rugaciune": "prayer",
-      "ambient_liniste": "stillness"
+      "ambient_liniste": "stillness",
+      "scroll_hint": "Read the Bible verse by verse, by swiping",
+      "cta_hide": "Hide the buttons",
+      "cta_show": "Show the buttons"
     },
     "highlights": {
       "eyebrow": "Highlight",
@@ -1064,7 +1067,7 @@
       "yield": "Free the screen",
       "resume": "Take the projector back",
       "screen_free": "The projector is free",
-      "screen_free_hint": "The projection window is closed, so the projector shows the computer’s own background and any other program can come to the front. When you take it back, the window reopens there by itself, on the same verse.",
+      "screen_free_hint": "The projection window stepped aside onto the laptop, so the projector is free for another program. To bring it back, click the small window — it returns to the projector full screen, no F11 needed.",
       "session_end": "End the projection",
       "key_yield": "Free / take back the projector",
       "keys_arrows_hint": "Vertical moves through verses, horizontal through chapters. ↑ and ↓ work even while you are typing in the search box, so you can line up the next reference without interrupting the projection; ← and → stay free to move the cursor in the text.",
@@ -1088,7 +1091,9 @@
       "blank_image_invalid": "That file is not an image.",
       "swipe_hint": "Swipe sideways for the controls",
       "scroll_seo_title": "Scroll Bible | RoBible",
-      "scroll_seo_description": "Read the Bible verse by verse, full screen, by swiping."
+      "scroll_seo_description": "Read the Bible verse by verse, full screen, by swiping.",
+      "aside_back": "Back to the projector",
+      "aside_hint": "This window stepped aside. Click here to send it back to the projector, full screen."
     },
     "projection_landing": {
       "seo_title": "Projection for churches | RoBible",

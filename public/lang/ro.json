@@ -398,7 +398,10 @@
       "volume_music": "Muzică",
       "ambient_ebraica": "ebraică",
       "ambient_rugaciune": "rugăciune",
-      "ambient_liniste": "liniște"
+      "ambient_liniste": "liniște",
+      "scroll_hint": "Citește Biblia verset cu verset, glisând",
+      "cta_hide": "Ascunde butoanele",
+      "cta_show": "Arată butoanele"
     },
     "highlights": {
       "eyebrow": "Evidențiere",
@@ -1064,7 +1067,7 @@
       "yield": "Cedează ecranul",
       "resume": "Recuperează proiectorul",
       "screen_free": "Proiectorul este liber",
-      "screen_free_hint": "Fereastra de proiecție s-a închis: pe proiector se vede fundalul calculatorului și orice alt program poate trece în față. Când revii, fereastra se deschide singură tot acolo, cu același verset.",
+      "screen_free_hint": "Fereastra de proiecție s-a dat la o parte, pe laptop: proiectorul e liber pentru alt program. Ca să revii, apasă în fereastra mică — se întoarce singură pe proiector, pe tot ecranul, fără F11.",
       "session_end": "Încheie proiecția",
       "key_yield": "Cedează / recuperează proiectorul",
       "keys_arrows_hint": "Pe verticală schimbi versetul, pe orizontală capitolul. ↑ și ↓ merg chiar dacă scrii în căutare, ca să pregătești referința următoare fără să oprești proiecția; ← și → rămân pentru mutat cursorul în text.",
@@ -1088,7 +1091,9 @@
       "blank_image_invalid": "Fișierul acesta nu este o imagine.",
       "swipe_hint": "Glisează într-o parte pentru controale",
       "scroll_seo_title": "Biblia la scroll | RoBible",
-      "scroll_seo_description": "Citește Biblia verset cu verset, pe tot ecranul, glisând cu degetul."
+      "scroll_seo_description": "Citește Biblia verset cu verset, pe tot ecranul, glisând cu degetul.",
+      "aside_back": "Înapoi pe proiector",
+      "aside_hint": "Fereastra s-a dat la o parte. Apasă aici ca să revină pe proiector, pe tot ecranul."
     },
     "projection_landing": {
       "seo_title": "Proiecție pentru biserici | RoBible",
