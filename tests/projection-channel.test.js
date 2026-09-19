@@ -39,19 +39,12 @@ test('el canal lleva el prefijo del proyecto', () => {
   assert.ok(NOMBRE_CANAL.startsWith('robible:'));
 });
 
-test('los seis tipos de mensaje son distintos entre sí', () => {
-  // Eran cuatro hasta el 19 sep 2026. `ceder` y `ventana` llegaron con la
-  // pantalla que se aparta en vez de cerrarse: una ventana nueva no puede
-  // abrirse ya a pantalla completa, así que la que hay tiene que sobrevivir.
+test('los cinco tipos de mensaje son distintos entre sí', () => {
+  // Eran cuatro hasta el 19 sep 2026; `ceder` es el quinto. Si dos compartieran
+  // nombre, cada extremo procesaría mensajes que no son suyos.
   const valores = Object.values(MENSAJES);
-  assert.equal(valores.length, 6);
-  assert.equal(new Set(valores).size, 6, 'dos mensajes con el mismo nombre se confundirían');
-});
-
-test('ceder y ventana viajan en direcciones opuestas y no se confunden', () => {
-  // `ceder` va del control a la pantalla y `ventana` al revés. Si alguien los
-  // unificara en un solo tipo, cada extremo procesaría su propio eco.
-  assert.notEqual(MENSAJES.CEDER, MENSAJES.VENTANA);
+  assert.equal(valores.length, 5);
+  assert.equal(new Set(valores).size, 5, 'dos mensajes con el mismo nombre se confundirían');
 });
 
 test('sin BroadcastChannel el canal es inerte, no null', () => {

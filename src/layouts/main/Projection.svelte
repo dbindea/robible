@@ -887,11 +887,9 @@
       guardarGeometriaPantalla(donde);
     }
 
-    // **No se cierra: se le pide que se aparte.** Cerrarla obligaba a pulsar
-    // F11 a mano cada vez que se recuperaba el proyector, porque una ventana
-    // nueva no puede abrirse ya a pantalla completa —eso exige un gesto del
-    // usuario dentro de ella—. Apartada sigue viva en el portátil, y un clic
-    // suyo la devuelve al proyector a pantalla completa.
+    // Se le pide que se cierre, y se cierra ella: así puede salir antes de
+    // pantalla completa. Cerrarla es lo único que libera el proyector de
+    // verdad — una ventana en negro sigue tapando lo que haya debajo.
     //
     // Si no hay canal (la ventana ya no está) se cierra lo que quede y se marca
     // el proyector como libre igual.
@@ -905,12 +903,13 @@
   };
 
   /**
-   * Recuperar el proyector.
+   * Recuperar el proyector: la ventana se vuelve a abrir **donde estaba**.
    *
-   * Si la ventana sigue viva —apartada en el portátil— lo único que se puede
-   * hacer desde aquí es traerla al frente: la pantalla completa la tiene que
-   * pedir ella, con un gesto suyo. Si ya no está (la cerró el operador, o no
-   * había permiso para apartarla), se vuelve a abrir donde estaba.
+   * Las coordenadas se apuntaron al ceder, leyéndolas de la propia ventana, así
+   * que reaparece en la segunda pantalla sin que nadie la arrastre. Lo único
+   * que no puede hacerse desde aquí es la pantalla completa: eso exige un gesto
+   * dentro de esa ventana. Se intenta sola y, si el navegador no la deja, basta
+   * un clic en cualquier punto de ella.
    *
    * Sin `async`: `window.open` tiene que salir del propio gesto o el bloqueador
    * de emergentes la descarta en silencio.
@@ -969,10 +968,6 @@
       // El cierre de verdad lo confirma el vigilante, que es el único que mira
       // `closed`, y para entonces ya se ha visto si vuelve o no.
       pantallaLibre = true;
-    } else if (mensaje.tipo === MENSAJES.VENTANA) {
-      // La ventana dice dónde está. Es la única fuente fiable: puede volver al
-      // proyector por su cuenta, con un clic suyo, sin que la consola lo sepa.
-      pantallaLibre = mensaje.estado !== 'proyector';
     } else if (mensaje.tipo === MENSAJES.TECLA) {
       manejarTecla(mensaje.key, { desdeLaPantalla: true });
     }
@@ -1387,28 +1382,23 @@
   };
   let enPantallaCompleta = false;
 
-  /**
-   * Las pantallas del equipo, cacheadas. Y el avisador hacia la consola, que lo
-   * rellena `montarPantalla` porque el canal vive ahí dentro.
-   */
+  /** Las pantallas del equipo, cacheadas al montar. */
   let detallesPantallas = null;
-  let avisarDeLaVentana = () => {};
-  /** La ventana está apartada en el portátil, no en el proyector. */
-  let apartada = false;
 
   /**
-   * Volver al proyector a pantalla completa.
+   * Pantalla completa, apuntando al proyector si sabemos cuál es.
    *
    * **Tiene que salir de un gesto EN ESTA ventana.** La pantalla completa exige
    * activación del usuario en el documento que la pide, y eso no se puede pedir
-   * desde la consola por el canal ni heredarlo al abrir una ventana nueva —
-   * Chrome lo probó con un `windowFeature` y abandonó el experimento en 2024.
-   * De ahí todo el diseño de ceder: la ventana no se cierra, se aparta, y así
-   * sigue existiendo para que un clic suyo la devuelva al proyector.
+   * desde la consola por el canal. Se intenta sola al montar —una ventana
+   * abierta desde un clic a veces hereda la activación— y, cuando no cuela,
+   * **toda la superficie es el botón**: un clic en cualquier punto, sin nada
+   * escrito por encima que haya que acertar.
    *
-   * Con `{ screen }` vuelve además a la pantalla correcta aunque ahora esté en
-   * el portátil. Sin permiso de gestión de ventanas no hay `screen` que pasar y
-   * se pone a pantalla completa donde esté, que es lo que había antes.
+   * Hubo una versión que, en vez de cerrar la ventana al ceder, la apartaba al
+   * portátil para que un clic suyo la devolviera al proyector sin pasar por
+   * F11. Se retiró el 19 sep 2026: la ventanita tapaba la consola y dejaba al
+   * operador sin poder trabajar, que es peor que el clic que venía a ahorrar.
    */
   const ponerPantallaCompleta = async () => {
     const proyector = detallesPantallas?.screens?.find((p) => !p.isPrimary);
@@ -1419,57 +1409,18 @@
       try {
         await document.documentElement.requestFullscreen();
       } catch {
-        // Si el navegador no deja, queda F11, que es lo que dice el botón.
+        // Si el navegador no deja, queda F11.
       }
     }
-    apartada = false;
-    avisarDeLaVentana('proyector');
-  };
-
-  /**
-   * Apartarse del proyector sin cerrarse.
-   *
-   * Sale de pantalla completa, se encoge y se muda a la pantalla del portátil,
-   * donde no estorba a nadie: el proyector queda libre para el programa de las
-   * canciones. Sigue viva, que es lo único que importa — cerrarla obligaba a
-   * pulsar F11 a mano cada vez que se recuperaba.
-   *
-   * Sin permiso de gestión de ventanas no se puede mudar a ninguna parte, y una
-   * ventanita en mitad de la pantalla de la iglesia es peor que nada: entonces
-   * sí se cierra, que es lo que había antes.
-   */
-  const apartarse = async () => {
-    const principal = detallesPantallas?.screens?.find((p) => p.isPrimary);
-    if (!principal) {
-      window.close();
-      return;
-    }
-    try {
-      if (document.fullscreenElement) await document.exitFullscreen();
-    } catch {
-      /* ya estaba fuera */
-    }
-    const ancho = 460;
-    const alto = 300;
-    try {
-      window.resizeTo(ancho, alto);
-      // Arriba a la derecha del portátil: la consola ocupa el centro y la
-      // franja de abajo, así que ahí es donde no tapa lo que se está usando.
-      window.moveTo(principal.availLeft + principal.availWidth - ancho - 24, principal.availTop + 24);
-    } catch {
-      /* se queda donde esté; sigue siendo pulsable */
-    }
-    apartada = true;
-    avisarDeLaVentana('apartada');
-    // Al frente: si queda detrás de la consola, el clic que la devuelve al
-    // proyector hay que ir a buscarlo, y eso es medio culto.
-    window.focus();
   };
 
   const montarPantalla = () => {
     const suCanal = abrirCanal((mensaje) => {
       if (mensaje?.tipo === MENSAJES.ESTADO) estadoRecibido = mensaje.estado;
-      else if (mensaje?.tipo === MENSAJES.CEDER) apartarse();
+      // La consola pide el proyector libre: cerrarse es lo único que lo libera
+      // de verdad — una ventana, aunque esté en negro, sigue tapando lo que
+      // haya debajo y ningún otro programa puede ponerse delante.
+      else if (mensaje?.tipo === MENSAJES.CEDER) window.close();
     });
     // El saludo: la ventana de control responde con el estado actual. Sin esto
     // la pantalla se queda en negro hasta que alguien cambie de versículo.
@@ -1486,7 +1437,6 @@
           /* sin permiso: se cae al plan B, que es cerrar la ventana al ceder */
         });
     }
-    avisarDeLaVentana = (estado) => suCanal.enviar({ tipo: MENSAJES.VENTANA, estado });
 
     /**
      * Las teclas de ESTA ventana se reenvían a la de control, que es la que
@@ -1620,6 +1570,11 @@
          clic en cualquier punto del proyector y ya está. En pantalla completa
          no existe, así que durante el culto no hay nada que pueda pulsarse sin
          querer. -->
+    <!-- Sin rótulo ni botón visibles, a propósito desde el 19 sep 2026: había
+         una pista arriba y un «Ecran complet» abajo, y lo que provocaban era
+         justo lo contrario de lo que buscaban — el operador apuntaba con el
+         ratón a uno de los dos en vez de dar el clic donde cayera. Lo que queda
+         es la superficie entera: un clic en cualquier punto, sin puntería. -->
     {#if !enPantallaCompleta}
       <button
         type="button"
@@ -1627,15 +1582,6 @@
         aria-label={$_('app.projection.screen_fullscreen')}
         on:click={ponerPantallaCompleta}
       ></button>
-
-      <p class="pista-pantalla">{apartada ? $_('app.projection.aside_hint') : $_('app.projection.screen_hint')}</p>
-
-      <!-- Y el botón de siempre, visible, para quien no adivine que vale
-           cualquier sitio. Va por encima de la superficie pulsable. -->
-      <button type="button" class="volver-completa" on:click={ponerPantallaCompleta}>
-        <Icon name={apartada ? 'monitor' : 'expand'} size="1.1rem" />
-        {apartada ? $_('app.projection.aside_back') : $_('app.projection.screen_fullscreen')}
-      </button>
     {/if}
   </ProjectionSurface>
 {:else if modo !== 'local'}
@@ -1952,21 +1898,37 @@
          desplazamiento de la lista de resultados, que puede ser larga.
          `|nonpassive` porque el manejador llama a `preventDefault`. -->
     <div class="consola" on:wheel|nonpassive={alGirarRueda}>
-      <div class="consola__ahora">
-        <p class="consola__eyebrow">{$_('app.projection.on_screen')}</p>
+      <!-- El versículo que hay puesto es además el interruptor de verlo o no
+           verlo: se pulsa y desaparece del proyector, se vuelve a pulsar y
+           vuelve. Es el objetivo más grande de la franja y el que la mano
+           encuentra sin mirar, que es lo que hace falta entre dos frases del
+           predicador. El botón del ojo sigue donde estaba para quien lo tenga
+           aprendido.
+           Es un <button> y no un <div> con `on:click`: así responde también al
+           teclado y se anuncia como conmutador. -->
+      <button
+        type="button"
+        class="consola__ahora"
+        class:consola__ahora--apagado={enNegro}
+        disabled={pantallaLibre || !principal.referencia}
+        aria-pressed={!enNegro}
+        title={$_(enNegro ? 'app.projection.toggle_show' : 'app.projection.toggle_hide')}
+        on:click={alternarNegro}
+      >
+        <span class="consola__eyebrow">{$_('app.projection.on_screen')}</span>
         {#if pantallaLibre}
           <!-- Lo primero que hay que poder contestar sin levantar la vista:
                ¿está RoBible en el proyector o no? -->
-          <p class="consola__ref consola__ref--libre">{$_('app.projection.screen_free')}</p>
+          <span class="consola__ref consola__ref--libre">{$_('app.projection.screen_free')}</span>
         {:else if enNegro}
-          <p class="consola__ref">{$_('app.projection.key_black')}</p>
+          <span class="consola__ref">{$_('app.projection.key_black')}</span>
         {:else if principal.referencia}
-          <p class="consola__ref">{principal.referencia}</p>
-          <p class="consola__texto">{principal.texto}</p>
+          <span class="consola__ref">{principal.referencia}</span>
+          <span class="consola__texto">{principal.texto}</span>
         {:else}
-          <p class="consola__ref consola__ref--vacio">{$_('app.projection.screen_waiting')}</p>
+          <span class="consola__ref consola__ref--vacio">{$_('app.projection.screen_waiting')}</span>
         {/if}
-      </div>
+      </button>
 
       <div class="consola__pasos">
         <!-- Sólo se apagan cuando de verdad no hay adónde ir: con un capítulo
@@ -2846,40 +2808,6 @@
     }
   }
 
-  // ── Volver a pantalla completa (ventana proyectada) ───────────────────────
-  //
-  // Grande y abajo del todo: se pulsa con el ratón en la pantalla del
-  // proyector, sin precisión y con prisa. ABAJO y no en el centro porque en el
-  // centro está el versículo — puesto ahí tapaba justo la línea que hay que
-  // leer. Sólo existe fuera de pantalla completa, así que durante el culto no
-  // se ve nunca.
-  .volver-completa {
-    position: absolute;
-    bottom: 7%;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 4;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.6rem;
-    min-height: 3.25rem;
-    padding: 0 1.6rem;
-    border: 1px solid rgba(255, 255, 255, 0.28);
-    border-radius: var(--radius-pill);
-    background: rgba(20, 24, 30, 0.88);
-    color: #f2f4f7;
-    font-family: inherit;
-    font-size: 1rem;
-    font-weight: 700;
-    cursor: pointer;
-    --icon-size: 1.1rem;
-
-    &:hover {
-      background: rgba(20, 24, 30, 0.96);
-      border-color: rgba(255, 255, 255, 0.45);
-    }
-  }
-
   // ── Consola del modo remoto ───────────────────────────────────────────────
   //
   // Franja fija abajo: la proyección está en la otra ventana, así que aquí no
@@ -2904,12 +2832,47 @@
     color: #f2f4f7;
   }
 
+  // Es un botón, así que hay que deshacer lo que el navegador le pone y dejarlo
+  // con la pinta de siempre: un bloque de texto alineado a la izquierda.
   .consola__ahora {
     flex: 1 1 auto;
     min-width: 0;
+    display: block;
+    padding: 0.3rem 0.5rem;
+    margin: -0.3rem -0.5rem;
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition:
+      background var(--motion-base) ease,
+      border-color var(--motion-base) ease;
+
+    &:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.18);
+    }
+
+    // Sin versículo puesto —o con el proyector cedido— no hay nada que apagar:
+    // se queda como el texto que era, sin manita ni reacción.
+    &:disabled {
+      cursor: default;
+    }
+  }
+
+  // Apagado: el filete de la izquierda dice de un vistazo que lo que se lee
+  // aquí NO se está viendo allí. Sin él, la franja era igual con la pantalla
+  // encendida y con la pantalla en negro.
+  .consola__ahora--apagado {
+    border-color: rgba(255, 255, 255, 0.22);
+    box-shadow: inset 3px 0 0 #f5b544;
   }
 
   .consola__eyebrow {
+    display: block;
     margin: 0 0 0.1rem;
     color: #98a2b3;
     font-size: 0.68rem;
@@ -2919,6 +2882,7 @@
   }
 
   .consola__ref {
+    display: block;
     margin: 0;
     font-size: 0.95rem;
     font-weight: 700;
@@ -2939,6 +2903,7 @@
   // Una sola línea: es un recordatorio de qué hay puesto, no el texto para
   // leerlo. Leerlo es lo que hace la congregación en la otra pantalla.
   .consola__texto {
+    display: block;
     margin: 0;
     overflow: hidden;
     color: #aeb6c2;
@@ -3017,32 +2982,5 @@
     .consola__ahora {
       flex-basis: 100%;
     }
-  }
-
-  // ── La ventana proyectada ─────────────────────────────────────────────────
-  //
-  // La instrucción de montaje, arriba y centrada: abajo a la derecha se habría
-  // superpuesto con la marca de agua.
-  // `pointer-events: none` no es un detalle: va por encima de la superficie
-  // pulsable, así que sin esto el clic que cae justo sobre la propia frase
-  // «pulsa donde quieras» es el único que no hace nada. Se comprueba con
-  // `document.elementFromPoint()`, no leyendo el CSS.
-  .pista-pantalla {
-    position: absolute;
-    top: 1.25rem;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 4;
-    pointer-events: none;
-    max-width: min(34rem, calc(100vw - 2rem));
-    margin: 0;
-    padding: 0.6rem 1rem;
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    border-radius: var(--radius-pill);
-    background: rgba(20, 24, 30, 0.9);
-    color: #f2f4f7;
-    font-size: 0.85rem;
-    font-weight: 600;
-    text-align: center;
   }
 </style>
