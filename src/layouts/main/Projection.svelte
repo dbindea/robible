@@ -72,11 +72,13 @@
   import {
     acotarOcupacion,
     cargarGeometriaPantalla,
+    leerOrigenScroll,
     cargarPreferencias,
     guardarGeometriaPantalla,
     guardarPreferencias,
     OCUPACION_POR_DEFECTO,
   } from '../../services/projection.service';
+  import { navegarA } from '../../services/navigation.service';
   import { getLastRead } from '../../services/reading-progress.service';
   import { parseReference, searchReferences } from '../../services/referenceSearch.service';
   import { applySeoMetadata } from '../../services/seo.service';
@@ -802,6 +804,17 @@
   };
 
   const salir = () => {
+    // Desde la Biblia a scroll, salir es VOLVER: al capítulo que se estaba
+    // leyendo, a los resultados de la búsqueda, a donde fuera. Sin esto se caía
+    // en la antesala de la proyección —con su buscador y sus botones de
+    // proyector—, que no es ni de lejos lo que venía a hacer quien sólo estaba
+    // leyendo. El origen se apunta al pulsar el botón que trae aquí; si no
+    // consta (se entró por enlace o por la portada), a la Biblia.
+    if (modoScroll) {
+      navegarA(leerOrigenScroll() || '/');
+      return;
+    }
+
     // La ventana del segundo monitor NO se cierra: se queda en negro.
     //
     // Es el cambio que pidió el uso real. Colocarla en el proyector cuesta

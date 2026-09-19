@@ -9,6 +9,7 @@
   // registrarse en una Biblia que por lo demás no pide nada.
   import { isAuthenticated } from '../store/authStore';
   import { navegarA } from '../services/navigation.service';
+  import { guardarOrigenScroll } from '../services/projection.service';
   import {
     ttsState,
     ttsPanelOpen,
@@ -46,7 +47,12 @@
   // quiero ver ESTA pantalla», del mismo orden que el fondo de la proyección, y
   // sincronizarla con el móvil del pastor no serviría de nada. Todo silencioso:
   // sin `localStorage` se ve desplegada, que es el valor por defecto.
-  const CLAVE_CTA = 'robible:cta-plegada';
+  //
+  // La clave cambió de nombre el 19 sep 2026, al pasar el asa de un botón con
+  // chevrón a una raya fina: así todo el mundo vuelve a ver la píldora
+  // desplegada una vez, con el control nuevo, en vez de heredar un plegado que
+  // hizo sobre otra cosa.
+  const CLAVE_CTA = 'robible:cta-barra';
 
   const leerCta = () => {
     if (typeof window === 'undefined') return false;
@@ -58,6 +64,18 @@
   };
 
   let ctaPlegada = leerCta();
+
+  /**
+   * A la Biblia a scroll, apuntando de dónde se sale.
+   *
+   * `/scroll` tapa la pantalla entera, así que al salir de allí hay que
+   * devolver a la persona a este mismo capítulo. El origen se guarda aquí, que
+   * es el único momento en que todavía se sabe cuál era.
+   */
+  const irAScroll = () => {
+    guardarOrigenScroll(window.location.pathname + window.location.search);
+    navegarA('/scroll');
+  };
 
   const alternarCta = () => {
     ctaPlegada = !ctaPlegada;
@@ -413,7 +431,7 @@
       <button
         type="button"
         class="duo__mitad duo__mitad--scroll"
-        on:click={() => navegarA('/scroll')}
+        on:click={irAScroll}
         title={$_('app.tts.scroll_hint')}
       >
         <Icon name="scroll" />
@@ -433,9 +451,13 @@
       {/if}
     </div>
 
-    <!-- El asa se queda siempre: es la única forma de recuperar lo plegado, y
-         ocupa lo que ocupa un pulgar y nada más. `class:` no compila sobre
-         <Icon>, así que el giro va en el <span> que lo envuelve. -->
+    <!-- El asa: una raya fina, del ancho de un pulgar, y nada más.
+         Era un botón redondo con un chevrón, y resultaba ser un objeto más en
+         una esquina que ya tiene tres. Una raya dice «aquí hay algo» sin pedir
+         atención — el mismo gesto que la barra de arrastre de cualquier hoja
+         inferior.
+         El BOTÓN mide 24 px de alto aunque la raya mida cuatro: el objetivo
+         táctil es el botón, no lo que se ve (WCAG 2.5.8). -->
     <button
       type="button"
       class="duo__asa"
@@ -444,9 +466,7 @@
       title={ctaPlegada ? $_('app.tts.cta_show') : $_('app.tts.cta_hide')}
       on:click={alternarCta}
     >
-      <span class="duo__chevron" class:duo__chevron--abajo={!ctaPlegada}>
-        <Icon name="chevron-up" />
-      </span>
+      <span class="duo__raya" aria-hidden="true"></span>
     </button>
   </div>
 {/if}
@@ -784,20 +804,26 @@
   //
   // Va donde iba el botón único: a la misma altura que los otros dos flotantes,
   // los tres en la fila más baja de la pantalla.
+  // La raya queda SIEMPRE en el mismo sitio y la píldora flota encima, en
+  // posición absoluta: si estuviera en el flujo, al plegarse dejaría su hueco
+  // ocupado y la raya se quedaría a media altura de la pantalla, señalando un
+  // vacío.
   .duo {
     position: fixed;
     left: 50%;
     bottom: calc(1rem + var(--player-offset, 0px));
     transform: translateX(-50%);
     z-index: 60;
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
   }
 
   // Las dos mitades, pegadas y con un filete entre ellas: se leen como una sola
   // pieza partida y no como dos botones que han quedado cerca.
   .duo__par {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    margin-bottom: 0.3rem;
+    transform: translateX(-50%);
     display: flex;
     border-radius: 2rem;
     overflow: hidden;
@@ -807,10 +833,13 @@
       opacity 200ms ease;
   }
 
-  // Plegada: se va por abajo del todo y deja sólo el asa. `pointer-events` a
+  // Plegada: se va por abajo del todo y deja sólo la raya. `pointer-events` a
   // `none` o seguiría recibiendo pulsaciones invisibles justo donde ya no está.
+  // 5 rem y no 2,5: con el recorrido corto la píldora se quedaba asomando unos
+  // píxeles por debajo del borde. Con la opacidad a cero no se veía, pero se
+  // queda fuera del todo y así no depende de eso.
   .duo--plegado .duo__par {
-    transform: translateY(calc(100% + 2.5rem));
+    transform: translateX(-50%) translateY(calc(100% + 5rem));
     opacity: 0;
     pointer-events: none;
   }
@@ -854,41 +883,44 @@
   }
 
   // El asa se queda siempre, plegada o no: es la única forma de recuperar lo
-  // escondido. Discreta —superficie y filete, no acento— porque no es una
-  // acción que se busque, es una que se encuentra cuando hace falta.
+  // escondido. El botón es invisible y sólo existe como objetivo táctil; lo
+  // que se ve es la raya de dentro.
   .duo__asa {
-    display: inline-grid;
+    display: grid;
     place-items: center;
-    // 2.25rem = 36 px, por encima del mínimo de 24 px de WCAG 2.5.8.
-    width: 2.25rem;
-    height: 2.25rem;
-    border: 1px solid var(--color-line-strong);
-    border-radius: 50%;
-    background: var(--color-surface);
-    color: var(--color-ink-soft);
+    // 1.5rem = 24 px, el mínimo de WCAG 2.5.8 para un objetivo. La raya mide
+    // cuatro, pero lo que se pulsa es esto.
+    width: 3.25rem;
+    height: 1.5rem;
+    margin: 0 auto;
+    padding: 0;
+    border: 0;
+    background: transparent;
     cursor: pointer;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
-    --icon-size: 1rem;
 
-    &:hover {
-      color: var(--color-accent-ink);
-      border-color: var(--color-accent);
+    &:hover .duo__raya,
+    &:focus-visible .duo__raya {
+      background: var(--color-accent);
+      opacity: 1;
     }
   }
 
-  .duo__chevron {
-    display: inline-grid;
-    place-items: center;
-    transition: transform var(--motion-base) ease;
-  }
-
-  .duo__chevron--abajo {
-    transform: rotate(180deg);
+  // La marca. Tinta al 38 % y no un color propio: se lee sobre cualquiera de
+  // las cinco paletas sin una regla por tema, igual que los bordes.
+  .duo__raya {
+    width: 2.5rem;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--color-ink);
+    opacity: 0.38;
+    transition:
+      background var(--motion-base) ease,
+      opacity var(--motion-base) ease;
   }
 
   @media (prefers-reduced-motion: reduce) {
     .duo__par,
-    .duo__chevron {
+    .duo__raya {
       transition: none;
     }
   }

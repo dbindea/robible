@@ -7,6 +7,7 @@
   import { isAuthenticated, currentUser, nombreVisible, apodoSecundario } from '../../store/authStore';
   import { selectedBibleVersion } from '../../store/stores';
   import { getBibleVersionConfigOrDefault } from '../../config/bible-versions';
+  import { guardarOrigenScroll } from '../../services/projection.service';
 
   export let onNavigate = () => {};
 
@@ -63,6 +64,12 @@
 
   const handleItemClick = (item) => {
     if (!item.enabled) return;
+    // La Biblia a scroll tapa la pantalla entera, así que al salir de allí hay
+    // que devolver a la persona a donde estaba. Éste es el único momento en que
+    // todavía se sabe cuál era.
+    if (item.key === 'scroll') {
+      guardarOrigenScroll(window.location.pathname + window.location.search);
+    }
     onNavigate(item.href);
     closeAppMenu();
   };
