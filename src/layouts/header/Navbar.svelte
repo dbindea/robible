@@ -91,7 +91,6 @@
   };
 
   onMount(() => {
-    console.log('[Navbar] onMount - locale:', document.documentElement.lang, 'menu_open:', 'app.nav.menu_open');
     syncPath();
     document.addEventListener('click', handleDocumentClick);
     document.addEventListener('keydown', handleKeydown);
@@ -99,7 +98,6 @@
   });
 
   onDestroy(() => {
-    console.log('[Navbar] onDestroy');
     document.removeEventListener('click', handleDocumentClick);
     document.removeEventListener('keydown', handleKeydown);
     window.removeEventListener('popstate', syncPath);
