@@ -1090,8 +1090,6 @@
       "blank_image_too_big": "图片太大，请选择小于 8 MB 的。",
       "blank_image_invalid": "该文件不是图片。",
       "swipe_hint": "左右滑动可显示控件",
-      "scroll_seo_title": "滚动读经 | RoBible",
-      "scroll_seo_description": "整屏逐节阅读圣经，用手指滑动即可。",
       "toggle_hide": "把经文从屏幕上撤下",
       "toggle_show": "重新显示经文"
     },
@@ -1144,6 +1142,10 @@
       "title": "支持 RoBible",
       "action": "用 PayPal 捐助",
       "note": "所有款项都用于平台的持续开发和人道主义需要。"
+    },
+    "scroll": {
+      "seo_title": "滚动读经 | RoBible",
+      "seo_description": "整屏逐节阅读圣经，用手指滑动即可。"
     }
   },
   "auth": {

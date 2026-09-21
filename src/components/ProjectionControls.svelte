@@ -40,6 +40,15 @@
    * La pantalla completa del proyector se pone en su propia ventana con F11.
    */
   export let conPantallaCompleta = true;
+  /**
+   * Lo que sólo tiene sentido proyectando: la pantalla en negro, la animación
+   * de entrada y el contador de diapositivas.
+   *
+   * La Biblia a scroll usa esta misma botonera porque comparte lo de «cómo se
+   * ve el texto» —fondo, tamaño, segundo idioma—, pero leyendo en el sofá no
+   * hay pantalla que apagar entre canto y canto ni diapositiva que contar.
+   */
+  export let conProyeccion = true;
 
   export let onPanel = () => {};
   export let onSalir = () => {};
@@ -245,15 +254,17 @@
   >
     <Icon name="palette" />
   </button>
-  <button
-    type="button"
-    class:controles__activo={panelAbierto === 'animacion'}
-    on:click={() => onPanel('animacion')}
-    title={$_('app.projection.panel_animation')}
-    aria-label={$_('app.projection.panel_animation')}
-  >
-    <Icon name="play" />
-  </button>
+  {#if conProyeccion}
+    <button
+      type="button"
+      class:controles__activo={panelAbierto === 'animacion'}
+      on:click={() => onPanel('animacion')}
+      title={$_('app.projection.panel_animation')}
+      aria-label={$_('app.projection.panel_animation')}
+    >
+      <Icon name="play" />
+    </button>
+  {/if}
   <button
     type="button"
     class:controles__activo={panelAbierto === 'idioma'}
@@ -263,14 +274,16 @@
   >
     <Icon name="globe" />
   </button>
-  <button
-    type="button"
-    on:click={onNegro}
-    title={$_('app.projection.key_black')}
-    aria-label={$_('app.projection.key_black')}
-  >
-    <Icon name="eye" />
-  </button>
+  {#if conProyeccion}
+    <button
+      type="button"
+      on:click={onNegro}
+      title={$_('app.projection.key_black')}
+      aria-label={$_('app.projection.key_black')}
+    >
+      <Icon name="eye" />
+    </button>
+  {/if}
   {#if conPantallaCompleta}
     <button
       type="button"
@@ -281,7 +294,9 @@
       <Icon name="expand" />
     </button>
   {/if}
-  <span class="controles__posicion">{indice + 1} / {total}</span>
+  {#if conProyeccion}
+    <span class="controles__posicion">{indice + 1} / {total}</span>
+  {/if}
 </div>
 
 <style lang="scss">

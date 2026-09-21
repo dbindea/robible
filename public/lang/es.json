@@ -1090,8 +1090,6 @@
       "blank_image_too_big": "La imagen es demasiado grande. Elige una de menos de 8 MB.",
       "blank_image_invalid": "Ese archivo no es una imagen.",
       "swipe_hint": "Desliza a un lado para los controles",
-      "scroll_seo_title": "Biblia en scroll | RoBible",
-      "scroll_seo_description": "Lee la Biblia versículo a versículo, a pantalla completa, deslizando con el dedo.",
       "toggle_hide": "Quitar el versículo de la pantalla",
       "toggle_show": "Volver a mostrar el versículo"
     },
@@ -1144,6 +1142,10 @@
       "title": "Apoya RoBible",
       "action": "Donar con PayPal",
       "note": "Todos los fondos se destinan a seguir desarrollando la plataforma y a necesidades humanitarias."
+    },
+    "scroll": {
+      "seo_title": "Biblia en scroll | RoBible",
+      "seo_description": "Lee la Biblia versículo a versículo, a pantalla completa, deslizando con el dedo."
     }
   },
   "auth": {
