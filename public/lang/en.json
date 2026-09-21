@@ -1090,8 +1090,6 @@
       "blank_image_too_big": "That image is too large. Pick one under 8 MB.",
       "blank_image_invalid": "That file is not an image.",
       "swipe_hint": "Swipe sideways for the controls",
-      "scroll_seo_title": "Scroll Bible | RoBible",
-      "scroll_seo_description": "Read the Bible verse by verse, full screen, by swiping.",
       "toggle_hide": "Take the verse off the screen",
       "toggle_show": "Put the verse back on screen"
     },
@@ -1144,6 +1142,10 @@
       "title": "Support RoBible",
       "action": "Donate with PayPal",
       "note": "All funds go to keeping the platform in development and to humanitarian needs."
+    },
+    "scroll": {
+      "seo_title": "Scroll Bible | RoBible",
+      "seo_description": "Read the Bible verse by verse, full screen, by swiping."
     }
   },
   "auth": {

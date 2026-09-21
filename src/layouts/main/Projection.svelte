@@ -72,13 +72,11 @@
   import {
     acotarOcupacion,
     cargarGeometriaPantalla,
-    leerOrigenScroll,
     cargarPreferencias,
     guardarGeometriaPantalla,
     guardarPreferencias,
     OCUPACION_POR_DEFECTO,
   } from '../../services/projection.service';
-  import { navegarA } from '../../services/navigation.service';
   import { getLastRead } from '../../services/reading-progress.service';
   import { parseReference, searchReferences } from '../../services/referenceSearch.service';
   import { applySeoMetadata } from '../../services/seo.service';
@@ -95,15 +93,6 @@
   export let map = {};
   export let compareBible = [];
   export let compareMap = {};
-  /**
-   * Biblia a scroll (`/scroll`): la misma pantalla, pero se entra ya leyendo.
-   *
-   * Arranca sola por donde se quedó la última vez —o por Geneza 1— y pone el
-   * modo lectura **en cualquier tamaño**, no sólo en el móvil: es una ruta que
-   * se anuncia en la portada y está en el menú, así que abrirla en un portátil
-   * y encontrarse el buscador de la proyección sería un enlace roto.
-   */
-  export let modoScroll = false;
 
   $: versionConfig = getBibleVersionConfigOrDefault($selectedBibleVersion);
   $: versionSecundariaConfig = $compareWithVersion ? getBibleVersionConfigOrDefault($compareWithVersion) : null;
@@ -114,9 +103,9 @@
   // comparta — y el texto bíblico ya se indexa en `/biblia/…`. Lo que sí se
   // indexa es la presentación de la portada, que es la que las anuncia.
   $: applySeoMetadata({
-    title: $_(modoScroll ? 'app.projection.scroll_seo_title' : 'app.projection.seo_title'),
-    description: $_(modoScroll ? 'app.projection.scroll_seo_description' : 'app.projection.seo_description'),
-    canonicalPath: modoScroll ? '/scroll' : '/proiectie',
+    title: $_('app.projection.seo_title'),
+    description: $_('app.projection.seo_description'),
+    canonicalPath: '/proiectie',
     versionConfig,
     robots: 'noindex, nofollow',
   });
@@ -550,57 +539,6 @@
   // botones sólo se apagan cuando no hay nada proyectado.
   $: hayCapitulos = !!actual;
 
-  // ── Modo lectura del móvil ────────────────────────────────────────────────
-  //
-  // En un móvil esta pantalla no es un proyector: es alguien leyendo la Biblia
-  // con el versículo a toda página. Ahí, ir de uno en uno tocando media
-  // pantalla es peor que deslizar, así que la lámina se convierte en una lista
-  // encajada —una pantalla por versículo— que **no se acaba**: al llegar al
-  // final se engancha el capítulo siguiente, y después el libro siguiente.
-  //
-  // Sólo en el móvil y sólo proyectando en esta misma pantalla. En el proyector
-  // manda el operador, no el dedo, y un deslizamiento sin querer delante de la
-  // congregación es justo lo que no puede pasar.
-  let esMovil = false;
-  $: modoLectura = (esMovil || modoScroll) && modo === 'local' && !esPantalla;
-
-  /** Cuántos versículos antes del final se trae ya el capítulo siguiente. */
-  const MARGEN_LECTURA = 3;
-
-  $: versiculosLectura = modoLectura
-    ? pasajes.map((p) => ({
-        clave: `${p.book}-${p.chapter}-${p.verse}`,
-        principal: { texto: p.texto, referencia: p.referencia, version: versionConfig?.bibleName || '' },
-        secundario: prefs.segundoIdioma
-          ? {
-              texto: textoDeVersiculo(compareBible, $compareWithVersion, p.book, p.chapter, p.verse),
-              referencia: compareMap?.[p.book] ? `${compareMap[p.book]} ${p.chapter}:${p.verse}` : '',
-              version: versionSecundariaConfig?.bibleName || '',
-            }
-          : { texto: '', referencia: '', version: '' },
-      }))
-    : null;
-
-  /**
-   * Se ha deslizado hasta otro versículo.
-   *
-   * Además de mover el cursor, mira si queda poco para el final y engancha el
-   * capítulo siguiente. Se añade AL FINAL y nunca al principio: prepender
-   * obligaría a corregir el `scrollTop` en el mismo fotograma y el salto se ve.
-   * Hacia atrás se llega con las flechas de capítulo.
-   */
-  const alVerVersiculo = (visible) => {
-    if (visible < 0 || visible >= pasajes.length) return;
-    indice = visible;
-    if (!recorriendo || visible < pasajes.length - MARGEN_LECTURA) return;
-
-    const destino = capituloVecino(recorriendo, 1);
-    const lista = construirPasajes(destino.book, destino.chapter);
-    if (!lista.length) return;
-    recorriendo = destino;
-    pasajes = [...pasajes, ...lista];
-  };
-
   // ── Historial ─────────────────────────────────────────────────────────────
   //
   // Lo que ya se ha proyectado, para cuando el predicador vuelve sobre ello.
@@ -608,11 +546,7 @@
   let historial = [];
 
   const apuntarEnHistorial = (pasaje) => {
-    // La Biblia a scroll no apunta nada: el historial es «lo que el operador ha
-    // puesto en la pantalla de la iglesia», y leer en el sofá no es eso. Sin
-    // esta guarda, abrir `/scroll` metía una entrada automática en cada visita
-    // y la lista del culto se llenaba de ruido.
-    if (modoScroll || !pasaje) return;
+    if (!pasaje) return;
     historial = anadirEntrada(historial, {
       book: pasaje.book,
       chapter: pasaje.chapter,
@@ -804,17 +738,6 @@
   };
 
   const salir = () => {
-    // Desde la Biblia a scroll, salir es VOLVER: al capítulo que se estaba
-    // leyendo, a los resultados de la búsqueda, a donde fuera. Sin esto se caía
-    // en la antesala de la proyección —con su buscador y sus botones de
-    // proyector—, que no es ni de lejos lo que venía a hacer quien sólo estaba
-    // leyendo. El origen se apunta al pulsar el botón que trae aquí; si no
-    // consta (se entró por enlace o por la portada), a la Biblia.
-    if (modoScroll) {
-      navegarA(leerOrigenScroll() || '/');
-      return;
-    }
-
     // La ventana del segundo monitor NO se cierra: se queda en negro.
     //
     // Es el cambio que pidió el uso real. Colocarla en el proyector cuesta
@@ -1259,17 +1182,12 @@
   // en la pantalla de la iglesia hasta el final del culto.
   const ESPERA_PANEL_MS = 9000;
 
-  // En el modo lectura la barra no se saca sin querer: se pide con un gesto
-  // aparte, así que aguanta más antes de irse. No hay puntero que la mantenga
-  // viva mientras se la mira, y cuatro segundos se acaban leyendo los iconos.
-  const ESPERA_LECTURA_MS = 8000;
-
   const mostrarControles = () => {
     controlesVisibles = true;
     clearTimeout(ocultarControlesTimer);
     // No se ocultan con el puntero encima: el operador está usándolos, y que se
     // desvanezcan mientras los miras es de las cosas que más enfadan.
-    const espera = panelAbierto ? ESPERA_PANEL_MS : modoLectura ? ESPERA_LECTURA_MS : ESPERA_CONTROLES_MS;
+    const espera = panelAbierto ? ESPERA_PANEL_MS : ESPERA_CONTROLES_MS;
     ocultarControlesTimer = setTimeout(() => {
       if (punteroEncima) return;
       panelAbierto = '';
@@ -1278,31 +1196,18 @@
   };
 
   /**
-   * Los gestos del dedo, y son DOS reglas distintas.
+   * En el móvil, un TOQUE enseña la barra; un arrastre no.
    *
-   * **Proyectando**, un TOQUE enseña la barra y un arrastre no. Antes bastaba
-   * con `touchstart`, así que cualquier gesto la sacaba. El umbral son 12 px:
-   * por debajo de eso nadie está arrastrando, es el temblor del pulgar.
+   * Antes bastaba con `touchstart`, así que cualquier gesto la sacaba. El
+   * umbral son 12 px: por debajo de eso nadie está arrastrando, es el temblor
+   * normal del pulgar al tocar.
    *
-   * **En el modo lectura** eso no vale, y por eso hay dos reglas. Ahí el dedo
-   * está en la pantalla todo el rato pasando versículos, y un golpe rápido
-   * —que recorre poco aunque lleve mucha velocidad— contaba como toque: la
-   * barra salía sola cada dos o tres versículos, justo encima de lo que se
-   * estaba leyendo. Así que leyendo **no se enseña con el toque**: se enseña y
-   * se esconde deslizando DE LADO, que es el único gesto que ahí no significa
-   * nada más, porque el scroll es vertical.
-   *
-   * Y entra por el lado hacia el que se ha deslizado: si el dedo va a la
-   * derecha, la barra viene de la izquierda, detrás de él.
+   * La regla de deslizar DE LADO que hubo aquí se fue con el modo lectura a
+   * `ScrollBible.svelte` el 21 sep 2026: era para cuando el dedo está en la
+   * pantalla todo el rato pasando versículos, y eso ya no pasa aquí.
    */
   const MOVIMIENTO_MAXIMO_TOQUE = 12;
-  /** Lo que hay que recorrer de lado para que cuente como gesto, no como roce. */
-  const DESLIZAMIENTO_MINIMO = 60;
   let toqueInicio = null;
-  /** 'izq' | 'der' — de qué borde entra la barra. */
-  let ladoControles = 'der';
-  /** La pista del gesto, hasta que se usa por primera vez. */
-  let pistaGesto = true;
 
   const alEmpezarToque = (e) => {
     const t = e.touches?.[0];
@@ -1312,28 +1217,9 @@
   const alTerminarToque = (e) => {
     if (!toqueInicio) return;
     const t = e.changedTouches?.[0];
-    const dx = t ? t.clientX - toqueInicio.x : 0;
-    const dy = t ? t.clientY - toqueInicio.y : 0;
+    const recorrido = t ? Math.hypot(t.clientX - toqueInicio.x, t.clientY - toqueInicio.y) : 0;
     toqueInicio = null;
-    if (!t) return;
-
-    if (!modoLectura) {
-      if (Math.hypot(dx, dy) < MOVIMIENTO_MAXIMO_TOQUE) mostrarControles();
-      return;
-    }
-
-    // De lado y con intención: el `1.4` descarta las diagonales de un scroll
-    // vertical hecho con el pulgar, que siempre se va un poco de lado.
-    if (Math.abs(dx) < DESLIZAMIENTO_MINIMO || Math.abs(dx) < Math.abs(dy) * 1.4) return;
-    pistaGesto = false;
-    if (controlesVisibles) {
-      clearTimeout(ocultarControlesTimer);
-      panelAbierto = '';
-      controlesVisibles = false;
-      return;
-    }
-    ladoControles = dx > 0 ? 'izq' : 'der';
-    mostrarControles();
+    if (recorrido < MOVIMIENTO_MAXIMO_TOQUE) mostrarControles();
   };
 
   const entrarEnControles = () => {
@@ -1518,20 +1404,6 @@
     // volver a pedir la Biblia: `compareWithVersion` arranca en null.
     if (prefs.segundoIdioma) initCompareVersion();
 
-    // En `/scroll` no hay antesala: se empieza a leer por donde se quedó. El
-    // `+ 1` convierte el índice de capítulo (base 0, como lo guarda la lectura)
-    // al número — NO es «el capítulo siguiente». Sin nada guardado, Geneza 1,
-    // que es por donde se empieza una Biblia.
-    if (modoScroll) {
-      if (ultimaLectura) empezarDesde(ultimaLectura.book, ultimaLectura.chapter + 1);
-      else empezarDesde(0, 1);
-    }
-    // El modo lectura depende del ancho, y el ancho cambia al girar el móvil.
-    const anchoMovil = window.matchMedia('(max-width: 40rem)');
-    const mirarAncho = () => (esMovil = anchoMovil.matches);
-    mirarAncho();
-    anchoMovil.addEventListener('change', mirarAncho);
-
     window.addEventListener('keydown', alPulsarTecla);
     window.addEventListener('keyup', alSoltarTecla);
     // Un Mayús+clic no es un toque de Mayúsculas, y salir de la ventana con la
@@ -1539,7 +1411,6 @@
     window.addEventListener('mousedown', desarmarMayusculas);
     window.addEventListener('blur', desarmarMayusculas);
     return () => {
-      anchoMovil.removeEventListener('change', mirarAncho);
       window.removeEventListener('keydown', alPulsarTecla);
       window.removeEventListener('keyup', alSoltarTecla);
       window.removeEventListener('mousedown', desarmarMayusculas);
@@ -1580,14 +1451,12 @@
          El navegador exige un gesto en esta ventana para entrar —no se puede
          pedir desde la consola por el canal—, así que lo que se puede hacer es
          que ese gesto no tenga que acertar en ningún sitio: el operador da un
-         clic en cualquier punto del proyector y ya está. En pantalla completa
-         no existe, así que durante el culto no hay nada que pueda pulsarse sin
-         querer. -->
-    <!-- Sin rótulo ni botón visibles, a propósito desde el 19 sep 2026: había
+         clic en cualquier punto del proyector y ya está.
+
+         Sin rótulo ni botón visibles, a propósito desde el 19 sep 2026: había
          una pista arriba y un «Ecran complet» abajo, y lo que provocaban era
          justo lo contrario de lo que buscaban — el operador apuntaba con el
-         ratón a uno de los dos en vez de dar el clic donde cayera. Lo que queda
-         es la superficie entera: un clic en cualquier punto, sin puntería. -->
+         ratón a uno de los dos en vez de dar el clic donde cayera. -->
     {#if !enPantallaCompleta}
       <button
         type="button"
@@ -2028,33 +1897,18 @@
     {indice}
     {enNegro}
     {selloBlanco}
-    versiculos={versiculosLectura}
-    onVisible={alVerVersiculo}
-    on:mousemove={modoLectura ? () => {} : mostrarControles}
+    on:mousemove={mostrarControles}
     on:touchstart={alEmpezarToque}
     on:touchend={alTerminarToque}
-    on:wheel={modoLectura ? () => {} : alGirarRueda}
+    on:wheel={alGirarRueda}
   >
     <!-- Zonas de toque para avanzar sin teclado: la mitad derecha avanza, la
          izquierda retrocede. Invisibles a propósito — es una pantalla, no una
-         interfaz.
-
-         En el modo lectura NO se ponen: van por encima de todo y se tragarían
-         el deslizamiento, que ahí es la forma de pasar de versículo. -->
-    {#if !modoLectura}
-      <button type="button" class="zona zona--anterior" aria-label={$_('app.projection.key_prev')} on:click={anterior}
-      ></button>
-      <button type="button" class="zona zona--siguiente" aria-label={$_('app.projection.key_next')} on:click={siguiente}
-      ></button>
-    {/if}
-
-    <!-- El gesto no se adivina, así que se dice una vez: sale con la barra
-         mientras no se haya usado, y desaparece para siempre en cuanto se
-         desliza. No se guarda en ningún sitio — que vuelva a salir en la
-         sesión siguiente no molesta a nadie y sí ayuda a quien lo olvidó. -->
-    {#if modoLectura && pistaGesto && controlesVisibles}
-      <p class="pista-gesto">{$_('app.projection.swipe_hint')}</p>
-    {/if}
+         interfaz. -->
+    <button type="button" class="zona zona--anterior" aria-label={$_('app.projection.key_prev')} on:click={anterior}
+    ></button>
+    <button type="button" class="zona zona--siguiente" aria-label={$_('app.projection.key_next')} on:click={siguiente}
+    ></button>
 
     <ProjectionControls
       {prefs}
@@ -2062,7 +1916,6 @@
       {indice}
       total={pasajes.length}
       visibles={controlesVisibles}
-      lado={modoLectura ? ladoControles : ''}
       onPanel={alternarPanel}
       onSalir={salir}
       onMasGrande={masGrande}
@@ -2770,40 +2623,12 @@
     }
   }
 
-  // ── La pista del gesto (modo lectura) ─────────────────────────────────────
-  //
-  // Encima de la barra y con su mismo tratamiento: acompaña a los controles y
-  // se va con ellos. `pointer-events: none` porque queda sobre la zona por la
-  // que se desliza — es la lección de la pista de montaje, que se tragaba el
-  // único clic que explicaba.
-  .pista-gesto {
-    position: absolute;
-    left: 50%;
-    bottom: 4.1rem;
-    transform: translateX(-50%);
-    z-index: 3;
-    max-width: calc(100vw - 2rem);
-    margin: 0;
-    padding: 0.4rem 0.8rem;
-    border-radius: var(--radius-pill);
-    background: rgba(20, 24, 30, 0.86);
-    color: #f2f4f7;
-    font-size: 0.74rem;
-    font-weight: 600;
-    text-align: center;
-    pointer-events: none;
-  }
-
   // ── Pantalla completa desde la ventana proyectada ─────────────────────────
   //
-  // Toda la ventana es el botón. El navegador exige un gesto EN ESTA ventana
-  // para entrar a pantalla completa —no vale pedirlo desde la consola por el
-  // canal—, así que lo único que se puede hacer es que ese gesto no requiera
-  // puntería: un clic en cualquier parte del proyector. Sólo existe fuera de
-  // pantalla completa, así que durante el culto no hay nada que pulsar.
-  //
-  // Sin contorno de foco por lo mismo que las zonas de avance: ocupa la
-  // pantalla entera y el borde interior se vería como un marco oscuro.
+  // Toda la ventana es el botón: el navegador exige un gesto EN ESA ventana y
+  // lo único que se puede hacer es que no requiera puntería. Sin contorno de
+  // foco por lo mismo que las zonas de avance: ocupa la pantalla entera y el
+  // borde interior se vería como un marco oscuro.
   .pedir-completa {
     position: absolute;
     inset: 0;

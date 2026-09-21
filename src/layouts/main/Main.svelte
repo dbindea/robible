@@ -23,6 +23,7 @@
   import GuidePredicare from './GuidePredicare.svelte';
   import Admin from './Admin.svelte';
   import Projection from './Projection.svelte';
+  import ScrollBible from './ScrollBible.svelte';
   import ProjectionLanding from './ProjectionLanding.svelte';
   import { getBibleVersionConfigOrDefault } from '../../store/stores';
   import { registrarVisita } from '../../services/analytics.service';
@@ -312,13 +313,20 @@
         <GuidePredicare />
       {:else if isAdminMode}
         <Admin />
-      {:else if isProjectionMode || isScrollMode}
+      {:else if isScrollMode}
+        <!-- La Biblia a scroll es una pantalla APARTE de la proyección desde el
+             21 sep 2026: una es para leer y la otra para la pantalla de la
+             iglesia, y mezclarlas obligaba a pasar por el buscador del
+             proyector para ponerse a leer. Recibe `result` —lo que haya en la
+             lista de resultados— porque eso es justo lo que se quiere ver
+             deslizando: los cinco versículos de una búsqueda, o el capítulo
+             desde donde se estaba. -->
+        <ScrollBible {bible} {map} {compareBible} {compareMap} {result} />
+      {:else if isProjectionMode}
         <!-- `compareBible` y `compareMap` son el segundo idioma. Llegan vacíos
              hasta que el usuario lo enciende: App.svelte sólo baja esa Biblia
-             cuando `compareWithVersion` deja de ser null (son ~4 MB).
-             `modoScroll` es la Biblia a scroll: la misma pantalla, pero
-             entrando ya en modo lectura. -->
-        <Projection {bible} {map} {compareBible} {compareMap} modoScroll={isScrollMode} />
+             cuando `compareWithVersion` deja de ser null (son ~4 MB). -->
+        <Projection {bible} {map} {compareBible} {compareMap} />
       {:else if isProjectionLandingMode}
         <ProjectionLanding />
       {:else if isPublicSermonMode}

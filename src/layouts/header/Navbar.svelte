@@ -6,6 +6,7 @@
   import { versionesDisponibles } from '../../store/bibleVersionsStore';
   import { appMenuOpen, closeAppMenu, openAppMenu } from '../../store/appMenuStore';
   import { isAuthenticated } from '../../store/authStore';
+  import { guardarOrigenScroll } from '../../services/projection.service';
 
   let isVersionMenuOpen = false;
   let versionPickerElement;
@@ -30,6 +31,19 @@
   // Helpers para detectar ruta activa
   $: isOnCompare = currentPath.startsWith('/compara');
   $: isOnProjection = currentPath.startsWith('/proiectie');
+  $: isOnScroll = currentPath.startsWith('/scroll');
+
+  /**
+   * A la Biblia a scroll, apuntando de dónde se sale.
+   *
+   * `/scroll` tapa la pantalla entera, así que al salir de allí hay que
+   * devolver a la persona a esta misma página. Éste es el único momento en que
+   * todavía se sabe cuál era.
+   */
+  const irAScroll = (event) => {
+    if (!isOnScroll) guardarOrigenScroll(window.location.pathname + window.location.search);
+    navigate(event, '/scroll');
+  };
 
   const selectVersion = (version) => {
     selectedBibleVersion.set(version.value);
@@ -127,9 +141,28 @@
     <!-- Proyección en lugar del índice temático (14 sep 2026).
          El índice sigue en el menú lateral y en el pie; aquí arriba sólo caben
          dos enlaces sin estrujar el selector de versión, y proyectar en la
-         iglesia es una acción que se hace con prisa y delante de gente. -->
+         iglesia es una acción que se hace con prisa y delante de gente.
+
+         Y son DOS enlaces distintos según el tamaño (21 sep 2026): en el móvil
+         la Biblia a scroll, en el escritorio la proyección. Nadie proyecta en
+         la pantalla de una iglesia desde un teléfono, y nadie lee a scroll con
+         el pulgar en un portátil. Se reparten con CSS y no con un `{#if}` sobre
+         `matchMedia` porque así no hay un salto al cargar ni estado que
+         mantener: el que no toca simplemente no se pinta. -->
     <a
-      class="nav-link"
+      class="nav-link nav-link--movil"
+      class:nav-link--active={isOnScroll}
+      href="/scroll"
+      title={$_('app.scroll.seo_title')}
+      aria-current={isOnScroll ? 'page' : undefined}
+      on:click={(e) => irAScroll(e)}
+    >
+      <Icon name="scroll" />
+      <span class="nav-link__label">{$_('app.app_menu.items.scroll.label')}</span>
+    </a>
+
+    <a
+      class="nav-link nav-link--escritorio"
       class:nav-link--active={isOnProjection}
       href="/proiectie"
       title={isOnProjection ? $_('app.nav.back_to_home') : $_('app.projection.title')}
@@ -591,6 +624,24 @@
     }
     .nav-link {
       padding: 0.4rem 0.5rem;
+    }
+  }
+
+  // Los dos enlaces que se reparten por tamaño: en el móvil la Biblia a
+  // scroll, en el escritorio la proyección. Aquí arriba sólo cabe uno sin
+  // estrujar el selector de versión, y cada uno es el que corresponde al
+  // aparato que lo mira.
+  .nav-link--movil {
+    display: none;
+  }
+
+  @media (max-width: 40rem) {
+    .nav-link--escritorio {
+      display: none;
+    }
+
+    .nav-link--movil {
+      display: inline-flex;
     }
   }
 </style>
