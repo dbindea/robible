@@ -951,10 +951,10 @@ editor tipo Word, ni roles más allá de Utilizator/Predicator.
 - `node workers/robible-api/dev-server.js` — emulador backend
 
 ### Service Worker
-- Cache version: **`robible-v31`** (a bumpar a mano en `public/sw.js` con cada release)
+- Cache version: **`robible-v42`** (a bumpar a mano en `public/sw.js` con cada release)
 - `public/sw.js` es la **única** fuente de verdad de la versión de cache (la constante duplicada de `config.js` se eliminó el 2026-09-04)
 - Pre-cachea: ambas Biblias, todos los assets, lang files
-- Network-first para navegación · cache-first para assets y data · stale-while-revalidate para `/lang/`
+- Network-first para navegación · cache-first para assets y data · network-first con tope de 1,5 s y respaldo de cache para `/lang/`
 
 ---
 

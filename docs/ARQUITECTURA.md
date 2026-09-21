@@ -241,7 +241,7 @@ Implementación propia en [i18n.service.js](../src/services/i18n.service.js), si
 - Los archivos viven en `public/lang/{ro,es,en,zh}.json`, ~350 claves cada uno, bajo tres raíces: `app`, `auth`, `landing`.
 - El locale sale de la versión bíblica activa (`vdc` → `ro`, `rvl` → `es`), salvo en la landing, donde manda `?lang=xx` y es independiente.
 - Si falta una clave, el traductor devuelve **la clave misma** — así se detectan a simple vista en la UI.
-- El SW sirve `/lang/*` con *stale-while-revalidate* para que las traducciones se actualicen sin esperar a un bump de cache.
+- El SW sirve `/lang/*` con **la red primero** (tope de 1,5 s y respaldo de cache) para que las traducciones se actualicen sin esperar a un bump de cache. Era *stale-while-revalidate*, y eso garantizaba un parpadeo de claves en crudo en la primera carga tras cada despliegue.
 
 **Añadir una clave:** hay que añadirla a los cuatro archivos. Si falta en uno, ese idioma mostrará la clave cruda.
 
@@ -300,4 +300,4 @@ Los versículos **siguen siendo direccionables**. `/biblia/<version>/<libro>/<ca
 Solo pasa por la función quien abre el enlace directamente —al compartirlo, o un rastreador—. Dentro de la aplicación, moverse entre versículos es navegación de cliente y no llega al servidor.
 - [seo.service.js](../src/services/seo.service.js) actualiza en runtime title, description, canonical, hreflang, Open Graph, Twitter Card y JSON-LD según la vista.
 - Netlify Functions: `og-image.mjs` genera un SVG por versículo para compartir; `verse-meta.mjs` sirve HTML con metadatos para la ruta legacy `/verse/...`.
-- [public/sw.js](../public/sw.js): *network-first* para navegación, *cache-first* para assets y datos, *stale-while-revalidate* para `/lang/`. Precachea las dos Biblias completas en la instalación.
+- [public/sw.js](../public/sw.js): *network-first* para navegación, *cache-first* para assets y datos, y *network-first con tope y respaldo de cache* para `/lang/`. Precachea las dos Biblias completas en la instalación.

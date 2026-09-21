@@ -64,7 +64,7 @@
 # `max-age=31536000, immutable` el navegador no vuelve a pedirlo en un año, así
 # que al añadir claves nuevas los usuarios veían la clave en crudo
 # ("app.share.eyebrow") en vez del texto. Peor aún: eso también anulaba el
-# stale-while-revalidate del service worker, porque su fetch de refresco se
+# refresco en segundo plano del service worker, porque su fetch se
 # resolvía contra la caché HTTP sin llegar a la red.
 # Se revalida siempre; el service worker es quien da la cobertura offline.
 [[headers]]

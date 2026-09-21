@@ -1,4 +1,4 @@
-const CACHE_NAME = 'robible-v41';
+const CACHE_NAME = 'robible-v42';
 
 const CORE_ASSETS = [
   '/',
@@ -31,9 +31,9 @@ const CORE_ASSETS = [
   '/assets/icon/fonts/icomoon.ttf?bx6h1k',
   '/assets/icon/fonts/icomoon.woff?bx6h1k',
   // Los cuatro idiomas de la interfaz, no solo los dos con Biblia: pesan 96 KB
-  // en total y antes `en` y `zh` no se precacheaban, así que dependían del
-  // stale-while-revalidate para actualizarse — y ese camino estaba roto (ver
-  // el comentario de staleWhileRevalidate más abajo).
+  // en total. Se precachean para que el aviso push pueda armar su texto sin
+  // pestaña abierta y para que haya algo que servir sin conexión (ver el
+  // comentario de traduccionesDeRed más abajo).
   '/lang/ro.json',
   '/lang/es.json',
   '/lang/en.json',
@@ -101,38 +101,48 @@ const cacheFirst = async (request) => {
   return response;
 };
 
-// Stale-while-revalidate: sirve cache inmediatamente, en paralelo descarga
-// la versión nueva del servidor y actualiza la cache para la próxima vez.
-// Usado para archivos de traducción y otros assets que se actualizan con deploy.
-//
-// El `cache: 'reload'` del refresco no es decorativo: obliga a ir a la red
-// saltándose la caché HTTP del navegador. Sin él, este camino estaba muerto —
-// `/lang/*` se servía con `immutable, max-age=31536000` (ver netlify.toml), así
-// que este fetch se resolvía contra la copia guardada y volvía a meter en cache
-// exactamente los mismos bytes viejos, para siempre. El resultado era que al
-// añadir claves nuevas salían en crudo en pantalla.
-//
-// Aunque la cabecera ya está corregida, esto sigue haciendo falta: los usuarios
-// que visitaron el sitio antes del arreglo tienen la entrada `immutable`
-// guardada en su navegador hasta 2027, y solo un fetch que la ignore la
-// desaloja.
-const staleWhileRevalidate = async (request) => {
-  const cachedResponse = await caches.match(request);
+// Cuánto se espera a la red antes de tirar de la copia guardada (ms). Con las
+// cabeceras ya correctas la petición casi siempre acaba en un 304 de unos
+// cientos de bytes, así que este tope solo entra en juego con una conexión
+// mala — y entonces servir la copia de ayer es exactamente lo que se hacía
+// antes, nunca peor.
+const TOPE_TRADUCCIONES = 1500;
 
-  // Lanzamos la petición de red en paralelo (sin await del set)
-  const networkUpdate = fetch(request.url, { cache: 'reload' })
-    .then((response) => putInCache(request, response))
-    .catch(() => {
-      // Red caída: nos quedamos con la cache
-    });
+// Traducciones: la RED manda, con la cache como red de seguridad.
+//
+// Antes era stale-while-revalidate y eso dejaba un parpadeo garantizado: la
+// primera carga después de cada despliegue servía el fichero del día anterior
+// y solo refrescaba para la SIGUIENTE. Se reprodujo en producción el 21 sep
+// 2026 — `https://robible.com/scroll` recién desplegado salía con el título
+// `app.scroll.seo_title` en crudo, y al recargar ya ponía «Biblia la scroll».
+// El fichero desplegado tenía la clave: el problema era nuestro, aquí.
+//
+// El `cache: 'reload'` no es decorativo: obliga a ir a la red saltándose la
+// caché HTTP del navegador. `/lang/*` se sirvió una temporada con
+// `immutable, max-age=31536000` (ver netlify.toml), y los usuarios que
+// pasaron por el sitio antes del arreglo tienen esa entrada guardada hasta
+// 2027; solo un fetch que la ignore la desaloja.
+const traduccionesDeRed = async (event, request) => {
+  const guardada = await caches.match(request);
 
-  if (cachedResponse) {
-    return cachedResponse;
+  const red = fetch(request.url, { cache: 'reload' }).then(async (response) => {
+    await putInCache(request, response);
+    return response;
+  });
+
+  // Sin copia guardada no hay nada que servir: se espera a la red lo que haga
+  // falta. Es la primera visita, antes de que termine la instalación del SW.
+  if (!guardada) {
+    return (await red.catch(() => null)) || new Response('', { status: 504 });
   }
 
-  // No hay cache, esperamos a la red
-  await networkUpdate;
-  return (await caches.match(request)) || new Response('', { status: 504 });
+  // El fetch sigue vivo aunque ganemos por tiempo: así la copia guardada queda
+  // al día para la próxima. Sin `waitUntil` el navegador puede matar al SW en
+  // cuanto respondemos y dejar la actualización a medias.
+  event.waitUntil(red.catch(() => {}));
+
+  const porTiempo = new Promise((resolve) => setTimeout(resolve, TOPE_TRADUCCIONES, null));
+  return (await Promise.race([red.catch(() => null), porTiempo])) || guardada;
 };
 
 const networkFirst = async (request) => {
@@ -188,8 +198,7 @@ self.addEventListener('activate', (event) => {
 // importar —un service worker clásico no comparte módulos con el bundle— así
 // que si allí cambia la forma de elegir el versículo, hay que cambiarla aquí
 // también o la notificación anunciará uno distinto del que abre la aplicación.
-const numeroDeDia = (fecha) =>
-  Math.floor(Date.UTC(fecha.getFullYear(), fecha.getMonth(), fecha.getDate()) / 86400000);
+const numeroDeDia = (fecha) => Math.floor(Date.UTC(fecha.getFullYear(), fecha.getMonth(), fecha.getDate()) / 86400000);
 
 const leerDeCache = async (url) => {
   const respuesta = await caches.match(url);
@@ -298,11 +307,9 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  if (
-    url.pathname.startsWith('/lang/')
-  ) {
-    // Traducciones: stale-while-revalidate para que siempre estén al día
-    event.respondWith(staleWhileRevalidate(request));
+  if (url.pathname.startsWith('/lang/')) {
+    // Traducciones: con red, siempre las del día; sin red, las guardadas
+    event.respondWith(traduccionesDeRed(event, request));
     return;
   }
 
