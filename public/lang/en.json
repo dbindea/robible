@@ -93,7 +93,9 @@
         "nt": "New Testament"
       },
       "no_results_in_book": "No results in {book}. The search is limited to that book.",
-      "search_whole_bible": "Search the whole Bible"
+      "search_whole_bible": "Search the whole Bible",
+      "no_results_in_version": "No results in {version}.",
+      "search_in_version": "Search in {version} ({count})"
     },
     "book_drawer": {
       "aria_label": "Books of the Bible",

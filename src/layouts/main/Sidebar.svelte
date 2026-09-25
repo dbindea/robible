@@ -5,6 +5,12 @@
   import { filter, selectedBibleVersion } from '../../store/stores';
   import { searchesStore } from '../../store/searchesStore';
   import { searchReferences, formatChapterVerse } from '../../services/referenceSearch.service';
+  import {
+    ordenarCandidatas,
+    primeraVersionConResultados,
+    olvidarVersionConsultada,
+  } from '../../services/cross-version-search.service';
+  import { versionesDisponibles } from '../../store/bibleVersionsStore';
   import { getBibleVersionConfigOrDefault } from '../../config/bible-versions';
   import { buildBiblePath } from '../../services/bible-route.service';
   import BookDrawer from './BookDrawer.svelte';
@@ -284,6 +290,10 @@
   onDestroy(() => {
     if (saveSearchTimer) clearTimeout(saveSearchTimer);
     cancelarFiltroPendiente();
+    cancelarSugerenciaVersion();
+    // La Biblia que se consultó para el aviso son megabytes que ya no hacen
+    // falta: sin esto se quedaría viva mientras dure la pestaña.
+    olvidarVersionConsultada();
   });
 
   const resetForm = () => {
@@ -453,6 +463,65 @@
    */
   const buscarEnTodaLaBiblia = () => {
     updateFilter({ ...searchForm, testament: 'all', book: [], chapter: [] });
+  };
+
+  // ── Cero resultados porque la Biblia puesta es la de otro idioma ─────────
+  //
+  // «Soy rumano, busco una palabra en rumano y sin darme cuenta tengo la Biblia
+  // en español»: el buscador devuelve cero y no hay nada que lo explique. Se
+  // mira si alguna de las versiones activas sí tiene resultados y se ofrece el
+  // cambio. El porqué de cuáles se prueban y de cuándo se baja algo está en
+  // `cross-version-search.service.js`.
+  //
+  // Se espera medio segundo desde que la búsqueda se queda en cero: mientras se
+  // escribe, el cero es lo normal —«dra» todavía no es «dragoste»— y buscar en
+  // otra Biblia en cada tecla sería trabajo tirado.
+  const ESPERA_OTRA_VERSION = 500;
+  let sugerenciaVersion = null;
+  let temporizadorVersion = null;
+  let peticionVersion = 0;
+  let abortoVersion = null;
+
+  function cancelarSugerenciaVersion() {
+    if (temporizadorVersion) clearTimeout(temporizadorVersion);
+    temporizadorVersion = null;
+    abortoVersion?.abort();
+    abortoVersion = null;
+  }
+
+  /**
+   * No lee nada que asigne, así que no puede realimentarse: depende del texto,
+   * del recuento y de la versión, y sólo escribe en `sugerenciaVersion`.
+   */
+  function revisarOtrasVersiones(texto, tipo, cuantos, versionActual, disponibles) {
+    cancelarSugerenciaVersion();
+    const peticion = ++peticionVersion;
+    sugerenciaVersion = null;
+
+    if (tipo === 'reference' || !texto || texto.trim().length < 3 || cuantos > 0) return;
+
+    temporizadorVersion = setTimeout(async () => {
+      const candidatas = ordenarCandidatas(
+        versionActual,
+        (disponibles || []).map((v) => v.value),
+      );
+      if (!candidatas.length) return;
+      abortoVersion = new AbortController();
+      const encontrada = await primeraVersionConResultados({ ...searchForm }, candidatas, abortoVersion.signal);
+      // El usuario ha seguido escribiendo mientras se buscaba: lo de antes ya no
+      // vale, y pintarlo enseñaría un aviso sobre una búsqueda que ya no está.
+      if (peticion === peticionVersion) sugerenciaVersion = encontrada;
+    }, ESPERA_OTRA_VERSION);
+  }
+
+  $: revisarOtrasVersiones(searchForm.searchText, searchForm.searchType, count, $selectedBibleVersion, $versionesDisponibles);
+
+  const irALaVersionSugerida = () => {
+    if (!sugerenciaVersion) return;
+    // Sólo cambiar la versión: el texto buscado vive en el store del filtro y
+    // sobrevive a la recarga de la Biblia, así que los resultados salen solos.
+    selectedBibleVersion.set(sugerenciaVersion.version);
+    sugerenciaVersion = null;
   };
 
   const handleInputBlur = () => {
@@ -645,6 +714,23 @@
           <p>{$_('app.sidebar.no_results_in_book', { book: map[selectedBook] || '' })}</p>
           <button type="button" on:click={buscarEnTodaLaBiblia}>
             {$_('app.sidebar.search_whole_bible')}
+          </button>
+        </div>
+        <!-- El libro pegado va primero: es la causa más probable y la que se
+             arregla sin cambiar de Biblia. Si aun así no hay nada, en la
+             siguiente pasada aparece el aviso de la versión. -->
+      {:else if count === 0 && sugerenciaVersion}
+        <div class="sin-resultados" role="status">
+          <p>
+            {$_('app.sidebar.no_results_in_version', {
+              version: getBibleVersionConfigOrDefault($selectedBibleVersion)?.bibleName || '',
+            })}
+          </p>
+          <button type="button" on:click={irALaVersionSugerida}>
+            {$_('app.sidebar.search_in_version', {
+              version: sugerenciaVersion.bibleName,
+              count: sugerenciaVersion.count,
+            })}
           </button>
         </div>
       {/if}

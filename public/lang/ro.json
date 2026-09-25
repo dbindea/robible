@@ -93,7 +93,9 @@
         "nt": "Noul Testament"
       },
       "no_results_in_book": "Niciun rezultat în {book}. Căutarea este limitată la această carte.",
-      "search_whole_bible": "Caută în toată Biblia"
+      "search_whole_bible": "Caută în toată Biblia",
+      "no_results_in_version": "Niciun rezultat în {version}.",
+      "search_in_version": "Caută în {version} ({count})"
     },
     "book_drawer": {
       "aria_label": "Cărțile Bibliei",

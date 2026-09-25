@@ -93,7 +93,9 @@
         "nt": "新约"
       },
       "no_results_in_book": "在{book}中没有结果。搜索范围仅限该卷书。",
-      "search_whole_bible": "搜索整本圣经"
+      "search_whole_bible": "搜索整本圣经",
+      "no_results_in_version": "在{version}中没有结果。",
+      "search_in_version": "在{version}中查找（{count}）"
     },
     "book_drawer": {
       "aria_label": "圣经书卷",
