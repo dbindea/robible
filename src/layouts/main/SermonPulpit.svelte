@@ -30,12 +30,19 @@
     getSnapshot,
     keepScreenAwake,
     markActive,
+    regenerarInstantanea,
     savePosition,
     setFontSize,
     setPlannedMinutes,
   } from '../../services/sermon-pulpit.service';
 
   export let sermonId = '';
+  /**
+   * La Biblia cargada y el mapa de nombres. NO se usan al predicar: sólo en la
+   * antesala, para rehacer la instantánea si este dispositivo no la tiene.
+   */
+  export let bible = [];
+  export let map = {};
 
   let snapshot = null;
   let outline = null;
@@ -80,10 +87,31 @@
     window[MEDIDOR] = silencio;
   };
 
+  // ¿La instantánea la hemos rehecho nosotros al entrar? Se le dice, porque es
+  // la diferencia entre «esto ya estaba listo» y «lo acabo de dejar listo».
+  let rehecha = false;
+
   onMount(() => {
     silenciarAnalitica(true);
     snapshot = getSnapshot(sermonId);
     sermon = sermonsStore.get(sermonId);
+
+    // ── Si este dispositivo no tiene la instantánea, se rehace AQUÍ ────────
+    //
+    // La predicación se sincroniza y la instantánea no (y hace bien: es texto
+    // bíblico que ya está en el aparato). Pero `status: 'ready'` sí viaja, así
+    // que al abrir en el móvil una predicación preparada en el portátil, el
+    // púlpito salía con el pasaje vacío y las referencias en blanco — y eso se
+    // descubre en el atril.
+    //
+    // Se rehace en la antesala y no al empezar: durante la predicación no se
+    // toca nada. Todo lo que hace falta está ya en memoria —la predicación
+    // sincronizada y la Biblia cargada—, así que tampoco hay red por medio.
+    if (!snapshot && sermon) {
+      snapshot = regenerarInstantanea({ sermon, bible, map });
+      rehecha = !!snapshot;
+    }
+
     // La schiță sale de la instantánea; si por lo que sea no está, se cae a la
     // guardada con la predicación. Lo que nunca se hace es ir a buscarla fuera.
     outline = normalizeOutline(snapshot?.outline ?? sermon?.outline);
@@ -183,9 +211,15 @@
     <p class="antesala__ref">{snapshot?.reference || ''}</p>
 
     <ul class="antesala__checks">
+      <!-- Rehecha aquí = igual de listo, pero se dice: el predicador preparó
+           esto en otro aparato y conviene que sepa que este también lo está. -->
       <li class:antesala__check--ok={!!snapshot}>
         <span aria-hidden="true">{snapshot ? '✓' : '!'}</span>
-        {snapshot ? $_('app.pulpit.check_offline_ok') : $_('app.pulpit.check_offline_missing')}
+        {snapshot
+          ? rehecha
+            ? $_('app.pulpit.check_offline_rebuilt')
+            : $_('app.pulpit.check_offline_ok')
+          : $_('app.pulpit.check_offline_missing')}
       </li>
       <li class:antesala__check--ok={puntos.length > 0}>
         <span aria-hidden="true">{puntos.length ? '✓' : '!'}</span>

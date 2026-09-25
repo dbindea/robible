@@ -710,6 +710,7 @@
       "back": "Atrás",
       "finish": "Ya he predicado",
       "check_offline_ok": "La predicación está disponible sin conexión",
+        "check_offline_rebuilt": "Preparado en este dispositivo ahora — puedes predicar sin internet",
       "check_offline_missing": "La predicación no se ha preparado para usarse sin conexión",
       "check_outline_ok": "La guía está lista",
       "check_outline_missing": "No hay guía: créala primero",

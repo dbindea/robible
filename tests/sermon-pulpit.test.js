@@ -197,3 +197,97 @@ test('sin soporte de wakeLock no se bloquea el modo ni se lanza un error', () =>
   assert.equal(bloqueo.supported, false);
   assert.doesNotThrow(() => bloqueo.release());
 });
+
+// ── Rehacer la instantánea en otro dispositivo ──────────────────────────────
+//
+// El agujero que cierran: `status: 'ready'` es columna de D1 y viaja; la
+// instantánea vive en localStorage y no. Preparas la predicación en el portátil,
+// abres el móvil, y allí sale «preparada» pero el púlpito enseña el pasaje vacío
+// y los versículos citados en blanco. Se descubre en el atril.
+//
+// La salida no es sincronizar megabytes de texto bíblico que ya están en el
+// aparato: es rehacerla en la antesala con lo que sí viaja —la predicación— y
+// la Biblia ya cargada.
+
+import { pericopaDe, referenciaDe, regenerarInstantanea } from '../src/services/sermon-pulpit.service.js';
+
+// Biblia de juguete: sólo hace falta que existan las coordenadas que se piden.
+const BIBLIA_MINI = [];
+BIBLIA_MINI[42] = [];
+BIBLIA_MINI[42][2] = [
+  'Era un om din farisei...',            // Ioan 3:1
+  'Acesta a venit la Isus noaptea...',   // 3:2
+  'Drept răspuns, Isus i-a zis...',      // 3:3
+  'Nicodim I-a zis...',                  // 3:4
+];
+BIBLIA_MINI[43] = [[['În cea dintâi carte a mea...']]][0];
+const MAPA_MINI = { 42: 'Ioan', 43: 'Faptele Apostolilor' };
+
+const PREDICACION = {
+  id: 'sermon_1',
+  title: 'Nașterea din nou',
+  book: 42,
+  chapter: 3,
+  verseStart: 1,
+  verseEnd: 3,
+  outline: JSON.stringify({ idea: 'Trebuie să vă nașteți din nou', points: [{ id: 'p1', title: 'Vântul suflă' }] }),
+  content: JSON.stringify({
+    structure: [{ id: 'p1', title: 'Vântul suflă', refs: [{ book: 43, chapter: 1, verse: 1 }] }],
+    development: {},
+  }),
+};
+
+test('la perícopa sale de la Biblia cargada, y se salta los versículos que falten', () => {
+  const p = pericopaDe(PREDICACION, BIBLIA_MINI);
+  assert.equal(p.length, 3);
+  assert.deepEqual(p.map((v) => v.numero), [1, 2, 3]);
+  assert.match(p[0].texto, /farisei/);
+
+  // Un pasaje que se sale del capítulo no revienta: devuelve lo que hay.
+  const largo = pericopaDe({ ...PREDICACION, verseEnd: 99 }, BIBLIA_MINI);
+  assert.equal(largo.length, 4, 'Ioan 3 de juguete tiene cuatro versículos');
+});
+
+test('la perícopa no revienta sin Biblia ni con una predicación a medias', () => {
+  assert.deepEqual(pericopaDe(PREDICACION, []), []);
+  assert.deepEqual(pericopaDe(PREDICACION, null), []);
+  assert.deepEqual(pericopaDe(null, BIBLIA_MINI), []);
+  // Geneza es el libro 0: una comprobación descuidada lo dejaría fuera.
+  assert.deepEqual(pericopaDe({ book: 0, chapter: 1, verseStart: 1 }, BIBLIA_MINI), []);
+});
+
+test('la referencia se escribe como la gente la lee', () => {
+  assert.equal(referenciaDe(PREDICACION, MAPA_MINI), 'Ioan 3:1-3');
+  assert.equal(referenciaDe({ ...PREDICACION, verseEnd: 1 }, MAPA_MINI), 'Ioan 3:1');
+  assert.equal(referenciaDe({ ...PREDICACION, verseEnd: null }, MAPA_MINI), 'Ioan 3:1');
+  assert.equal(referenciaDe(null, MAPA_MINI), '');
+});
+
+test('rehacer la instantánea deja el púlpito igual de listo que prepararla', () => {
+  clearSnapshot(PREDICACION.id);
+  assert.equal(getSnapshot(PREDICACION.id), null, 'el dispositivo empieza sin ella');
+
+  const rehecha = regenerarInstantanea({ sermon: PREDICACION, bible: BIBLIA_MINI, map: MAPA_MINI });
+  assert.ok(rehecha, 'debería poder armarse con lo que ya está sincronizado');
+
+  // Lo que el púlpito necesita, que es justo lo que faltaba en el otro aparato.
+  assert.equal(rehecha.title, 'Nașterea din nou');
+  assert.equal(rehecha.reference, 'Ioan 3:1-3');
+  assert.equal(rehecha.pericope.length, 3);
+  assert.equal(rehecha.outline.idea, 'Trebuie să vă nașteți din nou');
+  assert.equal(rehecha.references.length, 1, 'la referencia citada en el punto');
+  assert.match(rehecha.references[0].text, /cea dintâi carte/, 'y con su TEXTO, no sólo la cita');
+
+  // Y queda guardada, que es de lo que se trata: al empezar ya no se toca nada.
+  assert.deepEqual(getSnapshot(PREDICACION.id), rehecha);
+});
+
+test('sin Biblia cargada NO se inventa una instantánea a medias', () => {
+  clearSnapshot(PREDICACION.id);
+  // Devolver algo con el pasaje vacío sería peor que no devolver nada: la
+  // antesala pondría el visto verde y el predicador subiría al atril creyendo
+  // que está listo.
+  assert.equal(regenerarInstantanea({ sermon: PREDICACION, bible: [], map: MAPA_MINI }), null);
+  assert.equal(regenerarInstantanea({ sermon: null, bible: BIBLIA_MINI, map: MAPA_MINI }), null);
+  assert.equal(getSnapshot(PREDICACION.id), null, 'y no deja nada escrito');
+});

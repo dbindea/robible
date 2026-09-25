@@ -35,7 +35,14 @@ function _applyTranslator(locale, messages) {
   // Tercero: actualizar currentLocale y DOM (sincrónico)
   currentLocale.set(locale);
   document.documentElement.lang = locale;
-  localStorage.setItem('lang', locale);
+  // Aquí se escribía además `localStorage['lang']`. Nadie lo leía: ni el
+  // bundle, ni `public/sw.js`, ni las funciones de Netlify, ni los scripts —
+  // comprobado buscando `getItem('lang')` en todo el repositorio—. No podía
+  // leerlo nadie porque **no hay preferencia de idioma que restaurar**: el
+  // idioma sale siempre de la versión bíblica elegida (`loadLocaleForBibleVersion`
+  // en `App.svelte`), y la landing lo saca de `?lang=` de la URL. Era una
+  // escritura en cada cambio de idioma que sólo servía para hacer creer, a quien
+  // mirase el almacenamiento, que existía un ajuste de idioma.
 }
 
 // Counter privado para forzar re-render en {#key}

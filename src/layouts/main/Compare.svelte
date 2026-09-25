@@ -294,6 +294,68 @@
     }, 100);
   };
 
+  // ── El versículo del que se venía ───────────────────────────────────────
+  //
+  // Se llega aquí desde el botón «comparar con…» de un versículo concreto, y
+  // `Result.svelte` deja escrito cuál era. Faltaba la otra mitad: esa clave se
+  // escribía desde el primer día y **no la leía nadie**, así que comparar
+  // Ioan 3:16 te dejaba al principio de Ioan 3 y a buscarlo entre treinta y
+  // seis. Aquí se recoge, se resalta y se borra.
+  //
+  // Es `sessionStorage` y se borra al leerla porque describe UN salto: si
+  // mañana se entra a comparar por la barra, lo de hoy no significa nada.
+  const CLAVE_DESTINO = 'robible:pendingCompareVerse';
+  let versiculoDestacado = null;
+  let destacadoTimer;
+
+  const recogerVersiculoDeOrigen = async () => {
+    if (typeof sessionStorage === 'undefined') return;
+    let destino = null;
+    try {
+      const crudo = sessionStorage.getItem(CLAVE_DESTINO);
+      if (!crudo) return;
+      sessionStorage.removeItem(CLAVE_DESTINO);
+      destino = JSON.parse(crudo);
+    } catch {
+      return;
+    }
+    // Sólo vale si es de lo que se está enseñando: el capítulo puede haber
+    // cambiado por la ruta antes de llegar hasta aquí.
+    if (!destino || destino.book !== selectedBook || destino.chapter !== selectedChapter + 1) return;
+    if (!Number.isInteger(destino.index) || destino.index < 1) return;
+
+    versiculoDestacado = destino.index;
+    // Dos fotogramas: el primero pinta las filas, el segundo ya puede medirlas.
+    await tick();
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    irAlVersiculoDestacado();
+
+    // El resaltado se apaga solo, como el de la lectura: sirve para encontrarlo,
+    // no para quedarse encendido mientras se compara.
+    destacadoTimer = window.setTimeout(() => { versiculoDestacado = null; }, 4000);
+  };
+
+  /**
+   * Lo pinta la vista de escritorio y las dos mitades del móvil, así que se
+   * desplaza la que de verdad esté visible. En el móvil el scroll va DENTRO del
+   * panel (`.compare-pane`), no en la ventana.
+   */
+  const irAlVersiculoDestacado = () => {
+    const fila = document.getElementById(`compare-fila-${versiculoDestacado}`);
+    if (fila?.offsetParent) {
+      fila.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      return;
+    }
+    const arriba = document.getElementById(`compare-arriba-${versiculoDestacado}`);
+    const panel = paneTopElement;
+    if (arriba && panel) {
+      // `scrollTop` a mano y no `scrollIntoView`: éste arrastra también a los
+      // antepasados y movía la página entera. Misma lección que el selector de
+      // capítulos y la columna de contexto de la proyección.
+      panel.scrollTop = Math.max(0, arriba.offsetTop - panel.clientHeight / 2 + arriba.offsetHeight / 2);
+    }
+  };
+
   onMount(async () => {
     await tick();
     parseComparePath();
@@ -301,11 +363,13 @@
     initCompareVersion();
     window.addEventListener('scroll', handleScroll, { passive: true });
     document.addEventListener('click', handleVersionMenuClickOutside);
+    recogerVersiculoDeOrigen();
   });
 
   onDestroy(() => {
     window.clearTimeout(toastTimer);
     window.clearTimeout(scrollTimer);
+    window.clearTimeout(destacadoTimer);
     window.removeEventListener('scroll', handleScroll);
     document.removeEventListener('click', handleVersionMenuClickOutside);
   });
@@ -476,7 +540,12 @@
         {#each { length: maxVerses } as _, i}
           {@const v1 = verses1[i]}
           {@const v2 = verses2[i]}
-          <div class="compare-row" class:compare-row--alt={i % 2 === 1}>
+          <div
+            class="compare-row"
+            class:compare-row--alt={i % 2 === 1}
+            class:compare-row--destacada={versiculoDestacado === i + 1}
+            id="compare-fila-{i + 1}"
+          >
             <!-- Left column -->
             <div class="compare-verse compare-verse--left">
               {#if v1 !== undefined}
@@ -530,7 +599,11 @@
           <div class="compare-pane__body">
             {#each { length: maxVerses } as _, i}
               {@const v1 = verses1[i]}
-              <div class="compare-verse compare-verse--full">
+              <div
+                class="compare-verse compare-verse--full"
+                class:compare-verse--destacada={versiculoDestacado === i + 1}
+                id="compare-arriba-{i + 1}"
+              >
                 {#if v1 !== undefined}
                   <span class="compare-verse__num">{i + 1}</span>
                   <span class="compare-verse__text">{v1 || ''}</span>
@@ -560,7 +633,10 @@
           <div class="compare-pane__body">
             {#each { length: maxVerses } as _, i}
               {@const v2 = verses2[i]}
-              <div class="compare-verse compare-verse--full">
+              <div
+                class="compare-verse compare-verse--full"
+                class:compare-verse--destacada={versiculoDestacado === i + 1}
+              >
                 {#if v2 !== undefined}
                   <span class="compare-verse__num">{i + 1}</span>
                   <span class="compare-verse__text">{v2 || ''}</span>
@@ -1089,6 +1165,16 @@
     &:hover {
       background: color-mix(in srgb, var(--color-blue) 10%, transparent);
     }
+
+    // El versículo del que se venía. Verde, que es el color del versículo en
+    // lectura en toda la aplicación (CLAUDE.md, trampa 16), y con filete a la
+    // izquierda para que se encuentre de un vistazo entre treinta y seis filas.
+    // Se apaga solo a los cuatro segundos: sirve para localizarlo, no para
+    // quedarse encendido mientras se compara.
+    &--destacada {
+      background: color-mix(in srgb, var(--color-success) 16%, transparent);
+      box-shadow: inset 3px 0 0 var(--color-success);
+    }
   }
 
   .compare-row-divider {
@@ -1103,6 +1189,15 @@
     gap: 0.5rem;
     padding: 0.7rem 0.75rem;
     position: relative;
+    transition: background-color var(--motion-fast) ease;
+
+    // La misma marca que en la vista de escritorio, para las dos mitades del
+    // móvil: se resaltan LAS DOS, que es el sentido de la pantalla —ver ese
+    // versículo en las dos versiones a la vez—.
+    &--destacada {
+      background: color-mix(in srgb, var(--color-success) 16%, transparent);
+      box-shadow: inset 3px 0 0 var(--color-success);
+    }
 
     &__num {
       flex: 0 0 auto;

@@ -710,6 +710,7 @@
       "back": "Back",
       "finish": "I have preached it",
       "check_offline_ok": "The sermon is available offline",
+        "check_offline_rebuilt": "Prepared on this device just now — you can preach without internet",
       "check_offline_missing": "The sermon has not been prepared for offline use",
       "check_outline_ok": "The outline is ready",
       "check_outline_missing": "There is no outline — create it first",

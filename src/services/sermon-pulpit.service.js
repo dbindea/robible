@@ -11,6 +11,8 @@
 // cargarse, el predicador se quedaría mirando un versículo vacío delante de la
 // congregación.
 
+import { collectReferences, normalizeContent, normalizeOutline } from './sermon-content.service.js';
+
 const SNAPSHOT_PREFIX = 'robible:pulpit:v1';
 const POSITION_PREFIX = 'robible:pulpit:pos:v1';
 const FONT_KEY = 'robible:pulpit:fontSize';
@@ -108,6 +110,66 @@ export const buildSnapshot = ({ sermon, outline, pericope, references, resolveVe
 export const getSnapshot = (sermonId) => leer(snapshotKey(sermonId));
 
 export const hasSnapshot = (sermonId) => !!getSnapshot(sermonId);
+
+// ── Rehacer la instantánea en otro dispositivo ──────────────────────
+//
+// La predicación viaja y la instantánea no. Es correcto que no viaje —son
+// megabytes de texto bíblico que ya están en el dispositivo, y la trampa 30
+// explica por qué se guarda el TEXTO y no las coordenadas—, pero deja un
+// agujero: `status: 'ready'` SÍ es columna de D1, así que marcas la predicación
+// como preparada en el portátil, abres el móvil, y allí sale «preparada» y el
+// púlpito con el pasaje vacío y los versículos citados en blanco. El predicador
+// se entera en el atril.
+//
+// La salida no es sincronizar la instantánea, es **rehacerla donde haga falta**:
+// todo lo que necesita —el pasaje, la schiță, el contenido— ya está en la
+// predicación, que sí se sincroniza, y la Biblia ya está cargada. Se rehace en
+// la antesala, ANTES de empezar, que es el único momento en que tocar algo es
+// seguro: durante la predicación no se hace nada, ni siquiera esto.
+
+/**
+ * Los versículos del pasaje, resueltos contra la Biblia cargada.
+ *
+ * Vive aquí y no en cada pantalla porque la usan las dos que arman la
+ * instantánea —la preparación y la antesala del púlpito—, y dos copias de esto
+ * se separan a la primera corrección.
+ */
+export const pericopaDe = (sermon, bible) => {
+  if (!sermon || !Number.isInteger(sermon.book) || !Array.isArray(bible)) return [];
+  const desde = sermon.verseStart;
+  const hasta = sermon.verseEnd || sermon.verseStart;
+  if (!Number.isInteger(desde) || !Number.isInteger(hasta) || hasta < desde) return [];
+  return Array.from({ length: hasta - desde + 1 }, (_, i) => ({
+    numero: desde + i,
+    texto: bible[sermon.book]?.[sermon.chapter - 1]?.[desde + i - 1] || '',
+  })).filter((v) => v.texto);
+};
+
+/** «Ioan 3:16-18» a partir del pasaje de la predicación. */
+export const referenciaDe = (sermon, map) => {
+  if (!sermon || !Number.isInteger(sermon.book)) return '';
+  const hasta = sermon.verseEnd && sermon.verseEnd !== sermon.verseStart ? `-${sermon.verseEnd}` : '';
+  return `${map?.[sermon.book] || ''} ${sermon.chapter}:${sermon.verseStart}${hasta}`;
+};
+
+/**
+ * Rehace la instantánea a partir de lo que ya está sincronizado.
+ *
+ * Devuelve la instantánea, o `null` si no se puede armar —sin Biblia cargada o
+ * sin predicación—. Que devuelva `null` no es un error que enseñar: significa
+ * que la antesala seguirá diciendo que el modo sin conexión no está listo, que
+ * es exactamente lo que hay que decirle al predicador.
+ */
+export const regenerarInstantanea = ({ sermon, bible, map }) => {
+  if (!sermon?.id || !Array.isArray(bible) || !bible.length) return null;
+  return buildSnapshot({
+    sermon: { id: sermon.id, title: sermon.title, reference: referenciaDe(sermon, map) },
+    outline: normalizeOutline(sermon.outline),
+    pericope: pericopaDe(sermon, bible),
+    references: collectReferences(normalizeContent(sermon.content)),
+    resolveVerse: (book, chapter, verse) => bible[book]?.[chapter - 1]?.[verse - 1] || '',
+  });
+};
 
 export const clearSnapshot = (sermonId) => {
   if (typeof window === 'undefined') return;

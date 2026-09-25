@@ -710,6 +710,7 @@
       "back": "返回",
       "finish": "已讲完",
       "check_offline_ok": "讲道已可离线使用",
+        "check_offline_rebuilt": "刚刚已在本设备上准备好——可以离线讲道",
       "check_offline_missing": "讲道尚未准备好离线使用",
       "check_outline_ok": "提纲已就绪",
       "check_outline_missing": "尚无提纲 — 请先生成",

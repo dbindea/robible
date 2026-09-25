@@ -216,12 +216,12 @@
   };
 
   const cambiarHora = async () => {
-    pushService.guardarHora(pushHora);
-    // Sólo hay que avisar al servidor si ya está suscrito; si no, la hora queda
-    // guardada para cuando lo active.
-    if (!pushActivo) return;
-    await pushService.refrescar({ version: versionConfig?.value, locale: versionConfig?.locale });
-    mostrar($_('app.push.hour_saved'));
+    // `fijarHora` y no `refrescar`: el segundo pregunta al servidor y adopta lo
+    // que diga, que es justo lo contrario de lo que hace falta aquí. Con
+    // `refrescar` la hora recién elegida se pisaba con la de un segundo antes.
+    // Guarda en local aunque no haya avisos activos, para cuando se enciendan.
+    const { ok } = await pushService.fijarHora(pushHora);
+    if (pushActivo && ok) mostrar($_('app.push.hour_saved'));
   };
 
   // ── Tipo de cuenta ──────────────────────────────────────────────────────
@@ -366,7 +366,16 @@
       pushActivo = await pushService.estaActivo();
       // Reenvía la hora en UTC y el idioma. Es lo que hace que el cambio de
       // horario de verano se corrija solo, sin tocar la base de datos.
-      pushService.refrescar({ version: versionConfig?.value, locale: versionConfig?.locale });
+      //
+      // Y devuelve la hora que ha quedado en vigor: si se cambió desde otro
+      // dispositivo, este la adopta ahí. Sin recoger lo que devuelve, el
+      // selector seguiría enseñando la vieja hasta recargar la página —y el
+      // usuario, viéndola, creería que no se ha guardado.
+      pushService
+        .refrescar({ version: versionConfig?.value, locale: versionConfig?.locale })
+        .then((hora) => {
+          if (Number.isInteger(hora)) pushHora = hora;
+        });
     }
   });
 </script>
