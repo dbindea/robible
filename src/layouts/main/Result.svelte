@@ -384,8 +384,15 @@
   let canSwipeLeft = false;
   let canSwipeRight = false;
 
-  $: canSwipeLeft = selectedChapter !== null && selectedChapter < (chapterArray.length - 1);
-  $: canSwipeRight = selectedChapter !== null && selectedChapter > 0;
+  // `!= null` y no `!== null`: un `chapter: []` en el formulario deja
+  // `selectedChapter` en **undefined**, y con la comparación estricta las dos
+  // salían false —`undefined < n` y `undefined > 0` lo son—, así que
+  // desaparecían las dos flechas flotantes de capítulo y el swipe se quedaba
+  // sin destino estando en el capítulo 1 de un libro de veintiuno. El resto del
+  // fichero sí distingue los dos casos (`=== null || === undefined`, `?? 0`),
+  // o sea que aquí era un olvido y no una decisión.
+  $: canSwipeLeft = selectedChapter != null && selectedChapter < chapterArray.length - 1;
+  $: canSwipeRight = selectedChapter != null && selectedChapter > 0;
 
   $: searchForm = $filter;
   $: keywords = searchForm.searchText || '';

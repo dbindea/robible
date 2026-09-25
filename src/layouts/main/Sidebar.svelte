@@ -5,6 +5,7 @@
   import { createReferenceSearchForm, filter, selectedBibleVersion } from '../../store/stores';
   import { searchesStore } from '../../store/searchesStore';
   import { searchReferences, formatChapterVerse } from '../../services/referenceSearch.service';
+  import { get } from 'svelte/store';
   import { getFilterResult } from '../../services/filter.service';
   import { navegarA } from '../../services/navigation.service';
   import {
@@ -46,11 +47,19 @@
     if (!match) return;
     const version = $selectedBibleVersion;
     const versionConfig = getBibleVersionConfigOrDefault(version);
+
+    // Una referencia de sólo libro —«ioan», que el desplegable ofrece con dos
+    // letras— es el principio del libro, o sea el capítulo 1. Sin esto la
+    // dirección se quedaba en `/biblia/vdc/ioan`, sin capítulo: en pantalla
+    // salía Ioan 1 igualmente, pero sin «capitolul 1» en el título, sin las
+    // flechas de capítulo y con una URL que compartida no lleva a lo que se ve.
+    // El destino se calcula UNA vez y vale para la ruta y para el formulario.
+    const destino = { book: match.book, chapter: Number.isInteger(match.chapter) ? match.chapter : 1 };
     const path = buildBiblePath({
       version: versionConfig.value,
       map,
-      book: match.book,
-      chapter: match.chapter,
+      book: destino.book,
+      chapter: destino.chapter,
       verse: match.verse,
     });
 
@@ -86,7 +95,7 @@
     const tipoFinal = cambioAutomatico ? modoAntesDelCambio || 'smart' : searchForm.searchType;
     cambioAutomatico = false;
     textoRechazado = null;
-    searchForm = createReferenceSearchForm(searchForm, match, tipoFinal);
+    searchForm = createReferenceSearchForm(searchForm, destino, tipoFinal);
     if (searchTextInput) searchTextInput.value = '';
     filter.set({ ...searchForm });
 
@@ -139,7 +148,30 @@
     recentReferences = [];
 
     if (typeof window !== 'undefined') {
-      filter.set({ ...searchForm, searchType: searchForm.searchType });
+      // El libro y el capítulo se releen del STORE, no de la copia del panel.
+      //
+      // `searchForm` es una foto de `$filter` tomada UNA vez al montar (ver
+      // `searchFormInit`), a propósito, para que teclear no se sobreescriba
+      // solo. Pero el capítulo lo va cambiando `Result.svelte` conforme se lee,
+      // así que la foto envejece: publicándola, pulsar un radio de modo
+      // devolvía al store un capítulo de hace rato —o ninguno— y la lectura se
+      // iba al capítulo 1 del libro. Medido: leyendo Geneza 12, pulsar «După
+      // referință» dejaba la URL en `/` y Geneza 1 en pantalla.
+      //
+      // Y el texto NO se publica en modo referencia, que es lo que hace ese
+      // modo de siempre: allí `$filter.searchText` está vacío y el capítulo se
+      // sigue viendo detrás del desplegable. Publicarlo dejaba la pantalla en
+      // blanco (ver `pasarAReferencia`).
+      const enElStore = get(filter);
+      searchForm = {
+        ...searchForm,
+        book: Array.isArray(enElStore.book) ? [...enElStore.book] : [],
+        chapter: Array.isArray(enElStore.chapter) ? [...enElStore.chapter] : [],
+      };
+      filter.set({
+        ...searchForm,
+        searchText: searchForm.searchType === 'reference' ? null : searchForm.searchText,
+      });
     }
 
     // Reinterpretar lo ya escrito con el criterio del modo nuevo. En modo
@@ -298,6 +330,18 @@
     }
   }
 
+  /**
+   * Enter en el buscador: aplicar ya, sin esperar el respiro de 150 ms.
+   *
+   * En modo referencia no hace nada aquí porque ya lo atiende
+   * `handleReferenceKeydown`, que salta a la sugerencia elegida.
+   */
+  function alEnviarElFormulario() {
+    if (searchForm.searchType === 'reference') return;
+    cancelarFiltroPendiente();
+    aplicarBusqueda();
+  }
+
   const updateFilterConRespiro = () => {
     cancelarFiltroPendiente();
     temporizadorFiltro = setTimeout(() => {
@@ -360,7 +404,20 @@
     modoAntesDelCambio = searchForm.searchType;
     cambioAutomatico = true;
     searchForm = { ...searchForm, searchType: 'reference' };
-    filter.set({ ...searchForm });
+
+    // El texto se queda en el campo y NO va al store, que es lo que hace el
+    // modo referencia de toda la vida: allí el `on:input` del formulario sale
+    // antes de tiempo y `$filter.searchText` nunca se llena.
+    //
+    // Publicarlo dejaba la pantalla en blanco y borraba el capítulo que se
+    // estaba leyendo: `getFilterResult` no tiene caso para `reference` y
+    // devuelve lista vacía, la plantilla de `Result` esconde a la vez el
+    // capítulo (`!searchText`) y el recuento (`searchType !== 'reference'`), y
+    // `syncCurrentBiblePath` reescribe la dirección a `/`. Quien escribiera una
+    // referencia y cerrara el desplegable sin elegir —un Escape, un toque
+    // fuera— se quedaba mirando una página vacía, sin su capítulo y sin manera
+    // evidente de volver. Así el capítulo sigue detrás del desplegable.
+    filter.set({ ...searchForm, searchText: null });
     referenceMatches = detectadas;
     referenceSelectedIdx = -1;
     referenceDropdownOpen = true;
@@ -668,15 +725,37 @@
 />
 
 <div class="sidebar sticky">
+  <!-- `on:submit|preventDefault` no es una precaución teórica: sin él, pulsar
+       Enter en el buscador SACA AL USUARIO DE LA APLICACIÓN.
+       Este formulario tiene exactamente un campo de texto y ningún botón de
+       enviar, que es la receta del envío implícito del HTML: el navegador hace
+       una navegación de verdad a `?searchType=…&testament=…` —el texto ni
+       siquiera viaja, el input no tiene `name`— y la aplicación se recarga
+       entera, con la Biblia otra vez. Sin sesión iniciada, `main.js` remata
+       mandando al visitante a `/landing`: se pierden la búsqueda, el capítulo y
+       la sesión de lectura. Medido en el navegador; nunca hubo un `on:submit`
+       aquí, así que llevaba así desde siempre.
+       De paso, Enter deja de no hacer nada y aplica la búsqueda en el acto. -->
   <form
-    on:change|stopPropagation={() => {
+    on:submit|preventDefault={alEnviarElFormulario}
+    on:change|stopPropagation={(e) => {
+      // Igual que en `input`: sólo el campo de texto. El `change` de un radio
+      // burbujea hasta aquí DESPUÉS de su propio manejador, así que volvía a
+      // entrar en `updateFilter` —que fuerza `chapter: []`— y deshacía lo que
+      // `onSearchTypeChange` acababa de conservar. Cada radio tiene su
+      // manejador y sabe lo que le toca tocar: el de modo no cambia el ámbito,
+      // y el de testamento sí lo limpia, a propósito, en `cleanBook`.
+      if (e.target !== searchTextInput) return;
       if (searchForm.searchType !== 'reference') updateFilter(searchForm);
     }}
     on:input|stopPropagation={(e) => {
+      // Sólo el campo de texto. Los radios disparan `input` ADEMÁS de `change`,
+      // y por esa puerta entraban en `updateFilter`, que fuerza `chapter: []`:
+      // pulsar un modo de búsqueda mientras se lee tiraba el capítulo. De los
+      // radios se encarga `on:change`, que es quien sabe lo que cada uno toca.
+      if (e.target !== searchTextInput) return;
       if (searchForm.searchType === 'reference') return;
-      // Teclear espera; tocar un control del formulario, no.
-      if (e.target === searchTextInput) updateFilterConRespiro();
-      else updateFilter(searchForm);
+      updateFilterConRespiro();
     }}
   >
     <div class="block-erase">

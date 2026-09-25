@@ -334,3 +334,39 @@ test('genPublicSlug acota la longitud y no colisiona', () => {
   const slugs = new Set(Array.from({ length: 300 }, () => genPublicSlug('Ansiedad')));
   assert.ok(slugs.size > 290, `demasiadas colisiones: ${slugs.size}/300`);
 });
+
+// ── La frontera entre el bundle y el worker ─────────────────────────────────
+//
+// El 25 sep 2026 los tres tipos de búsqueda por texto pasaron a ser uno,
+// `smart`, y el frontend empezó a mandarlo. El worker seguía validando contra
+// la lista vieja y devolvía 400 `invalid_search_type`.
+//
+// Lo grave no era el 400, era que NADIE lo veía: `searches.service.js` se traga
+// los 4xx, `invalid_search_type` no tiene texto en los cuatro idiomas, y el
+// `syncFromServer` siguiente machacaba la copia local con la del servidor —donde
+// no había llegado nada—, así que las búsquedas por palabras del día se
+// borraban solas. Las de referencia sobrevivían, porque `reference` sí valía, y
+// eso volvía el fallo indescifrable desde fuera.
+//
+// Es la trampa 36 al revés: lo normal es que el cliente vaya por delante del
+// worker; aquí iba el worker por detrás del bundle. Este test cruza los dos
+// lados a propósito, que es la única forma de cazarlo sin desplegar.
+
+import { TIPOS_DE_BUSQUEDA_VALIDOS } from '../workers/robible-api/src/data.js';
+import { createDefaultSearchForm } from '../src/store/stores.js';
+
+test('el worker acepta el tipo de búsqueda que el frontend manda por defecto', () => {
+  const delFrontend = createDefaultSearchForm().searchType;
+  assert.ok(
+    TIPOS_DE_BUSQUEDA_VALIDOS.includes(delFrontend),
+    `el frontend manda «${delFrontend}» y el worker sólo acepta ${TIPOS_DE_BUSQUEDA_VALIDOS.join(', ')}`,
+  );
+});
+
+test('los tipos viejos siguen valiendo, que el historial está lleno de ellos', () => {
+  // Quitar uno haría que las búsquedas guardadas antes del cambio dejaran de
+  // poder reutilizarse, y el fallo volvería a ser mudo.
+  for (const viejo of ['match', 'every', 'some', 'reference']) {
+    assert.ok(TIPOS_DE_BUSQUEDA_VALIDOS.includes(viejo), `falta «${viejo}»`);
+  }
+});
