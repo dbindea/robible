@@ -78,7 +78,7 @@
     OCUPACION_POR_DEFECTO,
   } from '../../services/projection.service';
   import { getLastRead } from '../../services/reading-progress.service';
-  import { parseReference, searchReferences } from '../../services/referenceSearch.service';
+  import { parseReference, searchReferences, formatReference } from '../../services/referenceSearch.service';
   import { applySeoMetadata } from '../../services/seo.service';
   import { keepScreenAwake } from '../../services/sermon-pulpit.service';
   import { textoDeVersiculo } from '../../services/versification.service';
@@ -1541,7 +1541,10 @@
           {#each sugerencias as s (`${s.book}-${s.chapter}-${s.verse || 0}`)}
             <li>
               <button type="button" on:click={() => empezarDesdeSugerencia(s)}>
-                <span class="resultados__ref">{map[s.book]} {s.chapter}{s.verse ? `:${s.verse}` : ''}</span>
+                <!-- La etiqueta la compone el servicio, igual que en el panel
+                     lateral: escrita a mano aquí, un rango salía como un
+                     versículo suelto. -->
+                <span class="resultados__ref">{formatReference(s)}</span>
               </button>
             </li>
           {/each}

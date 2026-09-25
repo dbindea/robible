@@ -4,7 +4,7 @@
   import { _ } from '../../services/i18n.service';
   import { filter, selectedBibleVersion } from '../../store/stores';
   import { searchesStore } from '../../store/searchesStore';
-  import { searchReferences } from '../../services/referenceSearch.service';
+  import { searchReferences, formatChapterVerse } from '../../services/referenceSearch.service';
   import { getBibleVersionConfigOrDefault } from '../../config/bible-versions';
   import { buildBiblePath } from '../../services/bible-route.service';
   import BookDrawer from './BookDrawer.svelte';
@@ -547,9 +547,10 @@
           >
             <span class="reference-option__book">{match.name}</span>
             {#if match.chapter}
-              <span class="reference-option__ref">
-                {match.chapter}{match.verse ? `:${match.verse}` : ''}
-              </span>
+              <!-- La parte numérica la compone el servicio: aquí se escribía a
+                   mano y por eso un rango («ioan 3:16-18») se anunciaba como si
+                   fuese un versículo suelto. -->
+              <span class="reference-option__ref">{formatChapterVerse(match)}</span>
             {/if}
           </button>
         {/each}

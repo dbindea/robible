@@ -79,7 +79,7 @@
       "choose_book": "Choose book",
       "form": {
         "search_placeholder": "Search by words...",
-        "reference_placeholder": "rom 3 5"
+        "reference_placeholder": "e.g. john 3:16-18"
       },
       "search_type": {
         "match": "Contains the expression",
@@ -1032,7 +1032,7 @@
       "title": "Verses on screen",
       "lead": "Pick the passage, then advance with a presenter remote or the keyboard. It reads from the back row.",
       "search_label": "What are we projecting?",
-      "search_placeholder": "john 3 or psalms 23 3",
+      "search_placeholder": "john 3:16-18 or psalm 23",
       "continue": "Continue from {reference}",
       "keys_title": "Keys",
       "key_next": "Next verse",

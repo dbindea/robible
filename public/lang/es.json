@@ -79,7 +79,7 @@
       "choose_book": "Elegir libro",
       "form": {
         "search_placeholder": "Buscar por palabras...",
-        "reference_placeholder": "ex. rom 3 5"
+        "reference_placeholder": "ej. juan 3:16-18"
       },
       "search_type": {
         "match": "Contiene la expresión",
@@ -1032,7 +1032,7 @@
       "title": "Versículos en pantalla",
       "lead": "Elige el pasaje y avanza con el mando o con el teclado. El texto se lee desde la última fila.",
       "search_label": "¿Qué proyectamos?",
-      "search_placeholder": "juan 3 o salmos 23 3",
+      "search_placeholder": "juan 3:16-18 o salmo 23",
       "continue": "Seguir desde {reference}",
       "keys_title": "Teclas",
       "key_next": "Versículo siguiente",

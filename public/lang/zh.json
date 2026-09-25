@@ -79,7 +79,7 @@
       "choose_book": "选择书籍",
       "form": {
         "search_placeholder": "按关键词搜索...",
-        "reference_placeholder": "例如 罗 3 5"
+        "reference_placeholder": "例如 约翰福音3:16-18"
       },
       "search_type": {
         "match": "包含完整语句",
@@ -1032,7 +1032,7 @@
       "title": "屏幕经文",
       "lead": "先选择经文，然后用遥控器或键盘翻页。最后一排也能看清。",
       "search_label": "要投影什么？",
-      "search_placeholder": "约翰福音 3 或 诗篇 23",
+      "search_placeholder": "约翰福音3:16-18 或 诗篇23",
       "continue": "从 {reference} 继续",
       "keys_title": "按键",
       "key_next": "下一节",

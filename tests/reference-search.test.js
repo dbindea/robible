@@ -11,6 +11,7 @@ import path from 'node:path';
 import {
   searchReferences,
   formatReference,
+  formatChapterVerse,
   parseReference,
   referenceExists,
 } from '../src/services/referenceSearch.service.js';
@@ -266,6 +267,142 @@ test('el filtro no se come las sugerencias buenas por el corte de maxResults', (
   const r = searchReferences('ioan 4 4', MAPA_REAL, 2, BIBLIA_REAL);
   assert.equal(r.length, 2);
   assert.deepEqual(r.map((m) => m.name).sort(), ['1 Ioan', 'Ioan']);
+});
+
+// ── Rangos ──────────────────────────────────────────────────────────────────
+//
+// «ioan 3:16-18» y «ioan 3-4» no devolvían NADA: el guion no era separador, así
+// que «16-18» viajaba dentro del nombre del libro y `matchBooks` buscaba un
+// libro llamado «ioan 16-18». El desplegable se quedaba vacío sin decir por qué,
+// que es el peor fallo que puede tener un buscador.
+
+test('un rango de versículos se entiende y se anuncia entero', () => {
+  const r = searchReferences('ioan 3:16-18', MAPA_REAL, 5, BIBLIA_REAL);
+  assert.ok(r.length >= 1, '«ioan 3:16-18» no devolvió nada');
+  assert.equal(r[0].name, 'Ioan');
+  assert.equal(r[0].chapter, 3);
+  assert.equal(r[0].verse, 16);
+  assert.equal(r[0].verseEnd, 18);
+  assert.equal(formatReference(r[0]), 'Ioan 3:16-18');
+});
+
+test('los tres guiones que se escriben valen igual', () => {
+  // El corto del teclado, y los dos largos que meten los procesadores de texto
+  // al copiar y pegar una referencia de un documento.
+  for (const entrada of ['ioan 3:16-18', 'ioan 3:16–18', 'ioan 3:16—18', 'ioan 3:16 - 18']) {
+    const [primero] = searchReferences(entrada, MAPA_REAL, 5, BIBLIA_REAL);
+    assert.equal(formatReference(primero), 'Ioan 3:16-18', `falló con «${entrada}»`);
+  }
+});
+
+test('sin versículo, el rango es de capítulos', () => {
+  const [primero] = searchReferences('apocalipsa 21-22', MAPA_REAL, 5, BIBLIA_REAL);
+  assert.equal(primero.chapter, 21);
+  assert.equal(primero.chapterEnd, 22);
+  assert.equal(primero.verse, null);
+  assert.equal(formatReference(primero), 'Apocalipsa 21-22');
+});
+
+test('un final que se sale del capítulo se recorta, no se descarta', () => {
+  // Quien escribe «ioan 3:16-99» quiere hasta el final del capítulo. Ioan 3
+  // tiene 36 versículos, así que se le ofrece hasta el 36 en vez de dejarle
+  // sólo el 16 sin explicar qué pasó con lo que escribió.
+  const [primero] = searchReferences('ioan 3:16-99', MAPA_REAL, 5, BIBLIA_REAL);
+  assert.equal(formatReference(primero), 'Ioan 3:16-36');
+});
+
+test('un rango al revés o de un solo versículo no es un rango', () => {
+  const [alReves] = searchReferences('ioan 3:18-16', MAPA_REAL, 5, BIBLIA_REAL);
+  assert.equal(alReves.verseEnd, null);
+  assert.equal(formatReference(alReves), 'Ioan 3:18');
+
+  // Recortado hasta el propio principio tampoco: «Ioan 3:36-36» no se escribe.
+  const [recortado] = searchReferences('ioan 3:36-99', MAPA_REAL, 5, BIBLIA_REAL);
+  assert.equal(recortado.verseEnd, null);
+});
+
+test('«1-2 ioan» no es un rango, y sigue sin serlo', () => {
+  // El patrón va anclado al final justamente por esto. No encuentra nada —no lo
+  // encontraba antes tampoco—, pero lo que no puede hacer es inventarse que
+  // alguien pidió los capítulos 1 a 2 de algo.
+  const r = searchReferences('1-2 ioan', MAPA_REAL, 5, BIBLIA_REAL);
+  assert.ok(r.every((m) => m.chapterEnd == null && m.verseEnd == null));
+});
+
+test('formatChapterVerse devuelve sólo la parte numérica', () => {
+  // Es lo que pinta la píldora del panel lateral, separada del nombre.
+  assert.equal(formatChapterVerse({ name: 'Ioan', chapter: 3, verse: 16, verseEnd: 18 }), '3:16-18');
+  assert.equal(formatChapterVerse({ name: 'Ioan', chapter: 3, verse: 16, verseEnd: null }), '3:16');
+  assert.equal(formatChapterVerse({ name: 'Ioan', chapter: 3, verse: null, chapterEnd: 4 }), '3-4');
+  assert.equal(formatChapterVerse({ name: 'Ioan', chapter: 3, verse: null }), '3');
+  assert.equal(formatChapterVerse({ name: 'Ioan', chapter: null }), '');
+  assert.equal(formatChapterVerse(null), '');
+});
+
+// ── Como se habla y como se escribe de corrido ──────────────────────────────
+
+test('«psalmul 23» encuentra los Salmos', () => {
+  // Es de las referencias que más se escriben y no devolvía nada: «psalmul» y
+  // «psalmii» se diferencian en dos letras, y la tolerancia a erratas era de
+  // una. Lo que las empareja es compartir un comienzo largo.
+  for (const entrada of ['psalmul 23', 'psalmul 23:1', 'psalmii 23']) {
+    const [primero] = searchReferences(entrada, MAPA_REAL, 5, BIBLIA_REAL);
+    assert.ok(primero, `«${entrada}» no devolvió nada`);
+    assert.equal(primero.name, 'Psalmii', `«${entrada}» → ${primero.name}`);
+    assert.equal(primero.chapter, 23);
+  }
+});
+
+test('las palabras de relleno no estorban', () => {
+  // «ioan capitolul 3 versetul 16» es como se dicta y como mucha gente escribe.
+  const [simple] = searchReferences('ioan capitolul 3 versetul 16', MAPA_REAL, 5, BIBLIA_REAL);
+  assert.equal(formatReference(simple), 'Ioan 3:16');
+
+  // Y con libro numerado, que es donde una recomposición a mano se equivocaría:
+  // el 1 es parte del nombre, no el capítulo.
+  const [numerado] = searchReferences('1 ioan capitolul 2 versetul 6', MAPA_REAL, 5, BIBLIA_REAL);
+  assert.equal(formatReference(numerado), '1 Ioan 2:6');
+});
+
+test('un libro que lleva dentro una palabra de relleno se sigue encontrando', () => {
+  // «Faptele Apostolilor» no, pero en español está «Cantar de los Cantares» y
+  // en inglés «Song of Solomon»: quitarles su preposición los rompería. Por eso
+  // la limpieza es un intento AÑADIDO, no un reemplazo.
+  const [fapte] = searchReferences('faptele apostolilor 2', MAPA_REAL, 5, BIBLIA_REAL);
+  assert.equal(fapte.name, 'Faptele Apostolilor');
+});
+
+test('el chino se escribe sin espacios y también se entiende', () => {
+  const mapaZh = JSON.parse(
+    readFileSync(path.join(import.meta.dirname, '..', 'public', 'data', 'zh_cuv', 'bible.map.json'), 'utf8'),
+  );
+  const [pegado] = searchReferences('诗篇23', mapaZh, 5);
+  assert.ok(pegado, '«诗篇23» no devolvió nada');
+  assert.equal(pegado.chapter, 23);
+
+  const [conRango] = searchReferences('约翰福音3:16-18', mapaZh, 5);
+  assert.equal(conRango.chapter, 3);
+  assert.equal(conRango.verse, 16);
+  assert.equal(conRango.verseEnd, 18);
+});
+
+// ── Que nada de lo anterior se haya movido ──────────────────────────────────
+
+test('cada libro de cada versión se encuentra a sí mismo por su nombre', () => {
+  // La red de seguridad de los cambios de arriba: las reglas nuevas añaden
+  // candidatos al final de la lista, así que lo que no puede pasar es que un
+  // nombre completo deje de salir EL PRIMERO en su propio idioma.
+  for (const version of ['vdc', 'rvl', 'en_kjv', 'zh_cuv']) {
+    const mapa = JSON.parse(
+      readFileSync(path.join(import.meta.dirname, '..', 'public', 'data', version, 'bible.map.json'), 'utf8'),
+    );
+    for (const i of mapa.all) {
+      const nombre = mapa[i];
+      const [primero] = searchReferences(nombre, mapa, 5);
+      assert.ok(primero, `[${version}] «${nombre}» no devolvió nada`);
+      assert.equal(primero.book, i, `[${version}] «${nombre}» → ${primero.name}`);
+    }
+  }
 });
 
 test('referenceExists distingue libro, capítulo y versículo', () => {

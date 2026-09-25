@@ -4,7 +4,13 @@
  *
  * Para "io 1 5" devuelve multiples matches (1 Ioan 1:5, 2 Ioan 1:5, 3 Ioan 1:5).
  * Para "1 ioan 2 6" devuelve solo 1 Ioan 2:6.
+ *
+ * Acepta además rangos ("ioan 3:16-18", "ioan 3-4") y la forma en que la gente
+ * habla o escribe de corrido: "ioan capitolul 3 versetul 16", "psalmul 23",
+ * "诗篇23".
  */
+
+import { PALABRAS_DE_RELLENO } from './speech-reference.service.js';
 
 // ── Normalizacion de texto ──────────────────────────────────────────
 function normalize(text) {
@@ -14,8 +20,38 @@ function normalize(text) {
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '') // quitar diacriticos
     .replace(/[.,;:]/g, ' ') // . , ; : → espacio
+    // El chino no lleva espacios: «诗篇23» es UNA palabra para el troceador y
+    // por tanto el nombre de un libro que no existe. Se separan los dígitos de
+    // los ideogramas y a partir de ahí es una referencia como cualquier otra.
+    // Sólo con escritura Han: el caso latino pegado («1ioan») ya lo resuelve
+    // `parseInput`, y separarlo aquí rompería su reconstrucción del libro
+    // numerado.
+    .replace(/(\p{Script=Han})(\d)/gu, '$1 $2')
+    .replace(/(\d)(\p{Script=Han})/gu, '$1 $2')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+// ── Rangos: "ioan 3:16-18", "ioan 3-4" ──────────────────────────────
+//
+// Antes esto no devolvía NADA. El guion no es separador para `normalize`, así
+// que «16-18» llegaba entero al troceador, no pasaba por `/^\d+$/` y acababa
+// dentro del nombre del libro: `matchBooks` buscaba un libro llamado «ioan
+// 16-18» y el desplegable se quedaba vacío, sin ninguna pista de por qué.
+//
+// Se separa el número final y el resto se parsea como siempre. El patrón va
+// anclado AL FINAL a propósito: así «1-2 Ioan» —que no es un rango, son dos
+// libros— no se confunde con uno.
+const RANGO_FINAL = /(\d+)\s*[-–—]\s*(\d+)\s*$/;
+
+function separarRango(entrada) {
+  const texto = String(entrada ?? '');
+  const encontrado = texto.match(RANGO_FINAL);
+  if (!encontrado) return { texto, fin: null };
+  return {
+    texto: texto.slice(0, encontrado.index) + encontrado[1],
+    fin: parseInt(encontrado[2], 10),
+  };
 }
 
 // ── Distancia Levenshtein (typo tolerance) ──────────────────────────
@@ -32,6 +68,14 @@ function levenshtein(a, b) {
     }
   }
   return matrix[a.length][b.length];
+}
+
+/** Cuántas letras comparten dos cadenas por el principio. */
+function prefijoComun(a, b) {
+  const tope = Math.min(a.length, b.length);
+  let i = 0;
+  while (i < tope && a[i] === b[i]) i++;
+  return i;
 }
 
 // ── Heuristica de prefijo plausible ─────────────────────────────────
@@ -149,6 +193,24 @@ function matchBooks(map, query) {
         }
       }
     }
+    // 6. Mismo comienzo, terminación distinta: «psalmul» → «Psalmii».
+    //
+    // Es la forma en que se nombra un libro al hablar, y en rumano cambia la
+    // desinencia entera: «psalmul» y «psalmii» se diferencian en DOS letras, así
+    // que ni el prefijo ni la tolerancia de una errata las emparejaban.
+    // «Psalmul 23» —de las referencias que más se escriben— no devolvía nada.
+    //
+    // No se sube el umbral de Levenshtein a 2 porque eso emparejaría libros
+    // cortos que sólo se parecen por casualidad; lo que de verdad indica que se
+    // está nombrando el mismo libro es compartir un comienzo largo y no
+    // diferenciarse mucho en longitud. Va la última, así que un libro que
+    // empareje de cualquier otra forma sigue saliendo antes.
+    if (score === Infinity && q.length >= 5 && stripped.length >= 5 && Math.abs(q.length - stripped.length) <= 3) {
+      if (prefijoComun(q, stripped) >= 5) {
+        score = 5;
+        prefixLen = 0;
+      }
+    }
 
     if (score !== Infinity) {
       matches.push({ book: i, name, score, prefixLen });
@@ -170,7 +232,16 @@ function matchBooks(map, query) {
 // Si no hay word, los números solos son query.
 // "1ioan" o "1ioa" — split del dígito pegado.
 // "rom 3 5" → bookQuery="rom", chapter=3, verse=5.
+//
+// El rango se separa ANTES de trocear y se devuelve aparte, en `fin`: qué
+// significa ese número —último versículo o último capítulo— no se puede decidir
+// aquí, depende de si la referencia acabó teniendo versículo o no.
 function parseInput(input) {
+  const { texto, fin } = separarRango(input);
+  return { ...parseInputSinRango(texto), fin };
+}
+
+function parseInputSinRango(input) {
   if (!input) return { bookQuery: '', chapter: null, verse: null };
 
   const normalized = normalize(input);
@@ -257,7 +328,8 @@ function parseInputAll(input) {
 
   if (!input) return interpretations;
 
-  const normalized = normalize(input);
+  const { texto: sinRango, fin } = separarRango(input);
+  const normalized = normalize(sinRango);
   const tokens = normalized.split(' ').filter(Boolean);
   if (!tokens.length) return interpretations;
 
@@ -278,6 +350,7 @@ function parseInputAll(input) {
       bookQuery: [firstNum, ...words].join(' '),
       chapter: remainingNumbers[0] || null,
       verse: remainingNumbers[1] || null,
+      fin,
     });
   }
 
@@ -293,8 +366,34 @@ function parseInputAll(input) {
         bookQuery: [num, rest, ...remainingWords].filter(Boolean).join(' '),
         chapter: remainingNumbers[0] || null,
         verse: remainingNumbers[1] || null,
+        fin,
       });
     }
+  }
+
+  // ── Y por último, lo mismo sin las palabras de relleno ────────────────────
+  //
+  // «ioan capitolul 3 versetul 16» es como se dicta y como mucha gente escribe,
+  // y hasta ahora no devolvía nada: «capitolul» y «versetul» se iban con el
+  // nombre del libro y `matchBooks` buscaba un libro llamado «ioan capitolul
+  // versetul». La lista de palabras es la misma que usa el dictado, para que no
+  // vivan en dos sitios.
+  //
+  // Va LA ÚLTIMA y como interpretación añadida, no como sustitución: si la
+  // frase entera ya emparejaba un libro, esto no llega a mirarse. Importa
+  // porque hay nombres que llevan dentro una de esas palabras —«Cantar de los
+  // Cantares»— y quitársela los estropearía.
+  // Se vuelve a parsear la frase limpia entera en vez de recomponerla a mano:
+  // así «1 ioan capitolul 2 versetul 6» pasa por las mismas reglas de libro
+  // numerado que «1 ioan 2 6», sin duplicarlas aquí.
+  // Y sólo si después de quitarlas queda algún nombre: «1 The» —camino de
+  // «1 Thessalonians»— se quedaba en «1», que empareja los cinco libros
+  // numerados y llenaba el desplegable de sugerencias que nadie había pedido.
+  const limpios = tokens.filter((t) => !PALABRAS_DE_RELLENO.has(t));
+  const quedaNombre = limpios.some((t) => !/^\d+$/.test(t));
+  if (quedaNombre && limpios.length < tokens.length) {
+    const alterna = parseInputSinRango(limpios.join(' '));
+    if (alterna.bookQuery) interpretations.push({ ...alterna, fin });
   }
 
   return interpretations;
@@ -327,6 +426,42 @@ export function referenceExists(bible, book, chapter, verse) {
   return verse >= 1 && verse <= verses.length;
 }
 
+// ── El final de un rango ────────────────────────────────────────────
+//
+// Qué significa el número de después del guion depende de lo que haya antes:
+// con versículo («ioan 3:16-18») es el último VERSÍCULO; sin él («ioan 3-4»),
+// el último CAPÍTULO. Se decide aquí y no al trocear porque al trocear todavía
+// no se sabe qué libro es, y sin libro no hay con qué comprobarlo.
+//
+// El final se recorta a lo que de verdad existe en lugar de descartarse:
+// «ioan 3:16-99» es alguien que quiere hasta el final del capítulo, y
+// ofrecerle «Ioan 3:16-36» es más útil que dejarle sólo «Ioan 3:16» sin decir
+// por qué. Un final menor que el principio sí se descarta: no es un rango.
+function finalDelRango(bible, book, chapter, verse, fin) {
+  const vacio = { verse, verseEnd: null, chapterEnd: null };
+  if (fin == null) return vacio;
+  const capitulos = Array.isArray(bible) && bible.length ? bible[book] : null;
+
+  if (verse != null) {
+    if (fin <= verse) return vacio;
+    const versiculos = capitulos?.[chapter - 1];
+    const tope = Array.isArray(versiculos) ? versiculos.length : null;
+    const final = tope ? Math.min(fin, tope) : fin;
+    // Recortado hasta el propio principio ya no es un rango: «Ioan 3:36-36» no
+    // se escribe en ningún sitio.
+    return final > verse ? { verse, verseEnd: final, chapterEnd: null } : vacio;
+  }
+
+  if (chapter != null) {
+    if (fin <= chapter) return vacio;
+    const tope = Array.isArray(capitulos) ? capitulos.length : null;
+    const final = tope ? Math.min(fin, tope) : fin;
+    return final > chapter ? { verse, verseEnd: null, chapterEnd: final } : vacio;
+  }
+
+  return vacio;
+}
+
 // ── API principal ───────────────────────────────────────────────────
 /**
  * Busca referencias que coincidan con el input.
@@ -338,7 +473,8 @@ export function referenceExists(bible, book, chapter, verse) {
  *   referencias que no existen en ella. El filtro va DENTRO y no en el
  *   llamante porque el corte a `maxResults` es lo primero que se hace: filtrando
  *   después, las combinaciones imposibles se comían el sitio de las buenas.
- * @returns {Array<{book: number, name: string, chapter: number|null, verse: number|null}>}
+ * @returns {Array<{book: number, name: string, chapter: number|null, verse: number|null,
+ *   verseEnd: number|null, chapterEnd: number|null}>}
  */
 export function searchReferences(input, map, maxResults = 5, bible = null) {
   if (!input || !map) return [];
@@ -354,7 +490,7 @@ export function searchReferences(input, map, maxResults = 5, bible = null) {
   const seen = new Set();
   const results = [];
 
-  for (const { bookQuery, chapter, verse } of interpretations) {
+  for (const { bookQuery, chapter, verse, fin } of interpretations) {
     if (!bookQuery) continue;
 
     const matches = matchBooks(map, bookQuery);
@@ -367,7 +503,7 @@ export function searchReferences(input, map, maxResults = 5, bible = null) {
         book: m.book,
         name: m.name,
         chapter,
-        verse,
+        ...finalDelRango(bible, m.book, chapter, verse, fin),
       });
       if (results.length >= maxResults) break;
     }
@@ -392,18 +528,31 @@ export function parseReference(input, map, bible = null) {
 /**
  * Formatea una referencia como string legible.
  * Ej: {name: 'Romani', chapter: 3, verse: 5} → 'Romani 3:5'
+ *     con rango → 'Ioan 3:16-18', 'Ioan 3-4'
+ *
+ * Lo pintan la sugerencia del panel lateral y la del modo proyección, que antes
+ * componían cada una su etiqueta a mano y por eso ninguna de las dos sabía
+ * enseñar un rango.
  */
 export function formatReference(match) {
   if (!match) return '';
-  const parts = [match.name];
-  if (match.chapter !== null) {
-    parts.push(match.chapter);
-    if (match.verse !== null) {
-      // Reemplazar el último elemento con la versión con dos puntos
-      parts[parts.length - 1] = `${match.chapter}:${match.verse}`;
-    }
+  const numeros = formatChapterVerse(match);
+  return numeros ? `${match.name} ${numeros}` : match.name;
+}
+
+/**
+ * Sólo la parte numérica: '3:16', '3:16-18', '3-4', o '' si no hay capítulo.
+ *
+ * Existe porque el panel lateral pinta el nombre y los números en dos cajas
+ * distintas —el número va en una píldora de acento— y necesita la segunda mitad
+ * por separado. Antes se la componía a mano y por eso no sabía enseñar un rango.
+ */
+export function formatChapterVerse(match) {
+  if (!match || match.chapter == null) return '';
+  if (match.verse != null) {
+    return `${match.chapter}:${match.verse}${match.verseEnd ? `-${match.verseEnd}` : ''}`;
   }
-  return parts.join(' ');
+  return `${match.chapter}${match.chapterEnd ? `-${match.chapterEnd}` : ''}`;
 }
 
 export { normalize, matchBooks, parseInput, parseInputAll, levenshtein };
