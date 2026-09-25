@@ -314,7 +314,10 @@
     {#if Object.keys(bible).length || (isProjectionMode && esVentanaProyectada)}
       {#if isSermonsMode}
         {#if pulpitId}
-          <SermonPulpit sermonId={pulpitId} />
+          <!-- `bible` y `map` son sólo para la antesala: si este dispositivo no
+               tiene la instantánea —la predicación se sincroniza y ella no—, se
+               rehace ahí antes de empezar. Predicando no se usan. -->
+          <SermonPulpit sermonId={pulpitId} {bible} {map} />
         {:else if sermonId}
           <SermonPrep {bible} {map} {sermonId} />
         {:else}

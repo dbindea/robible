@@ -710,6 +710,7 @@
       "back": "Înapoi",
       "finish": "Am predicat",
       "check_offline_ok": "Predica este disponibilă offline",
+        "check_offline_rebuilt": "Pregătit pe acest dispozitiv acum — poți predica fără internet",
       "check_offline_missing": "Predica nu a fost pregătită pentru offline",
       "check_outline_ok": "Schița este pregătită",
       "check_outline_missing": "Nu există schiță — creeaz-o mai întâi",

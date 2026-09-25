@@ -19,7 +19,7 @@
   import { sermonsStore } from '../../store/sermonsStore';
   import { setSermonPublic, buildPublicSermonUrl } from '../../services/sermons.service';
   import { USE_BACKEND } from '../../config.js';
-  import { buildSnapshot } from '../../services/sermon-pulpit.service';
+  import { buildSnapshot, pericopaDe, referenciaDe } from '../../services/sermon-pulpit.service';
   import Icon from '../../components/Icon.svelte';
   import Ajutor from '../../components/Ajutor.svelte';
   import Recapitulare from '../../components/Recapitulare.svelte';
@@ -303,18 +303,13 @@
 
   // La perícopa, resuelta desde la Biblia del cliente. No viaja por la API: el
   // texto ya está en el dispositivo y así la preparación funciona sin conexión.
-  $: pericopa = sermon
-    ? Array.from({ length: (sermon.verseEnd || sermon.verseStart) - sermon.verseStart + 1 }, (_, i) => ({
-        numero: sermon.verseStart + i,
-        texto: bible[sermon.book]?.[sermon.chapter - 1]?.[sermon.verseStart + i - 1] || '',
-      })).filter((v) => v.texto)
-    : [];
-
-  $: referencia = sermon
-    ? `${map[sermon.book] || ''} ${sermon.chapter}:${sermon.verseStart}${
-        sermon.verseEnd && sermon.verseEnd !== sermon.verseStart ? `-${sermon.verseEnd}` : ''
-      }`
-    : '';
+  //
+  // Las dos salen del servicio del púlpito porque la antesala del Modo Amvon
+  // las necesita igual, para rehacer la instantánea cuando la predicación llega
+  // sincronizada a un dispositivo que no la tiene. Escritas aquí a mano, las dos
+  // copias se separaban a la primera corrección.
+  $: pericopa = pericopaDe(sermon, bible);
+  $: referencia = referenciaDe(sermon, map);
 
   // Contexto: los versículos de antes y de después, para leerlos sin salir.
   $: contextoAntes = sermon
