@@ -816,7 +816,9 @@ export async function removeMemorization(request, db, userId, cors) {
 // este dispositivo ya está dado de alta.
 export async function listPushSubscriptions(db, userId) {
   const rows = await db
-    .prepare(`SELECT id, endpoint, utc_hour, created_at, last_sent_at FROM push_subscriptions WHERE user_id = ?`)
+    .prepare(
+      `SELECT id, endpoint, utc_hour, local_hour, created_at, last_sent_at FROM push_subscriptions WHERE user_id = ?`,
+    )
     .bind(userId)
     .all();
   return {
@@ -824,17 +826,38 @@ export async function listPushSubscriptions(db, userId) {
       id: r.id,
       endpoint: r.endpoint,
       utcHour: r.utc_hour,
+      // La hora tal cual la eligió la persona. Es lo que el cliente adopta al
+      // arrancar para que todos sus dispositivos avisen a la misma hora.
+      localHour: r.local_hour,
       createdAt: r.created_at,
       lastSentAt: r.last_sent_at,
     })),
   };
 }
 
-// POST /api/push (body: { endpoint, utcHour })
+// POST /api/push (body: { endpoint, utcHour, localHour })
+//
+// ── Por qué se guardan las DOS horas ────────────────────────────────
+//
+// `utc_hour` es la que consulta el cron, y es por dispositivo: la calcula el
+// cliente desde su hora local y la reenvía en cada arranque, que es lo que hace
+// que el horario de verano se corrija solo.
+//
+// `local_hour` es la que eligió la PERSONA («avísame a las 20:00»), y es la
+// misma en todos sus dispositivos. Hacía falta porque sin ella no había forma
+// de que un dispositivo supiera qué quiso el otro: cambiabas la hora en el móvil
+// y el portátil seguía avisando a las 8:00 — dos notificaciones del mismo
+// versículo, a dos horas distintas, sin nada que lo explicara.
+//
+// No se puede deducir una de otra: convertir la UTC guardada a local usando el
+// desfase de HOY da una hora distinta si quien la guardó lo hizo en el otro lado
+// de un cambio de horario. Ese error se habría propagado en silencio, una hora
+// cada seis meses, en cuanto el primer dispositivo en abrirse tras el cambio
+// fuera el que no la eligió.
 export async function savePushSubscription(request, db, userId, cors) {
   let body;
   try { body = await request.json(); } catch { return error('invalid_json', 400, cors); }
-  const { endpoint, utcHour } = body || {};
+  const { endpoint, utcHour, localHour } = body || {};
 
   // El endpoint lo emite el navegador; lo único que se comprueba es que sea una
   // URL https de longitud razonable. No se puede validar el dominio: cada
@@ -853,30 +876,68 @@ export async function savePushSubscription(request, db, userId, cors) {
     return error('invalid_hour', 400, cors);
   }
 
+  // `localHour` es opcional a propósito: un bundle anterior a esta versión no la
+  // manda, y rechazarlo dejaría a esa gente sin poder renovar su suscripción
+  // (CLAUDE.md, trampa 36 — el cliente y el worker se despliegan por separado).
+  const local = localHour === undefined || localHour === null ? null : Number(localHour);
+  if (local !== null && (!Number.isInteger(local) || local < 0 || local > 23)) {
+    return error('invalid_hour', 400, cors);
+  }
+
   const now = nowIso();
   const id = genId('push');
 
   // El endpoint es único: si el mismo dispositivo vuelve a suscribirse —pasa en
   // cada arranque, para corregir el horario de verano— se actualiza la hora en
   // lugar de acumular filas muertas.
+  //
+  // El COALESCE de abajo: sin hora local en el cuerpo se conserva la que
+  // hubiera. Un cliente viejo, que no la manda, no debe borrar la elección hecha
+  // desde otro dispositivo.
   await db
     .prepare(
-      `INSERT INTO push_subscriptions (id, user_id, endpoint, utc_hour, created_at)
-       VALUES (?, ?, ?, ?, ?)
+      `INSERT INTO push_subscriptions (id, user_id, endpoint, utc_hour, local_hour, created_at)
+       VALUES (?, ?, ?, ?, ?, ?)
        ON CONFLICT(endpoint) DO UPDATE SET
          user_id = excluded.user_id,
-         utc_hour = excluded.utc_hour`,
+         utc_hour = excluded.utc_hour,
+         local_hour = COALESCE(excluded.local_hour, push_subscriptions.local_hour)`,
     )
-    .bind(id, userId, endpoint, hora, now)
+    .bind(id, userId, endpoint, hora, local, now)
     .run();
 
+  // ── Y la misma hora en los demás dispositivos de esta persona ───────
+  //
+  // Es lo que impide las dos notificaciones a horas distintas. Se les pone
+  // también la `utc_hour` de éste para que el cambio valga YA, sin esperar a que
+  // los abran; si alguno está en otro huso, al arrancar recalcula la suya desde
+  // la `local_hour` y se corrige solo. Al revés —esperar a que abran— habrían
+  // seguido avisando a la hora vieja quién sabe cuánto tiempo.
+  if (local !== null) {
+    await db
+      .prepare(
+        `UPDATE push_subscriptions SET utc_hour = ?, local_hour = ? WHERE user_id = ? AND endpoint != ?`,
+      )
+      .bind(hora, local, userId, endpoint)
+      .run();
+  }
+
   const row = await db
-    .prepare(`SELECT id, endpoint, utc_hour, created_at FROM push_subscriptions WHERE endpoint = ?`)
+    .prepare(`SELECT id, endpoint, utc_hour, local_hour, created_at FROM push_subscriptions WHERE endpoint = ?`)
     .bind(endpoint)
     .first();
 
   return json(
-    { ok: true, subscription: { id: row.id, endpoint: row.endpoint, utcHour: row.utc_hour, createdAt: row.created_at } },
+    {
+      ok: true,
+      subscription: {
+        id: row.id,
+        endpoint: row.endpoint,
+        utcHour: row.utc_hour,
+        localHour: row.local_hour,
+        createdAt: row.created_at,
+      },
+    },
     201,
     cors,
   );

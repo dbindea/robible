@@ -141,7 +141,14 @@ export const activar = async ({ horaLocal = horaElegida(), version = 'vdc', loca
   await guardarPreferencias({ version, locale });
 
   try {
-    await api.post('/api/push', { endpoint: suscripcion.endpoint, utcHour: horaUtcDe(horaLocal) });
+    // Las dos horas: la UTC es la que consulta el cron y es de ESTE aparato; la
+    // local es la que eligió la persona y el servidor la copia a sus demás
+    // dispositivos, para que no avisen a horas distintas.
+    await api.post('/api/push', {
+      endpoint: suscripcion.endpoint,
+      utcHour: horaUtcDe(horaLocal),
+      localHour: horaLocal,
+    });
   } catch (e) {
     // Si el servidor no la acepta, la suscripción del navegador se deshace: una
     // suscripción viva que el servidor no conoce no avisa nunca y deja el
@@ -152,6 +159,32 @@ export const activar = async ({ horaLocal = horaElegida(), version = 'vdc', loca
   }
 
   return { ok: true };
+};
+
+/**
+ * Fija la hora que el usuario acaba de elegir y la manda al servidor, que la
+ * copia a sus demás dispositivos.
+ *
+ * Existe separada de `refrescar` porque hacen lo contrario: `refrescar` PREGUNTA
+ * al servidor y adopta lo que diga, y aquí la verdad es lo que la persona acaba
+ * de tocar. Llamando a `refrescar` al cambiar la hora, lo elegido se pisaba con
+ * lo que había un segundo antes y el selector volvía solo a su sitio.
+ */
+export const fijarHora = async (horaLocal) => {
+  guardarHora(horaLocal);
+  if (!soportado() || !USE_BACKEND) return { ok: true };
+  try {
+    const suscripcion = await suscripcionActual();
+    if (!suscripcion) return { ok: true }; // sin avisos activos, basta con guardarla
+    await api.post('/api/push', {
+      endpoint: suscripcion.endpoint,
+      utcHour: horaUtcDe(horaLocal),
+      localHour: horaLocal,
+    });
+    return { ok: true };
+  } catch {
+    return { ok: false };
+  }
 };
 
 export const desactivar = async () => {
@@ -182,15 +215,50 @@ export const desactivar = async () => {
  * Es lo que hace que el horario de verano se corrija solo y que la notificación
  * salga en el idioma que el usuario tiene puesto hoy, no en el de cuando activó
  * el aviso. No pide permisos ni suscribe nada: si no hay suscripción, calla.
+ *
+ * Y es donde este dispositivo ADOPTA la hora que la persona haya elegido en otro.
+ * Antes mandaba a ciegas la suya en cada arranque, así que aunque el servidor
+ * quedara bien, el portátil devolvía el aviso a las 8:00 en cuanto se abría.
+ * Ahora se pregunta primero y se manda después.
+ *
+ * Devuelve la hora local que ha quedado en vigor, para que el perfil pueda
+ * enseñarla sin volver a leer nada.
  */
 export const refrescar = async ({ version, locale }) => {
-  if (!soportado() || !USE_BACKEND) return;
+  if (!soportado() || !USE_BACKEND) return horaElegida();
   try {
     const suscripcion = await suscripcionActual();
-    if (!suscripcion) return;
+    if (!suscripcion) return horaElegida();
     await guardarPreferencias({ version, locale });
-    await api.post('/api/push', { endpoint: suscripcion.endpoint, utcHour: horaUtcDe(horaElegida()) });
+
+    // Lo que el servidor sabe de esta persona. Cualquiera de sus suscripciones
+    // sirve: todas llevan la misma `localHour` desde que el worker la propaga.
+    // `null` es una suscripción anterior a la columna, y entonces manda la de
+    // este aparato — que es lo único que se sabe.
+    let hora = horaElegida();
+    try {
+      const { subscriptions = [] } = await api.get('/api/push');
+      const delServidor = subscriptions.map((s) => s.localHour).find((h) => Number.isInteger(h));
+      if (Number.isInteger(delServidor) && delServidor !== hora) {
+        hora = delServidor;
+        localStorage.setItem(KEY_HORA, String(hora));
+      }
+    } catch {
+      // Sin respuesta se sigue con la de este dispositivo: mantenimiento de
+      // fondo, y quedarse sin refrescar la UTC sería peor que no adoptar nada.
+    }
+
+    // La UTC se recalcula SIEMPRE desde la hora local, también cuando se acaba
+    // de adoptar: es de este huso y de la estación de hoy, y es justo lo que
+    // corrige el horario de verano.
+    await api.post('/api/push', {
+      endpoint: suscripcion.endpoint,
+      utcHour: horaUtcDe(hora),
+      localHour: hora,
+    });
+    return hora;
   } catch {
     // Silencio a propósito: es mantenimiento de fondo, no una acción del usuario.
+    return horaElegida();
   }
 };

@@ -319,6 +319,20 @@ CREATE TABLE IF NOT EXISTS push_subscriptions (
   -- desde la hora local elegida, y la reenvía en cada arranque: así el cambio de
   -- horario de verano se corrige solo, sin tocar la base de datos.
   utc_hour INTEGER NOT NULL DEFAULT 6,              -- 0-23
+  -- La hora tal cual la eligió la PERSONA (schema_version 16). Es la misma en
+  -- todos sus dispositivos, y es lo que arregla que cambiar el aviso a las 20:00
+  -- en el móvil dejara al portátil avisando a las 8:00.
+  --
+  -- Hacen falta las dos y no se puede deducir una de otra: la UTC es por
+  -- dispositivo —depende de su huso y del horario de verano— y convertirla de
+  -- vuelta a local con el desfase de hoy da una hora distinta si quien la guardó
+  -- lo hizo al otro lado de un cambio de hora. Ese error se habría propagado
+  -- solo, una hora cada seis meses.
+  --
+  -- Admite NULL a propósito: las filas anteriores a esta columna no saben qué
+  -- hora local eligió su dueño, y ponerles una por defecto le habría cambiado el
+  -- aviso a quien tuviera otra. Se rellena sola en el primer arranque.
+  local_hour INTEGER,                               -- 0-23, o NULL si es anterior
   created_at TEXT NOT NULL,
   last_sent_at TEXT,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -326,6 +340,17 @@ CREATE TABLE IF NOT EXISTS push_subscriptions (
 -- El cron pregunta exactamente por esto: «todas las de esta hora».
 CREATE INDEX IF NOT EXISTS idx_push_hour ON push_subscriptions(utc_hour);
 CREATE INDEX IF NOT EXISTS idx_push_user ON push_subscriptions(user_id);
+
+-- ── Migración para bases ya desplegadas (schema_version 16) ──────────────────
+-- Este archivo sólo crea; las columnas nuevas no aparecen en una tabla que ya
+-- existía. En una base desplegada hay que aplicarla a mano:
+--
+--   ALTER TABLE push_subscriptions ADD COLUMN local_hour INTEGER;
+--
+-- Sin `NOT NULL` ni valor por defecto: las suscripciones que ya existen no saben
+-- qué hora local eligió su dueño, y rellenarlas con una supuesta le habría
+-- cambiado el aviso a quien tuviera otra. Quedan en NULL y se completan solas la
+-- primera vez que cada dispositivo arranca con el bundle nuevo.
 
 -- ============== SERMONS / PREDICI (schema_version 9) ==============
 --
@@ -433,8 +458,8 @@ CREATE TABLE IF NOT EXISTS _meta (
 -- abajo documentaban hasta la 12 (aplicadas a mano en producción sin bumpear
 -- este valor). Se corrige de una vez al llegar a la 13, en vez de arrastrar
 -- la deriva una migración más.
-INSERT OR IGNORE INTO _meta (key, value) VALUES ('schema_version', '15');
-UPDATE _meta SET value = '15' WHERE key = 'schema_version' AND value < '15';
+INSERT OR IGNORE INTO _meta (key, value) VALUES ('schema_version', '16');
+UPDATE _meta SET value = '16' WHERE key = 'schema_version' AND value < '16';
 
 -- 10: sermons gana is_public / public_slug / published_at
 --   ALTER TABLE sermons ADD COLUMN is_public INTEGER NOT NULL DEFAULT 0;
