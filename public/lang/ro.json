@@ -85,6 +85,7 @@
         "match": "Conține expresia",
         "every": "Conține cuvintele",
         "some": "Oricare cuvant",
+        "smart": "După cuvinte",
         "reference": "După referință"
       },
       "scope": {
@@ -95,7 +96,11 @@
       "no_results_in_book": "Niciun rezultat în {book}. Căutarea este limitată la această carte.",
       "search_whole_bible": "Caută în toată Biblia",
       "no_results_in_version": "Niciun rezultat în {version}.",
-      "search_in_version": "Caută în {version} ({count})"
+      "search_in_version": "Caută în {version} ({count})",
+      "switched_to_reference": "Am trecut la căutarea după referință: așa scrie o referință, nu un cuvânt.",
+      "not_a_reference": "Nu pare o referință.",
+      "search_words_instead": "Caută cuvintele ({count})",
+      "search_words_anyway": "Caută cuvintele"
     },
     "book_drawer": {
       "aria_label": "Cărțile Bibliei",
@@ -121,6 +126,7 @@
       "result_count_start": "Se afișează",
       "result_count_end": "rezultate din {total}",
       "load_more": "Arată mai multe rezultate ({remaining})",
+      "widened_results": "Cu toate cuvintele, nu exact expresia ({count})",
       "page_title": {
         "search": "Căutare în {bible}",
         "chapter": "{book}, capitolul {chapter}"

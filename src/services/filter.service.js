@@ -4,6 +4,20 @@ export function replaceDiacritics(str) {
   return quitarDiacriticos(str);
 }
 
+/**
+ * Hasta cuántos resultados exactos se considera que la búsqueda se quedó corta.
+ *
+ * Lo describió el usuario así: «normalmente uno busca por expresión y, si no
+ * encuentra, amplía a las palabras sueltas; hazlo tú, pero sólo cuando tenga
+ * sentido». Con diez o veinte versículos la pantalla se queda a medias y unos
+ * cuantos parecidos ayudan; con cincuenta o doscientos, ampliar sólo mete ruido
+ * debajo de lo que ya estaba bien.
+ *
+ * Por eso es un tope y no un porcentaje: lo que decide no es la proporción, es
+ * si al usuario le cabe en la pantalla lo que ha encontrado.
+ */
+export const UMBRAL_AMPLIACION = 20;
+
 export const getFilterResult = (bible, map, form) => {
   let result = [];
   const booksByTestament = map[form.testament] || map.all || [];
@@ -63,24 +77,17 @@ export const getFilterResult = (bible, map, form) => {
       const normalizedSearchText = normalizar(searchText);
       const searchWords = normalizedSearchText.split(/[ ,.-]+/).filter(Boolean);
 
-      // La condición se elige UNA vez y no en cada versículo. Sin `default`
-      // adrede: un `searchType` que no sea de los tres devuelve lista vacía,
-      // que es el contrato que ya tenía el `switch` de antes y del que depende
-      // el modo proyección (CLAUDE.md, trampa 87).
-      let coincide = null;
-      switch (form.searchType) {
-        case 'match':
-          coincide = (texto) => texto.includes(normalizedSearchText);
-          break;
-        case 'every':
-          coincide = (texto) => searchWords.every((word) => texto.includes(word));
-          break;
-        case 'some':
-          coincide = (texto) => searchWords.some((word) => texto.includes(word));
-          break;
-      }
+      const contieneLaExpresion = (texto) => texto.includes(normalizedSearchText);
+      const contieneLasPalabras = (texto) => searchWords.every((word) => texto.includes(word));
+      const contieneAlgunaPalabra = (texto) => searchWords.some((word) => texto.includes(word));
 
-      if (coincide) {
+      /**
+       * Recorre los libros elegidos y añade lo que cumpla `coincide`.
+       *
+       * @param {Function} coincide qué versículo entra, sobre el texto normalizado
+       * @param {Set|null} yaEstan claves que no hay que repetir (segunda pasada)
+       */
+      const recolectar = (coincide, yaEstan = null) => {
         for (const indexBook of _books) {
           const indice = indiceDeLibro(bible, indexBook);
           if (!indice) continue;
@@ -90,19 +97,55 @@ export const getFilterResult = (bible, map, form) => {
             if (!coincide(textos[i])) continue;
             const indexChapter = capitulos[i];
             const indexVerse = versiculos[i];
-            result.push({
+            // Ojo: aquí la clave va en base 0 y en el resultado por defecto de
+            // arriba en base 1. Es una incoherencia vieja, pero `Result.svelte`
+            // la usa como clave del `{#each}` y para casar el versículo que se
+            // está leyendo con música: cambiarla no es cosa de este servicio.
+            const key = `${indexBook}-${indexChapter}-${indexVerse}`;
+            if (yaEstan?.has(key)) continue;
+            const encontrado = {
               book: indexBook,
               chapter: indexChapter + 1,
               index: indexVerse + 1,
               text: bible[indexBook][indexChapter][indexVerse],
-              // Ojo: aquí la clave va en base 0 y en el resultado por defecto de
-              // arriba en base 1. Es una incoherencia vieja, pero `Result.svelte`
-              // la usa como clave del `{#each}` y para casar el versículo que se
-              // está leyendo con música: cambiarla no es cosa de este servicio.
-              key: `${indexBook}-${indexChapter}-${indexVerse}`,
-            });
+              key,
+            };
+            // La marca sólo se pone cuando toca: así un resultado normal es
+            // exactamente el mismo objeto que antes de que esto existiera.
+            if (yaEstan) encontrado.ampliado = true;
+            result.push(encontrado);
           }
         }
+      };
+
+      // ── El modo de siempre, y el que decide solo ────────────────────────
+      //
+      // `smart` es el que usa la aplicación desde el 25 sep 2026 y sustituye a
+      // los dos radios que había («contiene la expresión» y «contiene las
+      // palabras»). Los dos viejos siguen aquí porque el modo proyección pide
+      // `match` explícitamente y porque hay búsquedas guardadas con esos
+      // valores; sin `default`, un `searchType` que no sea ninguno devuelve
+      // lista vacía, que es el contrato del que depende la proyección
+      // (CLAUDE.md, trampa 87).
+      switch (form.searchType) {
+        case 'smart':
+          recolectar(contieneLaExpresion);
+          // Ampliar sólo cuando significa algo: con una palabra suelta, «la
+          // expresión» y «todas las palabras» son la misma búsqueda, y con la
+          // pantalla ya llena de resultados exactos nadie está pidiendo más.
+          if (searchWords.length > 1 && result.length <= UMBRAL_AMPLIACION) {
+            recolectar(contieneLasPalabras, new Set(result.map((v) => v.key)));
+          }
+          break;
+        case 'match':
+          recolectar(contieneLaExpresion);
+          break;
+        case 'every':
+          recolectar(contieneLasPalabras);
+          break;
+        case 'some':
+          recolectar(contieneAlgunaPalabra);
+          break;
       }
     }
   }

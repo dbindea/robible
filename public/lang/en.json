@@ -85,6 +85,7 @@
         "match": "Contains the expression",
         "every": "Contains all words",
         "some": "Contains any word",
+        "smart": "By words",
         "reference": "By reference"
       },
       "scope": {
@@ -95,7 +96,11 @@
       "no_results_in_book": "No results in {book}. The search is limited to that book.",
       "search_whole_bible": "Search the whole Bible",
       "no_results_in_version": "No results in {version}.",
-      "search_in_version": "Search in {version} ({count})"
+      "search_in_version": "Search in {version} ({count})",
+      "switched_to_reference": "Switched to reference search: that looks like a reference, not a word.",
+      "not_a_reference": "That does not look like a reference.",
+      "search_words_instead": "Search the words ({count})",
+      "search_words_anyway": "Search the words"
     },
     "book_drawer": {
       "aria_label": "Books of the Bible",
@@ -121,6 +126,7 @@
       "result_count_start": "Showing",
       "result_count_end": "results from {total}",
       "load_more": "Show more results ({remaining})",
+      "widened_results": "With all the words, not the exact phrase ({count})",
       "page_title": {
         "search": "Search in {bible}",
         "chapter": "{book}, chapter {chapter}"

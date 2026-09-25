@@ -35,6 +35,8 @@
   export let count = 0;
   /** Pinta la siguiente tanda de resultados. Lo decide `Main.svelte`. */
   export let verMasResultados = () => {};
+  /** Cuántos de los resultados salen de ampliar a las palabras sueltas. */
+  export let totalAmpliados = 0;
 
   let chapterForm = {
     chapter: [],
@@ -909,17 +911,30 @@
       }
     };
 
+    const marcarCadaPalabra = () =>
+      keywords
+        .split(/[ ,.-]+/)
+        .filter(Boolean)
+        .forEach(pushRanges);
+
     switch (searchForm.searchType) {
       case 'match':
         pushRanges(keywords);
         break;
 
+      // En el modo normal se marca la expresión entera Y cada palabra por
+      // separado: la lista mezcla los versículos que la contienen tal cual con
+      // los que sólo tienen las palabras sueltas, y marcar una sola de las dos
+      // cosas dejaría media lista sin resaltar. Donde coinciden, los tramos se
+      // funden y se ve un único subrayado.
+      case 'smart':
+        pushRanges(keywords);
+        marcarCadaPalabra();
+        break;
+
       case 'every':
       case 'some':
-        keywords
-          .split(/[ ,.-]+/)
-          .filter(Boolean)
-          .forEach(pushRanges);
+        marcarCadaPalabra();
         break;
     }
 
@@ -1035,7 +1050,14 @@
     </p>
   {/if}
 
-  {#each result as item (item.key)}
+  {#each result as item, indiceEnLista (item.key)}
+    <!-- La frontera entre lo que contiene la expresión tal cual y lo que sólo
+         tiene las palabras sueltas. Sin ella, los ampliados parecen resultados
+         peores sin explicación; con ella se leen como lo que son, algo que el
+         buscador ha añadido porque la búsqueda exacta se quedó corta. -->
+    {#if item.ampliado && !result[indiceEnLista - 1]?.ampliado}
+      <p class="ampliacion" role="status">{$_('app.result.widened_results', { count: totalAmpliados })}</p>
+    {/if}
     {@const verseTopics = (() => { void $topicsStore; return topicsContainingVerse(item.book, item.chapter, item.index); })()}
     {@const primaryTopic = verseTopics[0]}
     {@const hasNote = !!$notesStore.find((n) => n.book === item.book && n.chapter === item.chapter && n.verse === item.index)}
@@ -2274,6 +2296,17 @@
 
   .count {
     font-weight: 700;
+  }
+
+  // El rótulo que separa los resultados exactos de los ampliados. Discreto y
+  // con filete: es una explicación, no una sección nueva.
+  .ampliacion {
+    margin: 1.75rem 0 0.75rem;
+    padding: 0.4rem 0 0.4rem 0.7rem;
+    border-left: 3px solid color-mix(in srgb, var(--color-accent) 55%, transparent);
+    color: color-mix(in srgb, var(--color-ink) 72%, transparent);
+    font-size: 0.85rem;
+    line-height: 1.4;
   }
 
   // El botón de la siguiente tanda de resultados. Ancho contenido y centrado:

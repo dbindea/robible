@@ -5,6 +5,7 @@
   import { filter, selectedBibleVersion } from '../../store/stores';
   import { searchesStore } from '../../store/searchesStore';
   import { searchReferences, formatChapterVerse } from '../../services/referenceSearch.service';
+  import { getFilterResult } from '../../services/filter.service';
   import {
     ordenarCandidatas,
     primeraVersionConResultados,
@@ -29,7 +30,7 @@
 
   let searchForm = {
     searchText: null,
-    searchType: 'match',
+    searchType: 'smart',
     testament: 'all',
     book: [],
     chapter: [],
@@ -88,6 +89,9 @@
   // a reescribirlo, que es justo lo que venía a evitar. Ahora se conserva y se
   // reinterpreta con el criterio del modo nuevo.
   function onSearchTypeChange() {
+    // Lo ha elegido el usuario, así que ya no hay nada que explicarle sobre un
+    // cambio que hicimos nosotros.
+    cambioAutomatico = false;
     // Estado de la búsqueda anterior: fuera entero. Si algo de esto sobrevive,
     // el modo nuevo hereda sugerencias o desplegables que ya no le pertenecen.
     referenceDropdownOpen = false;
@@ -264,9 +268,86 @@
       temporizadorFiltro = null;
       // Se lee `searchForm` al vencer y no una copia de ahora: lo que hay que
       // buscar es la última letra escrita, no la de hace 150 ms.
-      updateFilter(searchForm);
+      aplicarBusqueda();
     }, RESPIRO_BUSQUEDA);
   };
+
+  // ── Escribir una referencia sin haber cambiado de modo ───────────────────
+  //
+  // «Pongo juan 2 3 sin darme cuenta de que lo que quiero es por referencia».
+  // Hoy eso son cero resultados y nada más: la aplicación sabe perfectamente
+  // que «juan 2 3» es Juan 2:3 y se calla porque el usuario no marcó el radio
+  // correcto. Elegir el modo antes de escribir es trabajo de la aplicación.
+  //
+  // El cambio es automático y sólo va en UN sentido, hacia la referencia, y
+  // sólo cuando buscar las palabras no encuentra NADA: ahí no hay nada que
+  // perder, la pantalla estaba vacía. Al revés —de referencia a palabras— se
+  // ofrece con un botón y no se hace solo: escribiendo «iona si balena», la
+  // primera palabra empareja un libro y la segunda ya no, así que el modo
+  // cambiaría solo dos veces mientras se teclea una frase.
+  const pareceReferencia = (texto) => {
+    const limpio = (texto || '').trim();
+    // Hace falta un nombre y un número. Sin número, «juan» es sólo una palabra
+    // que alguien puede querer buscar —y buscarla es justo lo que ha pedido—.
+    return limpio.length >= 3 && /\p{L}/u.test(limpio) && /\d/.test(limpio);
+  };
+
+  /** Las referencias que existen de verdad para lo escrito. */
+  const referenciasDeTexto = (texto) =>
+    pareceReferencia(texto) ? searchReferences(texto, map, 5, bible).filter((m) => m.chapter != null) : [];
+
+  /** true si la búsqueda por palabras no devolvería absolutamente nada. */
+  const sinResultadosComoPalabras = () =>
+    getFilterResult(bible, map, { ...searchForm, searchType: 'smart' }).length === 0;
+
+  // Lo que el usuario ya rechazó: si ha vuelto a las palabras a propósito, no
+  // se le vuelve a cambiar el modo por seguir escribiendo lo mismo. Se compara
+  // por prefijo y no por igualdad, porque lo normal tras volver es añadir algo
+  // —«ioan 2 3» → «ioan 2 30»— y sería el mismo tirón otra vez.
+  let textoRechazado = null;
+
+  function aplicarBusqueda() {
+    const texto = (searchForm.searchText || '').trim();
+    if (textoRechazado && !texto.startsWith(textoRechazado)) textoRechazado = null;
+
+    if (searchForm.searchType !== 'reference' && !textoRechazado) {
+      const detectadas = referenciasDeTexto(searchForm.searchText);
+      if (detectadas.length && sinResultadosComoPalabras()) {
+        pasarAReferencia(detectadas);
+        return;
+      }
+    }
+    updateFilter(searchForm);
+  }
+
+  function pasarAReferencia(detectadas) {
+    cambioAutomatico = true;
+    searchForm = { ...searchForm, searchType: 'reference' };
+    filter.set({ ...searchForm });
+    referenceMatches = detectadas;
+    referenceSelectedIdx = -1;
+    referenceDropdownOpen = true;
+    closeRecentSearches();
+  }
+
+  /** La vuelta: lo escrito no era una referencia, o no la quería. */
+  const buscarComoPalabras = () => {
+    cambioAutomatico = false;
+    textoRechazado = (searchForm.searchText || '').trim() || null;
+    referenceDropdownOpen = false;
+    referenceMatches = [];
+    updateFilter({ ...searchForm, searchType: 'smart' });
+  };
+
+  // ¿El modo referencia lo pusimos nosotros? Decide si se explica o no.
+  let cambioAutomatico = false;
+
+  // En modo referencia, lo escrito no empareja ninguna: se ofrece buscarlo como
+  // palabras, con el recuento por delante para que se vea que hay algo.
+  $: resultadosComoPalabras =
+    searchForm.searchType === 'reference' && !referenceMatches.length && (searchForm.searchText?.trim().length || 0) > 2
+      ? getFilterResult(bible, map, { ...searchForm, searchType: 'smart' }).length
+      : 0;
 
   // Debounce para guardar la búsqueda solo cuando el usuario deja de teclear
   let saveSearchTimer = null;
@@ -297,9 +378,11 @@
   });
 
   const resetForm = () => {
+    cambioAutomatico = false;
+    textoRechazado = null;
     searchForm = {
       searchText: null,
-      searchType: 'match',
+      searchType: 'smart',
       testament: 'all',
       book: [],
       chapter: [],
@@ -326,6 +409,8 @@
 
   const clearInput = () => {
     searchForm.searchText = null;
+    cambioAutomatico = false;
+    textoRechazado = null;
     updateFilter(searchForm);
     // Al vaciar el campo se vuelve al punto de partida, así que el historial
     // tiene sentido otra vez. Sólo si el campo sigue teniendo el foco: si el
@@ -397,11 +482,12 @@
       }
       return;
     }
-    // Busqueda normal: restaurar el form
+    // Busqueda normal: restaurar el form. El tipo guardado puede ser de los
+    // viejos (`match`, `every`, `some`): todos son hoy el mismo modo.
     searchForm = {
       ...searchForm,
       searchText: s.searchText,
-      searchType: s.searchType || 'match',
+      searchType: 'smart',
       testament: s.testament || 'all',
       book: Array.isArray(s.books) ? s.books : [],
       chapter: Array.isArray(s.chapters) ? s.chapters : [],
@@ -626,6 +712,30 @@
       </div>
     {/if}
 
+    <!-- Las dos caras del modo referencia:
+         · lo pusimos nosotros porque lo escrito era una referencia y como
+           palabras no encontraba nada → se explica y se deja volver;
+         · el usuario lo eligió pero lo escrito no es ninguna referencia → se
+           ofrece buscarlo como palabras, con el recuento por delante.
+         El botón es el mismo en los dos casos, así que van juntos. -->
+    {#if searchForm.searchType === 'reference' && (cambioAutomatico || resultadosComoPalabras > 0)}
+      <div class="pista" role="status">
+        <p>
+          {cambioAutomatico
+            ? $_('app.sidebar.switched_to_reference')
+            : $_('app.sidebar.not_a_reference')}
+        </p>
+        <!-- Con el cambio automático el recuento es cero —es justo por eso por
+             lo que se cambió—, así que ahí el botón no lleva número: prometer
+             «(0)» es peor que no prometer nada. -->
+        <button type="button" on:click={buscarComoPalabras}>
+          {resultadosComoPalabras > 0
+            ? $_('app.sidebar.search_words_instead', { count: resultadosComoPalabras })
+            : $_('app.sidebar.search_words_anyway')}
+        </button>
+      </div>
+    {/if}
+
     <!-- Recent references dropdown (solo en modo referencia) -->
     {#if searchForm.searchType === 'reference' && recentReferencesOpen && recentReferences.length > 0}
       <div
@@ -710,7 +820,7 @@
            Se compara contra las variables directamente y no con un helper: el
            compilador no ve la dependencia envuelta en una función (trampa 23). -->
       {#if count === 0 && selectedBook !== null && selectedBook !== undefined}
-        <div class="sin-resultados" role="status">
+        <div class="pista" role="status">
           <p>{$_('app.sidebar.no_results_in_book', { book: map[selectedBook] || '' })}</p>
           <button type="button" on:click={buscarEnTodaLaBiblia}>
             {$_('app.sidebar.search_whole_bible')}
@@ -720,7 +830,7 @@
              arregla sin cambiar de Biblia. Si aun así no hay nada, en la
              siguiente pasada aparece el aviso de la versión. -->
       {:else if count === 0 && sugerenciaVersion}
-        <div class="sin-resultados" role="status">
+        <div class="pista" role="status">
           <p>
             {$_('app.sidebar.no_results_in_version', {
               version: getBibleVersionConfigOrDefault($selectedBibleVersion)?.bibleName || '',
@@ -738,43 +848,25 @@
 
     <div class="margin-up">{$_('app.sidebar.search_type_label')}</div>
 
-    <label class="radio__label" for="match">
+    <!-- Dos opciones, no cuatro.
+         «Conține expresia» y «conține cuvintele» eran dos radios que obligaban
+         a entender la diferencia ANTES de buscar, y la secuencia real era
+         siempre la misma: se busca la expresión y, si sale poco, se amplía a
+         las palabras. Eso lo hace ahora el buscador solo (`smart` en
+         `filter.service.js`). «Oricare cuvânt» se había retirado ya el 15 sep
+         2026 por devolver miles de versículos. Los tres tipos viejos siguen
+         funcionando para las búsquedas guardadas y para el modo proyección. -->
+    <label class="radio__label" for="smart">
       <input
         type="radio"
-        id="match"
+        id="smart"
         name="searchType"
-        value="match"
+        value="smart"
         bind:group={searchForm.searchType}
         on:change={onSearchTypeChange}
       />
-      <span>{$_('app.sidebar.search_type.match')}</span>
+      <span>{$_('app.sidebar.search_type.smart')}</span>
     </label>
-
-    <label class="radio__label" for="exact">
-      <input
-        type="radio"
-        id="exact"
-        name="searchType"
-        value="every"
-        bind:group={searchForm.searchType}
-        on:change={onSearchTypeChange}
-      />
-      <span>{$_('app.sidebar.search_type.every')}</span></label
-    >
-
-    <!-- «Oricare cuvânt» (searchType: 'some') queda fuera del formulario desde
-         el 15 sep 2026. No se ha borrado nada: el tipo sigue existiendo en
-         `filter.service.js` y las búsquedas guardadas que lo usen siguen
-         funcionando. Sólo se ha retirado de la lista, porque con cuatro
-         opciones el formulario pesaba mucho y ésta es la que menos se entiende
-         —devuelve miles de resultados: «dragoste Dumnezeu» con ella son 4.090
-         versículos, contra 44 con «conține cuvintele»—.
-         Para volver a ofrecerla basta con descomentar este bloque.
-    <label class="radio__label" for="any">
-      <input type="radio" id="any" name="searchType" value="some" bind:group={searchForm.searchType} on:change={onSearchTypeChange} />
-      <span>{$_('app.sidebar.search_type.some')}</span>
-    </label>
-    -->
 
     <label class="radio__label radio__label--with-badge" for="reference">
       <input
@@ -1184,10 +1276,10 @@
     }
   }
 
-  // El aviso de «cero resultados, y es porque tienes un libro puesto». Lleva
-  // filete de acento a la izquierda para que se lea como una explicación y no
-  // como un error del buscador.
-  .sin-resultados {
+  // Los avisos del buscador: el libro que se quedó puesto, la Biblia de otro
+  // idioma y el cambio a búsqueda por referencia. Filete de acento a la
+  // izquierda para que se lean como una explicación y no como un error.
+  .pista {
     margin: 0.5rem 0 0;
     padding: 0.55rem 0.7rem;
     border-left: 3px solid var(--color-accent);

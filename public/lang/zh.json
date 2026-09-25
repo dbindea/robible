@@ -85,6 +85,7 @@
         "match": "包含完整语句",
         "every": "包含全部词语",
         "some": "包含任意词语",
+        "smart": "按词语",
         "reference": "按经文引用"
       },
       "scope": {
@@ -95,7 +96,11 @@
       "no_results_in_book": "在{book}中没有结果。搜索范围仅限该卷书。",
       "search_whole_bible": "搜索整本圣经",
       "no_results_in_version": "在{version}中没有结果。",
-      "search_in_version": "在{version}中查找（{count}）"
+      "search_in_version": "在{version}中查找（{count}）",
+      "switched_to_reference": "已切换到按引用查找：这看起来是一处经文引用，而不是词语。",
+      "not_a_reference": "这看起来不是经文引用。",
+      "search_words_instead": "查找这些词语（{count}）",
+      "search_words_anyway": "查找这些词语"
     },
     "book_drawer": {
       "aria_label": "圣经书卷",
@@ -121,6 +126,7 @@
       "result_count_start": "显示",
       "result_count_end": "条结果，共{total}条",
       "load_more": "显示更多结果（{remaining}）",
+      "widened_results": "包含所有词语，但非完整表达（{count}）",
       "page_title": {
         "search": "在{bible}中搜索",
         "chapter": "{book}，第{chapter}章"

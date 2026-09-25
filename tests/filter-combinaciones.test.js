@@ -16,7 +16,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 
-import { getFilterResult } from '../src/services/filter.service.js';
+import { getFilterResult, UMBRAL_AMPLIACION } from '../src/services/filter.service.js';
 
 const DATA = fileURLToPath(new URL('../public/data/vdc/', import.meta.url));
 const bible = JSON.parse(readFileSync(join(DATA, 'bible.json'), 'utf8'));
@@ -153,6 +153,50 @@ test('barrido: sólo las combinaciones cruzadas devuelven cero', () => {
   // filtro OT— y ese cero silencioso es justo lo que se vino a arreglar.
   const vacios = casos.filter((c) => c.n === 0);
   assert.deepEqual(vacios, [], `combinaciones sin resultados: ${JSON.stringify(vacios)}`);
+});
+
+// ── El modo único sobre la Biblia de verdad ─────────────────────────────────
+//
+// La regla la puso el usuario: «se busca la expresión y, si sale poco, se
+// amplía a las palabras; si salen entre 50 y 200, no». Aquí se comprueba con
+// frases reales, porque el tope sólo significa algo contra textos de verdad.
+
+test('una frase que no está literalmente sí encuentra sus palabras', () => {
+  // El caso que justificaba el radio «conține cuvintele»: «dragoste Dumnezeu»
+  // no está en ningún versículo tal cual, y con las dos palabras sueltas está
+  // en decenas. Antes eran cero resultados salvo que supieras cambiar el radio.
+  const exacta = buscar({ searchText: 'dragoste Dumnezeu', searchType: 'match' });
+  assert.equal(exacta.length, 0, 'la expresión literal no existe');
+
+  const lista = buscar({ searchText: 'dragoste Dumnezeu', searchType: 'smart' });
+  assert.ok(lista.length > 20, `debería ampliar y encontrar bastantes, encontró ${lista.length}`);
+  assert.ok(lista.every((v) => v.ampliado));
+});
+
+test('una frase que sale poco se completa con las parecidas', () => {
+  const exacta = buscar({ searchText: 'dragostea lui Dumnezeu', searchType: 'match' });
+  assert.ok(exacta.length > 0 && exacta.length <= UMBRAL_AMPLIACION, `salieron ${exacta.length} exactos`);
+
+  const lista = buscar({ searchText: 'dragostea lui Dumnezeu', searchType: 'smart' });
+  assert.ok(lista.length > exacta.length, 'tendría que haber añadido los de las palabras sueltas');
+  // Los exactos siguen estando y siguen siendo los primeros.
+  assert.deepEqual(
+    lista.slice(0, exacta.length).map((v) => v.key),
+    exacta.map((v) => v.key),
+  );
+});
+
+test('una frase con muchos resultados NO se amplía', () => {
+  // «Duhul Sfânt» sale decenas de veces: la pantalla ya está llena y añadir
+  // todos los versículos que dicen «duhul» por un lado y «sfânt» por otro sólo
+  // sería ruido debajo de lo que ya estaba bien.
+  for (const frase of ['lui Dumnezeu', 'Duhul Sfant', 'imparatia cerurilor']) {
+    const exacta = buscar({ searchText: frase, searchType: 'match' });
+    assert.ok(exacta.length > UMBRAL_AMPLIACION, `«${frase}» debería tener más de ${UMBRAL_AMPLIACION} exactos`);
+    const lista = buscar({ searchText: frase, searchType: 'smart' });
+    assert.equal(lista.length, exacta.length, `«${frase}» no debería ampliarse`);
+    assert.ok(lista.every((v) => !v.ampliado));
+  }
 });
 
 test('borrar el texto devuelve el capítulo por defecto, no una lista vacía', () => {

@@ -84,7 +84,7 @@ const applyThemeMode = (themeMode) => {
 
 export const createDefaultSearchForm = () => ({
   searchText: null,
-  searchType: 'match',
+  searchType: 'smart',
   testament: 'all',
   book: [],
   chapter: [],
@@ -93,9 +93,25 @@ export const createDefaultSearchForm = () => ({
 // Copia normalizada del formulario. Los arrays también se clonan: si se
 // reutilizara la referencia, el alias que se describe abajo seguiría abierto
 // por `book` y `chapter`.
+/**
+ * Los tres tipos de búsqueda por texto son ahora uno.
+ *
+ * «Contiene la expresión» y «contiene las palabras» eran dos radios que el
+ * usuario tenía que entender y elegir antes de buscar. Desde el 25 sep 2026 hay
+ * un solo modo, `smart`, que empieza por la expresión y amplía a las palabras
+ * sueltas sólo si se quedó corto (`UMBRAL_AMPLIACION` en `filter.service.js`).
+ *
+ * Aquí se traduce cualquier tipo viejo, que es lo que llega de una búsqueda
+ * guardada en el servidor o de un `localStorage` de antes del cambio. Sin esto,
+ * un formulario restaurado con `every` dejaba los dos radios sin marcar —el
+ * valor no es el de ninguno— y el usuario no podía saber en qué modo estaba.
+ * `reference` es el único que se conserva, porque sigue siendo un modo aparte.
+ */
+const normalizarTipo = (tipo) => (tipo === 'reference' ? 'reference' : 'smart');
+
 const createSearchForm = (form = {}) => ({
   searchText: form.searchText || null,
-  searchType: form.searchType || 'match',
+  searchType: normalizarTipo(form.searchType),
   testament: form.testament || 'all',
   book: Array.isArray(form.book) ? [...form.book] : [],
   chapter: Array.isArray(form.chapter) ? [...form.chapter] : [],

@@ -68,11 +68,27 @@ test('normaliza los campos que faltan', () => {
   filter.set({});
   assert.deepEqual(get(filter), {
     searchText: null,
-    searchType: 'match',
+    searchType: 'smart',
     testament: 'all',
     book: [],
     chapter: [],
   });
+});
+
+test('los tipos de búsqueda viejos se traducen al modo único', () => {
+  // `match`, `every` y `some` eran tres radios; hoy son uno solo que decide por
+  // su cuenta. Lo que llega de una búsqueda guardada en el servidor o de un
+  // localStorage anterior al cambio tiene que caer en el modo nuevo: con el
+  // valor viejo, los radios se quedaban los dos sin marcar y no había forma de
+  // saber en qué modo se estaba buscando.
+  for (const viejo of ['match', 'every', 'some', 'loquesea', undefined, null]) {
+    filter.set({ searchType: viejo });
+    assert.equal(get(filter).searchType, 'smart', `«${viejo}» debería caer en smart`);
+  }
+
+  // El único que sobrevive, porque sigue siendo un modo aparte.
+  filter.set({ searchType: 'reference' });
+  assert.equal(get(filter).searchType, 'reference');
 });
 
 test('update() también copia', () => {

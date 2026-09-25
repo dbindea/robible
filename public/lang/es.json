@@ -85,6 +85,7 @@
         "match": "Contiene la expresión",
         "every": "Contiene las palabras",
         "some": "Cualquier palabra",
+        "smart": "Por palabras",
         "reference": "Por referencia"
       },
       "scope": {
@@ -95,7 +96,11 @@
       "no_results_in_book": "Ningún resultado en {book}. La búsqueda está limitada a ese libro.",
       "search_whole_bible": "Buscar en toda la Biblia",
       "no_results_in_version": "Ningún resultado en {version}.",
-      "search_in_version": "Buscar en {version} ({count})"
+      "search_in_version": "Buscar en {version} ({count})",
+      "switched_to_reference": "Hemos pasado a búsqueda por referencia: así se escribe una referencia, no una palabra.",
+      "not_a_reference": "No parece una referencia.",
+      "search_words_instead": "Buscar las palabras ({count})",
+      "search_words_anyway": "Buscar las palabras"
     },
     "book_drawer": {
       "aria_label": "Libros de la Biblia",
@@ -121,6 +126,7 @@
       "result_count_start": "Se muestran",
       "result_count_end": "resultados de {total}",
       "load_more": "Ver más resultados ({remaining})",
+      "widened_results": "Con todas las palabras, no la expresión exacta ({count})",
       "page_title": {
         "search": "Búsqueda en {bible}",
         "chapter": "{book}, capítulo {chapter}"

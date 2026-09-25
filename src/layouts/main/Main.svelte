@@ -208,6 +208,11 @@
   $: fullResult = Object.keys(searchForm).length ? getFilterResult(bible, map, searchForm) : [];
   $: count = fullResult.length;
   $: result = fullResult.slice(0, topeResultados);
+  // Dónde empiezan los resultados ampliados —los que tienen las palabras pero
+  // no la expresión—, para que la lista pueda separarlos. Van siempre al final,
+  // así que basta con saber por dónde. -1 cuando no se amplió nada.
+  $: inicioAmpliados = fullResult.findIndex((v) => v.ampliado);
+  $: totalAmpliados = inicioAmpliados < 0 ? 0 : count - inicioAmpliados;
   const verMasResultados = () => {
     topeResultados += PASO_RESULTADOS;
   };
@@ -358,7 +363,7 @@
       {:else if isNotesMode}
         <Notes {bible} {map} />
       {:else}
-        <Result {bible} {map} {result} {count} {verMasResultados} />
+        <Result {bible} {map} {result} {count} {verMasResultados} {totalAmpliados} />
       {/if}
     {/if}
   </div>
