@@ -118,6 +118,7 @@
       "chapter_breadcrumb": "Capítulo {chapter}",
       "result_count_start": "Se muestran",
       "result_count_end": "resultados de {total}",
+      "load_more": "Ver más resultados ({remaining})",
       "page_title": {
         "search": "Búsqueda en {bible}",
         "chapter": "{book}, capítulo {chapter}"

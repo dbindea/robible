@@ -118,6 +118,7 @@
       "chapter_breadcrumb": "第{chapter}章",
       "result_count_start": "显示",
       "result_count_end": "条结果，共{total}条",
+      "load_more": "显示更多结果（{remaining}）",
       "page_title": {
         "search": "在{bible}中搜索",
         "chapter": "{book}，第{chapter}章"

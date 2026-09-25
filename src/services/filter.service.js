@@ -1,16 +1,16 @@
+import { indiceDeLibro, normalizar, quitarDiacriticos } from './search-index.service.js';
+
 export function replaceDiacritics(str) {
-  return String(str)
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '');
+  return quitarDiacriticos(str);
 }
 
 export const getFilterResult = (bible, map, form) => {
-  const _bible = [...bible];
   let result = [];
   const booksByTestament = map[form.testament] || map.all || [];
   const selectedBooks = Array.isArray(form.book) ? form.book : [];
   const selectedChapters = Array.isArray(form.chapter) ? form.chapter : [];
   const searchText = form.searchText?.trim();
+  const librosBiblia = Array.isArray(bible) ? bible.length : 0;
 
   // Un libro elegido MANDA sobre el testamento, no se cruza con él.
   //
@@ -28,14 +28,20 @@ export const getFilterResult = (bible, map, form) => {
   //
   // Elegir un libro concreto es más específico que elegir un testamento, así
   // que gana el libro. Cubierto en `tests/filter-combinaciones.test.js`.
+  //
+  // Se ordena y se quitan los repetidos porque ahora el recorrido va por esta
+  // lista y no por la Biblia entera comprobando la pertenencia: un libro
+  // repetido daría el mismo versículo dos veces —y dos veces la misma `key`,
+  // que es lo que hace reventar al `{#each}` de Svelte— y uno fuera de orden
+  // sacaría los resultados desordenados respecto al canon.
   let _books = selectedBooks.length
-    ? selectedBooks.filter((value) => Number.isInteger(value) && value >= 0 && value < _bible.length)
+    ? [...new Set(selectedBooks.filter((value) => Number.isInteger(value) && value >= 0 && value < librosBiblia))].sort(
+        (a, b) => a - b,
+      )
     : booksByTestament;
 
-  localStorage.setItem('filter', JSON.stringify(form));
-
   // DEFAULT RESULT
-  result = (_bible[_books[0] || 0]?.[selectedChapters[0] || 0] || []).map((verse, index) => {
+  result = (bible?.[_books[0] || 0]?.[selectedChapters[0] || 0] || []).map((verse, index) => {
     return {
       book: _books[0],
       chapter: (selectedChapters[0] || 0) + 1,
@@ -46,67 +52,58 @@ export const getFilterResult = (bible, map, form) => {
   });
 
   // SEARCH BY TEXT
+  //
+  // Se recorre el índice normalizado (`search-index.service.js`) y no la Biblia
+  // en crudo: normalizar los 31.102 versículos en cada pulsación costaba 65 ms,
+  // y esa era la razón de que el buscador fuese a tirones en el móvil. El
+  // índice se construye libro a libro la primera vez que se busca en él.
   if (searchText) {
     result = [];
     if (searchText.length > 2) {
-      const normalizedSearchText = replaceDiacritics(searchText).toLowerCase();
+      const normalizedSearchText = normalizar(searchText);
       const searchWords = normalizedSearchText.split(/[ ,.-]+/).filter(Boolean);
 
-      _bible.forEach((book, indexBook) => {
-        if (_books.includes(indexBook)) {
-          const _book = [...book];
+      // La condición se elige UNA vez y no en cada versículo. Sin `default`
+      // adrede: un `searchType` que no sea de los tres devuelve lista vacía,
+      // que es el contrato que ya tenía el `switch` de antes y del que depende
+      // el modo proyección (CLAUDE.md, trampa 87).
+      let coincide = null;
+      switch (form.searchType) {
+        case 'match':
+          coincide = (texto) => texto.includes(normalizedSearchText);
+          break;
+        case 'every':
+          coincide = (texto) => searchWords.every((word) => texto.includes(word));
+          break;
+        case 'some':
+          coincide = (texto) => searchWords.some((word) => texto.includes(word));
+          break;
+      }
 
-          _book.forEach((chapter, indexChapter) => {
-            const _chapter = [...chapter];
+      if (coincide) {
+        for (const indexBook of _books) {
+          const indice = indiceDeLibro(bible, indexBook);
+          if (!indice) continue;
+          const { textos, capitulos, versiculos } = indice;
 
-            switch (form.searchType) {
-              case 'match':
-                _chapter.forEach((verse, indexVerse) => {
-                  if (replaceDiacritics(verse).toLowerCase().includes(normalizedSearchText)) {
-                    result.push({
-                      book: indexBook,
-                      chapter: indexChapter + 1,
-                      index: indexVerse + 1,
-                      text: verse,
-                      key: `${indexBook}-${indexChapter}-${indexVerse}`,
-                    });
-                  }
-                });
-                break;
-
-              case 'every':
-                _chapter.forEach((verse, indexVerse) => {
-                  const normalizedVerse = replaceDiacritics(verse).toLowerCase();
-                  if (searchWords.every((word) => normalizedVerse.includes(word))) {
-                    result.push({
-                      book: indexBook,
-                      chapter: indexChapter + 1,
-                      index: indexVerse + 1,
-                      text: verse,
-                      key: `${indexBook}-${indexChapter}-${indexVerse}`,
-                    });
-                  }
-                });
-                break;
-
-              case 'some':
-                _chapter.forEach((verse, indexVerse) => {
-                  const normalizedVerse = replaceDiacritics(verse).toLowerCase();
-                  if (searchWords.some((word) => normalizedVerse.includes(word))) {
-                    result.push({
-                      book: indexBook,
-                      chapter: indexChapter + 1,
-                      index: indexVerse + 1,
-                      text: verse,
-                      key: `${indexBook}-${indexChapter}-${indexVerse}`,
-                    });
-                  }
-                });
-                break;
-            }
-          });
+          for (let i = 0; i < textos.length; i++) {
+            if (!coincide(textos[i])) continue;
+            const indexChapter = capitulos[i];
+            const indexVerse = versiculos[i];
+            result.push({
+              book: indexBook,
+              chapter: indexChapter + 1,
+              index: indexVerse + 1,
+              text: bible[indexBook][indexChapter][indexVerse],
+              // Ojo: aquí la clave va en base 0 y en el resultado por defecto de
+              // arriba en base 1. Es una incoherencia vieja, pero `Result.svelte`
+              // la usa como clave del `{#each}` y para casar el versículo que se
+              // está leyendo con música: cambiarla no es cosa de este servicio.
+              key: `${indexBook}-${indexChapter}-${indexVerse}`,
+            });
+          }
         }
-      });
+      }
     }
   }
   return result;

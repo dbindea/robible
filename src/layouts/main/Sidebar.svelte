@@ -198,6 +198,9 @@
       const newPath = detail?.pathname || window.location.pathname;
       // Si la nueva URL es un versiculo de biblia, limpiar el searchForm
       if (newPath && newPath.startsWith('/biblia/') && /\/\d+\/\d+$/.test(newPath)) {
+        // Una búsqueda a medio vencer aquí volvería a poner el texto que se
+        // acaba de abandonar, 150 ms después de haber navegado.
+        cancelarFiltroPendiente();
         if (searchForm.searchText) {
           searchForm = { ...searchForm, searchText: null };
           if (searchTextInput) {
@@ -213,6 +216,9 @@
   });
 
   const updateFilter = (form) => {
+    // Cualquier actualización inmediata gana a la que estuviera esperando: sin
+    // esto, borrar con el aspa y ver cómo el texto vuelve solo 150 ms después.
+    cancelarFiltroPendiente();
     const nextForm = {
       ...form,
       chapter: [],
@@ -222,6 +228,38 @@
     filter.set(nextForm);
     // NO guardar aquí — se guarda solo cuando el usuario termina de escribir
     // (ver saveCurrentSearchDebounced o selectRecentSearch)
+  };
+
+  // ── Un respiro antes de buscar ──────────────────────────────────────────
+  //
+  // Buscar cuesta hoy 3 ms (`search-index.service.js`), pero PINTAR el
+  // resultado cuesta 60-85: son hasta 200 versículos, cada uno con sus siete
+  // botones y sus consultas a notas, temas y subrayados. Tecleando «Dumnezeu»
+  // eso son ocho repintados completos, siete de los cuales nadie llega a leer.
+  //
+  // Con 150 ms, escribir de corrido produce UNO. El campo sigue respondiendo al
+  // instante porque su valor es estado local del componente: lo único que
+  // espera es la búsqueda. Sólo se aplica al teclear; elegir un libro, borrar o
+  // cambiar de ámbito siguen siendo inmediatos, que es lo que se espera de un
+  // clic.
+  const RESPIRO_BUSQUEDA = 150;
+  let temporizadorFiltro = null;
+
+  function cancelarFiltroPendiente() {
+    if (temporizadorFiltro) {
+      clearTimeout(temporizadorFiltro);
+      temporizadorFiltro = null;
+    }
+  }
+
+  const updateFilterConRespiro = () => {
+    cancelarFiltroPendiente();
+    temporizadorFiltro = setTimeout(() => {
+      temporizadorFiltro = null;
+      // Se lee `searchForm` al vencer y no una copia de ahora: lo que hay que
+      // buscar es la última letra escrita, no la de hace 150 ms.
+      updateFilter(searchForm);
+    }, RESPIRO_BUSQUEDA);
   };
 
   // Debounce para guardar la búsqueda solo cuando el usuario deja de teclear
@@ -245,6 +283,7 @@
 
   onDestroy(() => {
     if (saveSearchTimer) clearTimeout(saveSearchTimer);
+    cancelarFiltroPendiente();
   });
 
   const resetForm = () => {
@@ -259,6 +298,7 @@
   };
 
   const selectBook = (bookId) => {
+    cancelarFiltroPendiente();
     searchForm = {
       ...searchForm,
       testament: 'all',
@@ -438,8 +478,11 @@
     on:change|stopPropagation={() => {
       if (searchForm.searchType !== 'reference') updateFilter(searchForm);
     }}
-    on:input|stopPropagation={() => {
-      if (searchForm.searchType !== 'reference') updateFilter(searchForm);
+    on:input|stopPropagation={(e) => {
+      if (searchForm.searchType === 'reference') return;
+      // Teclear espera; tocar un control del formulario, no.
+      if (e.target === searchTextInput) updateFilterConRespiro();
+      else updateFilter(searchForm);
     }}
   >
     <div class="block-erase">

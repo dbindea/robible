@@ -1,13 +1,9 @@
 // Búsqueda por texto sobre la Biblia en memoria.
 //
-// `getFilterResult` guarda el formulario en localStorage como efecto colateral,
-// así que hace falta un doble mínimo para poder ejecutarlo fuera del navegador.
-globalThis.localStorage ??= {
-  _d: new Map(),
-  getItem(k) { return this._d.has(k) ? this._d.get(k) : null; },
-  setItem(k, v) { this._d.set(k, String(v)); },
-  removeItem(k) { this._d.delete(k); },
-};
+// Aquí había un doble de `localStorage`: `getFilterResult` guardaba el
+// formulario como efecto colateral y sin él no se podía ni importar fuera del
+// navegador. Esa escritura se mudó al store (`stores.js`), que es de quien era,
+// y la función volvió a ser pura.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

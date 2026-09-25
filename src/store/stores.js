@@ -120,10 +120,44 @@ const createSearchForm = (form = {}) => ({
 // próximo sitio que escriba en el store.
 const _filter = writable(createSearchForm(getSavedFilter()));
 
+// ── Guardar el formulario es cosa del store, no de la búsqueda ───────────────
+//
+// El `localStorage.setItem('filter', …)` vivía DENTRO de `getFilterResult`, que
+// se ejecuta en cada pulsación del teclado: un `JSON.stringify` y una escritura
+// síncrona por tecla, en el mismo hilo que pinta. Además convertía en impura una
+// función que por lo demás lo era, y obligaba a doblar `localStorage` en los
+// tests sólo para poder buscar en una Biblia de juguete.
+//
+// Aquí se escribe con un respiro de 400 ms: lo guardado sólo sirve para
+// restaurar el formulario al recargar (`getSavedFilter`), así que no hace falta
+// que esté al día al milisegundo.
+let temporizadorGuardado = null;
+const guardarFiltro = (form) => {
+  if (typeof window === 'undefined') return;
+  if (temporizadorGuardado) clearTimeout(temporizadorGuardado);
+  temporizadorGuardado = setTimeout(() => {
+    try {
+      localStorage.setItem('filter', JSON.stringify(form));
+    } catch {
+      // Sin almacenamiento (modo privado, cuota llena) se pierde la
+      // restauración al recargar y nada más: la búsqueda sigue funcionando.
+    }
+  }, 400);
+};
+
 export const filter = {
   subscribe: _filter.subscribe,
-  set: (value) => _filter.set(createSearchForm(value)),
-  update: (fn) => _filter.update((actual) => createSearchForm(fn(actual))),
+  set: (value) => {
+    const form = createSearchForm(value);
+    guardarFiltro(form);
+    _filter.set(form);
+  },
+  update: (fn) =>
+    _filter.update((actual) => {
+      const form = createSearchForm(fn(actual));
+      guardarFiltro(form);
+      return form;
+    }),
 };
 
 export const selectedBibleVersion = writable(getSavedBibleVersion());

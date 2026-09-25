@@ -118,6 +118,7 @@
       "chapter_breadcrumb": "Capitolul {chapter}",
       "result_count_start": "Se afișează",
       "result_count_end": "rezultate din {total}",
+      "load_more": "Arată mai multe rezultate ({remaining})",
       "page_title": {
         "search": "Căutare în {bible}",
         "chapter": "{book}, capitolul {chapter}"

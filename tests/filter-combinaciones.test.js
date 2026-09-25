@@ -16,17 +16,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 
-// `getFilterResult` escribe en localStorage como efecto secundario. Se dobla
-// con el mínimo imprescindible, igual que en `filter.test.js`.
-const almacen = new Map();
-globalThis.localStorage = {
-  getItem: (k) => (almacen.has(k) ? almacen.get(k) : null),
-  setItem: (k, v) => almacen.set(k, String(v)),
-  removeItem: (k) => almacen.delete(k),
-  clear: () => almacen.clear(),
-};
-
-const { getFilterResult } = await import('../src/services/filter.service.js');
+import { getFilterResult } from '../src/services/filter.service.js';
 
 const DATA = fileURLToPath(new URL('../public/data/vdc/', import.meta.url));
 const bible = JSON.parse(readFileSync(join(DATA, 'bible.json'), 'utf8'));
