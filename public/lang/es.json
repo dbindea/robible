@@ -1138,11 +1138,6 @@
       "site_blocked": "El dictado está bloqueado por un ajuste del sitio. Lo arreglamos nosotros, no es cosa tuya.",
       "listening_stop": "Escuchando… toca el micrófono para parar."
     },
-    "donate": {
-      "title": "Apoya RoBible",
-      "action": "Donar con PayPal",
-      "note": "Todos los fondos se destinan a seguir desarrollando la plataforma y a necesidades humanitarias."
-    },
     "scroll": {
       "seo_title": "Biblia en scroll | RoBible",
       "seo_description": "Lee la Biblia versículo a versículo, a pantalla completa, deslizando con el dedo."
@@ -1364,7 +1359,7 @@
       "eyebrow": "Preguntas frecuentes",
       "title": "Lo que no encontraste en otros sitios",
       "q1": "¿Es realmente gratis?",
-      "a1": "Sí, por completo. Sin anuncios, sin suscripción, sin tarjeta. El proyecto se sostiene con trabajo voluntario y donaciones opcionales.",
+      "a1": "Sí, por completo. Sin anuncios, sin suscripción, sin tarjeta y sin donaciones. El proyecto se sostiene con trabajo voluntario.",
       "q2": "¿Están seguros mis datos?",
       "a2": "Las notas y favoritos se guardan cifrados en Cloudflare. No vendemos ni compartimos nada. Puedes borrar tu cuenta en cualquier momento.",
       "q3": "¿Funciona en el móvil?",

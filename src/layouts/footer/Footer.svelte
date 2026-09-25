@@ -9,7 +9,6 @@
   import { openAuthMenu } from '../../store/authMenuStore';
   import { getBibleVersionConfigOrDefault, selectedBibleVersion } from '../../store/stores';
   import { navegarA } from '../../services/navigation.service';
-  import DonarBoton from '../../components/DonarBoton.svelte';
   import InstalarInsignia from '../../components/InstalarInsignia.svelte';
   import { CONTACTO } from '../../config/site';
   import { estaInstalada, instalar, puedeInstalar } from '../../services/pwa-install.service';
@@ -135,9 +134,8 @@
 
 <div class="footer">
   <!-- Cuatro columnas: quiénes somos, adónde se va a leer, qué hay publicado y
-       a quién escribir. El bloque de donación va con la marca porque es lo
-       único del pie que pide algo, y ahí lo lee quien ya se ha parado a mirar
-       de quién es esto. -->
+       a quién escribir. El pie no pide nada a nadie: no hay donaciones ni
+       ninguna otra llamada a poner dinero (decisión de producto, 25 sep 2026). -->
   <div class="footer__columnas">
     <div class="footer__marca">
       <a class="footer__logo" href="/landing" on:click|preventDefault={() => irA('/landing')}>
@@ -157,8 +155,6 @@
           eyebrow={$puedeInstalar ? '' : $_('app.pwa.badge_unavailable')}
         />
       {/if}
-
-      <DonarBoton />
     </div>
 
     <!-- Un solo <nav> con dos encabezados dentro, y no dos <nav> hermanos: para
@@ -386,8 +382,6 @@
     .footer__columnas {
       grid-template-columns: minmax(0, 1fr);
       --footer-align: center;
-      --donar-align: center;
-      --donar-text-align: center;
       text-align: center;
     }
 
@@ -412,9 +406,9 @@
 
   /* `--footer-align` es el interruptor de alineación de todo el pie: en
      escritorio vale `start` y en una sola columna pasa a `center`. Va por
-     variable y no repitiendo `text-align` en cada regla porque tiene que
-     cruzar hasta `DonarBoton`, que es otro componente y tiene su propio
-     scoping — una variable sí atraviesa esa frontera. */
+     variable y no repitiendo `text-align` en cada regla porque así lo hereda
+     también lo que se pinte dentro con su propio scoping de Svelte — una
+     variable sí atraviesa esa frontera, un selector del padre no. */
   .footer__marca {
     display: grid;
     gap: 0.6rem;
