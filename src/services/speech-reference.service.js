@@ -98,6 +98,17 @@ const RELLENO = {
 };
 
 /**
+ * Las mismas palabras, todas juntas y sin idioma.
+ *
+ * Las usa también el buscador escrito (`referenceSearch.service.js`): quien
+ * dicta «ioan capitolul 3 versetul 16» lo escribe igual cuando teclea, y la
+ * lista no puede vivir en dos sitios. Va sin separar por idioma porque allí no
+ * se sabe en cuál está escribiendo el usuario, y sólo se usa como SEGUNDO
+ * intento: si la frase entera ya emparejaba un libro, no llega a mirarse.
+ */
+export const PALABRAS_DE_RELLENO = new Set([...RELLENO.ro, ...RELLENO.es, ...RELLENO.en]);
+
+/**
  * Ordinales de libro → su forma escrita.
  *
  * Va antes que todo lo demás y por eso importa el orden: «primul samuel» tiene

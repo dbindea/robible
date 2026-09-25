@@ -16,7 +16,7 @@
     parseBiblePath,
     parseLegacyVersePath,
   } from '../../services/bible-route.service';
-  import { replaceDiacritics } from '../../services/filter.service';
+  import { normalizar } from '../../services/search-index.service';
   import { _ } from '../../services/i18n.service';
   import { applySeoMetadata, buildCurrentBibleSeo, buildVerseSeo } from '../../services/seo.service';
   import { openAuthMenu } from '../../store/authMenuStore';
@@ -33,6 +33,10 @@
   export let map;
   export let result = [];
   export let count = 0;
+  /** Pinta la siguiente tanda de resultados. Lo decide `Main.svelte`. */
+  export let verMasResultados = () => {};
+  /** Cuántos de los resultados salen de ampliar a las palabras sueltas. */
+  export let totalAmpliados = 0;
 
   let chapterForm = {
     chapter: [],
@@ -380,8 +384,15 @@
   let canSwipeLeft = false;
   let canSwipeRight = false;
 
-  $: canSwipeLeft = selectedChapter !== null && selectedChapter < (chapterArray.length - 1);
-  $: canSwipeRight = selectedChapter !== null && selectedChapter > 0;
+  // `!= null` y no `!== null`: un `chapter: []` en el formulario deja
+  // `selectedChapter` en **undefined**, y con la comparación estricta las dos
+  // salían false —`undefined < n` y `undefined > 0` lo son—, así que
+  // desaparecían las dos flechas flotantes de capítulo y el swipe se quedaba
+  // sin destino estando en el capítulo 1 de un libro de veintiuno. El resto del
+  // fichero sí distingue los dos casos (`=== null || === undefined`, `?? 0`),
+  // o sea que aquí era un olvido y no una decisión.
+  $: canSwipeLeft = selectedChapter != null && selectedChapter < chapterArray.length - 1;
+  $: canSwipeRight = selectedChapter != null && selectedChapter > 0;
 
   $: searchForm = $filter;
   $: keywords = searchForm.searchText || '';
@@ -884,26 +895,53 @@
       return [{ text, marked: false }];
     }
 
-    const ranges = [];
-    const pushRange = (word) => {
-      const index = replaceDiacritics(text).toLowerCase().indexOf(replaceDiacritics(word).toLowerCase());
+    // El texto se normaliza UNA vez y no una por palabra buscada. Las
+    // posiciones valen para cortar el texto original porque quitar diacríticos
+    // no cambia la longitud de la cadena — comprobado sobre las siete versiones
+    // en `tests/search-index.test.js`.
+    const normalizado = normalizar(text);
 
-      if (index >= 0) {
-        ranges.push([index, index + word.length]);
+    const ranges = [];
+    // TODAS las apariciones, no sólo la primera. Con `indexOf` a secas, un
+    // versículo que dice «dragoste» tres veces sólo resaltaba la primera: la
+    // palabra que el usuario está buscando se quedaba en negro justo donde más
+    // se repite, que es donde más falta hace verla.
+    const pushRanges = (word) => {
+      const aguja = normalizar(word);
+      if (!aguja) return;
+      let desde = 0;
+      for (;;) {
+        const index = normalizado.indexOf(aguja, desde);
+        if (index < 0) break;
+        ranges.push([index, index + aguja.length]);
+        desde = index + aguja.length;
       }
     };
 
+    const marcarCadaPalabra = () =>
+      keywords
+        .split(/[ ,.-]+/)
+        .filter(Boolean)
+        .forEach(pushRanges);
+
     switch (searchForm.searchType) {
       case 'match':
-        pushRange(keywords);
+        pushRanges(keywords);
+        break;
+
+      // En el modo normal se marca la expresión entera Y cada palabra por
+      // separado: la lista mezcla los versículos que la contienen tal cual con
+      // los que sólo tienen las palabras sueltas, y marcar una sola de las dos
+      // cosas dejaría media lista sin resaltar. Donde coinciden, los tramos se
+      // funden y se ve un único subrayado.
+      case 'smart':
+        pushRanges(keywords);
+        marcarCadaPalabra();
         break;
 
       case 'every':
       case 'some':
-        keywords
-          .split(/[ ,.-]+/)
-          .filter(Boolean)
-          .forEach(pushRange);
+        marcarCadaPalabra();
         break;
     }
 
@@ -911,12 +949,17 @@
       return [{ text, marked: false }];
     }
 
+    // Dos palabras buscadas pueden solaparse («dragoste» y «dragostea»): antes
+    // se descartaba la segunda entera y se perdía la letra que sobresalía. Se
+    // funden en un solo tramo.
     const normalizedRanges = ranges
       .sort(([startA], [startB]) => startA - startB)
       .reduce((items, range) => {
         const previous = items[items.length - 1];
-        if (!previous || range[0] >= previous[1]) {
+        if (!previous || range[0] > previous[1]) {
           items.push(range);
+        } else if (range[1] > previous[1]) {
+          previous[1] = range[1];
         }
         return items;
       }, []);
@@ -1014,7 +1057,14 @@
     </p>
   {/if}
 
-  {#each result as item (item.key)}
+  {#each result as item, indiceEnLista (item.key)}
+    <!-- La frontera entre lo que contiene la expresión tal cual y lo que sólo
+         tiene las palabras sueltas. Sin ella, los ampliados parecen resultados
+         peores sin explicación; con ella se leen como lo que son, algo que el
+         buscador ha añadido porque la búsqueda exacta se quedó corta. -->
+    {#if item.ampliado && !result[indiceEnLista - 1]?.ampliado}
+      <p class="ampliacion" role="status">{$_('app.result.widened_results', { count: totalAmpliados })}</p>
+    {/if}
     {@const verseTopics = (() => { void $topicsStore; return topicsContainingVerse(item.book, item.chapter, item.index); })()}
     {@const primaryTopic = verseTopics[0]}
     {@const hasNote = !!$notesStore.find((n) => n.book === item.book && n.chapter === item.chapter && n.verse === item.index)}
@@ -1228,6 +1278,15 @@
     </div>
     <div class="verse-divider" aria-hidden="true"></div>
   {/each}
+
+  <!-- La salida del tope de 200. Va al final de la lista, que es donde el
+       usuario se planta al ver que no baja más, y dice cuántos quedan: sin ese
+       número no hay forma de saber si falta uno o cuatro mil. -->
+  {#if searchForm.searchText && searchForm.searchType !== 'reference' && count > result.length}
+    <button type="button" class="ver-mas" on:click={verMasResultados}>
+      {$_('app.result.load_more', { remaining: count - result.length })}
+    </button>
+  {/if}
   </div>
 </div>
 
@@ -2244,6 +2303,42 @@
 
   .count {
     font-weight: 700;
+  }
+
+  // El rótulo que separa los resultados exactos de los ampliados. Discreto y
+  // con filete: es una explicación, no una sección nueva.
+  .ampliacion {
+    margin: 1.75rem 0 0.75rem;
+    padding: 0.4rem 0 0.4rem 0.7rem;
+    border-left: 3px solid color-mix(in srgb, var(--color-accent) 55%, transparent);
+    color: color-mix(in srgb, var(--color-ink) 72%, transparent);
+    font-size: 0.85rem;
+    line-height: 1.4;
+  }
+
+  // El botón de la siguiente tanda de resultados. Ancho contenido y centrado:
+  // no compite con los versículos, pero es el único elemento después del último
+  // y por eso no hace falta más para encontrarlo.
+  .ver-mas {
+    display: block;
+    width: min(20rem, 100%);
+    min-height: 2.6rem;
+    margin: 1.25rem auto 2rem;
+    padding: 0.55rem 1.2rem;
+    border: 1px solid var(--color-accent);
+    border-radius: 0.3rem;
+    background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+    color: var(--color-ink);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+
+    &:hover,
+    &:focus-visible {
+      background: var(--color-accent-solid);
+      color: var(--color-on-primary);
+    }
   }
   // Sólo el marco: los capítulos los dibuja y los desplaza `ChapterPicker`.
   // Aquí había además un `overflow-x: auto` y, en la media query de móvil, un

@@ -79,12 +79,13 @@
       "choose_book": "Elegir libro",
       "form": {
         "search_placeholder": "Buscar por palabras...",
-        "reference_placeholder": "ex. rom 3 5"
+        "reference_placeholder": "ej. juan 3:16-18"
       },
       "search_type": {
         "match": "Contiene la expresión",
         "every": "Contiene las palabras",
         "some": "Cualquier palabra",
+        "smart": "Por palabras",
         "reference": "Por referencia"
       },
       "scope": {
@@ -93,7 +94,13 @@
         "nt": "Nuevo Testamento"
       },
       "no_results_in_book": "Ningún resultado en {book}. La búsqueda está limitada a ese libro.",
-      "search_whole_bible": "Buscar en toda la Biblia"
+      "search_whole_bible": "Buscar en toda la Biblia",
+      "no_results_in_version": "Ningún resultado en {version}.",
+      "search_in_version": "Buscar en {version} ({count})",
+      "switched_to_reference": "Hemos pasado a búsqueda por referencia: así se escribe una referencia, no una palabra.",
+      "not_a_reference": "No parece una referencia.",
+      "search_words_instead": "Buscar las palabras ({count})",
+      "search_words_anyway": "Buscar las palabras"
     },
     "book_drawer": {
       "aria_label": "Libros de la Biblia",
@@ -118,6 +125,8 @@
       "chapter_breadcrumb": "Capítulo {chapter}",
       "result_count_start": "Se muestran",
       "result_count_end": "resultados de {total}",
+      "load_more": "Ver más resultados ({remaining})",
+      "widened_results": "Con todas las palabras, no la expresión exacta ({count})",
       "page_title": {
         "search": "Búsqueda en {bible}",
         "chapter": "{book}, capítulo {chapter}"
@@ -1031,7 +1040,7 @@
       "title": "Versículos en pantalla",
       "lead": "Elige el pasaje y avanza con el mando o con el teclado. El texto se lee desde la última fila.",
       "search_label": "¿Qué proyectamos?",
-      "search_placeholder": "juan 3 o salmos 23 3",
+      "search_placeholder": "juan 3:16-18 o salmo 23",
       "continue": "Seguir desde {reference}",
       "keys_title": "Teclas",
       "key_next": "Versículo siguiente",

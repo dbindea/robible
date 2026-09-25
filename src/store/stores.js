@@ -84,7 +84,7 @@ const applyThemeMode = (themeMode) => {
 
 export const createDefaultSearchForm = () => ({
   searchText: null,
-  searchType: 'match',
+  searchType: 'smart',
   testament: 'all',
   book: [],
   chapter: [],
@@ -93,9 +93,25 @@ export const createDefaultSearchForm = () => ({
 // Copia normalizada del formulario. Los arrays también se clonan: si se
 // reutilizara la referencia, el alias que se describe abajo seguiría abierto
 // por `book` y `chapter`.
+/**
+ * Los tres tipos de búsqueda por texto son ahora uno.
+ *
+ * «Contiene la expresión» y «contiene las palabras» eran dos radios que el
+ * usuario tenía que entender y elegir antes de buscar. Desde el 25 sep 2026 hay
+ * un solo modo, `smart`, que empieza por la expresión y amplía a las palabras
+ * sueltas sólo si se quedó corto (`UMBRAL_AMPLIACION` en `filter.service.js`).
+ *
+ * Aquí se traduce cualquier tipo viejo, que es lo que llega de una búsqueda
+ * guardada en el servidor o de un `localStorage` de antes del cambio. Sin esto,
+ * un formulario restaurado con `every` dejaba los dos radios sin marcar —el
+ * valor no es el de ninguno— y el usuario no podía saber en qué modo estaba.
+ * `reference` es el único que se conserva, porque sigue siendo un modo aparte.
+ */
+const normalizarTipo = (tipo) => (tipo === 'reference' ? 'reference' : 'smart');
+
 const createSearchForm = (form = {}) => ({
   searchText: form.searchText || null,
-  searchType: form.searchType || 'match',
+  searchType: normalizarTipo(form.searchType),
   testament: form.testament || 'all',
   book: Array.isArray(form.book) ? [...form.book] : [],
   chapter: Array.isArray(form.chapter) ? [...form.chapter] : [],
@@ -120,11 +136,74 @@ const createSearchForm = (form = {}) => ({
 // próximo sitio que escriba en el store.
 const _filter = writable(createSearchForm(getSavedFilter()));
 
+// ── Guardar el formulario es cosa del store, no de la búsqueda ───────────────
+//
+// El `localStorage.setItem('filter', …)` vivía DENTRO de `getFilterResult`, que
+// se ejecuta en cada pulsación del teclado: un `JSON.stringify` y una escritura
+// síncrona por tecla, en el mismo hilo que pinta. Además convertía en impura una
+// función que por lo demás lo era, y obligaba a doblar `localStorage` en los
+// tests sólo para poder buscar en una Biblia de juguete.
+//
+// Aquí se escribe con un respiro de 400 ms: lo guardado sólo sirve para
+// restaurar el formulario al recargar (`getSavedFilter`), así que no hace falta
+// que esté al día al milisegundo.
+let temporizadorGuardado = null;
+const guardarFiltro = (form) => {
+  if (typeof window === 'undefined') return;
+  if (temporizadorGuardado) clearTimeout(temporizadorGuardado);
+  temporizadorGuardado = setTimeout(() => {
+    try {
+      localStorage.setItem('filter', JSON.stringify(form));
+    } catch {
+      // Sin almacenamiento (modo privado, cuota llena) se pierde la
+      // restauración al recargar y nada más: la búsqueda sigue funcionando.
+    }
+  }, 400);
+};
+
 export const filter = {
   subscribe: _filter.subscribe,
-  set: (value) => _filter.set(createSearchForm(value)),
-  update: (fn) => _filter.update((actual) => createSearchForm(fn(actual))),
+  set: (value) => {
+    const form = createSearchForm(value);
+    guardarFiltro(form);
+    _filter.set(form);
+  },
+  update: (fn) =>
+    _filter.update((actual) => {
+      const form = createSearchForm(fn(actual));
+      guardarFiltro(form);
+      return form;
+    }),
 };
+
+/**
+ * El formulario con el que se llega a una referencia concreta.
+ *
+ * Irse a un versículo es ABANDONAR la búsqueda, y el formulario tiene que
+ * quedar apuntando al destino. Lo que pasa si no:
+ *
+ * - **Con `searchText` puesto**, `Result.svelte` se niega a sincronizar libro y
+ *   capítulo desde la dirección —su guarda es `if (!searchForm.searchText)`— y
+ *   el clic en la sugerencia *parece no hacer nada*: la URL cambia y la
+ *   pantalla se queda con cero versículos y el título de la búsqueda.
+ * - **Sin libro**, `syncCurrentBiblePath` reescribe la dirección a `/` y el
+ *   clic lleva a la portada.
+ *
+ * El capítulo va en base 0 en el formulario y en base 1 en la URL, que es el
+ * mismo par de índices que usa `Result.svelte` al sincronizarse desde ella.
+ *
+ * @param {object} form el formulario actual (se conserva el ámbito)
+ * @param {{book: number, chapter: number|null}} referencia el destino
+ * @param {string} [searchType] con qué modo se queda el buscador
+ */
+export const createReferenceSearchForm = (form, referencia, searchType) =>
+  createSearchForm({
+    ...form,
+    searchText: null,
+    searchType: searchType || form?.searchType,
+    book: Number.isInteger(referencia?.book) ? [referencia.book] : [],
+    chapter: Number.isInteger(referencia?.chapter) ? [referencia.chapter - 1] : [],
+  });
 
 export const selectedBibleVersion = writable(getSavedBibleVersion());
 export const themeMode = writable(getSavedThemeMode());

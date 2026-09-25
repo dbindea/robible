@@ -25,7 +25,7 @@ globalThis.localStorage ??= {
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { get } from 'svelte/store';
-import { filter } from '../src/store/stores.js';
+import { createReferenceSearchForm, filter } from '../src/store/stores.js';
 
 test('set() no guarda el objeto que recibe, sino una copia', () => {
   const mio = { searchText: null, searchType: 'reference', testament: 'all', book: [42], chapter: [2] };
@@ -68,11 +68,69 @@ test('normaliza los campos que faltan', () => {
   filter.set({});
   assert.deepEqual(get(filter), {
     searchText: null,
-    searchType: 'match',
+    searchType: 'smart',
     testament: 'all',
     book: [],
     chapter: [],
   });
+});
+
+// ── Irse a una referencia ───────────────────────────────────────────────────
+//
+// El fallo que cubre: desde la búsqueda por palabras se escribía «ioan 10 14»,
+// el panel lo detectaba y ofrecía «Ioan 10:14», y al pulsarla NO PASABA NADA.
+// La dirección cambiaba a /biblia/vdc/ioan/10/14 y la pantalla se quedaba con
+// cero versículos y el título de la búsqueda.
+//
+// Eran dos guardas de `Result.svelte` en cadena: con `searchText` puesto se
+// niega a sincronizar libro y capítulo desde la URL, y sin libro seleccionado
+// `syncCurrentBiblePath` reescribe la dirección a `/`.
+
+test('el formulario de una referencia deja de ser una búsqueda', () => {
+  const buscando = { searchText: 'ioan 10 14', searchType: 'reference', testament: 'nt', book: [], chapter: [] };
+  const enDestino = createReferenceSearchForm(buscando, { book: 42, chapter: 10 }, 'smart');
+
+  assert.equal(enDestino.searchText, null, 'con texto, Result no sincroniza desde la URL');
+  assert.deepEqual(enDestino.book, [42], 'sin libro, la URL se reescribe a /');
+  assert.deepEqual(enDestino.chapter, [9], 'el capítulo va en base 0 en el formulario');
+  assert.equal(enDestino.searchType, 'smart', 'el modo se puede devolver al que tenía el usuario');
+  assert.equal(enDestino.testament, 'nt', 'el ámbito no es cosa de esto y se conserva');
+});
+
+test('una referencia sin capítulo no inventa uno', () => {
+  const soloLibro = createReferenceSearchForm({}, { book: 0, chapter: null });
+  assert.deepEqual(soloLibro.book, [0], 'Geneza es el libro 0 y no puede perderse por ser falsy');
+  assert.deepEqual(soloLibro.chapter, []);
+});
+
+test('sin modo nuevo se conserva el que había', () => {
+  const previo = { searchType: 'reference' };
+  assert.equal(createReferenceSearchForm(previo, { book: 1, chapter: 2 }).searchType, 'reference');
+});
+
+test('el formulario de referencia también es una copia', () => {
+  // Misma razón que el resto del fichero: si devolviera los arrays del objeto
+  // que recibe, el alias de la trampa 26 volvería a formarse por otro sitio.
+  const previo = { book: [5], chapter: [1] };
+  const nuevo = createReferenceSearchForm(previo, { book: 7, chapter: 3 });
+  nuevo.book.push(99);
+  assert.deepEqual(previo.book, [5]);
+});
+
+test('los tipos de búsqueda viejos se traducen al modo único', () => {
+  // `match`, `every` y `some` eran tres radios; hoy son uno solo que decide por
+  // su cuenta. Lo que llega de una búsqueda guardada en el servidor o de un
+  // localStorage anterior al cambio tiene que caer en el modo nuevo: con el
+  // valor viejo, los radios se quedaban los dos sin marcar y no había forma de
+  // saber en qué modo se estaba buscando.
+  for (const viejo of ['match', 'every', 'some', 'loquesea', undefined, null]) {
+    filter.set({ searchType: viejo });
+    assert.equal(get(filter).searchType, 'smart', `«${viejo}» debería caer en smart`);
+  }
+
+  // El único que sobrevive, porque sigue siendo un modo aparte.
+  filter.set({ searchType: 'reference' });
+  assert.equal(get(filter).searchType, 'reference');
 });
 
 test('update() también copia', () => {

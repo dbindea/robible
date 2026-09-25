@@ -191,10 +191,31 @@
   updateFavoritesMode();
   updateNotesMode();
 
+  // ── Cuántos resultados se pintan ────────────────────────────────────────
+  //
+  // Los 200 de siempre, pero ahora se puede pedir más. Antes el corte era
+  // definitivo: «Dumnezeu» da 3.963 versículos y los 3.763 restantes no había
+  // forma de verlos, ni bajando ni afinando — el contador decía «200 de 3.963»
+  // y ahí se acababa. Se pintan por tandas y no todos de golpe porque cada
+  // versículo monta siete botones y consulta notas, temas y subrayados.
+  const PASO_RESULTADOS = 200;
+  let topeResultados = PASO_RESULTADOS;
+
   $: searchForm = $filter;
+  // Una búsqueda nueva empieza por el principio. Se compara contra la variable
+  // y no dentro de un helper, que es lo que el compilador sabe ver (trampa 23).
+  $: searchForm, (topeResultados = PASO_RESULTADOS);
   $: fullResult = Object.keys(searchForm).length ? getFilterResult(bible, map, searchForm) : [];
   $: count = fullResult.length;
-  $: result = fullResult.slice(0, 200);
+  $: result = fullResult.slice(0, topeResultados);
+  // Dónde empiezan los resultados ampliados —los que tienen las palabras pero
+  // no la expresión—, para que la lista pueda separarlos. Van siempre al final,
+  // así que basta con saber por dónde. -1 cuando no se amplió nada.
+  $: inicioAmpliados = fullResult.findIndex((v) => v.ampliado);
+  $: totalAmpliados = inicioAmpliados < 0 ? 0 : count - inicioAmpliados;
+  const verMasResultados = () => {
+    topeResultados += PASO_RESULTADOS;
+  };
   $: isImmersive = $immersiveMode;
 
   // Update isCompareMode when pathname changes
@@ -342,7 +363,7 @@
       {:else if isNotesMode}
         <Notes {bible} {map} />
       {:else}
-        <Result {bible} {map} {result} {count} />
+        <Result {bible} {map} {result} {count} {verMasResultados} {totalAmpliados} />
       {/if}
     {/if}
   </div>

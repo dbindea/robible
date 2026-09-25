@@ -950,6 +950,14 @@ export async function listSearches(db, userId) {
   };
 }
 
+/**
+ * Los `searchType` que acepta el historial de búsquedas.
+ *
+ * Se exporta para que `tests/worker-validators.test.js` pueda comprobar que
+ * aquí cabe lo que el frontend manda de verdad. Ver la nota de abajo.
+ */
+export const TIPOS_DE_BUSQUEDA_VALIDOS = ['smart', 'match', 'every', 'some', 'reference'];
+
 // POST /api/searches — upsert (mueve búsqueda existente a top)
 export async function upsertSearch(request, db, userId, cors) {
   let body;
@@ -959,8 +967,19 @@ export async function upsertSearch(request, db, userId, cors) {
   if (typeof searchText !== 'string' || searchText.trim().length < 1 || searchText.trim().length > 200) {
     return error('invalid_search_text', 400, cors);
   }
-  const validTypes = ['match', 'every', 'some', 'reference'];
-  if (!validTypes.includes(searchType)) return error('invalid_search_type', 400, cors);
+  // `smart` es el modo único de búsqueda por texto desde el 25 sep 2026; los
+  // tres viejos siguen valiendo porque el historial está lleno de ellos.
+  //
+  // Esto es la trampa 36 al revés. Lo normal es que el cliente vaya por delante
+  // del worker y pida una ruta que todavía no existe; aquí lo que va por
+  // delante es el bundle, que empezó a mandar un `searchType` que el worker no
+  // conocía. Y el fallo era mudo por triplicado: `searches.service.js` se traga
+  // los 4xx, `invalid_search_type` no tiene texto en los cuatro idiomas, y
+  // `syncFromServer` machaca después la copia local con la del servidor —donde
+  // no llegó nada—, así que las búsquedas por palabras del día se borraban
+  // solas. Las de referencia sobrevivían, porque `reference` sí era válido, y
+  // eso hacía el fallo indescifrable desde fuera.
+  if (!TIPOS_DE_BUSQUEDA_VALIDOS.includes(searchType)) return error('invalid_search_type', 400, cors);
   const validTestaments = ['all', 'ot', 'nt'];
   if (!validTestaments.includes(testament)) return error('invalid_testament', 400, cors);
 

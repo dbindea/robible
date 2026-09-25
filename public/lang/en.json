@@ -79,12 +79,13 @@
       "choose_book": "Choose book",
       "form": {
         "search_placeholder": "Search by words...",
-        "reference_placeholder": "rom 3 5"
+        "reference_placeholder": "e.g. john 3:16-18"
       },
       "search_type": {
         "match": "Contains the expression",
         "every": "Contains all words",
         "some": "Contains any word",
+        "smart": "By words",
         "reference": "By reference"
       },
       "scope": {
@@ -93,7 +94,13 @@
         "nt": "New Testament"
       },
       "no_results_in_book": "No results in {book}. The search is limited to that book.",
-      "search_whole_bible": "Search the whole Bible"
+      "search_whole_bible": "Search the whole Bible",
+      "no_results_in_version": "No results in {version}.",
+      "search_in_version": "Search in {version} ({count})",
+      "switched_to_reference": "Switched to reference search: that looks like a reference, not a word.",
+      "not_a_reference": "That does not look like a reference.",
+      "search_words_instead": "Search the words ({count})",
+      "search_words_anyway": "Search the words"
     },
     "book_drawer": {
       "aria_label": "Books of the Bible",
@@ -118,6 +125,8 @@
       "chapter_breadcrumb": "Chapter {chapter}",
       "result_count_start": "Showing",
       "result_count_end": "results from {total}",
+      "load_more": "Show more results ({remaining})",
+      "widened_results": "With all the words, not the exact phrase ({count})",
       "page_title": {
         "search": "Search in {bible}",
         "chapter": "{book}, chapter {chapter}"
@@ -1031,7 +1040,7 @@
       "title": "Verses on screen",
       "lead": "Pick the passage, then advance with a presenter remote or the keyboard. It reads from the back row.",
       "search_label": "What are we projecting?",
-      "search_placeholder": "john 3 or psalms 23 3",
+      "search_placeholder": "john 3:16-18 or psalm 23",
       "continue": "Continue from {reference}",
       "keys_title": "Keys",
       "key_next": "Next verse",
