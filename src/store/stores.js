@@ -176,6 +176,35 @@ export const filter = {
     }),
 };
 
+/**
+ * El formulario con el que se llega a una referencia concreta.
+ *
+ * Irse a un versículo es ABANDONAR la búsqueda, y el formulario tiene que
+ * quedar apuntando al destino. Lo que pasa si no:
+ *
+ * - **Con `searchText` puesto**, `Result.svelte` se niega a sincronizar libro y
+ *   capítulo desde la dirección —su guarda es `if (!searchForm.searchText)`— y
+ *   el clic en la sugerencia *parece no hacer nada*: la URL cambia y la
+ *   pantalla se queda con cero versículos y el título de la búsqueda.
+ * - **Sin libro**, `syncCurrentBiblePath` reescribe la dirección a `/` y el
+ *   clic lleva a la portada.
+ *
+ * El capítulo va en base 0 en el formulario y en base 1 en la URL, que es el
+ * mismo par de índices que usa `Result.svelte` al sincronizarse desde ella.
+ *
+ * @param {object} form el formulario actual (se conserva el ámbito)
+ * @param {{book: number, chapter: number|null}} referencia el destino
+ * @param {string} [searchType] con qué modo se queda el buscador
+ */
+export const createReferenceSearchForm = (form, referencia, searchType) =>
+  createSearchForm({
+    ...form,
+    searchText: null,
+    searchType: searchType || form?.searchType,
+    book: Number.isInteger(referencia?.book) ? [referencia.book] : [],
+    chapter: Number.isInteger(referencia?.chapter) ? [referencia.chapter - 1] : [],
+  });
+
 export const selectedBibleVersion = writable(getSavedBibleVersion());
 export const themeMode = writable(getSavedThemeMode());
 

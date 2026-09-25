@@ -2,10 +2,11 @@
   import Icon from '../../components/Icon.svelte';
   import { onDestroy, onMount } from 'svelte';
   import { _ } from '../../services/i18n.service';
-  import { filter, selectedBibleVersion } from '../../store/stores';
+  import { createReferenceSearchForm, filter, selectedBibleVersion } from '../../store/stores';
   import { searchesStore } from '../../store/searchesStore';
   import { searchReferences, formatChapterVerse } from '../../services/referenceSearch.service';
   import { getFilterResult } from '../../services/filter.service';
+  import { navegarA } from '../../services/navigation.service';
   import {
     ordenarCandidatas,
     primeraVersionConResultados,
@@ -41,15 +42,6 @@
   let referenceDropdownOpen = false;
   let referenceSelectedIdx = -1;
 
-  function navigateTo(href) {
-    if (!href) return;
-    if (window.location.pathname !== href) {
-      window.history.pushState(null, '', href);
-    }
-    window.dispatchEvent(new PopStateEvent('popstate'));
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
   function selectReferenceMatch(match) {
     if (!match) return;
     const version = $selectedBibleVersion;
@@ -61,14 +53,58 @@
       chapter: match.chapter,
       verse: match.verse,
     });
-    navigateTo(path);
+
+    // El texto se apunta ANTES de limpiarlo: es lo que va al historial.
+    const textoBuscado = searchForm.searchText;
+
+    // ── Irse a un versículo es ABANDONAR la búsqueda ──────────────────────
+    //
+    // Y el texto se va con ella. Si se queda, `Result.svelte` se niega a
+    // sincronizar libro y capítulo desde la URL —su guarda es
+    // `if (!searchForm.searchText)`— y el clic **parece no hacer nada**: la
+    // dirección cambia y la pantalla se queda como estaba, con cero versículos
+    // y el título de la búsqueda. Es la trampa 26 otra vez, por el otro lado.
+    //
+    // Antes no se notaba porque en modo referencia el texto no llegaba nunca al
+    // store: el `on:input` del formulario sale antes de tiempo para ese modo.
+    // Llega en dos caminos, y los dos son de hoy o de antes: cuando el panel
+    // cambia solo al detectar una referencia, y cuando el usuario escribe
+    // palabras —que sí se guardan— y cambia el radio a mano después.
+    //
+    // Y si el modo referencia lo pusimos nosotros, se devuelve el que tenía: se
+    // tomó prestado para UNA navegación, y dejárselo puesto le obliga a
+    // corregirlo a mano la próxima vez que quiera buscar palabras. No lo ve
+    // cambiar porque en ese mismo instante la pantalla pasa a ser el capítulo.
+    //
+    // Y con el texto no basta: hay que dejar el libro y el capítulo del destino.
+    // `syncCurrentBiblePath` (Result.svelte) reescribe la dirección a `/` cuando
+    // no hay libro seleccionado, así que limpiando sólo el texto el clic llevaba
+    // a la portada. El capítulo va en base 0 en el formulario y en base 1 en la
+    // URL, que es el mismo par de índices que usa `Result.svelte` al
+    // sincronizarse desde la dirección.
+    cancelarFiltroPendiente();
+    const tipoFinal = cambioAutomatico ? modoAntesDelCambio || 'smart' : searchForm.searchType;
+    cambioAutomatico = false;
+    textoRechazado = null;
+    searchForm = createReferenceSearchForm(searchForm, match, tipoFinal);
+    if (searchTextInput) searchTextInput.value = '';
+    filter.set({ ...searchForm });
+
+    // `navegarA` y no un `pushState` a mano: era una de las copias que describe
+    // la trampa 89, y le faltaban las dos cosas que aquí importan — despachar
+    // `robibile:navigate` y no subir al principio cuando el destino es un
+    // versículo, porque ahí manda el scroll de `Result.svelte`. Sin versículo
+    // —«ioan 10»— sí se sube, que es el principio del capítulo.
+    navegarA(path, { scrollTop: !match.verse });
+
     referenceDropdownOpen = false;
     referenceSelectedIdx = -1;
+    referenceMatches = [];
 
     // Guardar en recientes
-    if (searchForm.searchText) {
+    if (textoBuscado) {
       searchesStore.save({
-        searchText: searchForm.searchText,
+        searchText: textoBuscado,
         searchType: 'reference',
         testament: 'all',
         books: null,
@@ -321,6 +357,7 @@
   }
 
   function pasarAReferencia(detectadas) {
+    modoAntesDelCambio = searchForm.searchType;
     cambioAutomatico = true;
     searchForm = { ...searchForm, searchType: 'reference' };
     filter.set({ ...searchForm });
@@ -339,8 +376,10 @@
     updateFilter({ ...searchForm, searchType: 'smart' });
   };
 
-  // ¿El modo referencia lo pusimos nosotros? Decide si se explica o no.
+  // ¿El modo referencia lo pusimos nosotros? Decide si se explica o no, y a
+  // qué modo se vuelve cuando la referencia ya ha llevado a su versículo.
   let cambioAutomatico = false;
+  let modoAntesDelCambio = 'smart';
 
   // En modo referencia, lo escrito no empareja ninguna: se ofrece buscarlo como
   // palabras, con el recuento por delante para que se vea que hay algo.

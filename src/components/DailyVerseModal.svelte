@@ -15,7 +15,8 @@
   import { _ } from '../services/i18n.service';
   import { buildBiblePath, parseBiblePath } from '../services/bible-route.service';
   import { getVerseForToday, markShownToday, setEnabled } from '../services/daily-verse.service';
-  import { getBibleVersionConfigOrDefault, selectedBibleVersion } from '../store/stores';
+  import { createReferenceSearchForm, filter, getBibleVersionConfigOrDefault, selectedBibleVersion } from '../store/stores';
+  import { navegarA } from '../services/navigation.service';
 
   export let bible = [];
   export let map = {};
@@ -73,13 +74,22 @@
       chapter: verse.chapter,
       verse: verse.verse,
     });
+    const destino = { book: verse.book, chapter: verse.chapter };
     close();
-    if (window.location.pathname !== path) {
-      window.history.pushState(null, '', path);
-      // La errata `robibile` es la del resto del proyecto — ver CLAUDE.md.
-      window.dispatchEvent(new CustomEvent('robibile:navigate'));
-      window.dispatchEvent(new PopStateEvent('popstate'));
-    }
+
+    // El filtro tiene que apuntar al destino ANTES de navegar, o esto no hace
+    // nada visible: con una búsqueda activa —y el filtro se restaura de
+    // `localStorage` al arrancar, así que puede haberla sin que el usuario
+    // haya tecleado hoy— `Result.svelte` se niega a sincronizarse desde la URL
+    // y la pantalla se queda con los resultados de la búsqueda mientras la
+    // dirección dice otra cosa. Medido: buscando «dragoste», este botón dejaba
+    // la URL en Psalmii 23:1 y en pantalla los seis resultados de «dragoste».
+    filter.update((actual) => createReferenceSearchForm(actual, destino));
+
+    // `navegarA` en vez de repetir aquí el pushState y los dos eventos
+    // (CLAUDE.md, trampa 89). Sin subir al principio: el destino es un
+    // versículo y allí manda el scroll de `Result.svelte`.
+    navegarA(path, { scrollTop: false });
   };
 </script>
 
