@@ -38,7 +38,7 @@ PWA de lectura bíblica multiidioma con lectura acompañada de música, comparac
 | `node scripts/build-curated-topics.mjs` | Regenera `public/data/curated-topics.json` (las colecciones de `/versete/<slug>`). Valida las referencias contra todas las versiones y los iconos contra `topic-icons.js` |
 | `node scripts/generate-vapid-keys.mjs` | Genera el par de claves VAPID de las notificaciones push. **Se ejecuta una sola vez**: cambiarlas invalida todas las suscripciones existentes |
 | `node scripts/build-icons.mjs` | Regenera `src/components/Icon.svelte` desde los SVG de Phosphor (ver `public/data/CREDITS.md`) |
-| `npm test` | Suite con `node --test` (468 tests, sin dependencias). **En Windows el glob es obligatorio**: `node --test tests` a secas intenta cargar el directorio como módulo y falla |
+| `npm test` | Suite con `node --test` (465 tests, sin dependencias). **En Windows el glob es obligatorio**: `node --test tests` a secas intenta cargar el directorio como módulo y falla |
 
 Node ≥ 24.15.0 (ver `.nvmrc`).
 

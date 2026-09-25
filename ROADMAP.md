@@ -301,7 +301,7 @@ Cuándo revisar: cada release mayor (Phase 4.1, 4.6, etc.) + cada 3 meses como m
 
 El propietario cerró la tanda ese día para **ponerse a usar la aplicación en producción** y volver más adelante con lo que vaya saliendo. Al retomar, el modo por defecto es **corregir síntomas reales**, no empezar funciones nuevas.
 
-**Todo lo de septiembre está en `develop` y sin desplegar.** El merge a `master` lo hace él, y es un despliegue grande: módulo de proyección en dos ventanas, pie con donaciones PayPal, tres versiones bíblicas más, interruptor de versiones en «Mi cuenta», dictado por voz, panel de administración y once fondos animados.
+**Todo lo de septiembre está en `develop` y sin desplegar.** El merge a `master` lo hace él, y es un despliegue grande: módulo de proyección en dos ventanas, pie nuevo, tres versiones bíblicas más, interruptor de versiones en «Mi cuenta», dictado por voz, panel de administración y once fondos animados.
 
 ### Lo que queda en su tejado
 
@@ -318,7 +318,6 @@ Por orden de probabilidad de dar guerra:
 
 - **El Modo Proyección en una iglesia de verdad.** Es lo más nuevo y lo menos rodado, y depende de cosas que no se pueden simular en un portátil: dónde coloca el sistema operativo la segunda pantalla, si el bloqueador de emergentes deja abrir la ventana, y si el mando de presentación emite las teclas que se esperan. El guion completo —arrastrar al proyector, F11, interrumpir con Escape para meter una canción de otro programa y volver— funciona en pruebas.
 - **Entrega de un push a un dispositivo.** La firma VAPID está verificada contra su propia clave pública y el cron desplegado, pero **nadie ha recibido todavía una notificación**. Se confirma suscribiéndose desde el móvil y esperando a la hora elegida. En iOS hace falta tener la PWA instalada (16.4+).
-- **El botón de donar de PayPal**, que nadie ha pulsado en producción.
 - **Las tres versiones nuevas en español** (`es_rv1909`, `es_vbl`, `es_pdt`): los datos están validados contra los 66 libros y la versificación medida, pero nadie ha leído un capítulo entero en ellas.
 - **El aviso de actualización de la PWA.** El service worker va por `robible-v32`; quien la tenga instalada verá el aviso y tiene que aceptarlo. Purgar Cloudflare no cambia nada, porque responde el service worker.
 
@@ -969,7 +968,7 @@ La última tanda antes de la pausa. Todo en `develop`, nada desplegado.
 - **Modo Proyección** (`/proiectie`), en **dos ventanas** desde el 16 sep: `?ecran=1` sobre la misma ruta separa el papel de operador del de proyector, y se hablan por `BroadcastChannel` mandando texto, no coordenadas. El portátil queda libre para buscar el versículo siguiente mientras la congregación sigue viendo el anterior. Dos idiomas a la vez resueltos **por referencia**, once fondos, cuatro animaciones de entrada, pantalla en negro y atajos de mando de presentación. Trampas 86 y 87
 - **Navegación continua** (17 sep): al acabar el capítulo sigue al siguiente, y al acabar el libro al siguiente libro, dando la vuelta en Apocalipsa 22:21 → Geneza 1:1
 - **Dictado por voz** de la referencia (`speech-reference.service.js`), con aviso de que el audio sale del dispositivo en Chrome de escritorio, y preparado para ser de suscripción sin serlo hoy. Trampas 91 y 92
-- **Pie nuevo con donaciones**: columnas, logo, eslogan, contacto y botón de PayPal, con la nota de que los fondos van al desarrollo y a necesidades humanitarias. Insignia de instalar en estilo Play/App Store y el ofrecimiento como modal centrado
+- **Pie nuevo**: columnas, logo, eslogan y contacto. Insignia de instalar en estilo Play/App Store y el ofrecimiento como modal centrado. Llevó también un botón de donar por PayPal, **retirado entero el 25 sep 2026** por decisión del propietario: RoBible no pide dinero en ninguna pantalla, y la respuesta del «¿es gratis?» de la landing lo dice ahora sin matices
 - **Tres Biblias más en español** (`es_rv1909`, `es_vbl`, `es_pdt`), todas con `indexable: false` para no volver a ampliar la superficie de rastreo, e **interruptor en «Mi cuenta»** para elegir cuáles salen en el selector
 - **Versificación medida y garantizada** (`versification.service.js`): de los 1.189 capítulos, 148 difieren en número de versículos pero sólo **cuatro** están de verdad descuadrados. `tests/versification.test.js` lo vigila contra las Biblias reales. Trampa 96
 - **Los fondos animados**, en varias iteraciones sobre el aspecto: olas de verdad en vez de arcos de acueducto, cielo con nubes, campo con humo, fuera el mosaico que dejaba un corte recto deslizante, ciclos cuatro veces más rápidos —un versículo está en pantalla 5-10 segundos— y estrellas que titilan. Trampa 47

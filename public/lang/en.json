@@ -1138,11 +1138,6 @@
       "site_blocked": "Dictation is blocked by a site setting. That is on us to fix, not on you.",
       "listening_stop": "Listening… tap the microphone to stop."
     },
-    "donate": {
-      "title": "Support RoBible",
-      "action": "Donate with PayPal",
-      "note": "All funds go to keeping the platform in development and to humanitarian needs."
-    },
     "scroll": {
       "seo_title": "Scroll Bible | RoBible",
       "seo_description": "Read the Bible verse by verse, full screen, by swiping."
@@ -1364,7 +1359,7 @@
       "eyebrow": "FAQ",
       "title": "What you did not find elsewhere",
       "q1": "Is it really free?",
-      "a1": "Yes, completely. No ads, no subscription, no card. The project is sustained by volunteer work and optional donations.",
+      "a1": "Yes, completely. No ads, no subscription, no card, no donations. The project is sustained by volunteer work.",
       "q2": "Is my data safe?",
       "a2": "Notes and favorites are stored encrypted at Cloudflare. We do not sell or share anything. You can delete your account anytime.",
       "q3": "Does it work on mobile?",

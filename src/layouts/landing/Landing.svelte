@@ -1,6 +1,5 @@
 <script>
   import Icon from '../../components/Icon.svelte';
-  import DonarBoton from '../../components/DonarBoton.svelte';
   import { CONTACTO } from '../../config/site';
   import { onMount, tick } from 'svelte';
   import { _ } from '../../services/i18n.service';
@@ -878,11 +877,11 @@
   </section>
 
   <!-- ─── FOOTER ──────────────────────────────────────────────── -->
-  <!-- Mismo reparto en columnas que el pie de la aplicación, con los mismos
-       datos de contacto y el mismo botón de donar. Siguen siendo dos ficheros
-       a propósito (CLAUDE.md, trampa 43) porque aquí los enlaces son
-       navegación completa y allí son de cliente; lo que NO se duplica es el
-       dato: el contacto y el destino de PayPal salen de `config/site.js`. -->
+  <!-- Mismo reparto en columnas que el pie de la aplicación y los mismos datos
+       de contacto. Siguen siendo dos ficheros a propósito (CLAUDE.md, trampa
+       43) porque aquí los enlaces son navegación completa y allí son de
+       cliente; lo que NO se duplica es el dato: el contacto sale de
+       `config/site.js`. -->
   <footer class="footer">
     <div class="footer__inner">
       <div class="footer__marca">
@@ -894,7 +893,6 @@
           RoBible
         </p>
         <p class="footer__tagline">{$_('landing.footer.tagline')}</p>
-        <DonarBoton />
       </div>
 
       <nav class="footer__cols" aria-label={$_('landing.footer.nav_aria')}>
@@ -1891,8 +1889,6 @@
     .footer__inner {
       grid-template-columns: minmax(0, 1fr);
       --footer-align: center;
-      --donar-align: center;
-      --donar-text-align: center;
       text-align: center;
     }
     .footer__brand {
@@ -1905,9 +1901,9 @@
     }
   }
   /* `--footer-align` es el interruptor de alineación de todo el pie: `start` en
-     escritorio, `center` cuando queda una sola columna. Va por variable porque
-     tiene que cruzar hasta `DonarBoton`, que es otro componente con su propio
-     scoping, y una variable sí atraviesa esa frontera. */
+     escritorio, `center` cuando queda una sola columna. Va por variable para
+     que lo herede también lo que se pinte dentro con su propio scoping de
+     Svelte — una variable cruza esa frontera, un selector del padre no. */
   .footer__marca {
     display: grid;
     gap: 0.7rem;
