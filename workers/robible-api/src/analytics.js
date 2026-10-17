@@ -7,7 +7,7 @@
 // dato persistido. `country` sale de `request.cf.country`, que Cloudflare
 // añade gratis a cada petición en el borde — no hace falta geolocalizar nada.
 
-import { sha256Hex, getClientIp, checkRateLimit, requireAuth, nowIso, json, error } from './utils.js';
+import { sha256Hex, getClientIp, checkRateLimit, limitarPorIp, requireAuth, nowIso, json, error } from './utils.js';
 
 const hoy = () => new Date().toISOString().slice(0, 10); // 'YYYY-MM-DD' UTC
 
@@ -86,9 +86,6 @@ export function esVisitaDeBot(userAgent) {
  * si no, el propio admin navegando su panel inflaría sus estadísticas.
  */
 export async function recordPageView(request, db, env, cors) {
-  const rl = await checkRateLimit(db, request, 'pageview', env);
-  if (!rl.ok) return error(rl.error, 429, { ...cors, 'Retry-After': String(rl.retryAfter || 60) });
-
   let body;
   try { body = await request.json(); } catch { return error('invalid_json', 400, cors); }
   const path = typeof body?.path === 'string' ? body.path.trim().slice(0, 200) : '';
@@ -97,7 +94,24 @@ export async function recordPageView(request, db, env, cors) {
   const ua = request.headers.get('User-Agent') || '';
   // Se descarta ANTES de mirar la sesión: un rastreador no tiene token y
   // preguntárselo a la base de datos por cada visita suya es trabajo tirado.
+  //
+  // Y ahora también antes de contar la petición para el límite, que era el
+  // mismo razonamiento una línea más arriba y no se había aplicado: el
+  // contador vivía en D1, así que cada visita de Googlebot escribía en la base
+  // de datos para acto seguido ser descartada aquí. Filtrábamos los bots de las
+  // estadísticas pero no del gasto, y ese gasto se comió el presupuesto diario
+  // de escrituras (ver `limitarPorIp` en utils.js).
   if (esVisitaDeBot(ua)) return json({ ok: true, recorded: false }, 200, cors);
+
+  // El límite, ya sólo para lo que de verdad puede acabar escribiendo. Primero
+  // el de memoria; el de D1 queda como respaldo por si se despliega sin el
+  // binding, porque éste es el único endpoint abierto que escribe y dejarlo a
+  // pecho descubierto sí sería un agujero: bastaría repetir la llamada para
+  // agotar el presupuesto diario y tumbar la base entera.
+  const rl = env?.RATE_LIMITER?.limit
+    ? await limitarPorIp(request, env, { clave: 'pageview' })
+    : await checkRateLimit(db, request, 'pageview', env);
+  if (!rl.ok) return error(rl.error, 429, { ...cors, 'Retry-After': String(rl.retryAfter || 60) });
 
   const auth = await requireAuth(request, db, env).catch(() => ({ user: null }));
   if (auth.user?.isAdmin) return json({ ok: true, recorded: false }, 200, cors);

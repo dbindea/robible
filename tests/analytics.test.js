@@ -105,3 +105,50 @@ test('la comparación no depende de mayúsculas', () => {
   assert.equal(esVisitaDeBot('MOZILLA/5.0 (COMPATIBLE; GOOGLEBOT/2.1)'), true);
   assert.equal(esVisitaDeBot('Mozilla/5.0 (compatible; googlebot/2.1)'), true);
 });
+
+// ── Una visita por llegada, no una por evento ───────────────────────────────
+//
+// `navegarA` despacha `robibile:navigate` Y `popstate` —hacen falta los dos,
+// porque cada pantalla escucha uno u otro— y `Main.svelte` registra la visita
+// escuchando ambos. Así que cada navegación interna se contaba DOS veces y
+// «Vizite totale» del panel enseñaba el doble desde siempre.
+//
+// Se deduplica por ruta en vez de quitar un listener porque hay navegaciones
+// que sólo emiten uno de los dos eventos: el botón de atrás del navegador sólo
+// emite `popstate`.
+
+import { creaFiltroDeVisitas } from '../src/services/analytics.service.js';
+
+test('los dos eventos de una misma navegación cuentan UNA visita', () => {
+  const contar = creaFiltroDeVisitas();
+  // Los dos se despachan seguidos, en el mismo turno: mismo milisegundo.
+  assert.equal(contar('/biblia/vdc/ioan/3', 1000), true, 'el primero sí cuenta');
+  assert.equal(contar('/biblia/vdc/ioan/3', 1000), false, 'el segundo es el eco del otro evento');
+});
+
+test('navegar a otra ruta cuenta, aunque sea en el mismo instante', () => {
+  const contar = creaFiltroDeVisitas();
+  assert.equal(contar('/biblia/vdc/ioan/3', 1000), true);
+  assert.equal(contar('/indice', 1000), true, 'es otra página, es otra visita');
+  assert.equal(contar('/indice', 1000), false);
+});
+
+test('volver a la misma ruta más tarde SÍ cuenta', () => {
+  // Lo que no puede pasar es perder visitas de verdad: el usuario se va al
+  // índice, vuelve al capítulo, y eso son dos llegadas.
+  const contar = creaFiltroDeVisitas(1000);
+  assert.equal(contar('/biblia/vdc/ioan/3', 1000), true);
+  assert.equal(contar('/indice', 1200), true);
+  assert.equal(contar('/biblia/vdc/ioan/3', 1400), true, 'volver es llegar otra vez');
+
+  // Y la misma ruta pasada la ventana, también.
+  assert.equal(contar('/biblia/vdc/ioan/3', 1500), false, 'dentro de la ventana, no');
+  assert.equal(contar('/biblia/vdc/ioan/3', 2500), true, 'pasada la ventana, sí');
+});
+
+test('cada filtro lleva su propio estado', () => {
+  const uno = creaFiltroDeVisitas();
+  const otro = creaFiltroDeVisitas();
+  assert.equal(uno('/a', 1000), true);
+  assert.equal(otro('/a', 1000), true, 'no comparten memoria');
+});
