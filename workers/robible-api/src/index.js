@@ -6,7 +6,7 @@ import * as auth from './auth.js';
 import * as data from './data.js';
 import { sendPush } from './push.js';
 import * as sermons from './sermons.js';
-import { checkRateLimit, corsHeaders, requireAdmin, requireAuth } from './utils.js';
+import { corsHeaders, limitarPorIp, limpiarRateLimits, requireAdmin, requireAuth } from './utils.js';
 
 const app = new Hono();
 
@@ -111,7 +111,7 @@ app.patch('/api/auth/me', requireAuthMw, async (c) => {
 // serían una invitación a barrer la base a base de peticiones.
 app.get('/api/public/topics', async (c) => {
   applyCors(c);
-  const rl = await checkRateLimit(c.env.DB, c.req.raw, 'public_topics', c.env);
+  const rl = await limitarPorIp(c.req.raw, c.env, { clave: 'publico' });
   if (!rl.ok) {
     return c.json({ ok: false, error: rl.error }, 429, { 'Retry-After': String(rl.retryAfter || 60) });
   }
@@ -120,7 +120,7 @@ app.get('/api/public/topics', async (c) => {
 
 app.get('/api/public/topics/:slug', async (c) => {
   applyCors(c);
-  const rl = await checkRateLimit(c.env.DB, c.req.raw, 'public_topics', c.env);
+  const rl = await limitarPorIp(c.req.raw, c.env, { clave: 'publico' });
   if (!rl.ok) {
     return c.json({ ok: false, error: rl.error }, 429, { 'Retry-After': String(rl.retryAfter || 60) });
   }
@@ -131,7 +131,7 @@ app.get('/api/public/topics/:slug', async (c) => {
 // motivo: son endpoints de datos abiertos.
 app.get('/api/public/sermons', async (c) => {
   applyCors(c);
-  const rl = await checkRateLimit(c.env.DB, c.req.raw, 'public_topics', c.env);
+  const rl = await limitarPorIp(c.req.raw, c.env, { clave: 'publico' });
   if (!rl.ok) {
     return c.json({ ok: false, error: rl.error }, 429, { 'Retry-After': String(rl.retryAfter || 60) });
   }
@@ -143,7 +143,7 @@ app.get('/api/public/sermons', async (c) => {
 // choca, porque el segmento es distinto— pero se deja junto a su hermano.
 app.get('/api/public/sermon-series', async (c) => {
   applyCors(c);
-  const rl = await checkRateLimit(c.env.DB, c.req.raw, 'public_topics', c.env);
+  const rl = await limitarPorIp(c.req.raw, c.env, { clave: 'publico' });
   if (!rl.ok) {
     return c.json({ ok: false, error: rl.error }, 429, { 'Retry-After': String(rl.retryAfter || 60) });
   }
@@ -152,7 +152,7 @@ app.get('/api/public/sermon-series', async (c) => {
 
 app.get('/api/public/sermons/:slug', async (c) => {
   applyCors(c);
-  const rl = await checkRateLimit(c.env.DB, c.req.raw, 'public_topics', c.env);
+  const rl = await limitarPorIp(c.req.raw, c.env, { clave: 'publico' });
   if (!rl.ok) {
     return c.json({ ok: false, error: rl.error }, 429, { 'Retry-After': String(rl.retryAfter || 60) });
   }
@@ -506,5 +506,10 @@ export default {
 
   async scheduled(event, env, ctx) {
     ctx.waitUntil(enviarAvisosDiarios(env));
+    // La limpieza de ventanas del limitador, una vez por hora en vez de en cada
+    // petición. Ese `DELETE` leía 345 filas cada vez —1,7 millones al día— para
+    // borrar casi siempre ninguna, y cuando borraba, cada fila contaba como
+    // escritura: 10.156 de las 33.000 del día salían de ahí.
+    ctx.waitUntil(limpiarRateLimits(env.DB));
   },
 };

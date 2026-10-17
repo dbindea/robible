@@ -36,6 +36,23 @@ VAPID_PUBLIC_KEY = "BO9ZPJWKzeHS63WMMpUGhND4d856PAL8vqgIN7nYkTdxjD2YwZeR9N2Py_Sl
 [triggers]
 crons = ["0 * * * *"]
 
+# Limitador por IP que cuenta EN MEMORIA, en el propio edge, sin base de datos.
+#
+# Sustituye al contador que vivía en D1 y que, medido el 17 oct 2026, escribía
+# el 100 % de las filas del día —33.000, 76.000 en el pico que disparó el aviso
+# de Cloudflare— para proteger endpoints de sólo lectura con 15 visitas reales
+# diarias. Nunca llegó a bloquear nada: todas sus filas tenían `count = 1`.
+#
+# `period` sólo admite 10 o 60 segundos, así que el límite por hora que había en
+# D1 desaparece. No se pierde gran cosa: 60 peticiones por minuto y por IP ya
+# corta cualquier barrido, y el que antes contaba por hora era justo el que
+# convertía cada visita de Googlebot en dos escrituras.
+[[unsafe.bindings]]
+name = "RATE_LIMITER"
+type = "ratelimit"
+namespace_id = "1001"
+simple = { limit = 60, period = 60 }
+
 # Límite de CPU: solo disponible en plan de pago. En plan Free se omite.
 # (Antes: [limits] cpu_ms = 50 — comentado para no romper el deploy en Free)
 #[limits]

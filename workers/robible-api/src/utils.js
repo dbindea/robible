@@ -271,17 +271,54 @@ export const getClientIp = (request) => {
   );
 };
 
+/**
+ * Limita por IP SIN tocar la base de datos.
+ *
+ * ── Por qué existe ──────────────────────────────────────────────────
+ * El limitador de abajo vive en D1, y en D1 contar peticiones significa
+ * ESCRIBIR. Medido en producción el 17 oct 2026 con `wrangler d1 insights`:
+ * el 100 % de las filas escritas del día —33.000, y 76.000 en el pico que
+ * disparó el aviso de Cloudflare— salían de dos consultas, el `INSERT ... ON
+ * CONFLICT` del contador y el `DELETE` de limpieza. Todo lo demás —notas,
+ * favoritos, predicaciones, visitas— escribió CERO.
+ *
+ * Y lo que protegía eran endpoints de sólo lectura, con 15 visitas reales al
+ * día. Las 95 filas vivas tenían todas `count = 1`: 51 IPs distintas pidiendo
+ * una vez cada una, que es la firma de una flota de rastreo —Google renderiza
+ * JavaScript— y no la de un atacante. O sea: **nunca llegó a limitar nada** y
+ * se comía el presupuesto diario entero, con el agravante de que al agotarlo D1
+ * devuelve errores y se cae la aplicación entera, no sólo lo público.
+ *
+ * El `limit()` de Workers cuenta en memoria, en el propio edge, sin base de
+ * datos y sin coste. Si el binding no está —despliegue viejo, `wrangler dev`
+ * sin configurar— deja pasar: este límite protege de un abuso, no guarda un
+ * secreto, y caerse por no poder contar sería peor que no contar.
+ */
+export async function limitarPorIp(request, env, { clave = 'general' } = {}) {
+  const limitador = env?.RATE_LIMITER;
+  if (!limitador?.limit) return { ok: true };
+  try {
+    const { success } = await limitador.limit({ key: `${clave}:${getClientIp(request)}` });
+    return success ? { ok: true } : { ok: false, error: 'rate_limit_exceeded:minute', retryAfter: 60 };
+  } catch {
+    return { ok: true };
+  }
+}
+
+/**
+ * El limitador viejo, en D1. Ya NO se usa en las rutas públicas de sólo lectura
+ * —ver `limitarPorIp`—, y la limpieza de ventanas viejas se hace una vez por
+ * hora desde el cron en lugar de en cada petición: ese `DELETE` leía 345 filas
+ * cada vez, 1,7 millones al día, para borrar casi siempre ninguna.
+ *
+ * Se conserva como respaldo del beacon de analítica, que es el único endpoint
+ * abierto que ESCRIBE, para que un despliegue sin el binding nuevo no lo deje
+ * sin ninguna protección.
+ */
 export async function checkRateLimit(db, request, endpoint, env) {
   const ip = getClientIp(request);
   const perMinute = parseInt(env.RATE_LIMIT_PER_MINUTE || '30', 10);
   const perHour = parseInt(env.RATE_LIMIT_PER_HOUR || '500', 10);
-
-  // Limpieza best-effort de entradas viejas (> 1h)
-  await db
-    .prepare('DELETE FROM rate_limits WHERE window_start < ?')
-    .bind(Date.now() - RATE_WINDOWS.hour)
-    .run()
-    .catch(() => {}); // No bloquear si falla
 
   for (const [window, limit] of [['minute', perMinute], ['hour', perHour]]) {
     const windowMs = RATE_WINDOWS[window];
@@ -315,6 +352,15 @@ export async function checkRateLimit(db, request, endpoint, env) {
   }
 
   return { ok: true };
+}
+
+/** Borra las ventanas caducadas. La llama el cron, una vez por hora. */
+export async function limpiarRateLimits(db) {
+  await db
+    .prepare('DELETE FROM rate_limits WHERE window_start < ?')
+    .bind(Date.now() - RATE_WINDOWS.hour)
+    .run()
+    .catch(() => {});
 }
 
 // ── Helpers de DB ────────────────────────────────────────
