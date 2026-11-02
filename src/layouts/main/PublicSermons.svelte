@@ -22,7 +22,7 @@
   import { fetchPublicSermons } from '../../services/sermons.service';
   import { applySeoMetadata } from '../../services/seo.service';
   import { getBibleVersionConfigOrDefault, selectedBibleVersion } from '../../store/stores';
-  import { STEPS } from '../../services/sermon-content.service';
+  import { STEPS, quitarMarcas } from '../../services/sermon-content.service';
   import { navegarA } from '../../services/navigation.service';
   import Icon from '../../components/Icon.svelte';
 
@@ -114,7 +114,7 @@
       if (busqueda.trim()) {
         // Título, idea central y referencia: lo que alguien recordaría de una
         // predicación que ya ha visto.
-        const heno = `${p.title} ${p.idea || ''} ${p.series || ''} ${referenciaDe(p)}`.toLowerCase();
+        const heno = `${p.title} ${quitarMarcas(p.idea || '')} ${p.series || ''} ${referenciaDe(p)}`.toLowerCase();
         if (!heno.includes(busqueda.trim().toLowerCase())) return false;
       }
       return true;
@@ -294,7 +294,12 @@
             >
               <p class="tarjeta__ref">{referenciaDe(p)}</p>
               <h3 class="tarjeta__titulo">{p.title}</h3>
-              {#if p.idea}<p class="tarjeta__idea">{p.idea}</p>{/if}
+              <!-- `quitarMarcas`: la idea viaja en bruto desde el worker (es
+                   el cliente quien formatea), y aquí se enseñaba tal cual —con
+                   los asteriscos del marcado dentro—. Es el mismo descuido que
+                   cuenta la trampa 33, en el único sitio que no estaba en su
+                   lista. -->
+              {#if p.idea}<p class="tarjeta__idea">{quitarMarcas(p.idea)}</p>{/if}
               <p class="tarjeta__meta">
                 <span>
                   {p.points === 1

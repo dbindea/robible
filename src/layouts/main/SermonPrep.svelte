@@ -32,6 +32,7 @@
   import {
     STEPS,
     alternarMarca as envolverEnMarca,
+    alternarSubtitulo,
     collectReferences,
     emptyContent,
     generateOutline,
@@ -98,6 +99,34 @@
     el.focus();
     el.setSelectionRange(r.desde, r.hasta);
     refrescarSeleccion(puntoId, campo);
+  };
+
+  /**
+   * Convierte en subtítulo la línea donde está el cursor, o se lo quita si ya
+   * lo era. El mismo botón pone y quita.
+   *
+   * Va por `clave` —la misma cadena que `abrirInsertarCita`, `"<id>:<campo>"` o
+   * el nombre a secas— y no por punto + campo como `marcarSeleccion`, porque
+   * este botón está además en la introducción y en la conclusión, que no
+   * cuelgan de ningún punto.
+   *
+   * No hace falta seleccionar nada: un subtítulo es una línea entera, así que
+   * basta con tener el cursor dentro. Por eso el botón tampoco se deshabilita.
+   */
+  const marcarSubtitulo = async (clave) => {
+    const el = areas[clave];
+    const actual = leerCampoTexto(clave);
+    const desde = el ? el.selectionStart : 0;
+    const hasta = el ? el.selectionEnd : desde;
+    const r = alternarSubtitulo(actual, desde, hasta);
+    escribirCampoTexto(clave, r.texto);
+    content = content; // Svelte no ve la mutación dentro del objeto anidado.
+    guardarContenido();
+    await tick();
+    if (el) {
+      el.focus();
+      el.setSelectionRange(r.desde, r.hasta);
+    }
   };
 
   // ── Referencias a otros pasajes ─────────────────────────────────────────
@@ -214,10 +243,14 @@
   // permite «Guardar como PDF».
   let generandoPdf = false;
 
+  // Sin `explain` / `illustrate` / `apply` desde el 2 nov 2026: esas tres
+  // etiquetas se imprimían encima de cada casilla y eran los nombres del
+  // formulario de preparación, no partes de la predicación. Los rótulos que
+  // salen ahora son los que escribe el predicador (`## rótulo`).
   const etiquetasPdf = () => ({
-    explain: $_('app.sermons.dev_explain').toUpperCase(),
-    illustrate: $_('app.sermons.dev_illustrate').toUpperCase(),
-    apply: $_('app.sermons.dev_apply').toUpperCase(),
+    // El rótulo del pasaje reutiliza la clave que ya existe: una clave nueva en
+    // los cuatro ficheros es una ocasión más de que falte en uno (trampa 34).
+    passage: $_('app.sermons.field_passage').toUpperCase(),
     intro: $_('app.sermons.intro').toUpperCase(),
     conclusion: $_('app.sermons.conclusion').toUpperCase(),
     refs: $_('app.sermons.refs_title').toUpperCase(),
@@ -228,7 +261,12 @@
   const descargarPdf = async (cual) => {
     generandoPdf = true;
     try {
-      const datos = { title: sermon?.title || '', reference: referencia };
+      // La perícopa va al PDF de la predicación: es el texto que se lee en voz
+      // alta, y hasta ahora el folio que el predicador se llevaba al atril
+      // llevaba la referencia pero no el pasaje. La resuelve el cliente contra
+      // la Biblia ya cargada (`pericopaDe`), igual que la instantánea del Modo
+      // Amvon; la schiță no la lleva, que es una cartilla para mirar de reojo.
+      const datos = { title: sermon?.title || '', reference: referencia, pericope: pericopa };
       const { descargarPredica, descargarSchita } = await import('../../services/sermon-pdf.service.js');
       if (cual === 'schita') await descargarSchita(datos, outline, etiquetasPdf());
       else await descargarPredica(datos, content, etiquetasPdf());
@@ -1312,15 +1350,26 @@
           <div class="campo campo--intro">
             <div class="campo__cabecera">
               <span>{$_('app.sermons.intro')}</span>
-              <button
-                type="button"
-                class="campo__marcar"
-                on:click={() => abrirInsertarCita('intro')}
-                title={$_('app.sermons.insert_verse_help')}
-              >
-                <Icon name="book-open" size="0.85rem" />
-                {$_('app.sermons.insert_verse')}
-              </button>
+              <div class="campo__acciones">
+                <button
+                  type="button"
+                  class="campo__marcar"
+                  on:click={() => abrirInsertarCita('intro')}
+                  title={$_('app.sermons.insert_verse_help')}
+                >
+                  <Icon name="book-open" size="0.85rem" />
+                  {$_('app.sermons.insert_verse')}
+                </button>
+                <button
+                  type="button"
+                  class="campo__marcar"
+                  on:click={() => marcarSubtitulo('intro')}
+                  title={$_('app.sermons.mark_subtitle_help')}
+                >
+                  <Icon name="subtitle" size="0.85rem" />
+                  {$_('app.sermons.mark_subtitle')}
+                </button>
+              </div>
             </div>
             <small class="campo__pista">{$_('app.sermons.intro_help')}</small>
             <!-- Con su nombre en la barra: en esta pantalla hay dos guías y con
@@ -1401,6 +1450,15 @@
                             <Icon name="highlight" size="0.85rem" />
                             {$_('app.sermons.mark_keyword')}
                           </button>
+                          <button
+                            type="button"
+                            class="campo__marcar"
+                            on:click={() => marcarSubtitulo(`${sub.id}:text`)}
+                            title={$_('app.sermons.mark_subtitle_help')}
+                          >
+                            <Icon name="subtitle" size="0.85rem" />
+                            {$_('app.sermons.mark_subtitle')}
+                          </button>
                         </div>
                       </div>
                       <textarea
@@ -1480,6 +1538,19 @@
                           <Icon name="highlight" size="0.85rem" />
                           {$_('app.sermons.mark_keyword')}
                         </button>
+                        <!-- El rótulo del predicador: la línea donde está el
+                             cursor se convierte en subtítulo. No se deshabilita
+                             porque no hace falta seleccionar nada — un
+                             subtítulo es una línea entera. -->
+                        <button
+                          type="button"
+                          class="campo__marcar"
+                          on:click={() => marcarSubtitulo(`${punto.id}:${campo}`)}
+                          title={$_('app.sermons.mark_subtitle_help')}
+                        >
+                          <Icon name="subtitle" size="0.85rem" />
+                          {$_('app.sermons.mark_subtitle')}
+                        </button>
                       </div>
                     </div>
                     <textarea
@@ -1544,15 +1615,26 @@
           <div class="campo">
             <div class="campo__cabecera">
               <span>{$_('app.sermons.conclusion')}</span>
-              <button
-                type="button"
-                class="campo__marcar"
-                on:click={() => abrirInsertarCita('conclusion')}
-                title={$_('app.sermons.insert_verse_help')}
-              >
-                <Icon name="book-open" size="0.85rem" />
-                {$_('app.sermons.insert_verse')}
-              </button>
+              <div class="campo__acciones">
+                <button
+                  type="button"
+                  class="campo__marcar"
+                  on:click={() => abrirInsertarCita('conclusion')}
+                  title={$_('app.sermons.insert_verse_help')}
+                >
+                  <Icon name="book-open" size="0.85rem" />
+                  {$_('app.sermons.insert_verse')}
+                </button>
+                <button
+                  type="button"
+                  class="campo__marcar"
+                  on:click={() => marcarSubtitulo('conclusion')}
+                  title={$_('app.sermons.mark_subtitle_help')}
+                >
+                  <Icon name="subtitle" size="0.85rem" />
+                  {$_('app.sermons.mark_subtitle')}
+                </button>
+              </div>
             </div>
             <small class="campo__pista">{$_('app.sermons.conclusion_help')}</small>
             <textarea
@@ -1989,13 +2071,19 @@
     align-items: center;
     gap: 0.4rem;
     margin: 0.45rem 0 0.15rem;
+    // Tres botones desde que existe «Subtitlu»: a 360 px no caben en una fila.
+    flex-wrap: wrap;
   }
 
   .campo__marcar {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
-    padding: 0.2rem 0.55rem;
+    // 0.2rem dejaba el botón en 23 px de alto, uno por debajo del mínimo de
+    // WCAG 2.5.8 (trampa 53). Aquí no vale la excepción de los enlaces dentro
+    // de una frase: son tres botones seguidos en una barra, y en el móvil
+    // envuelven a dos filas.
+    padding: 0.3rem 0.55rem;
     border: 1px solid var(--color-line-accent);
     border-radius: var(--radius-pill);
     background: var(--wash-accent);

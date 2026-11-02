@@ -584,7 +584,9 @@
       "action_view": "Ver la predicación",
       "action_preach_again": "Predicar de nuevo",
       "mark_keyword": "Marcar",
-      "mark_help": "Selecciona una palabra o expresión y márcala: aparecerá en el esquema.",
+      "mark_help": "Selecciona una palabra o expresión y márcala: en el esquema sale en negrita, junto al comienzo de la frase.",
+      "mark_subtitle": "Subtítulo",
+      "mark_subtitle_help": "La línea donde está el cursor pasa a ser un subtítulo: al imprimir sale en mayúsculas, en negrita y con aire antes y después.",
       "refs_title": "Versículos de apoyo",
       "refs_add": "Añadir versículo",
       "refs_remove": "Quitar la referencia",
@@ -612,7 +614,7 @@
         "share": "Compartir la predicación",
         "copied": "Enlace copiado"
       },
-      "print_outline_hint": "Se dobla por la mitad, por el lado corto. Si el esquema ocupa cuatro páginas, imprime a doble cara volteando por el borde corto.",
+      "print_outline_hint": "Se dobla por la mitad, por el lado corto. Si el esquema ocupa más de dos páginas, imprime a doble cara volteando por el borde corto y dobla las hojas una dentro de otra.",
       "idea_exegetical": "Idea exegética",
       "idea_exegetical_help": "¿Qué dijo el texto a sus destinatarios de entonces? El tema + qué se dice sobre él.",
       "outline_intro": "Introducción (ideas)",
@@ -676,7 +678,7 @@
       "refresh_offline": "Esta predicación todavía no se ha sincronizado nunca; no hay de dónde actualizarla.",
       "refresh_failed": "No se ha podido actualizar. Comprueba la conexión e inténtalo de nuevo.",
       "insert_verse": "Insertar versículo",
-      "insert_verse_help": "Elige un versículo y su texto completo se pega aquí, en cursiva al imprimir.",
+      "insert_verse_help": "Elige un versículo y su texto completo se pega aquí. Si lo dejas solo en su línea, al imprimir sale como bloque con barra azul a la izquierda.",
       "guide_link": "Guía de predicación",
       "guide": {
         "seo_title": "Cómo hacer una predicación expositiva, temática o textual | RoBible",

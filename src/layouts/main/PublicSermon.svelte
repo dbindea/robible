@@ -46,9 +46,11 @@
 
   // El resumen de los buscadores: la idea central si la hay, y si no el
   // principio de la introducción. Nunca el título repetido, que no dice nada.
-  $: resumen = sermon
-    ? (sermon.idea || quitarMarcas(sermon.intro || '')).trim().slice(0, 155)
-    : '';
+  //
+  // `quitarMarcas` sobre las DOS: la idea llega en crudo desde el worker (el
+  // cliente es quien formatea, trampa 33), así que un asterisco escrito en la
+  // idea central acababa en la `<meta name="description">` que lee Google.
+  $: resumen = sermon ? quitarMarcas(sermon.idea || sermon.intro || '').trim().slice(0, 155) : '';
 
   $: if (sermon) {
     applySeoMetadata({
@@ -170,9 +172,16 @@
             {/if}
           {/each}
 
-          {#each [['explain', punto.explain], ['illustrate', punto.illustrate], ['apply', punto.apply]] as [clave, texto] (clave)}
+          <!-- Sin las etiquetas EXPLICĂ / ILUSTREAZĂ / APLICĂ desde el 2 nov
+               2026: eran los nombres de las casillas del formulario de
+               preparación —andamio del curso de homilética— y quien abre este
+               enlace no tiene por qué saber en qué casilla se escribió cada
+               párrafo. El texto va seguido, como en el PDF y como ya iba en el
+               documento final de la aplicación. Los rótulos que sí se ven son
+               los que el predicador escribe él (`## rótulo`), que los pinta
+               `TextoFormateado`. -->
+          {#each [punto.explain, punto.illustrate, punto.apply] as texto, k (k)}
             {#if texto?.trim()}
-              <p class="predica__etiqueta">{$_(`app.sermons.dev_${clave}`)}</p>
               <p class="predica__texto"><TextoFormateado {texto} /></p>
             {/if}
           {/each}
@@ -331,15 +340,6 @@
     margin: 1.1rem 0 0.35rem;
     font-size: 1rem;
     font-weight: 700;
-  }
-
-  .predica__etiqueta {
-    margin: 0.9rem 0 0.2rem !important;
-    color: var(--color-ink-soft);
-    font-size: 0.72rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: var(--letter-spacing-eyebrow);
   }
 
   .predica__refs {

@@ -11,6 +11,8 @@ import assert from 'node:assert/strict';
 import {
   STEPS,
   alternarMarca,
+  alternarSubtitulo,
+  bloquesDe,
   citasDe,
   collectReferences,
   countWords,
@@ -29,6 +31,7 @@ import {
   segmentarTexto,
   sermonWordCount,
   stepCompletion,
+  subtituloDe,
 } from '../src/services/sermon-content.service.js';
 
 // ── Forma del documento ─────────────────────────────────
@@ -345,6 +348,95 @@ test('quitarMarcas aplana una cita en línea a "referencia: versículo"', () => 
   );
 });
 
+// ── La tercera sintaxis: el subtítulo del predicador ────
+//
+// `## Zidirea casei` al principio de una línea. Es de LÍNEA y no de
+// delimitadores, así que no puede chocar con `*marca*` ni con `{{cita}}`.
+
+test('subtituloDe reconoce el rótulo y exige el espacio detrás', () => {
+  assert.equal(subtituloDe('## Zidirea casei'), 'Zidirea casei');
+  assert.equal(subtituloDe('   ###  Terminarea casei  '), 'Terminarea casei');
+  // Sin espacio no es un rótulo: «#1 problema» es texto normal.
+  assert.equal(subtituloDe('#1 problema'), '');
+  assert.equal(subtituloDe('texto ## en medio'), '');
+  assert.equal(subtituloDe('##'), '');
+});
+
+test('quitarMarcas no deja escapar la almohadilla en ningún caso', () => {
+  // El gemelo del test de las llaves: la tercera sintaxis nace con la misma
+  // red que las otras dos. Si un `##` llega a pantalla, es la trampa 33 otra
+  // vez — y la vez anterior se vio en una predicación ya publicada.
+  const t = 'Primul rând.\n## Zidirea casei\nAl doilea rând cu *marcaj* și {{Rom 8:28|text}}.';
+  const limpio = quitarMarcas(t);
+  assert.ok(!limpio.includes('#'), `se coló una almohadilla: ${limpio}`);
+  assert.ok(limpio.includes('Zidirea casei'), 'el texto del rótulo tiene que quedarse');
+  assert.ok(!limpio.includes('*') && !limpio.includes('{{'), limpio);
+});
+
+test('bloquesDe parte por línea en blanco y conserva el salto simple', () => {
+  // Es la respuesta a «no tengo cómo poner párrafo nuevo»: la línea en blanco
+  // deja de imprimirse como un renglón vacío y pasa a ser un párrafo.
+  const bloques = bloquesDe('Primul paragraf.\ncu salt simplu\n\nAl doilea paragraf.');
+  assert.deepEqual(bloques, [
+    { tipo: 'parrafo', texto: 'Primul paragraf.\ncu salt simplu' },
+    { tipo: 'parrafo', texto: 'Al doilea paragraf.' },
+  ]);
+});
+
+test('un subtítulo a media línea parte el párrafo en dos', () => {
+  const bloques = bloquesDe('Antes.\n## Zidirea casei\nDespués.');
+  assert.deepEqual(bloques, [
+    { tipo: 'parrafo', texto: 'Antes.' },
+    { tipo: 'subtitulo', texto: 'Zidirea casei' },
+    { tipo: 'parrafo', texto: 'Después.' },
+  ]);
+});
+
+test('una cita en mitad de la frase se queda EN LÍNEA; sola en su línea sale a bloque', () => {
+  // Sacar a bloque una cita que está entre comas dejaría el resto de la frase
+  // huérfano en un párrafo que empieza por «, y asta…».
+  const enMedio = bloquesDe('Textul spune că {{Ioan 3:16|Dumnezeu a iubit lumea}}, și asta schimbă tot.');
+  assert.deepEqual(enMedio, [
+    { tipo: 'parrafo', texto: 'Textul spune că {{Ioan 3:16|Dumnezeu a iubit lumea}}, și asta schimbă tot.' },
+  ]);
+
+  const sola = bloquesDe('{{Ioan 3:16|Dumnezeu a iubit lumea}}');
+  assert.deepEqual(sola, [{ tipo: 'cita', label: 'Ioan 3:16', texto: 'Dumnezeu a iubit lumea' }]);
+});
+
+test('el punto que cierra la frase se queda pegado al versículo', () => {
+  // «Domnul spune: {{…}}.» es como se escribe casi siempre. El punto suelto no
+  // puede abrir un párrafo nuevo con un carácter dentro.
+  const bloques = bloquesDe('Domnul spune: {{Ioan 3:16|Dumnezeu a iubit lumea}}.');
+  assert.deepEqual(bloques, [
+    { tipo: 'parrafo', texto: 'Domnul spune:' },
+    { tipo: 'cita', label: 'Ioan 3:16', texto: 'Dumnezeu a iubit lumea.' },
+  ]);
+});
+
+test('alternarSubtitulo pone y quita sobre la línea del cursor', () => {
+  const texto = 'una\nTerminarea casei\ntres';
+  const puesto = alternarSubtitulo(texto, 6, 6); // cursor dentro de la 2ª línea
+  assert.equal(puesto.texto, 'una\n## Terminarea casei\ntres');
+  assert.equal(puesto.texto.slice(puesto.desde, puesto.hasta), '## Terminarea casei');
+
+  // El mismo botón quita, y el texto vuelve a estar exactamente como estaba.
+  assert.equal(alternarSubtitulo(puesto.texto, 6, 6).texto, texto);
+});
+
+test('un subtítulo entra en la schiță como rótulo en mayúsculas, sin almohadillas', () => {
+  const c = emptyContent();
+  const p = newPoint('Punct');
+  c.structure.push(p);
+  c.development[p.id] = { explain: '## Zidirea casei\nPrima frază.', illustrate: '', apply: '', refs: [] };
+
+  const [clave, frase] = generateOutline(c).points[0].keywords;
+  // En negrita y en mayúsculas: es la división que puso el predicador, y en la
+  // cartilla del atril vale más que cualquier frase que se resuma de debajo.
+  assert.equal(clave, '*ZIDIREA CASEI*');
+  assert.equal(frase, 'Prima frază');
+});
+
 test('quitarMarcas no deja escapar la sintaxis de llaves en ningún caso', () => {
   const t = 'Uno *marcado* y otro {{Rom 8:28|texto}} en la misma frase.';
   const limpio = quitarMarcas(t);
@@ -401,9 +493,53 @@ test('la schiță combina el comienzo de la frase con lo marcado, no uno u otro'
   };
 
   const o = generateOutline(c);
+  // La regla cambió el 2 nov 2026: sin nada marcado entran ocho palabras —y la
+  // frase entera si acaba en diez o menos, que es el caso de la primera—; con
+  // algo marcado, hasta cinco palabras de arranque más lo marcado. Los puntos
+  // suspensivos sólo si de verdad se ha quedado texto fuera, y en la segunda
+  // frase no queda nada: cinco palabras y la marca es la frase completa.
   assert.deepEqual(o.points[0].keywords, [
-    'Una primera frase larga que…',
-    'Pero lo que importa es… *la roca*',
+    'Una primera frase larga que el corte automático cogería entera',
+    'Pero lo que importa es *la roca*',
+  ]);
+});
+
+test('la regla de ocho a diez palabras: diez van enteras, once se cortan', () => {
+  const claves = (explain) => {
+    const c = emptyContent();
+    const p = newPoint('Punct');
+    c.structure.push(p);
+    c.development[p.id] = { explain, illustrate: '', apply: '', refs: [] };
+    return generateOutline(c).points[0].keywords;
+  };
+
+  // Nueve palabras: entera y sin puntos suspensivos, que es lo que significa
+  // «entre ocho y diez» — cortar a ocho una frase de nueve es tonto.
+  assert.deepEqual(claves('Nouă cuvinte exacte are această frază de aici acum'), [
+    'Nouă cuvinte exacte are această frază de aici acum',
+  ]);
+  // Once: se queda en ocho y avisa con los puntos suspensivos.
+  assert.deepEqual(claves('Unsprezece cuvinte are această frază ca să se vadă cum se taie'), [
+    'Unsprezece cuvinte are această frază ca să se…',
+  ]);
+});
+
+test('entra CADA frase del campo, no las dos primeras', () => {
+  // Antes el tope era dos frases de `explain` y una de `illustrate`/`apply`, y
+  // el resto del desarrollo no llegaba al atril sin que nada lo avisara. El
+  // propietario lo cambió el 2 nov 2026: entran todas.
+  const c = emptyContent();
+  const p = newPoint('Punct');
+  c.structure.push(p);
+  c.development[p.id] = {
+    explain: 'Prima. A doua. A treia. A patra.',
+    illustrate: 'Una. Doua.',
+    apply: 'Hai. Acum.',
+    refs: [],
+  };
+
+  assert.deepEqual(generateOutline(c).points[0].keywords, [
+    'Prima', 'A doua', 'A treia', 'A patra', 'Una', 'Doua', 'Hai', 'Acum',
   ]);
 });
 
@@ -420,7 +556,10 @@ test('una marca más allá del recorte de palabras se añade igualmente', () => 
   };
 
   const o = generateOutline(c);
-  assert.deepEqual(o.points[0].keywords, ['Uno dos tres *cuatro cinco seis siete*…']);
+  // El arranque son las palabras de ANTES de la marca, nunca las de dentro: si
+  // se contaran desde el principio de la frase, «cuatro cinco» saldría dos
+  // veces, una en el arranque y otra en negrita.
+  assert.deepEqual(o.points[0].keywords, ['Uno dos tres… *cuatro cinco seis siete*']);
 });
 
 test('sin nada marcado, la schiță sigue cortando como antes', () => {
@@ -446,9 +585,12 @@ test('los subpuntos salen siempre, antes que el desarrollo del punto', () => {
 
 // ── Citas insertadas en la schiță ────────────────────────
 
-test('citasDe convierte una cita en referencia negrita + primeras 5 palabras', () => {
+test('citasDe convierte una cita en referencia negrita + el arranque del versículo', () => {
+  // Mismo recorte que cualquier otra frase (8-10 palabras) desde el 2 nov
+  // 2026: con cinco, el predicador no reconocía el versículo de un vistazo.
+  // La coma de «lumea,» se va con el corte: «lumea,…» se lee como un borrón.
   const t = 'Textul spune că {{Ioan 3:16|Fiindcă atât de mult a iubit Dumnezeu lumea, că a dat pe singurul Lui Fiu}}.';
-  assert.deepEqual(citasDe(t), ['*Ioan 3:16* Fiindcă atât de mult a…']);
+  assert.deepEqual(citasDe(t), ['*Ioan 3:16* Fiindcă atât de mult a iubit Dumnezeu lumea…']);
 });
 
 test('citasDe no recorta un versículo ya corto', () => {
@@ -465,8 +607,11 @@ test('una cita insertada en el desarrollo llega a la schiță aunque no se marqu
   };
 
   const o = generateOutline(c);
+  // El punto final de la frase se queda pegado al versículo: la cita cierra la
+  // línea, así que sale como bloque y ese punto no abre un párrafo nuevo con un
+  // carácter dentro (ver `bloquesDe`).
   assert.ok(
-    o.points[0].keywords.includes('*Ioan 3:16* Fiindcă atât de mult a…'),
+    o.points[0].keywords.includes('*Ioan 3:16* Fiindcă atât de mult a iubit Dumnezeu lumea.'),
     `la cita no llegó a la schiță: ${JSON.stringify(o.points[0].keywords)}`,
   );
 });
@@ -477,8 +622,27 @@ test('una cita en la introducción o la conclusión también llega a la schiță
   c.conclusion = 'Terminamos con {{Apocalipsa 21:4|Dumnezeu va șterge orice lacrimă}}.';
 
   const o = generateOutline(c);
-  assert.ok(o.intro.includes('*Ioan 1:1* La început era Cuvântul'), JSON.stringify(o.intro));
+  assert.ok(o.intro.some((l) => l.startsWith('*Ioan 1:1*')), JSON.stringify(o.intro));
   assert.ok(o.conclusion.includes('*Apocalipsa 21:4*'), o.conclusion);
+});
+
+test('la cita llega a la schiță en el ORDEN en que está escrita', () => {
+  // Antes `generateOutline` sacaba las frases de un campo y luego añadía sus
+  // citas al final de la lista: desde el atril, el versículo aparecía después
+  // de todo lo que venía detrás de él en el texto.
+  const c = emptyContent();
+  const p = newPoint('Punct');
+  c.structure.push(p);
+  c.development[p.id] = {
+    explain: 'Prima frază.\n{{Ioan 3:16|Dumnezeu a iubit lumea}}\nUltima frază.',
+    illustrate: '', apply: '', refs: [],
+  };
+
+  assert.deepEqual(generateOutline(c).points[0].keywords, [
+    'Prima frază',
+    '*Ioan 3:16* Dumnezeu a iubit lumea',
+    'Ultima frază',
+  ]);
 });
 
 // ── El botón de marcar ──────────────────────────────────

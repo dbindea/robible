@@ -83,6 +83,9 @@ const ICONOS = {
   lock: 'lock-simple',
   'sign-in': 'sign-in',
   'file-text': 'file-text',
+  // El botón «Subtitlu» de la preparación: la H de un encabezado. Es el mismo
+  // gesto que `highlight` para la negrita — un botón por marcado.
+  subtitle: 'text-h',
   book: 'book',
   'book-open': 'book-open',
   lectern: 'lectern',

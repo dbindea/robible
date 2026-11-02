@@ -32,6 +32,11 @@ const API_URL = 'https://robible-api.robible.workers.dev';
  */
 function sinMarcas(value = '') {
   return String(value)
+    // `## rótulo` al principio de línea: el subtítulo que pone el predicador
+    // (2 nov 2026). Se queda el texto y se va la almohadilla — en el HTML sin
+    // JavaScript que ve el rastreador no hay negrita que darle, pero un `##`
+    // suelto sí se vería.
+    .replace(/^[ \t]*#{1,6}[ \t]+/gm, '')
     .replace(/\*([^*\n]+)\*/g, '$1')
     .replace(/\{\{([^{}|]+)\|([^{}]+)\}\}/g, '$1: $2');
 }
