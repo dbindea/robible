@@ -16,6 +16,7 @@ import {
   citasDe,
   collectReferences,
   countWords,
+  etiquetaDeReferencia,
   emptyContent,
   estimatedMinutes,
   generateOutline,
@@ -788,20 +789,56 @@ test('la schiță muestra las referencias del punto y las del desarrollo', () =>
   };
 
   const o = generateOutline(c);
-  assert.deepEqual(o.points[0].refs, ['Iacov 1:22', 'Ioan 14:15']);
+  // Sin texto guardado no hay cita que formar, así que se quedan en una marca
+  // a secas. Es el caso raro: el selector de referencias guarda el texto.
+  assert.deepEqual(o.points[0].refs, ['*Iacov 1:22*', '*Ioan 14:15*']);
+});
+
+test('una referencia de apoyo lleva el arranque del versículo, con la misma regla', () => {
+  // Hasta el 2 nov 2026 la schiță sólo decía «Ioan 3:16». En papel no se puede
+  // tocar una referencia para abrirla, así que el predicador tenía delante un
+  // código que no le decía qué dice el versículo.
+  const c = emptyContent();
+  const p = newPoint('Punct');
+  c.structure.push(p);
+  c.development[p.id] = {
+    explain: '', illustrate: '', apply: '',
+    refs: [
+      { label: 'Luca 6:46', text: 'De ce-Mi ziceţi: Doamne, Doamne, şi nu faceţi ce spun Eu?' },
+      { label: 'Ioan 11:35', text: 'Isus plângea' },
+    ],
+  };
+
+  const [largo, corto] = generateOutline(c).points[0].refs;
+  // Ocho palabras y puntos suspensivos cuando sobra texto…
+  assert.equal(largo, '{{Luca 6:46|De ce-Mi ziceţi: Doamne, Doamne, şi nu faceţi…}}');
+  // …y entero cuando cabe, sin puntos suspensivos que no significan nada.
+  assert.equal(corto, '{{Ioan 11:35|Isus plângea}}');
+});
+
+test('el Modo Amvon puede sacar la etiqueta pelada de una referencia', () => {
+  // El botón del púlpito abre el versículo buscándolo por su `label` en la
+  // copia guardada en el dispositivo. Si le llega la línea con formato no
+  // encuentra nada y el panel sale vacío delante de la congregación.
+  assert.equal(etiquetaDeReferencia('{{Luca 6:46|De ce-Mi ziceţi: Doamne…}}'), 'Luca 6:46');
+  assert.equal(etiquetaDeReferencia('*Matei 7:21*'), 'Matei 7:21');
+  assert.equal(etiquetaDeReferencia(''), '');
 });
 
 test('una referencia repetida no sale dos veces en la schiță', () => {
   const c = emptyContent();
   const p = newPoint('Punct');
-  p.refs = [{ book: 58, chapter: 1, verse: 22, label: 'Iacov 1:22' }];
+  p.refs = [{ book: 58, chapter: 1, verse: 22, label: 'Iacov 1:22', text: 'Fiţi împlinitori ai Cuvântului' }];
   c.structure.push(p);
   c.development[p.id] = {
     explain: '', illustrate: '', apply: '',
-    refs: [{ book: 58, chapter: 1, verse: 22, label: 'Iacov 1:22' }],
+    // La misma referencia con OTRO texto: se repite por etiqueta, no por
+    // línea, o la deduplicación dejaría de funcionar en cuanto el texto
+    // difiera en un carácter.
+    refs: [{ book: 58, chapter: 1, verse: 22, label: 'Iacov 1:22', text: 'Otro texto cualquiera' }],
   };
 
-  assert.deepEqual(generateOutline(c).points[0].refs, ['Iacov 1:22']);
+  assert.deepEqual(generateOutline(c).points[0].refs, ['{{Iacov 1:22|Fiţi împlinitori ai Cuvântului}}']);
 });
 
 // ── Los titulares de la schiță nunca llevan la sintaxis de marcado ─────────

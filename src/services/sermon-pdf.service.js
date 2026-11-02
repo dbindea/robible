@@ -80,25 +80,32 @@ const FICHEROS_SERIF = {
 
 // ── Tipografía ────────────────────────────────────────────────────────────
 //
-// Roboto es la fuente que trae pdfmake y cubre los diacríticos rumanos
-// (ă ș ț î â) y los españoles. Se listan los tamaños aquí arriba para que
-// cambiar el aire del documento sea tocar un sitio.
+// Los dos documentos van en Tinos (ver `pdf-font.js`): la schiță desde el 2
+// nov 2026 y el folio de la predicación desde ese mismo día, a petición del
+// propietario — «me gusta el del guion, implementémoslo por completo».
+//
+// **Los tamaños subieron al cambiar de fuente, y no es un capricho.** La
+// altura de la x de Tinos es ~0,45 em contra ~0,53 de Roboto, así que al mismo
+// cuerpo se lee bastante más pequeña: Tinos a 11 pt tiene el ojo de Roboto a
+// 9,3. Mantener la escala anterior habría sido entregar un folio más difícil
+// de leer con la excusa de que es la fuente que se pidió. Toda la escala sube
+// en la misma proporción para que la jerarquía no se mueva.
 //
 // La escala es la de un manuscrito, no la de una pantalla: cada nivel se
 // distingue del siguiente por tamaño Y por tratamiento (color, mayúsculas,
 // negrita), porque en una fotocopia en blanco y negro el color no está.
 const T = {
-  titulo: 23,
-  referencia: 12,
-  seccion: 13, // INTRODUCERE, los puntos numerados, ÎNCHEIERE: el mismo nivel.
-  idea: 12.5,
-  subpunto: 11.5,
-  subtitulo: 10.5, // El rótulo que escribe el predicador (`## …`).
-  cuerpo: 11,
-  pericopa: 10.5,
-  cita: 10,
-  nota: 8.5,
-  cabecera: 8, // La línea de cortesía de las páginas segunda y siguientes.
+  titulo: 26,
+  referencia: 13,
+  seccion: 15, // INTRODUCERE, los puntos numerados, ÎNCHEIERE: el mismo nivel.
+  idea: 14,
+  subpunto: 13,
+  subtitulo: 12, // El rótulo que escribe el predicador (`## …`).
+  cuerpo: 12.5,
+  pericopa: 12,
+  cita: 11.5,
+  nota: 9.5,
+  cabecera: 9, // La línea de cortesía de las páginas segunda y siguientes.
   // ── La schiță ──
   //
   // 15 pt lo pidió el propietario después de llevar la cartilla al atril, y es
@@ -492,7 +499,11 @@ const estimarAlto = (nodos, anchoDisponible = ANCHO_UTIL) => {
     // carril y las citas un poco más, así que con el ancho de la página entera
     // saldrían menos líneas de las que se imprimen — y subestimar es la
     // dirección que resucita la trampa 64.
-    // ~2 caracteres por punto de ancho a este tamaño.
+    // ~2 caracteres por punto de ancho a este tamaño. Se calibró con Roboto y
+    // se deja igual con Tinos, que es más estrecha: con ella caben MÁS
+    // caracteres por línea, así que esta cuenta sale alta — y sobrestimar es
+    // el lado seguro. Subestimar es lo que resucita la trampa 64, donde un
+    // `unbreakable` que no cabe hace desaparecer la sección entera.
     const porLinea = Math.max(20, Math.round((ancho / tamano) * 2));
     // Cada salto de línea escrito es una línea impresa, aunque no llene el
     // ancho. Contando sólo los caracteres, un campo escrito con una frase por
@@ -689,7 +700,7 @@ export const definirPredica = (sermon, contenido, etiquetas = {}) => {
     pageSize: 'A4',
     pageOrientation: 'portrait',
     pageMargins: [MARGEN, MARGEN + 2, MARGEN, MARGEN],
-    defaultStyle: { font: 'Roboto', fontSize: T.cuerpo, color: TINTA, lineHeight: INTERLINEA },
+    defaultStyle: { font: SERIF, fontSize: T.cuerpo, color: TINTA, lineHeight: INTERLINEA },
     content: cuerpo,
     header: cabeceraDePagina(sermon),
     footer: pieDePagina,
@@ -940,16 +951,11 @@ export const definirSchita = (sermon, esquema, etiquetas = {}) => {
     // Guion y sin sangría: las ideas quedan alineadas a la izquierda, en
     // columna. Con el punto medio y 8 pt de sangría se leían como una
     // continuación del título en vez de como una lista.
-    const lineas = nodosDeClaves(p.keywords);
-    if ((p.refs || []).length) {
-      lineas.push({
-        text: (p.refs || []).join('  ·  '),
-        fontSize: T.schitaNota,
-        color: ACENTO,
-        bold: true,
-        margin: [8, 3, 0, 0],
-      });
-    }
+    // Las referencias de apoyo van como cualquier otra línea: desde el 2 nov
+    // 2026 traen el arranque del versículo, así que son citas con su barra y
+    // no una tira de etiquetas pegadas con puntos medios. En papel no se puede
+    // tocar una referencia para abrirla — si el texto no está aquí, no está.
+    const lineas = [...nodosDeClaves(p.keywords), ...nodosDeClaves(p.refs)];
     trozos.push(...seccionDeSchita(titularDeSchita(`${i + 1}. ${quitarMarcas(p.title)}`), lineas));
   });
 

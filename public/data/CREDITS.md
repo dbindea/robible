@@ -97,9 +97,9 @@ instalación de la PWA en unos 17 MB para leer una sola.
 
 ---
 
-## Tipografía del PDF de la schiță
+## Tipografía de los PDF de predicación
 
-La cartilla que el predicador se lleva al atril se imprime en **Tinos**,
+El folio de la predicación y la cartilla del atril se imprimen en **Tinos**,
 licencia SIL Open Font License 1.1
 (Steve Matteson — https://fonts.google.com/specimen/Tinos).
 
@@ -116,9 +116,9 @@ tiene â e î pero **no** tiene ă, ș ni ț. En rumano eso no es un detalle.
 Como los iconos, está copiada al árbol y no instalada: `src/services/pdf-font.js`
 la lleva en base64 —69 KB las cuatro variantes, recortada a los 228 caracteres
 que la aplicación puede imprimir— y lo genera `scripts/build-pdf-font.mjs`. Va
-en el bundle y no en `public/` para que la schiță se pueda imprimir sin red; se
-importa dinámicamente, así que no entra en el arranque. El resto de la
-aplicación y el folio de la predicación siguen en Roboto, la que trae pdfmake.
+en el bundle y no en `public/` para que los PDF se puedan imprimir sin red; se
+importa dinámicamente, así que no entra en el arranque. La interfaz de la
+aplicación no la usa: allí la tipografía la pone el CSS.
 
 ```bash
 node scripts/build-pdf-font.mjs   # sólo si hace falta otro corte o más glifos

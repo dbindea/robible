@@ -465,6 +465,23 @@ export const bloquesDe = (texto) => {
   return bloques;
 };
 
+/**
+ * La referencia bíblica *suelta* de una línea de schiță, sin su texto ni su
+ * formato: «Ioan 3:16».
+ *
+ * Existe porque desde el 2 nov 2026 las referencias de apoyo se guardan con el
+ * arranque del versículo (`{{Ioan 3:16|Fiindcă atât de mult…}}`) y hay un sitio
+ * que necesita la etiqueta pelada: el Modo Amvon, donde la referencia es un
+ * botón que abre el versículo entero buscándolo **por su `label`** en la copia
+ * guardada en el dispositivo. Pasarle la línea con formato no encontraría nada
+ * y el predicador se quedaría con el panel vacío delante de la congregación.
+ */
+export const etiquetaDeReferencia = (linea) => {
+  const [bloque] = bloquesDe(linea || '');
+  if (bloque?.tipo === 'cita') return bloque.label.trim();
+  return quitarMarcas(linea || '').trim();
+};
+
 // ── Recorte para la schiță ──────────────────────────────
 //
 // La regla cambió el 2 nov 2026, a petición del propietario, después de llevar
@@ -823,15 +840,28 @@ export const generateOutline = (content) => {
         id: punto.id,
         title: quitarMarcas(punto.title).trim().toUpperCase(),
         keywords: [...subpuntos, ...desarrollo].filter(Boolean),
-        // Las del punto y las del desarrollo, en ese orden y sin repetir. En la
-        // schiță sólo se ve la cita; el texto entero es cosa del Modo Amvon.
+        // Las del punto y las del desarrollo, en ese orden y sin repetir.
+        //
+        // **Con el arranque del versículo desde el 2 nov 2026**, no sólo la
+        // etiqueta. Antes la schiță decía «Ioan 3:16» y nada más: en papel no
+        // se puede tocar una referencia para abrirla, así que el predicador
+        // tenía delante un código que no le decía qué dice el versículo. Van
+        // con la misma regla de recorte que todo lo demás y con la sintaxis de
+        // cita, que es la que les da la barra azul en los tres sitios que las
+        // pintan.
+        //
+        // Siguen siendo **cadenas** y no objetos a propósito: así `mergeOutline`,
+        // `outlineWordCount` y `normalizeOutline` no se enteran. Quien necesite
+        // la etiqueta suelta —el Modo Amvon, para abrir el versículo— la saca
+        // con `bloquesDe`.
         refs: [
           ...(punto.refs || []),
           ...(d.refs || []),
           ...(punto.subpoints || []).flatMap((s) => c.development[s.id]?.refs || []),
         ]
-          .map((r) => (r?.label || '').trim())
-          .filter((label, i, todas) => label && todas.indexOf(label) === i),
+          .filter((r) => (r?.label || '').trim())
+          .filter((r, i, todas) => todas.findIndex((o) => o.label.trim() === r.label.trim()) === i)
+          .map((r) => lineaDeCita(r.label, r.text)),
       };
     }),
     // La aplicación sale del propósito, pero recortada como todo lo demás. El
