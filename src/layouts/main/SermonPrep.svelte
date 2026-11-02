@@ -80,6 +80,17 @@
   let areas = {};
   let seleccion = {}; // clave del campo → true si hay algo seleccionado
 
+  // Campos en los que el predicador ya ha puesto el cursor alguna vez.
+  //
+  // Hace falta porque un `textarea` al que Svelte le asigna el valor al montar
+  // —que es lo que hace siempre— se queda con `selectionStart` AL FINAL del
+  // texto, no al principio. Sin esto, pulsar «Subtitlu» en un campo que no se
+  // ha tocado convertía en rótulo la ÚLTIMA línea, que a veces es un párrafo
+  // entero, y el guardado automático se lo llevaba al servidor. Mientras no
+  // haya cursor de verdad, el botón trabaja sobre la primera línea, que es la
+  // que el predicador está viendo.
+  const conCursor = new Set();
+
   // Los dos van por `clave` —la misma cadena que `abrirInsertarCita`: el id y
   // el campo con dos puntos, o el nombre a secas— y no por punto + campo,
   // porque desde el 2 nov 2026 también se marca en la introducción y en la
@@ -87,6 +98,9 @@
   // schiță, así que sin el botón la función existía y no se podía usar.
   const refrescarSeleccion = (clave) => {
     const el = areas[clave];
+    // Se llama desde `select`, `keyup` y `mouseup`, o sea exactamente cuando
+    // el cursor lo ha puesto una persona.
+    if (el) conCursor.add(clave);
     seleccion = { ...seleccion, [clave]: !!el && el.selectionStart !== el.selectionEnd };
   };
 
@@ -115,13 +129,16 @@
    * cuelgan de ningún punto.
    *
    * No hace falta seleccionar nada: un subtítulo es una línea entera, así que
-   * basta con tener el cursor dentro. Por eso el botón tampoco se deshabilita.
+   * basta con tener el cursor dentro. Por eso el botón tampoco se deshabilita
+   * — y por eso hay que saber si el cursor es de verdad, ver `conCursor`.
    */
   const marcarSubtitulo = async (clave) => {
     const el = areas[clave];
     const actual = leerCampoTexto(clave);
-    const desde = el ? el.selectionStart : 0;
-    const hasta = el ? el.selectionEnd : desde;
+    // Sin cursor de verdad, la primera línea (ver `conCursor`).
+    const puesto = el && conCursor.has(clave);
+    const desde = puesto ? el.selectionStart : 0;
+    const hasta = puesto ? el.selectionEnd : 0;
     const r = alternarSubtitulo(actual, desde, hasta);
     escribirCampoTexto(clave, r.texto);
     content = content; // Svelte no ve la mutación dentro del objeto anidado.

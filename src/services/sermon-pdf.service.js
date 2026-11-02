@@ -345,7 +345,12 @@ const cuerpoDeCampo = (texto, opciones = {}) =>
         margin: [0, 15, 0, 5],
       };
     }
-    if (b.tipo === 'cita') return bloqueCitado(b.label, b.texto, { color: GRIS });
+    // `runsDeTexto` y no la cadena pelada: el predicador inserta el versículo
+    // y después pone en negrita una palabra DE DENTRO, que es el gesto para
+    // señalar sobre qué palabra va el punto. Era la única rama de este
+    // troceado que no pasaba por la segmentación, así que ahí —y sólo ahí—
+    // el asterisco salía impreso, mientras en pantalla se veía la negrita.
+    if (b.tipo === 'cita') return bloqueCitado(b.label, runsDeTexto(b.texto), { color: GRIS });
     return {
       // Alineado a la izquierda, no justificado: justificar con la tipografía y
       // el ancho de este documento abría ríos de espacio en blanco entre
