@@ -693,6 +693,28 @@ test('la cita llega a la schiță en el ORDEN en que está escrita', () => {
   ]);
 });
 
+test('también la cita que se queda EN LÍNEA, en mitad de una frase', () => {
+  // Ésta seguía saliendo al final: como su texto trae puntos propios, se
+  // sacaba del párrafo ANTES de trocearlo en frases y se añadía después. El
+  // versículo aparecía en la schiță detrás de la frase que en el texto va
+  // después de él, y desde el atril eso se lee en el orden equivocado.
+  const c = emptyContent();
+  const p = newPoint('Punct');
+  c.structure.push(p);
+  c.development[p.id] = {
+    explain: 'Prima frază. Textul spune că {{Ioan 3:16|Dumnezeu a iubit lumea}}, și asta schimbă tot. Ultima frază.',
+    illustrate: '', apply: '', refs: [],
+  };
+
+  assert.deepEqual(generateOutline(c).points[0].keywords, [
+    'Prima frază',
+    'Textul spune că',
+    '*Ioan 3:16* Dumnezeu a iubit lumea',
+    'și asta schimbă tot',
+    'Ultima frază',
+  ]);
+});
+
 // ── El botón de marcar ──────────────────────────────────
 
 test('alternarMarca envuelve la selección y deja el cursor donde toca', () => {

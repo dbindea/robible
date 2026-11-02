@@ -623,13 +623,25 @@ const fraseClaves = (texto) => {
       salida.push(lineaDeCita(bloque.label, bloque.texto));
       continue;
     }
-    // Las citas que se quedaron en línea se sacan aparte: su texto trae puntos
-    // propios y el troceado por frases las partiría a la mitad.
-    for (const frase of frasesDe(bloque.texto.replace(CITA, ' '))) {
-      const linea = resumenDeFrase(frase);
-      if (linea) salida.push(linea);
+    // El párrafo se recorre a trozos: lo que hay antes de cada cita, la cita, y
+    // así hasta el final. Hay dos motivos para no trocear de una sola pasada:
+    // el texto de la cita trae puntos propios y el corte por frases la partiría
+    // a la mitad, y además la cita tiene que entrar en la schiță DONDE ESTÁ
+    // ESCRITA. Sacándola aparte salía detrás de las frases que en el texto van
+    // después de ella, y desde el atril eso se lee en el orden equivocado.
+    let desde = 0;
+    const añadirFrases = (trozo) => {
+      for (const frase of frasesDe(trozo)) {
+        const linea = resumenDeFrase(frase);
+        if (linea) salida.push(linea);
+      }
+    };
+    for (const m of bloque.texto.matchAll(CITA)) {
+      añadirFrases(bloque.texto.slice(desde, m.index));
+      salida.push(lineaDeCita(m[1], m[2]));
+      desde = m.index + m[0].length;
     }
-    salida.push(...citasDe(bloque.texto));
+    añadirFrases(bloque.texto.slice(desde));
   }
 
   return salida;
