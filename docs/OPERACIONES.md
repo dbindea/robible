@@ -145,6 +145,9 @@ wrangler d1 execute robible-db --remote --command "DELETE FROM users WHERE nickn
 | Un recurso externo no carga en producción y sí en local | La CSP de `netlify.toml` no lo incluye |
 | Un texto sale como `app.algo.clave` | Falta esa clave en el `public/lang/*.json` de ese idioma |
 | El health del API | `curl https://robible-api.robible.workers.dev/api/health` |
+| `wrangler deploy` → `Authentication error [code: 10000]` | **No es un problema de permisos: el token apunta a otra cuenta.** Las credenciales de wrangler son **globales, no por proyecto**, así que un `wrangler login` hecho para otro proyecto se lleva por delante la sesión de RoBible. `wrangler whoami` tiene que decir `Dbindea@gmail.com's Account` (`335ec3b5…`); la cuenta que espera el worker está apuntada en `node_modules/.cache/wrangler/wrangler-account.json`. Para no depender de con qué cuenta estés logueado, un `CLOUDFLARE_API_TOKEN` de esa cuenta en el entorno gana sobre el OAuth |
+| `curl` devuelve `000` contra cualquier HTTPS | No es la API ni la red: al curl de Git para Windows le falta el paquete de certificados (`error setting certificate verify locations`). Se ve con `curl -v`, que conecta al puerto 443 y corta ahí. Node lleva su propio almacén de CA, así que para sondear la API vale `node -e "fetch('…').then(r=>console.log(r.status))"` |
+| Un cambio en `workers/` no se nota contra el servidor local | `dev-server.js` importa `src/index.js` **una sola vez, al arrancar**: Node no recarga módulos. Hay que matar el proceso del 8787 y volver a lanzarlo, o se prueba el código viejo creyendo probar el nuevo — y el falso negativo es indistinguible de un fallo real |
 
 ## Verificación rápida del backend
 
