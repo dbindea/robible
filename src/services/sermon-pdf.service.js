@@ -51,10 +51,32 @@ const A4_ALTO = 841.89;
 const MARGEN = 52;
 const ANCHO_UTIL = A4_ANCHO - MARGEN * 2;
 
-// Apaisado y a dos columnas con un canal por el medio: el doblez.
-const MARGEN_SCHITA = 34;
+// Apaisado y a dos columnas con un canal por el medio.
+//
+// El margen bajó de 34 a 14 pt el 2 nov 2026, a petición del propietario:
+// «no dejes márgenes para aprovechar todo el papel». No es cero y no puede
+// serlo — prácticamente ninguna impresora doméstica imprime hasta el borde, y
+// con cero lo que pasa no es que se aproveche más papel, es que la primera
+// línea de cada cara sale CORTADA. 14 pt son 5 mm, que es el borde muerto
+// típico. El canal del medio, en cambio, se mantiene: es el único aire que
+// separa las dos columnas y sin él se leen como una sola.
+const MARGEN_SCHITA = 14;
 const CANAL_SCHITA = 30;
 const ANCHO_COLUMNA_SCHITA = (A4_ALTO - MARGEN_SCHITA * 2 - CANAL_SCHITA) / 2;
+
+// ── La serif de la cartilla ───────────────────────────────────────────────
+//
+// Tinos: Times New Roman de licencia abierta, misma métrica. Se empotra desde
+// `pdf-font.js`, que genera `scripts/build-pdf-font.mjs`. El porqué de todo
+// —por qué no las fuentes estándar del PDF, por qué WOFF y no WOFF2— está en
+// la cabecera de ese script.
+const SERIF = 'Tinos';
+const FICHEROS_SERIF = {
+  normal: 'Tinos-Regular.woff',
+  bold: 'Tinos-Bold.woff',
+  italics: 'Tinos-Italic.woff',
+  bolditalics: 'Tinos-BoldItalic.woff',
+};
 
 // ── Tipografía ────────────────────────────────────────────────────────────
 //
@@ -77,10 +99,18 @@ const T = {
   cita: 10,
   nota: 8.5,
   cabecera: 8, // La línea de cortesía de las páginas segunda y siguientes.
-  // La schiță se mira de reojo desde el atril: todo un punto más grande.
-  schitaTitulo: 16,
-  schitaPunto: 13,
-  schitaClave: 11,
+  // ── La schiță ──
+  //
+  // 15 pt lo pidió el propietario después de llevar la cartilla al atril, y es
+  // una medida con un motivo físico detrás: en el púlpito el papel está a unos
+  // 70 cm y la mirada va y viene de la congregación al folio, así que lo que
+  // importa no es leer con comodidad sino **reconocer la línea de un vistazo**.
+  // A 11 pt había que buscarla. Es un documento distinto del folio de la
+  // predicación, que se lee de cerca y sigue en 11.
+  schitaTitulo: 21,
+  schitaPunto: 17,
+  schitaClave: 15,
+  schitaNota: 11, // Los «Versete de sprijin» de cada punto.
 };
 
 // Interlineado del cuerpo. 1.35 era correcto y quedaba apretado para leer en
@@ -135,18 +165,37 @@ let pdfMake = null;
 /** Carga la librería la primera vez que hace falta. */
 const cargar = async () => {
   if (pdfMake) return pdfMake;
-  const [mod, fuentes] = await Promise.all([import('pdfmake/build/pdfmake'), import('pdfmake/build/vfs_fonts')]);
+  const [mod, fuentes, serif] = await Promise.all([
+    import('pdfmake/build/pdfmake'),
+    import('pdfmake/build/vfs_fonts'),
+    // Dinámico igual que la librería: son 115 KB y sólo hacen falta cuando
+    // alguien imprime. Así no entran en el bundle de arranque.
+    import('./pdf-font.js'),
+  ]);
   const lib = mod.default || mod;
 
   // Las fuentes van en un "sistema de ficheros virtual". Desde pdfmake 0.3 se
   // registran con `addVirtualFileSystem`; asignar `.vfs` a secas —como se hacía
   // en 0.2— no las da de alta y la generación falla con «Roboto-Medium.ttf not
   // found». Se prueban las dos formas para no atarse a una versión.
-  const vfs = fuentes.default?.vfs || fuentes.vfs || fuentes.default;
-  if (vfs) {
-    if (typeof lib.addVirtualFileSystem === 'function') lib.addVirtualFileSystem(vfs);
-    else lib.vfs = vfs;
-  }
+  const registrar = (ficheros) => {
+    if (!ficheros) return;
+    if (typeof lib.addVirtualFileSystem === 'function') lib.addVirtualFileSystem(ficheros);
+    else lib.vfs = { ...(lib.vfs || {}), ...ficheros };
+  };
+  registrar(fuentes.default?.vfs || fuentes.vfs || fuentes.default);
+
+  // La serif de la schiță, aparte de la Roboto que trae pdfmake. Son dos
+  // documentos con dos trabajos distintos: el folio de la predicación se lee
+  // de cerca y va en palo seco; la cartilla se mira de reojo desde el atril y
+  // va en Tinos, que es Times New Roman con otro nombre (ver `pdf-font.js`).
+  registrar({
+    [FICHEROS_SERIF.normal]: serif.TINOS.normal,
+    [FICHEROS_SERIF.bold]: serif.TINOS.bold,
+    [FICHEROS_SERIF.italics]: serif.TINOS.italics,
+    [FICHEROS_SERIF.bolditalics]: serif.TINOS.bolditalics,
+  });
+  if (typeof lib.addFonts === 'function') lib.addFonts({ [SERIF]: FICHEROS_SERIF });
 
   pdfMake = lib;
   return pdfMake;
@@ -220,7 +269,17 @@ const bloqueCitado = (label, cuerpo, opciones = {}) => {
         [
           {
             stack: [
-              ...(label ? [{ text: label, bold: true, color: ACENTO, fontSize: T.nota, margin: [0, 0, 0, 3] }] : []),
+              ...(label
+                ? [
+                    {
+                      text: label,
+                      bold: true,
+                      color: ACENTO,
+                      fontSize: opciones.labelFontSize ?? T.nota,
+                      margin: [0, 0, 0, 3],
+                    },
+                  ]
+                : []),
               {
                 text: cuerpo,
                 fontSize: opciones.fontSize ?? T.cita,
@@ -250,8 +309,13 @@ const bloqueCitado = (label, cuerpo, opciones = {}) => {
       paddingRight: () => 0,
       paddingBottom: () => 3,
     },
-    margin: [CARRIL + SANGRIA_CITA, AIRE_PARRAFO, 0, AIRE_PARRAFO],
+    margin: opciones.margin ?? [CARRIL + SANGRIA_CITA, AIRE_PARRAFO, 0, AIRE_PARRAFO],
   };
+
+  // En la cartilla el reparto en caras ya decide dónde cae cada trozo, así que
+  // marcar esto indivisible sólo puede estorbar (y `cabeEnUnaPagina` mide
+  // contra la página vertical, que allí no existe).
+  if (opciones.unbreakable === false) return nodo;
 
   // Un versículo no se parte entre dos páginas si cabe entero en una. Visto
   // impreso: al pie de la hoja quedaba la referencia sola, con la barra azul
@@ -675,14 +739,29 @@ const pieDePagina = (pagina, total) => ({
   margin: [MARGEN, 12, MARGEN, 0],
 });
 
-// ── La schiță, apaisada y para doblar ─────────────────────────────────────
+// ── La schiță, apaisada y a dos columnas ──────────────────────────────────
+//
+// Dejó de ser un cuadernillo el 2 nov 2026. Antes se imponía para doblar —la
+// hoja doblada da cuatro páginas y NO en orden—, y eso tenía dos consecuencias
+// que el propietario vio impresas: las caras se rellenaban en múltiplos de
+// cuatro, así que sobraban medias páginas en blanco, y los bloques no se leían
+// de izquierda a derecha. Ahora las caras van seguidas (1|2, 3|4, …) y cada
+// hoja lleva su número abajo a la derecha, que es lo que las ordena.
 
 const columnaDeSchita = (trozos) => ({ stack: trozos, width: '*' });
 
-// A4 apaisado menos márgenes son 527 pt de alto útil por cara. Se cuentan 495
-// como colchón: pasarse mete una página que el plegado no espera, y entonces
-// el cuadernillo sale desordenado.
-const ALTO_CARA = 460;
+// El alto útil de una cara.
+//
+// A4 apaisado son 595 pt de alto; menos el margen de arriba y la banda del pie
+// quedan ~555. Se cuentan 520: la estimación es gruesa y pasarse significa que
+// pdfmake añade una página por su cuenta, con lo que la cuenta de caras deja de
+// cuadrar con lo impreso.
+//
+// Calibrado barriendo el valor y generando el PDF de VERDAD cada vez, con tres
+// predicaciones —una real y dos sintéticas—, y comparando las caras planeadas
+// con las páginas impresas. Desde la definición esto no se ve. El barrido
+// empezaba a descuadrar en 545, así que 520 deja un colchón de media línea.
+const ALTO_CARA = 520;
 
 /**
  * El alto de un trozo de la schiță, en puntos.
@@ -700,6 +779,13 @@ const ALTO_CARA = 460;
 const altoDeSchita = (nodo) => {
   const margenes = (nodo.margin?.[1] || 0) + (nodo.margin?.[3] || 0);
   if (nodo.stack) return nodo.stack.reduce((a, n) => a + altoDeSchita(n), 0) + margenes;
+  // Una cita lleva su barra dibujada con el borde de una tabla de una celda
+  // (ver `bloqueCitado`). Sin esta rama, cada versículo citado mediría CERO y
+  // la cara se declararía medio vacía estando llena: es la trampa 71, otra vez
+  // y en el otro documento. Los 8 pt son el relleno de la celda.
+  if (nodo.table) {
+    return nodo.table.body.flat().reduce((a, celda) => a + altoDeSchita(celda), 0) + margenes + 8;
+  }
   const texto = textoDeRun(nodo);
   const tamano = nodo.fontSize || T.schitaClave;
   const porLinea = Math.max(16, Math.round((ANCHO_COLUMNA_SCHITA / tamano) * 1.9));
@@ -708,17 +794,112 @@ const altoDeSchita = (nodo) => {
   return Math.max(1, lineas) * tamano * (nodo.lineHeight || 1.25) + margenes;
 };
 
+/**
+ * Una línea de la cartilla. Son tres formas y se distinguen SOLAS, por la
+ * sintaxis con la que `generateOutline` las escribió:
+ *
+ *   - `## RÓTULO`        el subtítulo del predicador. **Sin guion**: no es un
+ *                        elemento más de la lista, es la división que él puso.
+ *   - `{{ref|texto}}`    un versículo citado. Con su barra azul a la
+ *                        izquierda, igual que en el folio y en pantalla.
+ *   - cualquier otra     una frase, con su guion.
+ *
+ * El reparto lo hace `bloquesDe`, que es el mismo que usa `TextoFormateado`
+ * en pantalla. Por eso la cartilla impresa y el Modo Amvon no pueden
+ * discrepar: no hay dos lectores de esta sintaxis, hay uno.
+ */
+const nodosDeBloques = (bloques) =>
+  bloques.map((b) => {
+    if (b.tipo === 'subtitulo') {
+      return {
+        text: b.texto.toUpperCase(),
+        fontSize: T.schitaClave,
+        bold: true,
+        characterSpacing: 0.4,
+        margin: [0, 7, 0, 3],
+      };
+    }
+    if (b.tipo === 'cita') {
+      return bloqueCitado(b.label, runsDeTexto(b.texto), {
+        fontSize: T.schitaClave,
+        labelFontSize: T.schitaNota,
+        color: GRIS,
+        lineHeight: 1.2,
+        margin: [0, 3, 0, 3],
+        unbreakable: false,
+      });
+    }
+    // `runsDeTexto` y no texto plano: una línea puede traer lo marcado con
+    // asteriscos, y sin esto el símbolo saldría impreso tal cual.
+    return {
+      text: ['- ', ...runsDeTexto(b.texto)],
+      fontSize: T.schitaClave,
+      margin: [0, 0, 0, 2],
+      lineHeight: 1.25,
+    };
+  });
+
+/** Las líneas de una lista de claves (las de un punto). */
+const nodosDeClaves = (claves) => (claves || []).flatMap((k) => nodosDeBloques(bloquesDe(k)));
+
+/** Las líneas de un campo de texto (la aplicación, la conclusión), cuyas
+ *  frases van separadas por una línea en blanco desde el 2 nov 2026. */
+const nodosDeCampo = (texto) => nodosDeBloques(bloquesDe(texto || ''));
+
+/**
+ * El titular de una sección de la cartilla.
+ *
+ * Lo comparten los puntos numerados, APLICAȚIE y CONCLUZIE: son **el mismo
+ * nivel**, igual que en el folio de la predicación (ver la trampa 72). Antes
+ * la conclusión llevaba una etiqueta gris diminuta y su contenido salía como
+ * un párrafo corrido; el propietario pidió «escríbela como si fuera un punto
+ * más». Sin número, eso sí: en homilética la conclusión no es una división
+ * del texto, y numerarla diría algo que no es verdad.
+ */
+const titularDeSchita = (texto) => ({
+  text: texto,
+  fontSize: T.schitaPunto,
+  bold: true,
+  color: ACENTO,
+  margin: [0, 9, 0, 3],
+});
+
+/**
+ * Una sección de la cartilla, aplanada en trozos sueltos.
+ *
+ * APLANADA, y esto es lo único importante de esta función. La sección no se
+ * agrupa en un nodo indivisible, aunque sería lo natural y es lo que se hacía
+ * hasta el 2 nov 2026. El motivo se midió sobre la primera predicación real
+ * llevada al atril: su segundo punto medía **808 pt contra 555 de caja**. Una
+ * sección más alta que una cara no se puede meter en una cara, y lo que hace
+ * pdfmake entonces es derramarla en una página nueva **por su cuenta** — la
+ * columna izquierda continúa en la hoja siguiente mientras la derecha se queda
+ * en la actual. Resultado: el orden de lectura de izquierda a derecha, que es
+ * justo lo que se pidió, se rompe precisamente en las predicaciones largas.
+ *
+ * Repartiendo trozo a trozo no hay nada que se derrame: cada cara se llena
+ * hasta donde cabe y la sección continúa en la siguiente, que es como se
+ * comporta cualquier texto.
+ */
+const seccionDeSchita = (titular, lineas) => [
+  // El titular se marca para que el reparto no lo deje solo al pie de una
+  // columna: es el «keep-with-next» que pdfmake no tiene.
+  { nodo: titular, titular: true },
+  ...lineas.map((nodo) => ({ nodo })),
+];
+
 export const definirSchita = (sermon, esquema, etiquetas = {}) => {
   const o = normalizeOutline(esquema);
-  const e = { application: 'APLICAȚIE', conclusion: 'ÎNCHEIERE', ...etiquetas };
+  const e = { intro: 'INTRODUCERE', application: 'APLICAȚIE', conclusion: 'ÎNCHEIERE', ...etiquetas };
 
-  // Todo el contenido, en orden, como una lista de trozos. Después se reparte
-  // entre las caras de la hoja.
+  // Todo el contenido, en orden, como una lista plana de trozos —cada uno con
+  // su nodo y si es un titular—. Después se reparte entre las caras.
   const trozos = [];
+  const suelto = (nodo) => trozos.push({ nodo });
 
   // Cabecera centrada, como el folio de la predicación: es la portada de la
   // cartilla, y a la izquierda se leía como la primera línea de la lista.
-  trozos.push({
+  suelto({
     text: sermon.title || '',
     fontSize: T.schitaTitulo,
     bold: true,
@@ -726,10 +907,10 @@ export const definirSchita = (sermon, esquema, etiquetas = {}) => {
     margin: [0, 0, 0, 2],
   });
   if (sermon.reference) {
-    trozos.push({ text: sermon.reference, fontSize: T.nota, color: ACENTO, bold: true, alignment: 'center' });
+    suelto({ text: sermon.reference, fontSize: T.schitaNota, color: ACENTO, bold: true, alignment: 'center' });
   }
   if (o.idea) {
-    trozos.push({
+    suelto({
       // La idea puede traer negrita: la schiță se retoca a mano antes de
       // predicar, así que cualquiera de sus campos puede llevar una `*marca*`.
       text: runsDeTexto(o.idea),
@@ -741,132 +922,87 @@ export const definirSchita = (sermon, esquema, etiquetas = {}) => {
     });
   }
 
-  for (const linea of o.intro || []) {
-    // `runsDeTexto` y no texto plano: una línea puede traer una cita
-    // insertada (`*Referencia* primeras palabras…`), y sin esto el asterisco
-    // saldría impreso tal cual en vez de en negrita.
-    trozos.push({ text: ['- ', ...runsDeTexto(linea)], fontSize: T.schitaClave, color: GRIS, margin: [0, 0, 0, 2] });
+  // La introducción lleva titular desde el 2 nov 2026, como los puntos y la
+  // conclusión: así la cartilla entera se recorre por titulares azules y no
+  // hay un bloque suelto al principio. Es el mismo orden del folio.
+  if ((o.intro || []).length) {
+    trozos.push(...seccionDeSchita(titularDeSchita(e.intro), nodosDeClaves(o.intro)));
   }
 
   // La transición va entera y en negrita, sin el guion de las demás líneas: el
   // resto de la schiță son recortes que se miran de reojo, y ésta es la única
   // frase que se lee tal cual está escrita.
   if (o.transition) {
-    trozos.push({ text: runsDeTexto(o.transition, { bold: true }), fontSize: T.schitaClave, margin: [0, 5, 0, 3] });
+    suelto({ text: runsDeTexto(o.transition, { bold: true }), fontSize: T.schitaClave, margin: [0, 5, 0, 3] });
   }
 
   o.points.forEach((p, i) => {
-    const grupo = [
-      {
-        text: `${i + 1}. ${quitarMarcas(p.title)}`,
-        fontSize: T.schitaPunto,
-        bold: true,
-        color: ACENTO,
-        margin: [0, 8, 0, 3],
-      },
-    ];
     // Guion y sin sangría: las ideas quedan alineadas a la izquierda, en
     // columna. Con el punto medio y 8 pt de sangría se leían como una
     // continuación del título en vez de como una lista.
-    for (const k of p.keywords || []) {
-      // Igual que en el Modo Amvon: una palabra clave puede traer lo marcado
-      // con asteriscos o una cita insertada, y `runsDeTexto` es quien lo
-      // convierte en negrita/cursiva en vez de imprimir el símbolo suelto.
-      grupo.push({ text: ['- ', ...runsDeTexto(k)], fontSize: T.schitaClave, margin: [0, 0, 0, 2], lineHeight: 1.25 });
-    }
+    const lineas = nodosDeClaves(p.keywords);
     if ((p.refs || []).length) {
-      grupo.push({
+      lineas.push({
         text: (p.refs || []).join('  ·  '),
-        fontSize: T.nota,
+        fontSize: T.schitaNota,
         color: ACENTO,
         bold: true,
-        margin: [8, 2, 0, 0],
+        margin: [8, 3, 0, 0],
       });
     }
-    // Un punto entero no se parte entre las dos mitades: en el atril, medio
-    // punto a cada lado del doblez es peor que dejar hueco.
-    //
-    // Pero sólo si cabe en una cara. `unbreakable` sobre un bloque más alto que
-    // la caja no lo reparte: pdfmake lo superpone con lo que venga después y el
-    // punto DESAPARECE del papel (es la trampa 64, en la schiță). Hasta la
-    // regla nueva no podía pasar —un punto eran cinco líneas—; ahora, con cada
-    // frase del desarrollo, un punto largo se pasa de la columna entera.
-    //
-    // El margen es del 85 % de la cara y no del 100: la estimación es gruesa, y
-    // en el filo —un punto que mide «justo lo que cabe»— equivocarse por poco
-    // significa perder el punto entero, mientras que pasarse de prudente sólo
-    // significa que se parte por el doblez.
-    trozos.push({ stack: grupo, unbreakable: altoDeSchita({ stack: grupo }) <= ALTO_CARA * 0.85 });
+    trozos.push(...seccionDeSchita(titularDeSchita(`${i + 1}. ${quitarMarcas(p.title)}`), lineas));
   });
 
-  if (o.application) {
-    trozos.push({ text: e.application, fontSize: T.nota, color: GRIS, characterSpacing: 0.6, margin: [0, 10, 0, 2] });
-    // Puede traer negrita y citas desde que sale del propósito con la misma
-    // regla que el resto (2 nov 2026), así que tampoco va como texto plano.
-    trozos.push({ text: runsDeTexto(o.application), fontSize: T.schitaClave, margin: [0, 0, 0, 4] });
-  }
-  if (o.conclusion) {
-    trozos.push({ text: e.conclusion, fontSize: T.nota, color: GRIS, characterSpacing: 0.6, margin: [0, 8, 0, 2] });
-    trozos.push({ text: runsDeTexto(o.conclusion), fontSize: T.schitaClave });
-  }
+  // La aplicación y la conclusión son secciones como las demás: mismo titular,
+  // mismas líneas, misma regla de recorte. Antes llevaban una etiqueta gris
+  // diminuta y su contenido salía como un párrafo corrido de doce frases, que
+  // desde el atril no se lee.
+  if (o.application) trozos.push(...seccionDeSchita(titularDeSchita(e.application), nodosDeCampo(o.application)));
+  if (o.conclusion) trozos.push(...seccionDeSchita(titularDeSchita(e.conclusion), nodosDeCampo(o.conclusion)));
 
   // ── Reparto en caras ──
   //
-  // Se llena cara a cara hasta donde cabe, NO repartiendo el total a partes
-  // iguales. La media engaña: los trozos son de tamaños muy distintos —un
-  // punto entero frente a una línea de introducción— y una cara se pasaba de
-  // la caja mientras la de al lado quedaba a medias. Medido con una
-  // predicación normal: se planificaban dos páginas y pdfmake imprimía tres,
-  // y a partir de ahí el plegado del cuadernillo ya no cuadra con nada.
+  // Se llena cara a cara hasta donde cabe, trozo a trozo. Dos cosas que
+  // costaron y conviene no deshacer:
+  //
+  //   - **Se mide en PUNTOS, no en líneas.** Contar líneas se quedaba corto por
+  //     dos sitios a la vez —cada trozo lleva sus márgenes, y un titular es un
+  //     cuerpo y medio— y el resultado era medible: se planificaban dos hojas y
+  //     pdfmake imprimía tres.
+  //   - **El trozo es la LÍNEA, no la sección.** Ver `seccionDeSchita`: una
+  //     sección más alta que una cara la derrama pdfmake por su cuenta en una
+  //     página nueva, y eso rompe el orden de lectura.
   const caras = [[]];
   let altoCara = 0;
-  for (const t of trozos) {
-    const alto = altoDeSchita(t);
-    if (altoCara && altoCara + alto > ALTO_CARA) {
+  for (let i = 0; i < trozos.length; i++) {
+    const { nodo, titular } = trozos[i];
+    const alto = altoDeSchita(nodo);
+
+    // Un titular no se queda solo al pie de una columna: si no caben él y al
+    // menos su primera línea, se empieza cara. Es el «keep-with-next» que
+    // pdfmake no tiene, el mismo de `seccion()` en el folio.
+    const conSuPrimera = titular && trozos[i + 1] ? alto + altoDeSchita(trozos[i + 1].nodo) : alto;
+
+    if (altoCara && altoCara + conSuPrimera > ALTO_CARA) {
       caras.push([]);
       altoCara = 0;
     }
-    caras[caras.length - 1].push(t);
+    caras[caras.length - 1].push(nodo);
     altoCara += alto;
-
-    // Un punto más alto que la cara entera se va a partir de todas formas (por
-    // eso tampoco es indivisible): se le reservan las caras que va a ocupar de
-    // más, o la cuenta de páginas sale corta y el plegado se descuadra. Con un
-    // punto así la schiță ya se ha ido de madre y lo que toca es recortarla a
-    // mano, pero al menos no desaparece nada ni salen hojas de sobra.
-    const deMas = Math.ceil(altoCara / ALTO_CARA) - 1;
-    if (deMas > 0) {
-      for (let i = 0; i < deMas; i++) caras.push([]);
-      altoCara = 0;
-    }
   }
 
-  // Con poco contenido, una hoja a una cara doblada por el medio ya es el
-  // cuadernillo: dos caras escritas y ni una en blanco. Si no cabe, se pasa a
-  // cuatro caras (una hoja a doble cara), a ocho (dos hojas), etc. Siempre en
-  // múltiplos de cuatro, porque una hoja doblada aporta cuatro páginas y las
-  // hojas se meten una dentro de otra. Las caras que sobran van vacías: en un
-  // cuadernillo son las páginas en blanco del final, que es lo normal.
-  const nCaras = caras.length <= 2 ? 2 : 4 * Math.ceil(caras.length / 4);
-  while (caras.length < nCaras) caras.push([]);
+  // Las caras van SEGUIDAS, de izquierda a derecha: 1|2 en la primera hoja,
+  // 3|4 en la segunda. Se lee como un libro abierto y se busca por el número
+  // del pie.
+  //
+  // Antes esto era una imposición de cuadernillo —la hoja doblada da cuatro
+  // páginas y no en orden— y arrastraba dos defectos que el propietario vio
+  // impresos: había que rellenar hasta un múltiplo de cuatro, así que sobraban
+  // medias páginas en blanco, y los bloques no caían en orden de lectura. Lo
+  // único que se pierde es poder grapar por el lomo, y eso ya no hacía falta:
+  // con el número a la vista, la cartilla se ordena sola.
   const paginas = [];
-  if (nCaras === 2) {
-    paginas.push([caras[0], caras[1]]);
-  } else {
-    // Imposición de cuadernillo: una hoja doblada por el lado corto da cuatro
-    // páginas, pero NO en orden. Al doblar, la mitad izquierda del anverso
-    // queda detrás de todo, así que con una sola hoja se compone 4|1 delante y
-    // 2|3 detrás; con el orden natural (1|2 y 3|4) sale desordenado.
-    //
-    // Con varias hojas es la misma cuenta hacia dentro, porque van metidas una
-    // dentro de otra: la hoja `i` lleva delante la última cara que queda y la
-    // primera, y detrás las dos siguientes. Para ocho caras: 8|1 y 2|7 en la
-    // primera hoja, 6|3 y 4|5 en la segunda.
-    for (let i = 0; i < nCaras / 4; i++) {
-      paginas.push([caras[nCaras - 1 - 2 * i], caras[2 * i]]);
-      paginas.push([caras[2 * i + 1], caras[nCaras - 2 - 2 * i]]);
-    }
-  }
+  for (let i = 0; i < caras.length; i += 2) paginas.push([caras[i], caras[i + 1] || []]);
 
   const content = paginas.map(([izquierda, derecha], i) => ({
     columns: [columnaDeSchita(izquierda), { text: '', width: CANAL_SCHITA }, columnaDeSchita(derecha)],
@@ -877,33 +1013,47 @@ export const definirSchita = (sermon, esquema, etiquetas = {}) => {
   return {
     pageSize: 'A4',
     pageOrientation: 'landscape',
-    pageMargins: [MARGEN_SCHITA, MARGEN_SCHITA, MARGEN_SCHITA, MARGEN_SCHITA],
-    defaultStyle: { font: 'Roboto', fontSize: T.schitaClave, color: TINTA },
+    // Abajo hace falta algo más que el margen: el pie de pdfmake se dibuja
+    // DENTRO de esa banda, y con 14 pt el número se montaría sobre la última
+    // línea del texto.
+    pageMargins: [MARGEN_SCHITA, MARGEN_SCHITA, MARGEN_SCHITA, MARGEN_SCHITA + 12],
+    defaultStyle: { font: SERIF, fontSize: T.schitaClave, color: TINTA },
     content,
-    // La línea del doblez, por el medio exacto de la hoja apaisada.
+    // La línea del medio. Ya no marca un doblez —la cartilla no se dobla—,
+    // pero sigue haciendo falta: separa las dos columnas, que a 15 pt y con
+    // los márgenes al mínimo quedan muy juntas, y marca por dónde cortar a
+    // quien prefiera medias cuartillas.
     background: () => ({
       canvas: [
         {
           type: 'line',
           x1: A4_ALTO / 2,
-          y1: 24,
+          y1: 10,
           x2: A4_ALTO / 2,
-          y2: A4_ANCHO - 24,
+          y2: A4_ANCHO - 10,
           lineWidth: 0.5,
           dash: { length: 3 },
           lineColor: LINEA_SUAVE,
         },
       ],
     }),
-    // La marca va sólo a la derecha del todo, que en la hoja doblada es el
-    // borde exterior de la mitad derecha. Sin número de página: la schiță es
-    // una hoja que se dobla y se lleva al púlpito, no un documento paginado.
-    footer: () => ({
-      text: 'robible.com',
-      alignment: 'right',
-      fontSize: T.nota,
+    // El número de página, abajo a la derecha. Lo pidió el propietario al
+    // dejar de ser un cuadernillo: desde que las hojas van sueltas y en orden
+    // de lectura, el número es lo único que las ordena si se caen al suelo —y
+    // «¿voy por la tres o por la cuatro?» es una pregunta que no se puede
+    // estar haciendo delante de la congregación. Va `n / total` y no sólo `n`
+    // porque así además se ve si falta una hoja.
+    //
+    // La marca se queda a la izquierda: es toda la publicidad de la
+    // aplicación y esta hoja se imprime y se reparte (ver la trampa 94).
+    footer: (pagina, total) => ({
+      columns: [
+        { text: 'robible.com', alignment: 'left', width: '*' },
+        { text: `${pagina} / ${total}`, alignment: 'right', width: 'auto', bold: true },
+      ],
+      fontSize: T.schitaNota - 1.5,
       color: GRIS,
-      margin: [0, 6, MARGEN_SCHITA, 0],
+      margin: [MARGEN_SCHITA, 4, MARGEN_SCHITA, 0],
     }),
   };
 };

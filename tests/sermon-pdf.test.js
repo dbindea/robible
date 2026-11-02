@@ -41,41 +41,53 @@ test('una schiță corta cabe en una hoja a una cara', () => {
   assert.equal(paginas[0].length, 2, 'la hoja tiene dos paneles');
 });
 
-// Las medidas de estos dos cambiaron el 2 nov 2026 y no por capricho: el
-// reparto en caras pasó a medirse en PUNTOS y a llenar cara a cara, porque
-// repartir el total a partes iguales planificaba menos páginas de las que
-// pdfmake acababa imprimiendo — y entonces el plegado del cuadernillo no
-// cuadra con nada. Comprobado generando el PDF de verdad: con los tamaños de
-// aquí, lo planificado y lo impreso coinciden.
-test('una schiță larga se reparte en cuatro caras', () => {
+// La schiță dejó de ser un cuadernillo el 2 nov 2026. Lo pidió el propietario
+// después de imprimirla: la imposición para doblar obligaba a rellenar hasta un
+// múltiplo de cuatro —sobraban medias páginas en blanco— y los bloques no
+// caían en orden de lectura. Ahora las caras van seguidas, 1|2 y 3|4, y cada
+// hoja lleva su número abajo a la derecha.
+test('una schiță larga se reparte en varias hojas, de dos caras cada una', () => {
   const paginas = caras(esquemaDe(14, 4));
-  assert.equal(paginas.length, 2, 'cuatro caras son dos hojas físicas (doble cara)');
-  assert.equal(paginas[0].length, 2);
-  assert.equal(paginas[1].length, 2);
+  assert.ok(paginas.length >= 2, `una schiță de 14 puntos no cabe en una hoja: salen ${paginas.length}`);
+  assert.ok(
+    paginas.every((p) => p.length === 2),
+    'cada hoja tiene dos paneles',
+  );
 });
 
-test('las cuatro caras van en orden de cuadernillo, no en orden natural', () => {
-  // Al doblar por el lado corto, el panel izquierdo del anverso queda el
-  // último. Por eso la hoja se compone 4|1 delante y 2|3 detrás: leído en el
-  // orden en que se pasan las páginas, el contenido sale seguido.
-  const [[anversoIzq, anversoDer], [reversoIzq, reversoDer]] = caras(esquemaDe(14, 4));
-
-  const leidoAlDoblar = [anversoDer, reversoIzq, reversoDer, anversoIzq].flat();
+test('las caras van en ORDEN DE LECTURA, de izquierda a derecha', () => {
+  // El invariante que importa: leyendo izquierda→derecha y hoja a hoja, los
+  // puntos salen en orden. Si alguien devuelve la imposición de cuadernillo
+  // (4|1 delante, 2|3 detrás), esto se pone rojo.
+  const numeros = caras(esquemaDe(14, 4)).flat(2);
 
   assert.deepEqual(
-    leidoAlDoblar,
-    [...leidoAlDoblar].sort((a, b) => a - b),
-    `al doblar, los puntos salen desordenados: ${leidoAlDoblar.join(', ')}`,
+    numeros,
+    [...numeros].sort((a, b) => a - b),
+    `leída de izquierda a derecha, la cartilla sale desordenada: ${numeros.join(', ')}`,
   );
+});
 
-  // Y en orden natural (1|2, 3|4) NO saldría seguido: si alguien "simplifica"
-  // la imposición, este test tiene que ponerse rojo.
-  const ordenNatural = [anversoIzq, anversoDer, reversoIzq, reversoDer].flat();
-  assert.notDeepEqual(
-    ordenNatural,
-    [...ordenNatural].sort((a, b) => a - b),
-    'la imposición parece haber vuelto al orden natural',
-  );
+test('no quedan medias páginas en blanco', () => {
+  // Era la otra consecuencia del cuadernillo: como una hoja doblada aporta
+  // cuatro páginas, el reparto rellenaba hasta el múltiplo de cuatro y podían
+  // sobrar hasta tres caras vacías. En el PDF que envió el propietario había
+  // cuatro caras escritas de diez.
+  for (const puntos of [3, 7, 14]) {
+    const definicion = definirSchita(SERMON, esquemaDe(puntos, 4), {});
+    const panelesVacios = definicion.content
+      .flatMap((pagina, i) => pagina.columns.filter((c) => c.stack).map((c, j) => ({ c, i, j })))
+      .filter(({ c }) => c.stack.length === 0);
+
+    // Como mucho puede quedar vacío el ÚLTIMO panel de la ÚLTIMA hoja: el
+    // contenido acaba donde acaba, y una cara impar no se puede evitar.
+    const ultimaHoja = definicion.content.length - 1;
+    assert.ok(
+      panelesVacios.every(({ i, j }) => i === ultimaHoja && j === 1),
+      `con ${puntos} puntos quedan caras en blanco que no son la última: ` +
+        JSON.stringify(panelesVacios.map(({ i, j }) => `hoja ${i + 1}, panel ${j + 1}`)),
+    );
+  }
 });
 
 // ── Los subpuntos, en la predicación impresa ──────────────────────────────
@@ -630,25 +642,24 @@ const estimarAltoDePrueba = (nodos, ancho = 491) => {
 
 // ── La schiță con la regla nueva: más caras, mismo plegado ─────────────────
 
-test('una schiță larguísima pasa a ocho caras y se sigue leyendo seguida al doblar', () => {
-  // Desde que entra CADA frase del desarrollo, una predicación de las largas no
-  // cabe en cuatro caras. Antes el reparto sólo sabía hacer 2 o 4: el resto se
-  // salía de la columna, pdfmake añadía páginas por su cuenta y el plegado
-  // dejaba de cuadrar.
+test('una schiță larguísima crece en hojas sin perder el orden ni un punto', () => {
+  // Desde que entra CADA frase del desarrollo, una predicación de las largas
+  // ocupa varias hojas. Lo que no puede pasar es que se pierda un punto por el
+  // camino —el reparto reserva caras para los que no caben en una— ni que el
+  // orden se rompa al crecer.
   const paginas = caras(esquemaDe(16, 6));
-  assert.equal(paginas.length, 4, `ocho caras son cuatro páginas (dos hojas a doble cara), salen ${paginas.length}`);
+  assert.ok(paginas.length >= 4, `16 puntos de 6 claves necesitan varias hojas, salen ${paginas.length}`);
 
-  // Al doblar y meter las hojas una dentro de otra, los puntos salen en orden.
-  const hojas = paginas.length / 2;
-  const leido = [];
-  for (let i = 0; i < hojas; i++) leido.push(paginas[2 * i][1], paginas[2 * i + 1][0]);
-  for (let i = hojas - 1; i >= 0; i--) leido.push(paginas[2 * i + 1][1], paginas[2 * i][0]);
-
-  const numeros = leido.flat();
+  const numeros = paginas.flat(2);
   assert.deepEqual(
     numeros,
     [...numeros].sort((a, b) => a - b),
-    `al doblar, los puntos salen desordenados: ${numeros.join(', ')}`,
+    `la cartilla larga sale desordenada: ${numeros.join(', ')}`,
+  );
+  assert.deepEqual(
+    [...new Set(numeros)],
+    Array.from({ length: 16 }, (_, i) => i + 1),
+    'falta algún punto, o alguno sale dos veces',
   );
 });
 
@@ -656,23 +667,29 @@ test('un punto de schiță más alto que la columna NO se marca indivisible', ()
   // Misma lección que la trampa 64, en la schiță: un `unbreakable` que no cabe
   // hace que pdfmake descarte lo que sobra y el punto desaparezca del papel.
   // Antes de la regla nueva no podía pasar —un punto eran cinco líneas—.
-  const esquema = esquemaDe(1, 60);
-  const definicion = definirSchita(SERMON, esquema, {});
-  const grupos = [];
+  const definicion = definirSchita(SERMON, esquemaDe(1, 60), {});
+
+  const indivisibles = [];
   const recorrer = (n) => {
     if (Array.isArray(n)) return n.forEach(recorrer);
     if (!n || typeof n !== 'object') return;
-    if (n.unbreakable !== undefined) grupos.push(n);
+    if (n.unbreakable) indivisibles.push(n);
     if (n.stack) recorrer(n.stack);
     if (n.columns) recorrer(n.columns);
   };
   recorrer(definicion.content);
 
-  assert.ok(grupos.length, 'no se encontró el grupo del punto');
-  assert.ok(
-    grupos.every((g) => g.unbreakable === false),
-    'un punto de sesenta líneas no cabe en una cara: no puede ser indivisible',
-  );
+  // Desde el 2 nov 2026 la garantía es más fuerte que «el punto largo no se
+  // marca»: en la cartilla **no se marca nada**. El reparto en caras trabaja
+  // línea a línea, así que no hay ningún nodo que pueda no caber — y con eso
+  // la trampa 64 deja de poder morder aquí.
+  assert.deepEqual(indivisibles, [], 'en la schiță no puede quedar ningún nodo indivisible');
+
+  // Y lo que importa de verdad: que no se haya perdido ni una línea.
+  const impreso = JSON.stringify(definicion.content);
+  for (let k = 1; k <= 60; k++) {
+    assert.ok(impreso.includes(`clave 1.${k}`), `la clave ${k} de un punto de sesenta se perdió por el camino`);
+  }
 });
 
 // ── Marca de agua ───────────────────────────────────────────────────────────
@@ -696,11 +713,21 @@ test('el documento lleva robible.com en el pie, junto a la numeración', () => {
   assert.equal(numero.alignment, 'center');
 });
 
-test('la schiță lleva la marca pero NO número de página', () => {
-  // Es una hoja que se dobla y se lleva al púlpito, no un documento paginado.
+test('la schiță lleva la marca Y el número de página, a la derecha', () => {
+  // Llevó marca sin número hasta el 2 nov 2026, porque era un cuadernillo que
+  // se doblaba. Desde que las hojas van sueltas y en orden de lectura, el
+  // número es lo único que las ordena — lo pidió el propietario: «debajo de
+  // todo ponme en pie de página a la derecha el número para ir buscando las
+  // páginas en orden».
   const definicion = definirSchita(SERMON, { points: [] }, {});
   assert.ok(definicion.footer, 'la schiță también tiene que llevar marca');
-  const pie = definicion.footer(1, 1);
-  assert.equal(pie.text, 'robible.com');
-  assert.equal(pie.alignment, 'right');
+  const pie = definicion.footer(2, 3);
+  const textos = pie.columns.map((c) => c.text);
+
+  assert.ok(textos.includes('robible.com'), `el pie no lleva la marca: ${JSON.stringify(textos)}`);
+  assert.ok(textos.includes('2 / 3'), `el pie no lleva el número: ${JSON.stringify(textos)}`);
+
+  // El número a la DERECHA: es lo que se busca al recoger las hojas.
+  const numero = pie.columns.find((c) => c.text === '2 / 3');
+  assert.equal(numero.alignment, 'right');
 });

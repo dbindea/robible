@@ -229,6 +229,19 @@ test('la schiță de una predicación real cabe en el púlpito', () => {
   );
 });
 
+test('el recuento de la schiță cuenta lo que se LEE, no la sintaxis', () => {
+  // Mide sobre el texto limpio, igual que `sermonWordCount`. Contando la
+  // cadena cruda, un rótulo sumaba una palabra de más (el `##` suelto) y una
+  // cita una de menos, porque `3:16|Fiindcă` no tiene espacio en medio y
+  // cuenta como un solo token. Con setenta claves la cuenta se va lo bastante
+  // como para que el predicador no se fíe de ella.
+  const soloClave = (k) => outlineWordCount({ points: [{ id: 'p', title: '', keywords: [k], refs: [] }] });
+
+  assert.equal(soloClave('{{Ioan 3:16|Fiindcă atât de mult a iubit}}'), 8);
+  assert.equal(soloClave('## ZIDIREA CASEI'), 2);
+  assert.equal(soloClave('Aceasta este o *frază* normală'), 5);
+});
+
 test('un propósito largo no se cuela entero en la schiță', () => {
   // El propósito se escribe con calma en el estudio y puede ocupar un párrafo.
   // Volcarlo tal cual convertiría la schiță en el resumen largo que no debe ser.
@@ -424,17 +437,22 @@ test('alternarSubtitulo pone y quita sobre la línea del cursor', () => {
   assert.equal(alternarSubtitulo(puesto.texto, 6, 6).texto, texto);
 });
 
-test('un subtítulo entra en la schiță como rótulo en mayúsculas, sin almohadillas', () => {
+test('un subtítulo entra en la schiță CONSERVANDO el marcador de rótulo', () => {
   const c = emptyContent();
   const p = newPoint('Punct');
   c.structure.push(p);
   c.development[p.id] = { explain: '## Zidirea casei\nPrima frază.', illustrate: '', apply: '', refs: [] };
 
   const [clave, frase] = generateOutline(c).points[0].keywords;
-  // En negrita y en mayúsculas: es la división que puso el predicador, y en la
-  // cartilla del atril vale más que cualquier frase que se resuma de debajo.
-  assert.equal(clave, '*ZIDIREA CASEI*');
+  // En mayúsculas y CON su `##` desde el 2 nov 2026. Antes se convertía en una
+  // marca entera (`*ZIDIREA CASEI*`) y entonces era indistinguible de una
+  // frase marcada: quien la pintaba le ponía el guion de un elemento más de la
+  // lista. Con el marcador, el que imprime sabe que es un rótulo y lo saca sin
+  // guion, que es justo lo que pidió el propietario.
+  assert.equal(clave, '## ZIDIREA CASEI');
   assert.equal(frase, 'Prima frază');
+  // Y el marcador NO llega nunca al papel: lo quita quien lo pinta.
+  assert.equal(quitarMarcas(clave), 'ZIDIREA CASEI');
 });
 
 test('un subtítulo con una marca dentro no imprime los asteriscos', () => {
@@ -448,7 +466,7 @@ test('un subtítulo con una marca dentro no imprime los asteriscos', () => {
   const p = newPoint('Punct');
   c.structure.push(p);
   c.development[p.id] = { explain: '## Zidirea *casei*', illustrate: '', apply: '', refs: [] };
-  assert.deepEqual(generateOutline(c).points[0].keywords, ['*ZIDIREA CASEI*']);
+  assert.deepEqual(generateOutline(c).points[0].keywords, ['## ZIDIREA CASEI']);
 
   // Pero el botón de la interfaz NO le toca el marcado al predicador: lo que
   // quita es la almohadilla y nada más.
@@ -633,16 +651,26 @@ test('los subpuntos salen siempre, antes que el desarrollo del punto', () => {
 
 // ── Citas insertadas en la schiță ────────────────────────
 
-test('citasDe convierte una cita en referencia negrita + el arranque del versículo', () => {
+test('citasDe deja la cita COMO CITA, con la referencia y el arranque del versículo', () => {
   // Mismo recorte que cualquier otra frase (8-10 palabras) desde el 2 nov
   // 2026: con cinco, el predicador no reconocía el versículo de un vistazo.
   // La coma de «lumea,» se va con el corte: «lumea,…» se lee como un borrón.
+  //
+  // Y sale con la sintaxis de cita, no como `*ref* texto`: es lo que hace que
+  // la pinten con su barra vertical azul el Modo Amvon, el PDF de la schiță y
+  // la pantalla, sin una rama por sitio.
   const t = 'Textul spune că {{Ioan 3:16|Fiindcă atât de mult a iubit Dumnezeu lumea, că a dat pe singurul Lui Fiu}}.';
-  assert.deepEqual(citasDe(t), ['*Ioan 3:16* Fiindcă atât de mult a iubit Dumnezeu lumea…']);
+  assert.deepEqual(citasDe(t), ['{{Ioan 3:16|Fiindcă atât de mult a iubit Dumnezeu lumea…}}']);
 });
 
 test('citasDe no recorta un versículo ya corto', () => {
-  assert.deepEqual(citasDe('{{Ioan 11:35|Isus a plâns}}'), ['*Ioan 11:35* Isus a plâns']);
+  assert.deepEqual(citasDe('{{Ioan 11:35|Isus a plâns}}'), ['{{Ioan 11:35|Isus a plâns}}']);
+});
+
+test('una cita sin texto no puede salir como cita, y cae a marca normal', () => {
+  // `CITA` exige las DOS partes: `{{ref|}}` no empareja con nada y el renglón
+  // se imprimiría con las llaves a la vista.
+  assert.deepEqual(citasDe('{{Ioan 3:16|.}}'), ['*Ioan 3:16*']);
 });
 
 test('una cita insertada en el desarrollo llega a la schiță aunque no se marque nada', () => {
@@ -659,7 +687,7 @@ test('una cita insertada en el desarrollo llega a la schiță aunque no se marqu
   // línea, así que sale como bloque y ese punto no abre un párrafo nuevo con un
   // carácter dentro (ver `bloquesDe`).
   assert.ok(
-    o.points[0].keywords.includes('*Ioan 3:16* Fiindcă atât de mult a iubit Dumnezeu lumea.'),
+    o.points[0].keywords.includes('{{Ioan 3:16|Fiindcă atât de mult a iubit Dumnezeu lumea.}}'),
     `la cita no llegó a la schiță: ${JSON.stringify(o.points[0].keywords)}`,
   );
 });
@@ -670,8 +698,8 @@ test('una cita en la introducción o la conclusión también llega a la schiță
   c.conclusion = 'Terminamos con {{Apocalipsa 21:4|Dumnezeu va șterge orice lacrimă}}.';
 
   const o = generateOutline(c);
-  assert.ok(o.intro.some((l) => l.startsWith('*Ioan 1:1*')), JSON.stringify(o.intro));
-  assert.ok(o.conclusion.includes('*Apocalipsa 21:4*'), o.conclusion);
+  assert.ok(o.intro.some((l) => l.startsWith('{{Ioan 1:1|')), JSON.stringify(o.intro));
+  assert.ok(o.conclusion.includes('{{Apocalipsa 21:4|'), o.conclusion);
 });
 
 test('la cita llega a la schiță en el ORDEN en que está escrita', () => {
@@ -688,7 +716,7 @@ test('la cita llega a la schiță en el ORDEN en que está escrita', () => {
 
   assert.deepEqual(generateOutline(c).points[0].keywords, [
     'Prima frază',
-    '*Ioan 3:16* Dumnezeu a iubit lumea',
+    '{{Ioan 3:16|Dumnezeu a iubit lumea}}',
     'Ultima frază',
   ]);
 });
@@ -709,7 +737,7 @@ test('también la cita que se queda EN LÍNEA, en mitad de una frase', () => {
   assert.deepEqual(generateOutline(c).points[0].keywords, [
     'Prima frază',
     'Textul spune că',
-    '*Ioan 3:16* Dumnezeu a iubit lumea',
+    '{{Ioan 3:16|Dumnezeu a iubit lumea}}',
     'și asta schimbă tot',
     'Ultima frază',
   ]);

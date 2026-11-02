@@ -97,6 +97,33 @@ instalación de la PWA en unos 17 MB para leer una sola.
 
 ---
 
+## Tipografía del PDF de la schiță
+
+La cartilla que el predicador se lleva al atril se imprime en **Tinos**,
+licencia SIL Open Font License 1.1
+(Steve Matteson — https://fonts.google.com/specimen/Tinos).
+
+El propietario pidió Times New Roman. Times New Roman es de Monotype y no se
+puede empotrar en una aplicación web; Tinos es su equivalente de licencia
+abierta — **métricamente compatible**, mismo dibujo, hecha justo para
+sustituirla.
+
+**Por qué no las catorce fuentes estándar del PDF.** El formato trae
+Times-Roman de serie y sale gratis: no hay que empotrar ni un byte. No vale, y
+conviene saberlo antes de volver a intentarlo: van en WinAnsi (CP1252), que
+tiene â e î pero **no** tiene ă, ș ni ț. En rumano eso no es un detalle.
+
+Como los iconos, está copiada al árbol y no instalada: `src/services/pdf-font.js`
+la lleva en base64 —69 KB las cuatro variantes, recortada a los 228 caracteres
+que la aplicación puede imprimir— y lo genera `scripts/build-pdf-font.mjs`. Va
+en el bundle y no en `public/` para que la schiță se pueda imprimir sin red; se
+importa dinámicamente, así que no entra en el arranque. El resto de la
+aplicación y el folio de la predicación siguen en Roboto, la que trae pdfmake.
+
+```bash
+node scripts/build-pdf-font.mjs   # sólo si hace falta otro corte o más glifos
+```
+
 ## Iconos
 
 Los iconos de la interfaz son **Phosphor Icons**, licencia MIT
