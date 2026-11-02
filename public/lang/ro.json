@@ -614,7 +614,7 @@
         "share": "Distribuie predica",
         "copied": "Link copiat"
       },
-      "print_outline_hint": "Se pliază pe jumătate, pe latura scurtă. Dacă schița are mai mult de două pagini, tipărește față-verso cu întoarcere pe latura scurtă și pliază foile una în alta.",
+      "print_outline_hint": "Se pliază pe jumătate, pe latura scurtă. Dacă PDF-ul are mai mult de o pagină, tipărește față-verso cu întoarcere pe latura scurtă și pliază foile una în alta.",
       "idea_exegetical": "Ideea exegetică",
       "idea_exegetical_help": "Ce a spus textul pentru destinatarii lui de atunci? Tema + ce se spune despre ea.",
       "outline_intro": "Introducere (idei)",

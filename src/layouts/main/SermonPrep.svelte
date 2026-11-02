@@ -80,17 +80,21 @@
   let areas = {};
   let seleccion = {}; // clave del campo → true si hay algo seleccionado
 
-  const refrescarSeleccion = (puntoId, campo) => {
-    const el = areas[`${puntoId}:${campo}`];
-    seleccion = { ...seleccion, [`${puntoId}:${campo}`]: !!el && el.selectionStart !== el.selectionEnd };
+  // Los dos van por `clave` —la misma cadena que `abrirInsertarCita`: el id y
+  // el campo con dos puntos, o el nombre a secas— y no por punto + campo,
+  // porque desde el 2 nov 2026 también se marca en la introducción y en la
+  // conclusión, que no cuelgan de ningún punto. Lo marcado ahí llega ya a la
+  // schiță, así que sin el botón la función existía y no se podía usar.
+  const refrescarSeleccion = (clave) => {
+    const el = areas[clave];
+    seleccion = { ...seleccion, [clave]: !!el && el.selectionStart !== el.selectionEnd };
   };
 
-  const marcarSeleccion = async (puntoId, campo) => {
-    const el = areas[`${puntoId}:${campo}`];
+  const marcarSeleccion = async (clave) => {
+    const el = areas[clave];
     if (!el) return;
-    const d = desarrolloDe(puntoId);
-    const r = envolverEnMarca(d[campo] || '', el.selectionStart, el.selectionEnd);
-    d[campo] = r.texto;
+    const r = envolverEnMarca(leerCampoTexto(clave), el.selectionStart, el.selectionEnd);
+    escribirCampoTexto(clave, r.texto);
     content = content; // Svelte no ve la mutación dentro del objeto anidado.
     guardarContenido();
     // El valor no está en el DOM hasta que Svelte repinta; sin esperar, la
@@ -98,7 +102,7 @@
     await tick();
     el.focus();
     el.setSelectionRange(r.desde, r.hasta);
-    refrescarSeleccion(puntoId, campo);
+    refrescarSeleccion(clave);
   };
 
   /**
@@ -1363,6 +1367,16 @@
                 <button
                   type="button"
                   class="campo__marcar"
+                  disabled={!seleccion['intro']}
+                  on:click={() => marcarSeleccion('intro')}
+                  title={$_('app.sermons.mark_help')}
+                >
+                  <Icon name="highlight" size="0.85rem" />
+                  {$_('app.sermons.mark_keyword')}
+                </button>
+                <button
+                  type="button"
+                  class="campo__marcar"
                   on:click={() => marcarSubtitulo('intro')}
                   title={$_('app.sermons.mark_subtitle_help')}
                 >
@@ -1385,6 +1399,9 @@
               bind:this={areas['intro']}
               bind:value={content.intro}
               on:input={guardarContenido}
+              on:select={() => refrescarSeleccion('intro')}
+              on:keyup={() => refrescarSeleccion('intro')}
+              on:mouseup={() => refrescarSeleccion('intro')}
             ></textarea>
           </div>
 
@@ -1444,7 +1461,7 @@
                             type="button"
                             class="campo__marcar"
                             disabled={!seleccion[`${sub.id}:text`]}
-                            on:click={() => marcarSeleccion(sub.id, 'text')}
+                            on:click={() => marcarSeleccion(`${sub.id}:text`)}
                             title={$_('app.sermons.mark_help')}
                           >
                             <Icon name="highlight" size="0.85rem" />
@@ -1467,9 +1484,9 @@
                         bind:this={areas[`${sub.id}:text`]}
                         bind:value={ds.text}
                         on:input={guardarContenido}
-                        on:select={() => refrescarSeleccion(sub.id, 'text')}
-                        on:keyup={() => refrescarSeleccion(sub.id, 'text')}
-                        on:mouseup={() => refrescarSeleccion(sub.id, 'text')}
+                        on:select={() => refrescarSeleccion(`${sub.id}:text`)}
+                        on:keyup={() => refrescarSeleccion(`${sub.id}:text`)}
+                        on:mouseup={() => refrescarSeleccion(`${sub.id}:text`)}
                       ></textarea>
                     </div>
 
@@ -1532,7 +1549,7 @@
                           type="button"
                           class="campo__marcar"
                           disabled={!seleccion[`${punto.id}:${campo}`]}
-                          on:click={() => marcarSeleccion(punto.id, campo)}
+                          on:click={() => marcarSeleccion(`${punto.id}:${campo}`)}
                           title={$_('app.sermons.mark_help')}
                         >
                           <Icon name="highlight" size="0.85rem" />
@@ -1559,9 +1576,9 @@
                       bind:this={areas[`${punto.id}:${campo}`]}
                       bind:value={d[campo]}
                       on:input={guardarContenido}
-                      on:select={() => refrescarSeleccion(punto.id, campo)}
-                      on:keyup={() => refrescarSeleccion(punto.id, campo)}
-                      on:mouseup={() => refrescarSeleccion(punto.id, campo)}
+                      on:select={() => refrescarSeleccion(`${punto.id}:${campo}`)}
+                      on:keyup={() => refrescarSeleccion(`${punto.id}:${campo}`)}
+                      on:mouseup={() => refrescarSeleccion(`${punto.id}:${campo}`)}
                     ></textarea>
                   </div>
                 {/each}
@@ -1628,6 +1645,16 @@
                 <button
                   type="button"
                   class="campo__marcar"
+                  disabled={!seleccion['conclusion']}
+                  on:click={() => marcarSeleccion('conclusion')}
+                  title={$_('app.sermons.mark_help')}
+                >
+                  <Icon name="highlight" size="0.85rem" />
+                  {$_('app.sermons.mark_keyword')}
+                </button>
+                <button
+                  type="button"
+                  class="campo__marcar"
                   on:click={() => marcarSubtitulo('conclusion')}
                   title={$_('app.sermons.mark_subtitle_help')}
                 >
@@ -1643,6 +1670,9 @@
               bind:this={areas['conclusion']}
               bind:value={content.conclusion}
               on:input={guardarContenido}
+              on:select={() => refrescarSeleccion('conclusion')}
+              on:keyup={() => refrescarSeleccion('conclusion')}
+              on:mouseup={() => refrescarSeleccion('conclusion')}
             ></textarea>
           </div>
 

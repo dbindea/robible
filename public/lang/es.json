@@ -614,7 +614,7 @@
         "share": "Compartir la predicación",
         "copied": "Enlace copiado"
       },
-      "print_outline_hint": "Se dobla por la mitad, por el lado corto. Si el esquema ocupa más de dos páginas, imprime a doble cara volteando por el borde corto y dobla las hojas una dentro de otra.",
+      "print_outline_hint": "Se dobla por la mitad, por el lado corto. Si el PDF tiene más de una página, imprime a doble cara volteando por el borde corto y dobla las hojas una dentro de otra.",
       "idea_exegetical": "Idea exegética",
       "idea_exegetical_help": "¿Qué dijo el texto a sus destinatarios de entonces? El tema + qué se dice sobre él.",
       "outline_intro": "Introducción (ideas)",

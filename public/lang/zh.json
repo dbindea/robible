@@ -586,7 +586,7 @@
       "mark_keyword": "标记",
       "mark_help": "选中词语并标记：在讲章提纲中会以粗体显示，紧跟句子开头。",
       "mark_subtitle": "小标题",
-      "mark_subtitle_help": "光标所在的那一行会变成小标题：打印时为大写加粗，前后留出段落间距。",
+      "mark_subtitle_help": "光标所在的那一行会变成小标题：打印时以粗体显示，前后留出段落间距。",
       "refs_title": "辅助经文",
       "refs_add": "添加经文",
       "refs_remove": "删除引用",
@@ -614,7 +614,7 @@
         "share": "分享这篇讲章",
         "copied": "链接已复制"
       },
-      "print_outline_hint": "沿短边对折。若纲要超过两页，请双面打印并沿短边翻页，然后把各张纸一张套一张地对折。",
+      "print_outline_hint": "沿短边对折。若 PDF 超过一页，请双面打印并沿短边翻页，然后把各张纸一张套一张地对折。",
       "idea_exegetical": "释经性中心思想",
       "idea_exegetical_help": "经文对当时的受信者说了什么？主题＋关于该主题所说的内容。",
       "outline_intro": "引言（要点）",

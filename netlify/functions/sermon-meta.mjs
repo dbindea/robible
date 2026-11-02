@@ -36,7 +36,7 @@ function sinMarcas(value = '') {
     // (2 nov 2026). Se queda el texto y se va la almohadilla — en el HTML sin
     // JavaScript que ve el rastreador no hay negrita que darle, pero un `##`
     // suelto sí se vería.
-    .replace(/^[ \t]*#{1,6}[ \t]+/gm, '')
+    .replace(/^[ \t]*#{2,6}[ \t]+/gm, '')
     .replace(/\*([^*\n]+)\*/g, '$1')
     .replace(/\{\{([^{}|]+)\|([^{}]+)\}\}/g, '$1: $2');
 }

@@ -614,7 +614,7 @@
         "share": "Share this sermon",
         "copied": "Link copied"
       },
-      "print_outline_hint": "Fold in half along the short edge. If the outline runs to more than two pages, print double-sided flipping on the short edge and nest the sheets one inside the other.",
+      "print_outline_hint": "Fold in half along the short edge. If the PDF has more than one page, print double-sided flipping on the short edge and nest the sheets one inside the other.",
       "idea_exegetical": "Exegetical idea",
       "idea_exegetical_help": "What did the text say to its original recipients? The subject + what is said about it.",
       "outline_intro": "Introduction (ideas)",

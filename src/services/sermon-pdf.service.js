@@ -35,6 +35,7 @@ import {
   quitarMarcas,
   segmentarTexto,
   sermonWordCount,
+  sinMarcadorDeSubtitulo,
   estimatedMinutes,
 } from './sermon-content.service.js';
 
@@ -189,7 +190,10 @@ const filete = (opciones = {}) => ({
  * dos se limpiaban con `quitarMarcas` sin más y el formato desaparecía.
  */
 const runsDeTexto = (texto, opciones = {}) =>
-  segmentarTexto((texto || '').trim()).map((s) => ({
+  // `sinMarcadorDeSubtitulo`: esto pinta EN LÍNEA, así que un `##` escrito a
+  // mano —en la transición o en un campo de la schiță, que no pasan por
+  // `bloquesDe`— no tiene aquí ningún significado y se imprimía tal cual.
+  segmentarTexto(sinMarcadorDeSubtitulo(texto || '').trim()).map((s) => ({
     text: s.texto,
     ...(s.bold || opciones.bold ? { bold: true } : {}),
     ...(s.italica ? { italics: true } : {}),
@@ -227,7 +231,12 @@ const bloqueCitado = (label, cuerpo, opciones = {}) => {
                 lineHeight: opciones.lineHeight ?? 1.35,
               },
             ],
-            border: [false, false, false, false],
+            // Sólo el borde IZQUIERDO, que es la barra. Con los cuatro en
+            // `false` —como estaba— pdfmake no dibuja ninguno: el `border` de la
+            // celda manda sobre el `vLineWidth` del layout, así que la barra
+            // azul no se pintaba nunca. Era justo lo que el propietario pidió
+            // que apareciera «también en el PDF».
+            border: [true, false, false, false],
           },
         ],
       ],
@@ -323,7 +332,7 @@ const tituloDeSeccion = (texto) => [
  *     azul, y si está en mitad de una frase se queda en línea y en cursiva.
  */
 const cuerpoDeCampo = (texto, opciones = {}) =>
-  bloquesDe(texto || '').map((b) => {
+  bloquesDe(texto || '').map((b, i) => {
     if (b.tipo === 'subtitulo') {
       // En el carril, con los titulares: es un rótulo, no cuerpo. Y un punto
       // por debajo del subpunto, porque la caja alta ya pesa de por sí; en azul
@@ -345,7 +354,12 @@ const cuerpoDeCampo = (texto, opciones = {}) =>
       fontSize: T.cuerpo,
       lineHeight: INTERLINEA,
       alignment: 'left',
-      margin: [CARRIL, AIRE_PARRAFO, 0, 0],
+      // El primer párrafo de un campo lleva el doble de aire encima: sin las
+      // etiquetas EXPLICĂ / ILUSTREAZĂ / APLICĂ, una predicación que no use
+      // rótulos —todas las escritas hasta hoy— imprimía los tres campos del
+      // punto como una tira de párrafos indistinguibles. Así se nota dónde
+      // acaba uno y empieza el otro sin reintroducir ningún rótulo.
+      margin: [CARRIL, i === 0 ? AIRE_PARRAFO * 2 : AIRE_PARRAFO, 0, 0],
     };
   });
 
@@ -411,7 +425,14 @@ const estimarAlto = (nodos, anchoDisponible = ANCHO_UTIL) => {
     // dirección que resucita la trampa 64.
     // ~2 caracteres por punto de ancho a este tamaño.
     const porLinea = Math.max(20, Math.round((ancho / tamano) * 2));
-    const lineas = texto ? Math.ceil(texto.length / porLinea) : 1;
+    // Cada salto de línea escrito es una línea impresa, aunque no llene el
+    // ancho. Contando sólo los caracteres, un campo escrito con una frase por
+    // línea —que es como escribe mucha gente— se medía en la mitad de lo que
+    // ocupa: el grupo se declaraba «cabe» y pdfmake descartaba lo que sobraba,
+    // o sea que la sección entera desaparecía del folio.
+    const lineas = texto
+      ? texto.split('\n').reduce((a, linea) => a + Math.max(1, Math.ceil(linea.length / porLinea)), 0)
+      : 1;
     alto += lineas * tamano * (n.lineHeight || INTERLINEA) + margenes;
   }
   return alto;
@@ -653,27 +674,33 @@ const pieDePagina = (pagina, total) => ({
 
 const columnaDeSchita = (trozos) => ({ stack: trozos, width: '*' });
 
-// A4 apaisado menos márgenes ≈ 527 pt de alto útil; a ~13 pt por línea salen
-// unas 40. Se deja margen y se cuentan 34: pasarse parte la schiță en una
-// página que el plegado no espera, así que conviene quedarse corto.
-const CABEN_POR_CARA = 34;
+// A4 apaisado menos márgenes son 527 pt de alto útil por cara. Se cuentan 495
+// como colchón: pasarse mete una página que el plegado no espera, y entonces
+// el cuadernillo sale desordenado.
+const ALTO_CARA = 460;
 
 /**
- * Cuántas líneas impresas ocupa un trozo de la schiță.
+ * El alto de un trozo de la schiță, en puntos.
  *
- * No se puede medir el alto antes de componer, así que se estima por
- * caracteres, igual que en el folio de la predicación. Antes se contaba un
- * trozo = una línea, y con la regla nueva —cada frase del desarrollo, de ocho a
- * diez palabras— eso se quedó corto: en una columna de media hoja apaisada
- * entran unos 67 caracteres, y una palabra clave de diez palabras rumanas se
- * acerca mucho a eso.
+ * Se mide en puntos y no «en líneas» desde el 2 nov 2026. Contar líneas se
+ * quedaba corto por dos sitios a la vez —cada trozo lleva sus márgenes, y el
+ * titular de un punto es un cuerpo y medio— y el resultado era medible: una
+ * predicación normal planificaba dos páginas y pdfmake imprimía tres, con lo
+ * que el plegado dejaba de cuadrar.
+ *
+ * El ancho es el de media hoja apaisada menos el canal del doblez; se cuentan
+ * 1,9 caracteres por punto de ancho, un pelo conservador, porque en negrita y
+ * en mayúsculas la letra es más ancha que en el texto corrido.
  */
-const lineasDeSchita = (nodo) => {
-  if (nodo.stack) return nodo.stack.reduce((a, n) => a + lineasDeSchita(n), 0) + 1;
+const altoDeSchita = (nodo) => {
+  const margenes = (nodo.margin?.[1] || 0) + (nodo.margin?.[3] || 0);
+  if (nodo.stack) return nodo.stack.reduce((a, n) => a + altoDeSchita(n), 0) + margenes;
   const texto = textoDeRun(nodo);
   const tamano = nodo.fontSize || T.schitaClave;
-  const porLinea = Math.max(18, Math.round((ANCHO_COLUMNA_SCHITA / tamano) * 2));
-  return Math.max(1, Math.ceil(texto.length / porLinea));
+  const porLinea = Math.max(16, Math.round((ANCHO_COLUMNA_SCHITA / tamano) * 1.9));
+  // Los saltos escritos cuentan como líneas, igual que en el folio.
+  const lineas = texto.split('\n').reduce((a, linea) => a + Math.max(1, Math.ceil(linea.length / porLinea)), 0);
+  return Math.max(1, lineas) * tamano * (nodo.lineHeight || 1.25) + margenes;
 };
 
 export const definirSchita = (sermon, esquema, etiquetas = {}) => {
@@ -758,8 +785,13 @@ export const definirSchita = (sermon, esquema, etiquetas = {}) => {
     // la caja no lo reparte: pdfmake lo superpone con lo que venga después y el
     // punto DESAPARECE del papel (es la trampa 64, en la schiță). Hasta la
     // regla nueva no podía pasar —un punto eran cinco líneas—; ahora, con cada
-    // frase del desarrollo, un punto largo se pasa de las 34 de la columna.
-    trozos.push({ stack: grupo, unbreakable: lineasDeSchita({ stack: grupo }) <= CABEN_POR_CARA });
+    // frase del desarrollo, un punto largo se pasa de la columna entera.
+    //
+    // El margen es del 85 % de la cara y no del 100: la estimación es gruesa, y
+    // en el filo —un punto que mide «justo lo que cabe»— equivocarse por poco
+    // significa perder el punto entero, mientras que pasarse de prudente sólo
+    // significa que se parte por el doblez.
+    trozos.push({ stack: grupo, unbreakable: altoDeSchita({ stack: grupo }) <= ALTO_CARA * 0.85 });
   });
 
   if (o.application) {
@@ -773,38 +805,45 @@ export const definirSchita = (sermon, esquema, etiquetas = {}) => {
     trozos.push({ text: runsDeTexto(o.conclusion), fontSize: T.schitaClave });
   }
 
-  const peso = (t) => lineasDeSchita(t);
-  const total = trozos.reduce((a, t) => a + peso(t), 0);
-
-  /** Reparte los trozos en `n` caras de peso parecido, respetando el orden. */
-  const repartir = (n) => {
-    const caras = Array.from({ length: n }, () => []);
-    const porCara = total / n;
-    let acumulado = 0;
-    for (const t of trozos) {
-      // `Math.min` evita que un redondeo mande el último trozo a una cara que
-      // no existe cuando el peso estimado se pasa del total.
-      caras[Math.min(n - 1, Math.floor(acumulado / porCara))].push(t);
-      acumulado += peso(t);
+  // ── Reparto en caras ──
+  //
+  // Se llena cara a cara hasta donde cabe, NO repartiendo el total a partes
+  // iguales. La media engaña: los trozos son de tamaños muy distintos —un
+  // punto entero frente a una línea de introducción— y una cara se pasaba de
+  // la caja mientras la de al lado quedaba a medias. Medido con una
+  // predicación normal: se planificaban dos páginas y pdfmake imprimía tres,
+  // y a partir de ahí el plegado del cuadernillo ya no cuadra con nada.
+  const caras = [[]];
+  let altoCara = 0;
+  for (const t of trozos) {
+    const alto = altoDeSchita(t);
+    if (altoCara && altoCara + alto > ALTO_CARA) {
+      caras.push([]);
+      altoCara = 0;
     }
-    return caras;
-  };
+    caras[caras.length - 1].push(t);
+    altoCara += alto;
+
+    // Un punto más alto que la cara entera se va a partir de todas formas (por
+    // eso tampoco es indivisible): se le reservan las caras que va a ocupar de
+    // más, o la cuenta de páginas sale corta y el plegado se descuadra. Con un
+    // punto así la schiță ya se ha ido de madre y lo que toca es recortarla a
+    // mano, pero al menos no desaparece nada ni salen hojas de sobra.
+    const deMas = Math.ceil(altoCara / ALTO_CARA) - 1;
+    if (deMas > 0) {
+      for (let i = 0; i < deMas; i++) caras.push([]);
+      altoCara = 0;
+    }
+  }
 
   // Con poco contenido, una hoja a una cara doblada por el medio ya es el
   // cuadernillo: dos caras escritas y ni una en blanco. Si no cabe, se pasa a
   // cuatro caras (una hoja a doble cara), a ocho (dos hojas), etc. Siempre en
   // múltiplos de cuatro, porque una hoja doblada aporta cuatro páginas y las
-  // hojas se meten una dentro de otra.
-  //
-  // Las ocho caras hacen falta desde la regla nueva: con cada frase del
-  // desarrollo en la schiță, una predicación de las largas ya no entra en
-  // cuatro. Antes el reparto sólo sabía hacer 2 o 4, así que el resto se salía
-  // de la columna, pdfmake añadía páginas por su cuenta y el plegado dejaba de
-  // cuadrar.
-  const necesarias = Math.max(2, Math.ceil(total / CABEN_POR_CARA));
-  const nCaras = necesarias <= 2 ? 2 : 4 * Math.ceil(necesarias / 4);
-
-  const caras = repartir(nCaras);
+  // hojas se meten una dentro de otra. Las caras que sobran van vacías: en un
+  // cuadernillo son las páginas en blanco del final, que es lo normal.
+  const nCaras = caras.length <= 2 ? 2 : 4 * Math.ceil(caras.length / 4);
+  while (caras.length < nCaras) caras.push([]);
   const paginas = [];
   if (nCaras === 2) {
     paginas.push([caras[0], caras[1]]);

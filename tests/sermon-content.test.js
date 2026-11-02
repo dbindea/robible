@@ -437,6 +437,54 @@ test('un subtítulo entra en la schiță como rótulo en mayúsculas, sin almoha
   assert.equal(frase, 'Prima frază');
 });
 
+test('un subtítulo con una marca dentro no imprime los asteriscos', () => {
+  // Marcar una palabra y convertir después esa línea en subtítulo es un gesto
+  // de lo más normal, y dejaba `ZIDIREA *CASEI*` en el papel y
+  // `*ZIDIREA *CASEI**` —asteriscos impares— en la schiță, que en el púlpito
+  // se traga en negrita el resto de la línea.
+  assert.deepEqual(bloquesDe('## Zidirea *casei*'), [{ tipo: 'subtitulo', texto: 'Zidirea casei' }]);
+
+  const c = emptyContent();
+  const p = newPoint('Punct');
+  c.structure.push(p);
+  c.development[p.id] = { explain: '## Zidirea *casei*', illustrate: '', apply: '', refs: [] };
+  assert.deepEqual(generateOutline(c).points[0].keywords, ['*ZIDIREA CASEI*']);
+
+  // Pero el botón de la interfaz NO le toca el marcado al predicador: lo que
+  // quita es la almohadilla y nada más.
+  assert.equal(subtituloDe('## Zidirea *casei*'), 'Zidirea *casei*');
+});
+
+test('una marca que envuelve una cita no deja las llaves a la vista', () => {
+  // Se selecciona una frase entera que ya llevaba un versículo insertado y se
+  // pulsa «Marchează». La cita tiene que seguir siendo una cita dentro de la
+  // negrita, no un trozo de sintaxis.
+  const seg = segmentarTexto('*Domnul spune {{Ioan 3:16|Dumnezeu a iubit}} si noi ascultam*');
+  assert.ok(!seg.some((s) => s.texto.includes('{{') || s.texto.includes('|')), JSON.stringify(seg));
+  assert.ok(seg.some((s) => s.texto === 'Ioan 3:16 ' && s.cita && s.bold));
+  assert.ok(seg.some((s) => s.texto === 'Dumnezeu a iubit' && s.italica));
+  assert.ok(seg.every((s) => s.bold || s.cita), 'todo lo demás va en negrita, que es lo que se marcó');
+});
+
+test('una marca que se traga el punto final no parte los asteriscos', () => {
+  // Marcar una frase entera con el ratón se lleva el punto dentro. Partiendo
+  // por puntos a ciegas quedaba `*Dumnezeu zidește casa` por un lado —marca
+  // sin cerrar— y la frase siguiente por otro.
+  const c = emptyContent();
+  const p = newPoint('Punct');
+  c.structure.push(p);
+  c.development[p.id] = {
+    explain: '*Dumnezeu zidește casa.* Omul doar ascultă.',
+    illustrate: '', apply: '', refs: [],
+  };
+
+  const claves = generateOutline(c).points[0].keywords;
+  assert.deepEqual(claves, ['*Dumnezeu zidește casa.*', 'Omul doar ascultă']);
+  for (const k of claves) {
+    assert.equal((k.match(/\*/g) || []).length % 2, 0, `asteriscos impares en «${k}»`);
+  }
+});
+
 test('quitarMarcas no deja escapar la sintaxis de llaves en ningún caso', () => {
   const t = 'Uno *marcado* y otro {{Rom 8:28|texto}} en la misma frase.';
   const limpio = quitarMarcas(t);

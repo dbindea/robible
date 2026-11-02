@@ -41,8 +41,14 @@ test('una schiță corta cabe en una hoja a una cara', () => {
   assert.equal(paginas[0].length, 2, 'la hoja tiene dos paneles');
 });
 
+// Las medidas de estos dos cambiaron el 2 nov 2026 y no por capricho: el
+// reparto en caras pasó a medirse en PUNTOS y a llenar cara a cara, porque
+// repartir el total a partes iguales planificaba menos páginas de las que
+// pdfmake acababa imprimiendo — y entonces el plegado del cuadernillo no
+// cuadra con nada. Comprobado generando el PDF de verdad: con los tamaños de
+// aquí, lo planificado y lo impreso coinciden.
 test('una schiță larga se reparte en cuatro caras', () => {
-  const paginas = caras(esquemaDe(12, 6));
+  const paginas = caras(esquemaDe(14, 4));
   assert.equal(paginas.length, 2, 'cuatro caras son dos hojas físicas (doble cara)');
   assert.equal(paginas[0].length, 2);
   assert.equal(paginas[1].length, 2);
@@ -52,7 +58,7 @@ test('las cuatro caras van en orden de cuadernillo, no en orden natural', () => 
   // Al doblar por el lado corto, el panel izquierdo del anverso queda el
   // último. Por eso la hoja se compone 4|1 delante y 2|3 detrás: leído en el
   // orden en que se pasan las páginas, el contenido sale seguido.
-  const [[anversoIzq, anversoDer], [reversoIzq, reversoDer]] = caras(esquemaDe(12, 6));
+  const [[anversoIzq, anversoDer], [reversoIzq, reversoDer]] = caras(esquemaDe(14, 4));
 
   const leidoAlDoblar = [anversoDer, reversoIzq, reversoDer, anversoIzq].flat();
 
@@ -86,7 +92,10 @@ const CONTENIDO_CON_SUBPUNTOS = {
       id: 'p_uno',
       title: 'Primul punct',
       refs: [],
-      subpoints: [{ id: 's_a', title: 'Prima diviziune' }, { id: 's_b', title: 'A doua' }],
+      subpoints: [
+        { id: 's_a', title: 'Prima diviziune' },
+        { id: 's_b', title: 'A doua' },
+      ],
     },
   ],
   development: {
@@ -144,7 +153,10 @@ test('un subpunto sin título ni texto no deja un titular vacío', () => {
 
 test('las referencias de un subpunto se imprimen con las del punto', () => {
   const trozos = trozosDe(definirPredica({ title: 'T' }, CONTENIDO_CON_SUBPUNTOS));
-  assert.ok(trozos.some((t) => t.text.includes('Ioan 3:16')), 'se ha perdido la referencia del subpunto');
+  assert.ok(
+    trozos.some((t) => t.text.includes('Ioan 3:16')),
+    'se ha perdido la referencia del subpunto',
+  );
 });
 
 test('el subpunto sale ANTES de explicación/ilustración/aplicación', () => {
@@ -165,7 +177,8 @@ test('una *marca* sale en negrita en el PDF, no como asterisco plano', () => {
     version: 1,
     structure: [{ id: 'p1', title: 'Punct', refs: [], subpoints: [] }],
     development: { p1: { explain: 'Nu o *credință oarecare*, ci una vie.', illustrate: '', apply: '', refs: [] } },
-    intro: '', conclusion: '',
+    intro: '',
+    conclusion: '',
   };
   const trozos = trozosDe(definirPredica({ title: 'T' }, contenido));
   const marca = trozos.find((t) => t.text === 'credință oarecare');
@@ -181,10 +194,13 @@ test('una {{cita}} en línea sale en cursiva, en el sitio donde se escribió', (
     development: {
       p1: {
         explain: 'Textul spune că {{Ioan 3:16|Fiindcă atât de mult a iubit Dumnezeu lumea}}, și asta schimbă tot.',
-        illustrate: '', apply: '', refs: [],
+        illustrate: '',
+        apply: '',
+        refs: [],
       },
     },
-    intro: '', conclusion: '',
+    intro: '',
+    conclusion: '',
   };
   const trozos = trozosDe(definirPredica({ title: 'T' }, contenido));
   const cita = trozos.find((t) => t.text === 'Fiindcă atât de mult a iubit Dumnezeu lumea');
@@ -213,9 +229,15 @@ test('el titular va agrupado con su primer bloque, y el resto del punto fluye', 
     version: 1,
     structure: [{ id: 'p1', title: 'Punct', refs: [], subpoints: [] }],
     development: {
-      p1: { explain: 'Primul paragraf.\n\nAl doilea paragraf.\n\nAl treilea paragraf.', illustrate: '', apply: '', refs: [] },
+      p1: {
+        explain: 'Primul paragraf.\n\nAl doilea paragraf.\n\nAl treilea paragraf.',
+        illustrate: '',
+        apply: '',
+        refs: [],
+      },
     },
-    intro: '', conclusion: '',
+    intro: '',
+    conclusion: '',
   };
 
   const { content } = definirPredica({ title: 'T' }, contenido);
@@ -241,13 +263,15 @@ test('un titular corto se marca indivisible; uno con un primer bloque larguísim
     version: 1,
     structure: [{ id: 'p1', title: 'Punct scurt', refs: [], subpoints: [] }],
     development: { p1: { explain: 'Una explicación breve.', illustrate: '', apply: '', refs: [] } },
-    intro: '', conclusion: '',
+    intro: '',
+    conclusion: '',
   };
   const largo = {
     version: 1,
     structure: [{ id: 'p1', title: 'Punct foarte lung', refs: [], subpoints: [] }],
     development: { p1: { explain: parrafoLargo, illustrate: '', apply: '', refs: [] } },
-    intro: '', conclusion: '',
+    intro: '',
+    conclusion: '',
   };
 
   const bloqueCorto = definirPredica({ title: 'T' }, corto).content.find((n) => n.stack);
@@ -265,7 +289,10 @@ const tablasDe = (definicion) => {
   const recorrer = (n) => {
     if (Array.isArray(n)) return n.forEach(recorrer);
     if (!n || typeof n !== 'object') return;
-    if (n.table) { salida.push(n); return recorrer(n.table.body); }
+    if (n.table) {
+      salida.push(n);
+      return recorrer(n.table.body);
+    }
     if (n.stack) return recorrer(n.stack);
   };
   recorrer(definicion.content);
@@ -279,7 +306,8 @@ test('un versículo citado se imprime en una tabla con barra a la izquierda', ()
     development: {
       p1: { explain: '', illustrate: '', apply: '', refs: [{ label: 'Ioan 3:16', text: 'Fiindcă atât de mult…' }] },
     },
-    intro: '', conclusion: '',
+    intro: '',
+    conclusion: '',
   };
   const tablas = tablasDe(definirPredica({ title: 'T' }, contenido));
   assert.equal(tablas.length, 1, 'debería haber una tabla por referencia citada');
@@ -291,6 +319,13 @@ test('un versículo citado se imprime en una tabla con barra a la izquierda', ()
   assert.equal(tabla.layout.vLineWidth(0), 2.5);
   assert.equal(tabla.layout.vLineWidth(1), 0);
   assert.equal(tabla.layout.hLineWidth(), 0, 'sin líneas horizontales: no es una tabla con rejilla');
+
+  // Y la celda tiene que PEDIR su borde izquierdo. Con los cuatro en `false`
+  // —como estuvo desde que se escribió— el `border` de la celda gana al
+  // `vLineWidth` del layout y la barra no se dibujaba nunca: el truco estaba
+  // escrito, comentado y probado, y en el papel no se veía.
+  const celda = tabla.table.body[0][0];
+  assert.deepEqual(celda.border, [true, false, false, false], 'la celda sólo pide el borde de la barra');
 
   const trozos = trozosDe(definirPredica({ title: 'T' }, contenido));
   const etiqueta = trozos.find((t) => t.text === 'Ioan 3:16');
@@ -315,7 +350,8 @@ test('un versículo citado larguísimo SÍ cuenta para decidir si el grupo es in
     development: {
       p1: { explain: `{{Ref 1|${versiculoLargo}}}`, illustrate: '', apply: '', refs: [] },
     },
-    intro: '', conclusion: '',
+    intro: '',
+    conclusion: '',
   };
   const bloque = definirPredica({ title: 'T' }, contenido).content.find((n) => n.stack);
   assert.equal(bloque.unbreakable, false, 'una cita más alta que la página no puede ir en un grupo indivisible');
@@ -332,7 +368,10 @@ test('la idea central del PDF va centrada, no a la izquierda', () => {
   const contenido = {
     version: 1,
     idea: { exegetical: '', purpose: '', central: 'Dios cuida de los suyos', question: '' },
-    structure: [], development: {}, intro: '', conclusion: '',
+    structure: [],
+    development: {},
+    intro: '',
+    conclusion: '',
   };
   const trozos = trozosDe(definirPredica({ title: 'T' }, contenido));
   const idea = trozos.find((t) => t.text === 'Dios cuida de los suyos');
@@ -371,8 +410,11 @@ const CONTENIDO_COMPLETO = {
   structure: [{ id: 'p1', title: 'Zidirea casei', refs: [], subpoints: [] }],
   development: {
     p1: {
-      explain: 'Primul paragraf.\n\n## Zidirea temeliei\nAl doilea paragraf.\n\n{{Matei 7:24|Pe oricine aude aceste cuvinte}}',
-      illustrate: '', apply: '', refs: [],
+      explain:
+        'Primul paragraf.\n\n## Zidirea temeliei\nAl doilea paragraf.\n\n{{Matei 7:24|Pe oricine aude aceste cuvinte}}',
+      illustrate: '',
+      apply: '',
+      refs: [],
     },
   },
   intro: 'Fiecare om zidește ceva.',
@@ -385,7 +427,9 @@ const PERICOPA = [
 ];
 
 test('el título de la predicación va centrado', () => {
-  const trozos = trozosDe(definirPredica({ title: 'Casa zidită pe stâncă', reference: 'Matei 7:24-27' }, CONTENIDO_COMPLETO));
+  const trozos = trozosDe(
+    definirPredica({ title: 'Casa zidită pe stâncă', reference: 'Matei 7:24-27' }, CONTENIDO_COMPLETO),
+  );
   const titulo = trozos.find((t) => t.text === 'Casa zidită pe stâncă');
   assert.equal(titulo?.alignment, 'center');
   // Y la referencia debajo, también centrada y en el acento.
@@ -468,6 +512,35 @@ test('una línea en blanco abre un párrafo nuevo, no un renglón vacío', () =>
   assert.ok(!trozos.some((t) => t.text.trim() === ''), 'no debe quedar ningún nodo de texto vacío');
 });
 
+test('un campo escrito con una frase por línea no se declara «cabe» sin caber', () => {
+  // El salto de línea cuenta como línea impresa aunque no llene el ancho. Sin
+  // eso, un campo escrito así —que es como escribe mucha gente— se medía en
+  // menos de la mitad de lo que ocupa: el grupo se marcaba indivisible,
+  // pdfmake descartaba lo que no cabía y la sección DESAPARECÍA del folio.
+  const unaFrasePorLinea = Array.from({ length: 60 }, (_, i) => `Fraza numărul ${i + 1} a predicii.`).join('\n');
+  const contenido = {
+    version: 1,
+    structure: [{ id: 'p1', title: 'Punct', refs: [], subpoints: [] }],
+    development: { p1: { explain: unaFrasePorLinea, illustrate: '', apply: '', refs: [] } },
+    intro: '',
+    conclusion: '',
+  };
+
+  const grupo = definirPredica({ title: 'T' }, contenido).content.find((n) => n.stack);
+  assert.equal(grupo.unbreakable, false, 'sesenta líneas no caben en una página');
+});
+
+test('un `##` escrito a mano donde no hay bloques tampoco se imprime', () => {
+  // La transición y los campos de la schiță no pasan por `bloquesDe` —son una
+  // frase, no un campo con estructura—, así que un `##` escrito a mano salía
+  // impreso tal cual mientras en pantalla se veía como un rótulo.
+  const contenido = structuredClone(CONTENIDO_COMPLETO);
+  contenido.transition = '## PROPOZIȚIA DE TRANZIȚIE';
+  const textos = trozosDe(definirPredica({ title: 'T' }, contenido)).map((t) => t.text);
+  assert.ok(textos.includes('PROPOZIȚIA DE TRANZIȚIE'), JSON.stringify(textos));
+  assert.ok(!textos.some((t) => t.includes('#')), 'no debe quedar la almohadilla');
+});
+
 test('una cita suelta sale como bloque con barra azul y sangrada', () => {
   const definicion = definirPredica({ title: 'T' }, CONTENIDO_COMPLETO);
   const tablas = tablasDe(definicion);
@@ -492,7 +565,12 @@ test('ningún nodo indivisible se pasa del alto de una página', () => {
   // Un punto corto además del larguísimo: así hay de las dos clases, grupos
   // que sí caben y grupos que no.
   contenido.structure.push({ id: 'p2', title: 'Punct scurt', refs: [], subpoints: [] });
-  contenido.development.p2 = { explain: 'O frază scurtă. {{Ioan 11:35|Isus a plâns}}', illustrate: '', apply: '', refs: [] };
+  contenido.development.p2 = {
+    explain: 'O frază scurtă. {{Ioan 11:35|Isus a plâns}}',
+    illustrate: '',
+    apply: '',
+    refs: [],
+  };
 
   const definicion = definirPredica({ title: 'T', reference: 'R', pericope: PERICOPA }, contenido);
   // Los hay de dos clases: el grupo [titular + primer bloque] y cada versículo
@@ -525,13 +603,24 @@ const estimarAltoDePrueba = (nodos, ancho = 491) => {
     if (!n || typeof n !== 'object') continue;
     const margenes = (n.margin?.[1] || 0) + (n.margin?.[3] || 0);
     const dentro = Math.max(120, ancho - (n.margin?.[0] || 0) - (n.margin?.[2] || 0));
-    if (n.canvas) { alto += margenes + 1; continue; }
-    if (n.table) {
-      alto += margenes + estimarAltoDePrueba(n.table.body.flat().flatMap((c) => c.stack || []), dentro - 10);
+    if (n.canvas) {
+      alto += margenes + 1;
       continue;
     }
-    if (n.stack) { alto += margenes + estimarAltoDePrueba(n.stack, dentro); continue; }
-    const texto = Array.isArray(n.text) ? n.text.map((t) => t.text || '').join('') : (n.text || '');
+    if (n.table) {
+      alto +=
+        margenes +
+        estimarAltoDePrueba(
+          n.table.body.flat().flatMap((c) => c.stack || []),
+          dentro - 10,
+        );
+      continue;
+    }
+    if (n.stack) {
+      alto += margenes + estimarAltoDePrueba(n.stack, dentro);
+      continue;
+    }
+    const texto = Array.isArray(n.text) ? n.text.map((t) => t.text || '').join('') : n.text || '';
     const tamano = n.fontSize || 11;
     const porLinea = Math.max(20, Math.round((dentro / tamano) * 2));
     alto += Math.max(1, Math.ceil(texto.length / porLinea)) * tamano * (n.lineHeight || 1.45) + margenes;

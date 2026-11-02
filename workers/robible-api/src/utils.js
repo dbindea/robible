@@ -186,7 +186,14 @@ export const validators = {
   // predicación con 200 KB de texto no es una predicación: es un accidente o un
   // abuso. El límite es holgado — 2.500 palabras rondan los 20 KB.
   sermonContent: (c) => c === null || c === undefined || (typeof c === 'string' && c.length <= 200_000),
-  sermonOutline: (o) => o === null || o === undefined || (typeof o === 'string' && o.length <= 50_000),
+  // La schiță tenía un presupuesto cuatro veces menor porque era cuatro veces
+  // más pequeña: títulos y un par de palabras clave por punto, 1,6 KB. Desde
+  // que entra cada frase del desarrollo (2 nov 2026) pesa como la preparación
+  // —medido: 9,6 KB con 1.890 palabras, y guarda además una copia de sí misma
+  // en `base` para la fusión—, así que va al mismo tope que `sermonContent`.
+  // Pasarse no daba un aviso útil: la schiță se quedaba en el dispositivo y el
+  // error hablaba de «content».
+  sermonOutline: (o) => o === null || o === undefined || (typeof o === 'string' && o.length <= 200_000),
   // La pregunta la escribe el usuario: una línea, ni vacía ni un ensayo.
   securityQuestionText: (q) => typeof q === 'string' && q.trim().length >= 5 && q.trim().length <= 120,
   // La respuesta ya no tiene por qué ser un número. Se mide sobre el texto
