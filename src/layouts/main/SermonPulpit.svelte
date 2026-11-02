@@ -18,7 +18,7 @@
   import { onDestroy, onMount } from 'svelte';
   import { _ } from '../../services/i18n.service';
   import { sermonsStore } from '../../store/sermonsStore';
-  import { normalizeOutline, quitarMarcas } from '../../services/sermon-content.service';
+  import { etiquetaDeReferencia, normalizeOutline, quitarMarcas } from '../../services/sermon-content.service';
   import TextoFormateado from '../../components/TextoFormateado.svelte';
   import {
     FONT_SIZES,
@@ -329,9 +329,18 @@
           {#each punto.keywords || [] as clave, k (k)}
             <p class="amvon__clave"><TextoFormateado texto={clave} /></p>
           {/each}
+          <!-- Las referencias de apoyo traen el arranque del versículo desde
+               el 2 nov 2026, con la sintaxis de cita. Dos cosas que no se
+               pueden saltar: pintarlas con `TextoFormateado` —si no, las
+               llaves salen en crudo en el púlpito— y abrirlas con la etiqueta
+               PELADA, porque el versículo guardado se busca por su `label`. -->
           {#each punto.refs || [] as ref, r (r)}
-            <button type="button" class="amvon__referencia" on:click={() => abrirReferencia(ref)}>
-              {ref}
+            <button
+              type="button"
+              class="amvon__referencia"
+              on:click={() => abrirReferencia(etiquetaDeReferencia(ref))}
+            >
+              <TextoFormateado texto={ref} />
             </button>
           {/each}
         </div>
@@ -650,17 +659,29 @@
     white-space: pre-line;
   }
 
+  /* Era una píldora con la referencia y nada más. Desde que la referencia
+     trae también el arranque del versículo ya no cabe en una píldora: es una
+     línea. Lo que dice que se puede tocar deja de ser el borde y pasa a ser la
+     fila entera —con su barra de cita a la izquierda, que la pinta
+     `TextoFormateado`— más el fondo al pasar por encima. */
   .amvon__referencia {
-    display: inline-block;
-    margin: 0.25rem 0.4rem 0.25rem 0;
-    padding: 0.4rem 0.85rem;
-    border: 2px solid var(--color-accent);
-    border-radius: var(--radius-pill);
+    display: block;
+    width: 100%;
+    margin: 0.3rem 0;
+    padding: 0.3rem 0.4rem;
+    border: 0;
+    border-radius: var(--radius-sm);
     background: transparent;
-    color: var(--color-accent);
+    color: inherit;
+    font-family: inherit;
     font-size: var(--amvon-linea);
-    font-weight: 700;
+    text-align: left;
     cursor: pointer;
+  }
+
+  .amvon__referencia:hover,
+  .amvon__referencia:focus-visible {
+    background: var(--wash-hover);
   }
 
   .amvon__final {

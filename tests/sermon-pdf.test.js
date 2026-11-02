@@ -713,6 +713,45 @@ test('el documento lleva robible.com en el pie, junto a la numeración', () => {
   assert.equal(numero.alignment, 'center');
 });
 
+test('los versículos de apoyo salen en la schiță con su barra y su texto', () => {
+  // Hasta el 2 nov 2026 eran una tira de etiquetas pegadas con puntos medios
+  // («Iacov 1:22 · Ioan 14:15») y nada más. En papel no se puede tocar una
+  // referencia para abrirla: si el texto no está impreso, no está.
+  const esquema = {
+    points: [
+      {
+        id: 'p0',
+        title: 'PUNCT',
+        keywords: ['una clave'],
+        refs: ['{{Iacov 1:22|Fiţi împlinitori ai Cuvântului, nu numai…}}'],
+      },
+    ],
+  };
+
+  const tablas = [];
+  const recorrer = (n) => {
+    if (Array.isArray(n)) return n.forEach(recorrer);
+    if (!n || typeof n !== 'object') return;
+    if (n.table) tablas.push(n);
+    if (n.stack) recorrer(n.stack);
+    if (n.columns) recorrer(n.columns);
+  };
+  recorrer(definirSchita(SERMON, esquema, {}).content);
+
+  const cita = tablas.find((t) => JSON.stringify(t).includes('Iacov 1:22'));
+  assert.ok(cita, 'el versículo de apoyo no se dibujó como cita');
+
+  // La barra: sólo el borde izquierdo, y pedido por la celda. Con los cuatro
+  // bordes en `false` pdfmake no dibuja ninguno aunque el layout lo pida —es
+  // lo que tuvo la barra escrita y sin pintar durante una tanda entera.
+  assert.equal(cita.layout.vLineWidth(0), 2.5, 'la barra de la izquierda');
+  assert.equal(cita.layout.vLineWidth(1), 0, 'y nada por la derecha');
+  assert.deepEqual(cita.table.body[0][0].border, [true, false, false, false]);
+
+  // Y el texto del versículo tiene que estar impreso, no sólo la referencia.
+  assert.ok(JSON.stringify(cita).includes('Fiţi împlinitori'), 'falta el arranque del versículo');
+});
+
 test('la schiță lleva la marca Y el número de página, a la derecha', () => {
   // Llevó marca sin número hasta el 2 nov 2026, porque era un cuadernillo que
   // se doblaba. Desde que las hojas van sueltas y en orden de lectura, el
