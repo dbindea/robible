@@ -576,11 +576,26 @@ const frasesDe = (texto) => {
   return frases.filter((f) => /\p{L}/u.test(f));
 };
 
-/** Una cita como línea de schiță: la referencia en negrita y el arranque del
- *  versículo con la misma regla que cualquier otra frase. */
+/** Una cita como línea de schiță: la referencia y el arranque del versículo,
+ *  con la misma regla de recorte que cualquier otra frase.
+ *
+ *  Va con la sintaxis de cita (`{{ref|texto}}`) y no con una marca a secas
+ *  (`*ref* texto`) desde el 2 nov 2026. No es cosmético: es lo que hace que la
+ *  cita se distinga de una palabra cualquiera en negrita. `TextoFormateado` y
+ *  `runsDeTexto` ya saben que una cita lleva **barra vertical a la izquierda**,
+ *  así que con esto la tienen a la vez el Modo Amvon, el PDF de la schiță y la
+ *  pantalla, sin una sola rama por sitio. Lo pidió el propietario después de
+ *  llevar la cartilla al atril: desde ahí, un versículo y un énfasis se
+ *  confundían.
+ *
+ *  Sin texto no hay cita que marcar —y el patrón `CITA` exige las dos partes—,
+ *  así que entonces se queda en una marca normal. Las llaves se caen: una en
+ *  el texto del versículo rompería el patrón por el medio. */
 const lineaDeCita = (label, texto) => {
-  const resumen = resumenDeFrase(texto);
-  return `*${String(label || '').trim()}*${resumen ? ` ${resumen}` : ''}`;
+  const sinLlaves = (s) => String(s || '').replace(/[{}]/g, '');
+  const ref = sinLlaves(label).replace(/\|/g, ' ').trim();
+  const resumen = sinLlaves(resumenDeFrase(texto)).trim();
+  return resumen ? `{{${ref}|${resumen}}}` : `*${ref}*`;
 };
 
 /**
@@ -616,7 +631,11 @@ const fraseClaves = (texto) => {
 
   for (const bloque of bloquesDe(texto)) {
     if (bloque.tipo === 'subtitulo') {
-      salida.push(`*${bloque.texto.toUpperCase()}*`);
+      // Conserva el marcador `##` en vez de convertirlo en una marca entera.
+      // Así quien lo pinta sabe que es un RÓTULO y no una frase marcada: en el
+      // papel va sin el guion de las demás líneas, que es lo que lo distingue
+      // de un elemento más de la lista.
+      salida.push(`## ${bloque.texto.toUpperCase()}`);
       continue;
     }
     if (bloque.tipo === 'cita') {
@@ -821,12 +840,20 @@ export const generateOutline = (content) => {
     // justamente no debe ser. Si el predicador quiere la frase completa, la
     // schiță es editable.
     //
-    // Las dos son UN campo de texto y no una lista, así que sus frases van
-    // seguidas separadas por un punto medio. Pueden traer negrita: quien las
-    // pinte tiene que pasar por `TextoFormateado` o `runsDeTexto`, nunca por
-    // texto plano, o el asterisco sale impreso.
-    application: fraseClaves(c.idea.purpose).join(' · '),
-    conclusion: fraseClaves(c.conclusion).join(' · '),
+    // Las dos siguen siendo UN campo de texto y no una lista —cambiar su forma
+    // obligaría a tocar `mergeOutline`, el recuento y el Modo Amvon—, pero sus
+    // frases van separadas por una LÍNEA EN BLANCO desde el 2 nov 2026, no por
+    // un punto medio. Una línea en blanco es lo que `bloquesDe` entiende como
+    // separación de párrafos, así que cada frase se convierte en un bloque
+    // propio y quien lo pinta la saca en su renglón, con la misma regla que las
+    // claves de un punto. Con el punto medio, la conclusión salía en el papel
+    // como un párrafo corrido de doce frases: desde el atril, ilegible.
+    //
+    // Pueden traer negrita y citas: quien las pinte tiene que pasar por
+    // `TextoFormateado` o `runsDeTexto`, nunca por texto plano, o el asterisco
+    // sale impreso.
+    application: fraseClaves(c.idea.purpose).join('\n\n'),
+    conclusion: fraseClaves(c.conclusion).join('\n\n'),
   };
 
   // Recién generada, todo lo que hay lo puso la aplicación: la referencia para
@@ -858,10 +885,13 @@ export const textoAClaves = (texto) =>
     .split('\n')
     // El asterisco cuenta como viñeta sólo si lleva un espacio detrás («* idea»,
     // que es como se pega una lista desde otro sitio). Sin esa condición se
-    // comía el asterisco que ABRE una marca —y casi todas las líneas que genera
-    // la aplicación empiezan por una, desde las citas (`*Ioan 3:16* …`) hasta
-    // los rótulos (`*ZIDIREA CASEI*`)—: quedaba un número impar de asteriscos y
-    // la negrita se tragaba el resto de la línea en el púlpito y en el PDF.
+    // comía el asterisco que ABRE una marca, y muchas líneas generadas empiezan
+    // por una: quedaba un número impar de asteriscos y la negrita se tragaba el
+    // resto de la línea en el púlpito y en el PDF.
+    //
+    // Las almohadillas de un rótulo (`## ZIDIREA CASEI`) y las llaves de una
+    // cita (`{{Ioan 3:16|…}}`) NO son viñetas y tienen que sobrevivir: son lo
+    // que distingue esas dos líneas de una frase cualquiera al imprimir.
     .map((linea) => linea.replace(/^\s*(?:[-–—•·]+|\*(?=\s))\s*/, '').trim())
     .filter(Boolean);
 
@@ -1017,12 +1047,18 @@ export const mergeOutline = (actual, nueva) => {
 /** Palabras de la schiță. Sirve para avisar si se está alargando de más. */
 export const outlineWordCount = (outline) => {
   const o = normalizeOutline(outline);
-  let total = countWords(o.idea) + countWords(o.transition) + countWords(o.application) + countWords(o.conclusion);
-  for (const linea of o.intro) total += countWords(linea);
+  // Sobre el texto LIMPIO, igual que `sermonWordCount`: lo que se cuenta es lo
+  // que se lee, no la sintaxis. Contando la cadena cruda, un rótulo sumaba una
+  // palabra de más (`##`) y una cita una de menos, porque `3:16|Fiindcă` es un
+  // solo token sin espacios. Con 73 claves, la cuenta se iba lo bastante como
+  // para que el predicador no se fíe de ella.
+  const cuenta = palabrasPredicadas;
+  let total = cuenta(o.idea) + cuenta(o.transition) + cuenta(o.application) + cuenta(o.conclusion);
+  for (const linea of o.intro) total += cuenta(linea);
   for (const p of o.points) {
-    total += countWords(p.title);
-    for (const k of p.keywords || []) total += countWords(k);
-    for (const r of p.refs || []) total += countWords(r);
+    total += cuenta(p.title);
+    for (const k of p.keywords || []) total += cuenta(k);
+    for (const r of p.refs || []) total += cuenta(r);
   }
   return total;
 };
