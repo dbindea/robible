@@ -287,8 +287,12 @@
       <h1 class="amvon__titulo">{sermon?.title || snapshot?.title || ''}</h1>
       <p class="amvon__ref">{snapshot?.reference || ''}</p>
 
+      <!-- `TextoFormateado` hasta en la idea: la schiță se edita a mano antes
+           de predicar, así que cualquiera de sus campos puede traer una
+           `*marca*` escrita por el predicador, y en el atril un asterisco
+           literal es un error que ya no se puede arreglar. -->
       {#if outline.idea}
-        <p class="amvon__idea">{outline.idea}</p>
+        <p class="amvon__idea"><TextoFormateado texto={outline.idea} /></p>
       {/if}
 
       {#if outline.intro?.length}
@@ -337,7 +341,10 @@
         <hr class="amvon__separador" />
         <div class="amvon__bloque">
           <p class="amvon__etiqueta">{$_('app.sermons.outline_application')}</p>
-          <p class="amvon__linea">{outline.application}</p>
+          <!-- La aplicación sale del propósito y desde el 2 nov 2026 pasa por
+               la misma regla que el resto: puede traer negrita y citas, así
+               que aquí tampoco puede ir como texto plano. -->
+          <p class="amvon__linea"><TextoFormateado texto={outline.application} /></p>
         </div>
       {/if}
 

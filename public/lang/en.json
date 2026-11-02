@@ -584,7 +584,9 @@
       "action_view": "View the sermon",
       "action_preach_again": "Preach again",
       "mark_keyword": "Mark",
-      "mark_help": "Select a word or phrase and mark it: it will appear in the outline.",
+      "mark_help": "Select a word or phrase and mark it: in the outline it shows in bold, next to the start of the sentence.",
+      "mark_subtitle": "Subtitle",
+      "mark_subtitle_help": "The line the cursor is on becomes a subtitle: printed in uppercase, bold, with space before and after.",
       "refs_title": "Supporting verses",
       "refs_add": "Add verse",
       "refs_remove": "Remove reference",
@@ -612,7 +614,7 @@
         "share": "Share this sermon",
         "copied": "Link copied"
       },
-      "print_outline_hint": "Fold in half along the short edge. If the outline runs to four pages, print double-sided flipping on the short edge.",
+      "print_outline_hint": "Fold in half along the short edge. If the PDF has more than one page, print double-sided flipping on the short edge and nest the sheets one inside the other.",
       "idea_exegetical": "Exegetical idea",
       "idea_exegetical_help": "What did the text say to its original recipients? The subject + what is said about it.",
       "outline_intro": "Introduction (ideas)",
@@ -676,7 +678,7 @@
       "refresh_offline": "This sermon has never synced yet; there is nothing to refresh it from.",
       "refresh_failed": "Could not refresh. Check your connection and try again.",
       "insert_verse": "Insert verse",
-      "insert_verse_help": "Pick a verse and its full text is pasted here, in italics when printed.",
+      "insert_verse_help": "Pick a verse and its full text is pasted here. Left on its own line, it prints as a block with a blue bar on the left.",
       "guide_link": "Preaching guide",
       "guide": {
         "seo_title": "How to prepare an expository, topical or textual sermon | RoBible",

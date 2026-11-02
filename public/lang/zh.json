@@ -584,7 +584,9 @@
       "action_view": "查看讲道",
       "action_preach_again": "再次讲道",
       "mark_keyword": "标记",
-      "mark_help": "选中词语并标记，它会出现在讲章提纲中。",
+      "mark_help": "选中词语并标记：在讲章提纲中会以粗体显示，紧跟句子开头。",
+      "mark_subtitle": "小标题",
+      "mark_subtitle_help": "光标所在的那一行会变成小标题：打印时以粗体显示，前后留出段落间距。",
       "refs_title": "辅助经文",
       "refs_add": "添加经文",
       "refs_remove": "删除引用",
@@ -612,7 +614,7 @@
         "share": "分享这篇讲章",
         "copied": "链接已复制"
       },
-      "print_outline_hint": "沿短边对折。若纲要有四页，请双面打印并沿短边翻页。",
+      "print_outline_hint": "沿短边对折。若 PDF 超过一页，请双面打印并沿短边翻页，然后把各张纸一张套一张地对折。",
       "idea_exegetical": "释经性中心思想",
       "idea_exegetical_help": "经文对当时的受信者说了什么？主题＋关于该主题所说的内容。",
       "outline_intro": "引言（要点）",
@@ -676,7 +678,7 @@
       "refresh_offline": "这篇讲章还从未同步过，没有可供刷新的来源。",
       "refresh_failed": "刷新失败。请检查网络连接后重试。",
       "insert_verse": "插入经文",
-      "insert_verse_help": "选择一节经文，其完整经文会插入到此处，打印时以斜体显示。",
+      "insert_verse_help": "选择一节经文，其完整经文会插入到此处。若单独占一行，打印时会显示为左侧带蓝色竖线的引用块。",
       "guide_link": "讲道指南",
       "guide": {
         "seo_title": "如何准备解经式、专题式或经文式讲道 | RoBible",

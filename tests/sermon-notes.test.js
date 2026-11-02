@@ -53,6 +53,12 @@ const textoDelPdf = (definicion) => {
     if (!n || typeof n !== 'object') return;
     if (n.stack) return rec(n.stack);
     if (n.columns) return rec(n.columns);
+    // Un versículo citado —y el pasaje de la predicación— son tablas de una
+    // celda: la barra azul de la izquierda es su borde. Sin esta rama, el
+    // centinela de este archivo dejaría de mirar donde está parte del texto y
+    // pasaría en verde aunque el cuaderno de trabajo se imprimiera. Es la misma
+    // rama que ya tenía `trozosDe` en `tests/sermon-pdf.test.js`.
+    if (n.table) return rec(n.table.body);
     if (typeof n.text === 'string') trozos.push(n.text);
     else if (Array.isArray(n.text)) rec(n.text);
   };

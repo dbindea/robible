@@ -41,8 +41,14 @@ test('una schiță corta cabe en una hoja a una cara', () => {
   assert.equal(paginas[0].length, 2, 'la hoja tiene dos paneles');
 });
 
+// Las medidas de estos dos cambiaron el 2 nov 2026 y no por capricho: el
+// reparto en caras pasó a medirse en PUNTOS y a llenar cara a cara, porque
+// repartir el total a partes iguales planificaba menos páginas de las que
+// pdfmake acababa imprimiendo — y entonces el plegado del cuadernillo no
+// cuadra con nada. Comprobado generando el PDF de verdad: con los tamaños de
+// aquí, lo planificado y lo impreso coinciden.
 test('una schiță larga se reparte en cuatro caras', () => {
-  const paginas = caras(esquemaDe(12, 6));
+  const paginas = caras(esquemaDe(14, 4));
   assert.equal(paginas.length, 2, 'cuatro caras son dos hojas físicas (doble cara)');
   assert.equal(paginas[0].length, 2);
   assert.equal(paginas[1].length, 2);
@@ -52,7 +58,7 @@ test('las cuatro caras van en orden de cuadernillo, no en orden natural', () => 
   // Al doblar por el lado corto, el panel izquierdo del anverso queda el
   // último. Por eso la hoja se compone 4|1 delante y 2|3 detrás: leído en el
   // orden en que se pasan las páginas, el contenido sale seguido.
-  const [[anversoIzq, anversoDer], [reversoIzq, reversoDer]] = caras(esquemaDe(12, 6));
+  const [[anversoIzq, anversoDer], [reversoIzq, reversoDer]] = caras(esquemaDe(14, 4));
 
   const leidoAlDoblar = [anversoDer, reversoIzq, reversoDer, anversoIzq].flat();
 
@@ -86,7 +92,10 @@ const CONTENIDO_CON_SUBPUNTOS = {
       id: 'p_uno',
       title: 'Primul punct',
       refs: [],
-      subpoints: [{ id: 's_a', title: 'Prima diviziune' }, { id: 's_b', title: 'A doua' }],
+      subpoints: [
+        { id: 's_a', title: 'Prima diviziune' },
+        { id: 's_b', title: 'A doua' },
+      ],
     },
   ],
   development: {
@@ -144,7 +153,10 @@ test('un subpunto sin título ni texto no deja un titular vacío', () => {
 
 test('las referencias de un subpunto se imprimen con las del punto', () => {
   const trozos = trozosDe(definirPredica({ title: 'T' }, CONTENIDO_CON_SUBPUNTOS));
-  assert.ok(trozos.some((t) => t.text.includes('Ioan 3:16')), 'se ha perdido la referencia del subpunto');
+  assert.ok(
+    trozos.some((t) => t.text.includes('Ioan 3:16')),
+    'se ha perdido la referencia del subpunto',
+  );
 });
 
 test('el subpunto sale ANTES de explicación/ilustración/aplicación', () => {
@@ -165,7 +177,8 @@ test('una *marca* sale en negrita en el PDF, no como asterisco plano', () => {
     version: 1,
     structure: [{ id: 'p1', title: 'Punct', refs: [], subpoints: [] }],
     development: { p1: { explain: 'Nu o *credință oarecare*, ci una vie.', illustrate: '', apply: '', refs: [] } },
-    intro: '', conclusion: '',
+    intro: '',
+    conclusion: '',
   };
   const trozos = trozosDe(definirPredica({ title: 'T' }, contenido));
   const marca = trozos.find((t) => t.text === 'credință oarecare');
@@ -181,10 +194,13 @@ test('una {{cita}} en línea sale en cursiva, en el sitio donde se escribió', (
     development: {
       p1: {
         explain: 'Textul spune că {{Ioan 3:16|Fiindcă atât de mult a iubit Dumnezeu lumea}}, și asta schimbă tot.',
-        illustrate: '', apply: '', refs: [],
+        illustrate: '',
+        apply: '',
+        refs: [],
       },
     },
-    intro: '', conclusion: '',
+    intro: '',
+    conclusion: '',
   };
   const trozos = trozosDe(definirPredica({ title: 'T' }, contenido));
   const cita = trozos.find((t) => t.text === 'Fiindcă atât de mult a iubit Dumnezeu lumea');
@@ -197,7 +213,44 @@ test('una {{cita}} en línea sale en cursiva, en el sitio donde se escribió', (
 
 // ── Un punto no puede desaparecer por ser demasiado largo (item 2) ─────────
 
-test('un punto corto se marca indivisible; uno larguísimo NO, para que no desaparezca', () => {
+// ── Flujo continuo: nada se queda solo en una página, nada desaparece ─────
+//
+// Desde el 2 nov 2026 el punto YA NO se agrupa entero. Lo pidió el propietario
+// —«que toată predica să aibă o continuitate»—: con el punto entero marcado
+// indivisible, si no cabía en lo que quedaba de hoja se iba completo a la
+// siguiente y dejaba INTRODUCERE sola con media página en blanco.
+//
+// Lo que se agrupa ahora es el titular con su primer bloque, que es lo más
+// parecido a un «keep-with-next» que hay en pdfmake: el titular no puede
+// quedarse solo al pie de una hoja y el resto fluye.
+
+test('el titular va agrupado con su primer bloque, y el resto del punto fluye', () => {
+  const contenido = {
+    version: 1,
+    structure: [{ id: 'p1', title: 'Punct', refs: [], subpoints: [] }],
+    development: {
+      p1: {
+        explain: 'Primul paragraf.\n\nAl doilea paragraf.\n\nAl treilea paragraf.',
+        illustrate: '',
+        apply: '',
+        refs: [],
+      },
+    },
+    intro: '',
+    conclusion: '',
+  };
+
+  const { content } = definirPredica({ title: 'T' }, contenido);
+  const grupos = content.filter((n) => n.stack);
+  assert.equal(grupos.length, 1, 'sólo el titular y su primer bloque van agrupados');
+
+  const textos = trozosDe({ content: grupos }).map((t) => t.text);
+  assert.ok(textos.includes('1. PUNCT'), `el grupo debería llevar el titular: ${JSON.stringify(textos)}`);
+  assert.ok(textos.includes('Primul paragraf.'), 'y el primer párrafo, para que el titular no quede huérfano');
+  assert.ok(!textos.includes('Al doilea paragraf.'), 'el segundo párrafo ya va suelto: el texto tiene que fluir');
+});
+
+test('un titular corto se marca indivisible; uno con un primer bloque larguísimo NO', () => {
   // Éste fue el fallo real: `unbreakable: true` sobre un bloque más alto que
   // una página entera hace que pdfmake lo superponga con lo que viene
   // después en vez de repartirlo, y a simple vista el punto se esfuma. La
@@ -210,13 +263,15 @@ test('un punto corto se marca indivisible; uno larguísimo NO, para que no desap
     version: 1,
     structure: [{ id: 'p1', title: 'Punct scurt', refs: [], subpoints: [] }],
     development: { p1: { explain: 'Una explicación breve.', illustrate: '', apply: '', refs: [] } },
-    intro: '', conclusion: '',
+    intro: '',
+    conclusion: '',
   };
   const largo = {
     version: 1,
     structure: [{ id: 'p1', title: 'Punct foarte lung', refs: [], subpoints: [] }],
     development: { p1: { explain: parrafoLargo, illustrate: '', apply: '', refs: [] } },
-    intro: '', conclusion: '',
+    intro: '',
+    conclusion: '',
   };
 
   const bloqueCorto = definirPredica({ title: 'T' }, corto).content.find((n) => n.stack);
@@ -234,7 +289,10 @@ const tablasDe = (definicion) => {
   const recorrer = (n) => {
     if (Array.isArray(n)) return n.forEach(recorrer);
     if (!n || typeof n !== 'object') return;
-    if (n.table) { salida.push(n); return recorrer(n.table.body); }
+    if (n.table) {
+      salida.push(n);
+      return recorrer(n.table.body);
+    }
     if (n.stack) return recorrer(n.stack);
   };
   recorrer(definicion.content);
@@ -248,7 +306,8 @@ test('un versículo citado se imprime en una tabla con barra a la izquierda', ()
     development: {
       p1: { explain: '', illustrate: '', apply: '', refs: [{ label: 'Ioan 3:16', text: 'Fiindcă atât de mult…' }] },
     },
-    intro: '', conclusion: '',
+    intro: '',
+    conclusion: '',
   };
   const tablas = tablasDe(definirPredica({ title: 'T' }, contenido));
   assert.equal(tablas.length, 1, 'debería haber una tabla por referencia citada');
@@ -261,6 +320,13 @@ test('un versículo citado se imprime en una tabla con barra a la izquierda', ()
   assert.equal(tabla.layout.vLineWidth(1), 0);
   assert.equal(tabla.layout.hLineWidth(), 0, 'sin líneas horizontales: no es una tabla con rejilla');
 
+  // Y la celda tiene que PEDIR su borde izquierdo. Con los cuatro en `false`
+  // —como estuvo desde que se escribió— el `border` de la celda gana al
+  // `vLineWidth` del layout y la barra no se dibujaba nunca: el truco estaba
+  // escrito, comentado y probado, y en el papel no se veía.
+  const celda = tabla.table.body[0][0];
+  assert.deepEqual(celda.border, [true, false, false, false], 'la celda sólo pide el borde de la barra');
+
   const trozos = trozosDe(definirPredica({ title: 'T' }, contenido));
   const etiqueta = trozos.find((t) => t.text === 'Ioan 3:16');
   const texto = trozos.find((t) => t.text === 'Fiindcă atât de mult…');
@@ -268,25 +334,32 @@ test('un versículo citado se imprime en una tabla con barra a la izquierda', ()
   assert.ok(texto?.italics, 'el texto del versículo va en cursiva');
 });
 
-test('varios versículos citados largos SÍ cuentan para decidir si el punto es indivisible', () => {
+test('un versículo citado larguísimo SÍ cuenta para decidir si el grupo es indivisible', () => {
   // Antes de contar el alto de la tabla, `estimarAlto` le daba 0 a cada
   // versículo citado (no es un nodo `text`, es un nodo `table`), así que un
-  // punto con varias citas largas se declaraba «cabe entero» sin caber —el
-  // mismo bug que ya se arregló una vez para la explicación/ilustración.
-  const versiculoLargo = 'palabra '.repeat(150).trim();
+  // bloque con una cita larga se declaraba «cabe entero» sin caber —el mismo
+  // bug que ya se arregló una vez para la explicación/ilustración.
+  //
+  // Sigue importando aunque el punto ya no vaya agrupado entero: el primer
+  // bloque del punto, que es el que se agrupa con el titular, puede ser
+  // justamente una cita.
+  const versiculoLargo = 'palabra '.repeat(900).trim();
   const contenido = {
     version: 1,
     structure: [{ id: 'p1', title: 'Punct', refs: [], subpoints: [] }],
     development: {
-      p1: {
-        explain: '', illustrate: '', apply: '',
-        refs: Array.from({ length: 8 }, (_, i) => ({ label: `Ref ${i + 1}`, text: versiculoLargo })),
-      },
+      p1: { explain: `{{Ref 1|${versiculoLargo}}}`, illustrate: '', apply: '', refs: [] },
     },
-    intro: '', conclusion: '',
+    intro: '',
+    conclusion: '',
   };
   const bloque = definirPredica({ title: 'T' }, contenido).content.find((n) => n.stack);
-  assert.equal(bloque.unbreakable, false, 'ocho citas largas no caben en una página: no puede ser indivisible');
+  assert.equal(bloque.unbreakable, false, 'una cita más alta que la página no puede ir en un grupo indivisible');
+
+  // Y la misma cita, corta, sí: si no, el titular se quedaría solo al pie.
+  const corto = structuredClone(contenido);
+  corto.development.p1.explain = '{{Ref 1|Isus a plâns}}';
+  assert.equal(definirPredica({ title: 'T' }, corto).content.find((n) => n.stack).unbreakable, true);
 });
 
 // ── Centrado y alineación (item 4 y 5) ──────────────────────────────────────
@@ -295,7 +368,10 @@ test('la idea central del PDF va centrada, no a la izquierda', () => {
   const contenido = {
     version: 1,
     idea: { exegetical: '', purpose: '', central: 'Dios cuida de los suyos', question: '' },
-    structure: [], development: {}, intro: '', conclusion: '',
+    structure: [],
+    development: {},
+    intro: '',
+    conclusion: '',
   };
   const trozos = trozosDe(definirPredica({ title: 'T' }, contenido));
   const idea = trozos.find((t) => t.text === 'Dios cuida de los suyos');
@@ -321,6 +397,282 @@ test('el cuerpo de la predicación va a la izquierda, no justificado', () => {
   recorrer(definicion.content);
   assert.ok(nodosConAlineacion.length > 0, 'no se encontró ningún nodo con alineación para comprobar');
   assert.ok(!nodosConAlineacion.includes('justify'), 'no debería quedar texto justificado en el PDF');
+});
+
+// ── El folio rehecho el 2 nov 2026 ─────────────────────────────────────────
+//
+// Ocho peticiones del propietario después de llevar al atril la primera
+// predicación preparada con la aplicación. Cada test de aquí abajo es una.
+
+const CONTENIDO_COMPLETO = {
+  version: 1,
+  idea: { exegetical: '', purpose: '', central: 'Numai ascultarea ține casa', question: '' },
+  structure: [{ id: 'p1', title: 'Zidirea casei', refs: [], subpoints: [] }],
+  development: {
+    p1: {
+      explain:
+        'Primul paragraf.\n\n## Zidirea temeliei\nAl doilea paragraf.\n\n{{Matei 7:24|Pe oricine aude aceste cuvinte}}',
+      illustrate: '',
+      apply: '',
+      refs: [],
+    },
+  },
+  intro: 'Fiecare om zidește ceva.',
+  conclusion: 'Furtuna vine pentru toți.',
+};
+
+const PERICOPA = [
+  { numero: 24, texto: 'De aceea, pe oricine aude aceste cuvinte ale Mele' },
+  { numero: 25, texto: 'A dat ploaia, au venit șuvoaiele' },
+];
+
+test('el título de la predicación va centrado', () => {
+  const trozos = trozosDe(
+    definirPredica({ title: 'Casa zidită pe stâncă', reference: 'Matei 7:24-27' }, CONTENIDO_COMPLETO),
+  );
+  const titulo = trozos.find((t) => t.text === 'Casa zidită pe stâncă');
+  assert.equal(titulo?.alignment, 'center');
+  // Y la referencia debajo, también centrada y en el acento.
+  const ref = trozos.find((t) => t.text === 'Matei 7:24-27');
+  assert.equal(ref?.alignment, 'center');
+});
+
+test('el pasaje de la predicación se imprime, con su rótulo y sus números de versículo', () => {
+  const definicion = definirPredica(
+    { title: 'T', reference: 'Matei 7:24-27', pericope: PERICOPA },
+    CONTENIDO_COMPLETO,
+    { passage: 'TEXTUL BIBLIC' },
+  );
+  const trozos = trozosDe(definicion);
+  const textos = trozos.map((t) => t.text);
+
+  assert.ok(textos.includes('TEXTUL BIBLIC'), `falta el rótulo del pasaje: ${JSON.stringify(textos.slice(0, 8))}`);
+  assert.ok(
+    trozos.some((t) => t.text.includes('De aceea, pe oricine aude')),
+    'el pasaje no se ha impreso',
+  );
+  const numero = trozos.find((t) => t.text === '24 ');
+  assert.ok(numero?.bold, 'el número de versículo va en negrita y en el acento');
+
+  // Sin perícopa no se inventa un bloque vacío.
+  const sinPasaje = trozosDe(definirPredica({ title: 'T' }, CONTENIDO_COMPLETO, { passage: 'TEXTUL BIBLIC' }));
+  assert.ok(!sinPasaje.some((t) => t.text === 'TEXTUL BIBLIC'));
+});
+
+test('las etiquetas EXPLICĂ / ILUSTREAZĂ / APLICĂ ya no se imprimen', () => {
+  // Eran los nombres de las casillas del formulario de preparación. Quien lee
+  // la predicación no tiene por qué saber en cuál se escribió cada párrafo, y
+  // el documento final de la aplicación ya iba sin ellas.
+  const contenido = structuredClone(CONTENIDO_COMPLETO);
+  contenido.development.p1.illustrate = 'O ilustrație.';
+  contenido.development.p1.apply = 'O aplicație.';
+
+  const textos = trozosDe(definirPredica({ title: 'T' }, contenido)).map((t) => t.text);
+  for (const etiqueta of ['EXPLICĂ', 'ILUSTREAZĂ', 'APLICĂ']) {
+    assert.ok(!textos.includes(etiqueta), `sigue saliendo la etiqueta ${etiqueta}`);
+  }
+  // Pero los textos siguen ahí, seguidos.
+  assert.ok(textos.includes('O ilustrație.') && textos.includes('O aplicație.'));
+});
+
+test('los titulares numerados salen como INTRODUCERE: en mayúsculas y en el acento', () => {
+  const trozos = trozosDe(definirPredica({ title: 'T' }, CONTENIDO_COMPLETO, { intro: 'INTRODUCERE' }));
+  const intro = trozos.find((t) => t.text === 'INTRODUCERE');
+  const punto = trozos.find((t) => t.text.startsWith('1. '));
+
+  assert.ok(intro && punto, `faltan titulares: ${JSON.stringify(trozos.map((t) => t.text))}`);
+  assert.equal(punto.text, '1. ZIDIREA CASEI', 'el titular del punto va en mayúsculas');
+  assert.equal(punto.color, intro.color, 'y en el mismo azul que INTRODUCERE');
+  assert.equal(punto.fontSize, intro.fontSize, 'mismo nivel, mismo cuerpo');
+  assert.ok(punto.bold && intro.bold);
+
+  // El subpunto NO: es un nivel por debajo y se distingue por la caja.
+  const conSub = structuredClone(CONTENIDO_COMPLETO);
+  conSub.structure[0].subpoints = [{ id: 's1', title: 'Prima diviziune' }];
+  const sub = trozosDe(definirPredica({ title: 'T' }, conSub)).find((t) => t.text.startsWith('1.1'));
+  assert.equal(sub.text, '1.1 Prima diviziune');
+});
+
+test('un subtítulo del predicador sale en mayúsculas, en negrita y con aire', () => {
+  const trozos = trozosDe(definirPredica({ title: 'T' }, CONTENIDO_COMPLETO));
+  const rotulo = trozos.find((t) => t.text === 'ZIDIREA TEMELIEI');
+  assert.ok(rotulo, `el subtítulo no llegó al PDF: ${JSON.stringify(trozos.map((t) => t.text))}`);
+  assert.equal(rotulo.bold, true);
+  assert.ok(rotulo.margin[1] > 0 && rotulo.margin[3] > 0, 'espacio de párrafo antes y después');
+  // Y no queda ni una almohadilla en todo el documento.
+  assert.ok(!trozos.some((t) => t.text.includes('#')), 'se coló la sintaxis del subtítulo');
+});
+
+test('una línea en blanco abre un párrafo nuevo, no un renglón vacío', () => {
+  const trozos = trozosDe(definirPredica({ title: 'T' }, CONTENIDO_COMPLETO));
+  const primero = trozos.find((t) => t.text === 'Primul paragraf.');
+  const segundo = trozos.find((t) => t.text === 'Al doilea paragraf.');
+  assert.ok(primero && segundo, 'los dos párrafos tienen que existir por separado');
+  assert.ok(segundo.text !== '', 'y ninguno puede ser un nodo vacío');
+  assert.ok(!trozos.some((t) => t.text.trim() === ''), 'no debe quedar ningún nodo de texto vacío');
+});
+
+test('un campo escrito con una frase por línea no se declara «cabe» sin caber', () => {
+  // El salto de línea cuenta como línea impresa aunque no llene el ancho. Sin
+  // eso, un campo escrito así —que es como escribe mucha gente— se medía en
+  // menos de la mitad de lo que ocupa: el grupo se marcaba indivisible,
+  // pdfmake descartaba lo que no cabía y la sección DESAPARECÍA del folio.
+  const unaFrasePorLinea = Array.from({ length: 60 }, (_, i) => `Fraza numărul ${i + 1} a predicii.`).join('\n');
+  const contenido = {
+    version: 1,
+    structure: [{ id: 'p1', title: 'Punct', refs: [], subpoints: [] }],
+    development: { p1: { explain: unaFrasePorLinea, illustrate: '', apply: '', refs: [] } },
+    intro: '',
+    conclusion: '',
+  };
+
+  const grupo = definirPredica({ title: 'T' }, contenido).content.find((n) => n.stack);
+  assert.equal(grupo.unbreakable, false, 'sesenta líneas no caben en una página');
+});
+
+test('un `##` escrito a mano donde no hay bloques tampoco se imprime', () => {
+  // La transición y los campos de la schiță no pasan por `bloquesDe` —son una
+  // frase, no un campo con estructura—, así que un `##` escrito a mano salía
+  // impreso tal cual mientras en pantalla se veía como un rótulo.
+  const contenido = structuredClone(CONTENIDO_COMPLETO);
+  contenido.transition = '## PROPOZIȚIA DE TRANZIȚIE';
+  const textos = trozosDe(definirPredica({ title: 'T' }, contenido)).map((t) => t.text);
+  assert.ok(textos.includes('PROPOZIȚIA DE TRANZIȚIE'), JSON.stringify(textos));
+  assert.ok(!textos.some((t) => t.includes('#')), 'no debe quedar la almohadilla');
+});
+
+test('una cita suelta sale como bloque con barra azul y sangrada', () => {
+  const definicion = definirPredica({ title: 'T' }, CONTENIDO_COMPLETO);
+  const tablas = tablasDe(definicion);
+  const cita = tablas.find((t) => JSON.stringify(t).includes('Matei 7:24'));
+
+  assert.ok(cita, 'la cita del texto no salió como bloque');
+  assert.equal(cita.layout.vLineWidth(0), 2.5, 'la barra de la izquierda');
+  assert.equal(cita.layout.vLineWidth(1), 0, 'y sólo la de la izquierda');
+  assert.ok(cita.margin[0] > 0, 'con un poco de sangría, como se pidió');
+});
+
+test('ningún nodo indivisible se pasa del alto de una página', () => {
+  // El invariante que de verdad importa: `unbreakable` sobre un bloque más alto
+  // que la caja no lo reparte — pdfmake se queda con la primera página y
+  // DESCARTA el resto («no support for multi-page unbreakableBlocks»), así que
+  // el contenido desaparece sin ningún error. Es la trampa 64.
+  const largo = 'palabra '.repeat(400).trim();
+  const contenido = structuredClone(CONTENIDO_COMPLETO);
+  contenido.intro = largo;
+  contenido.conclusion = largo;
+  contenido.development.p1.explain = largo;
+  // Un punto corto además del larguísimo: así hay de las dos clases, grupos
+  // que sí caben y grupos que no.
+  contenido.structure.push({ id: 'p2', title: 'Punct scurt', refs: [], subpoints: [] });
+  contenido.development.p2 = {
+    explain: 'O frază scurtă. {{Ioan 11:35|Isus a plâns}}',
+    illustrate: '',
+    apply: '',
+    refs: [],
+  };
+
+  const definicion = definirPredica({ title: 'T', reference: 'R', pericope: PERICOPA }, contenido);
+  // Los hay de dos clases: el grupo [titular + primer bloque] y cada versículo
+  // citado, que tampoco se parte si cabe.
+  const indivisibles = [];
+  const recorrer = (n) => {
+    if (Array.isArray(n)) return n.forEach(recorrer);
+    if (!n || typeof n !== 'object') return;
+    if (n.unbreakable) indivisibles.push(n);
+    if (n.stack) recorrer(n.stack);
+    if (n.table) recorrer(n.table.body);
+  };
+  recorrer(definicion.content);
+
+  assert.ok(indivisibles.length >= 2, 'tiene que haber grupos indivisibles que comprobar');
+  for (const nodo of indivisibles) {
+    assert.ok(
+      estimarAltoDePrueba([nodo]) < 620,
+      `un nodo indivisible mide más que la página: ${JSON.stringify(nodo).slice(0, 160)}`,
+    );
+  }
+});
+
+/** El mismo heurístico que usa el servicio, para poder comprobar el invariante
+ *  desde fuera sin exportarlo. Si los dos se separan, este test deja de valer:
+ *  por eso es grosero a propósito y sólo comprueba el orden de magnitud. */
+const estimarAltoDePrueba = (nodos, ancho = 491) => {
+  let alto = 0;
+  for (const n of nodos || []) {
+    if (!n || typeof n !== 'object') continue;
+    const margenes = (n.margin?.[1] || 0) + (n.margin?.[3] || 0);
+    const dentro = Math.max(120, ancho - (n.margin?.[0] || 0) - (n.margin?.[2] || 0));
+    if (n.canvas) {
+      alto += margenes + 1;
+      continue;
+    }
+    if (n.table) {
+      alto +=
+        margenes +
+        estimarAltoDePrueba(
+          n.table.body.flat().flatMap((c) => c.stack || []),
+          dentro - 10,
+        );
+      continue;
+    }
+    if (n.stack) {
+      alto += margenes + estimarAltoDePrueba(n.stack, dentro);
+      continue;
+    }
+    const texto = Array.isArray(n.text) ? n.text.map((t) => t.text || '').join('') : n.text || '';
+    const tamano = n.fontSize || 11;
+    const porLinea = Math.max(20, Math.round((dentro / tamano) * 2));
+    alto += Math.max(1, Math.ceil(texto.length / porLinea)) * tamano * (n.lineHeight || 1.45) + margenes;
+  }
+  return alto;
+};
+
+// ── La schiță con la regla nueva: más caras, mismo plegado ─────────────────
+
+test('una schiță larguísima pasa a ocho caras y se sigue leyendo seguida al doblar', () => {
+  // Desde que entra CADA frase del desarrollo, una predicación de las largas no
+  // cabe en cuatro caras. Antes el reparto sólo sabía hacer 2 o 4: el resto se
+  // salía de la columna, pdfmake añadía páginas por su cuenta y el plegado
+  // dejaba de cuadrar.
+  const paginas = caras(esquemaDe(16, 6));
+  assert.equal(paginas.length, 4, `ocho caras son cuatro páginas (dos hojas a doble cara), salen ${paginas.length}`);
+
+  // Al doblar y meter las hojas una dentro de otra, los puntos salen en orden.
+  const hojas = paginas.length / 2;
+  const leido = [];
+  for (let i = 0; i < hojas; i++) leido.push(paginas[2 * i][1], paginas[2 * i + 1][0]);
+  for (let i = hojas - 1; i >= 0; i--) leido.push(paginas[2 * i + 1][1], paginas[2 * i][0]);
+
+  const numeros = leido.flat();
+  assert.deepEqual(
+    numeros,
+    [...numeros].sort((a, b) => a - b),
+    `al doblar, los puntos salen desordenados: ${numeros.join(', ')}`,
+  );
+});
+
+test('un punto de schiță más alto que la columna NO se marca indivisible', () => {
+  // Misma lección que la trampa 64, en la schiță: un `unbreakable` que no cabe
+  // hace que pdfmake descarte lo que sobra y el punto desaparezca del papel.
+  // Antes de la regla nueva no podía pasar —un punto eran cinco líneas—.
+  const esquema = esquemaDe(1, 60);
+  const definicion = definirSchita(SERMON, esquema, {});
+  const grupos = [];
+  const recorrer = (n) => {
+    if (Array.isArray(n)) return n.forEach(recorrer);
+    if (!n || typeof n !== 'object') return;
+    if (n.unbreakable !== undefined) grupos.push(n);
+    if (n.stack) recorrer(n.stack);
+    if (n.columns) recorrer(n.columns);
+  };
+  recorrer(definicion.content);
+
+  assert.ok(grupos.length, 'no se encontró el grupo del punto');
+  assert.ok(
+    grupos.every((g) => g.unbreakable === false),
+    'un punto de sesenta líneas no cabe en una cara: no puede ser indivisible',
+  );
 });
 
 // ── Marca de agua ───────────────────────────────────────────────────────────

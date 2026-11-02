@@ -584,7 +584,9 @@
       "action_view": "Vezi predica",
       "action_preach_again": "Predică din nou",
       "mark_keyword": "Marchează",
-      "mark_help": "Selectează un cuvânt sau o expresie și marcheaz-o: va apărea în schiță.",
+      "mark_help": "Selectează un cuvânt sau o expresie și marcheaz-o: în schiță apare aldin, lângă începutul frazei.",
+      "mark_subtitle": "Subtitlu",
+      "mark_subtitle_help": "Rândul pe care stă cursorul devine subtitlu: la tipărire apare cu majuscule, aldin și cu spațiu înainte și după.",
       "refs_title": "Versete de sprijin",
       "refs_add": "Adaugă verset",
       "refs_remove": "Șterge referința",
@@ -612,7 +614,7 @@
         "share": "Distribuie predica",
         "copied": "Link copiat"
       },
-      "print_outline_hint": "Se pliază pe jumătate, pe latura scurtă. Dacă schița are patru pagini, tipărește față-verso cu întoarcere pe latura scurtă.",
+      "print_outline_hint": "Se pliază pe jumătate, pe latura scurtă. Dacă PDF-ul are mai mult de o pagină, tipărește față-verso cu întoarcere pe latura scurtă și pliază foile una în alta.",
       "idea_exegetical": "Ideea exegetică",
       "idea_exegetical_help": "Ce a spus textul pentru destinatarii lui de atunci? Tema + ce se spune despre ea.",
       "outline_intro": "Introducere (idei)",
@@ -676,7 +678,7 @@
       "refresh_offline": "Predica nu s-a sincronizat încă niciodată; nu are de unde să se actualizeze.",
       "refresh_failed": "Nu s-a putut actualiza. Verifică conexiunea și încearcă din nou.",
       "insert_verse": "Inserează verset",
-      "insert_verse_help": "Alege un verset și textul lui întreg se lipește aici, în cursiv la tipărire.",
+      "insert_verse_help": "Alege un verset și textul lui întreg se lipește aici. Lăsat pe rândul lui, la tipărire apare ca bloc, cu bară albastră la stânga.",
       "guide_link": "Ghid de predicare",
       "guide": {
         "seo_title": "Cum se face o predică expozitivă, tematică sau textuală | RoBible",

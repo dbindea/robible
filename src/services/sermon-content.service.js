@@ -80,7 +80,11 @@ export const normalizeContent = (raw) => {
 
   let obj = raw;
   if (typeof raw === 'string') {
-    try { obj = JSON.parse(raw); } catch { return base; }
+    try {
+      obj = JSON.parse(raw);
+    } catch {
+      return base;
+    }
   }
   if (!obj || typeof obj !== 'object') return base;
 
@@ -189,20 +193,30 @@ export const countWords = (texto) => {
   return limpio ? limpio.split(/\s+/).length : 0;
 };
 
+/**
+ * Palabras de un texto de la predicación, sin la sintaxis de marcado.
+ *
+ * El `##` de un subtítulo contaría como una palabra más por rótulo, y nadie
+ * predica un `##`. Los asteriscos y las llaves van pegados a sus palabras y no
+ * cambiaban el recuento, pero pasar los tres por el mismo sitio ahorra tener
+ * que acordarse la próxima vez que se añada una sintaxis.
+ */
+const palabrasPredicadas = (texto) => countWords(quitarMarcas(texto));
+
 /** Palabras de todo lo que se predica: intro, puntos, desarrollo y conclusión. */
 export const sermonWordCount = (content) => {
   const c = normalizeContent(content);
   // `notes` queda fuera a propósito: es el cuaderno de trabajo, no se predica.
   // Contarlo daría una duración inflada justo a quien más apunta.
-  let total = countWords(c.intro) + countWords(c.transition) + countWords(c.conclusion);
+  let total = palabrasPredicadas(c.intro) + palabrasPredicadas(c.transition) + palabrasPredicadas(c.conclusion);
 
   for (const punto of c.structure) {
-    total += countWords(punto.title);
+    total += palabrasPredicadas(punto.title);
     for (const sub of punto.subpoints || []) {
-      total += countWords(sub.title) + countWords(c.development[sub.id]?.text);
+      total += palabrasPredicadas(sub.title) + palabrasPredicadas(c.development[sub.id]?.text);
     }
     const d = c.development[punto.id];
-    if (d) total += countWords(d.explain) + countWords(d.illustrate) + countWords(d.apply);
+    if (d) total += palabrasPredicadas(d.explain) + palabrasPredicadas(d.illustrate) + palabrasPredicadas(d.apply);
   }
   return total;
 };
@@ -229,27 +243,6 @@ export const emptyOutline = () => ({
   base: null,
 });
 
-/**
- * Saca de un texto largo unas pocas expresiones cortas para el púlpito.
- *
- * **No es un resumen.** Una schiță no se lee: se mira de reojo para recuperar
- * el hilo. Por eso se cogen las primeras frases y se recortan a unas pocas
- * palabras; meter párrafos enteros la convertiría en la predicación otra vez,
- * que es justo lo que hay que evitar.
- */
-const claves = (texto, maxLineas = 3, maxPalabras = 6) => {
-  if (!texto || typeof texto !== 'string') return [];
-  return quitarMarcas(texto)
-    .split(/[.;\n]+/)
-    .map((frase) => frase.trim())
-    .filter(Boolean)
-    .slice(0, maxLineas)
-    .map((frase) => {
-      const palabras = frase.split(/\s+/);
-      return palabras.length <= maxPalabras ? frase : `${palabras.slice(0, maxPalabras).join(' ')}…`;
-    });
-};
-
 // ── Marcado manual ──────────────────────────────────────
 //
 // Lo que va entre asteriscos sale tal cual en la schiță. El corte automático de
@@ -268,6 +261,55 @@ export const marcadas = (texto) => {
   if (!texto || typeof texto !== 'string') return [];
   return [...texto.matchAll(MARCA)].map((m) => m[1].trim()).filter(Boolean);
 };
+
+// ── Subtítulo del predicador ────────────────────────────
+//
+// La tercera sintaxis de marcado, y la única de LÍNEA: `## Zidirea casei` al
+// principio de una línea la convierte en un rótulo —mayúsculas, negrita y aire
+// antes y después—.
+//
+// Sustituye a las etiquetas fijas «EXPLICĂ / ILUSTREAZĂ / APLICĂ», que salían
+// impresas encima de cada casilla del desarrollo. Eran andamio del curso de
+// homilética, no de la predicación: quien la lee no necesita saber qué casilla
+// del formulario rellenó el predicador, y quien la predica quiere sus propios
+// rótulos («ZIDIREA CASEI», «TERMINAREA CASEI») donde de verdad hacen falta.
+//
+// Es de línea y no de delimitadores a propósito: un subtítulo ES una línea
+// entera, así que no puede chocar con `*marca*` ni con `{{cita}}`, que marcan
+// trozos de DENTRO de la frase. Se aceptan de DOS a seis almohadillas —quien
+// pega desde Markdown escribe `##` o `###`— y se exige un espacio detrás.
+//
+// Dos y no una: con una sola, cualquier línea escrita antes de que esto
+// existiera que empezara por `# ` —una nota numerada, algo pegado de otro
+// sitio— se convertía en rótulo de golpe. Dos almohadillas es lo que pone el
+// botón y lo que nadie escribe sin querer.
+const SUBTITULO = /^[ \t]*#{2,6}[ \t]+(.*\S)[ \t]*$/;
+
+// La misma cosa para limpiar un texto de varias líneas de golpe. Va aparte
+// porque `replace` con una expresión global y una con `^…$` no son la misma
+// herramienta: ésta tiene `m` para que `^` valga en cada línea.
+const MARCADOR_SUBTITULO = /^[ \t]*#{2,6}[ \t]+/gm;
+
+/**
+ * El rótulo de una línea de subtítulo, o `''` si esa línea no lo es.
+ *
+ * Devuelve el texto TAL CUAL, con el marcado que lleve dentro: lo usa el botón
+ * de la interfaz para quitar el `##`, y ahí borrar de paso los asteriscos del
+ * predicador sería destruirle lo que escribió. Quien lo pinta ya lo limpia.
+ */
+export const subtituloDe = (linea) => (typeof linea === 'string' ? (linea.match(SUBTITULO)?.[1] || '').trim() : '');
+
+/**
+ * El texto sin el marcador de línea del subtítulo, conservando el resto del
+ * marcado.
+ *
+ * Lo necesita quien pinta EN LÍNEA —`runsDeTexto`, en el PDF— porque ahí un
+ * rótulo de línea no significa nada y el `##` salía impreso tal cual. Pasa en
+ * los campos que no se trocean en bloques: la transición y los de la schiță,
+ * que se editan a mano la noche antes de predicar.
+ */
+export const sinMarcadorDeSubtitulo = (texto) =>
+  typeof texto === 'string' ? texto.replace(MARCADOR_SUBTITULO, '') : '';
 
 // ── Cita en línea ───────────────────────────────────────
 //
@@ -289,7 +331,7 @@ const CITA = /\{\{([^{}|]+)\|([^{}]+)\}\}/g;
  *  se predica, y en la schiță puede servir de material para el resumen
  *  automático si no hay nada marcado con asteriscos. */
 export const quitarMarcas = (texto) =>
-  typeof texto === 'string' ? texto.replace(MARCA, '$1').replace(CITA, '$1: $2') : '';
+  typeof texto === 'string' ? texto.replace(MARCADOR_SUBTITULO, '').replace(MARCA, '$1').replace(CITA, '$1: $2') : '';
 
 /**
  * Inserta una cita en la posición `[desde, hasta)` de un texto.
@@ -306,14 +348,244 @@ export const insertarCita = (texto, desde, hasta, ref) => {
   return { texto: nuevo, cursor: desde + bloque.length };
 };
 
-const primerasPalabras = (texto, n = 5) => {
-  const palabras = texto.trim().split(/\s+/);
-  return palabras.length <= n ? palabras.join(' ') : `${palabras.slice(0, n).join(' ')}…`;
+// ── Bloques de presentación ─────────────────────────────
+//
+// El predicador escribe cada campo en un `textarea`, y ahí sólo tiene dos
+// gestos: el salto de línea y la línea en blanco. Esta función los traduce a lo
+// que se imprime, y es la capa que comparten el PDF, el documento en pantalla y
+// la página pública — por el mismo motivo que `segmentarTexto`: tres troceados
+// distintos acaban enseñando tres cosas distintas, y el que se descubre tarde
+// es siempre el impreso.
+//
+// Una LÍNEA EN BLANCO era antes exactamente eso en el papel: un renglón vacío,
+// mucho más aire del que separa dos párrafos de un libro. Ahora abre un párrafo
+// nuevo y el aire lo pone el espaciado del bloque, que es la mitad. Un salto de
+// línea simple sigue siendo un salto dentro del mismo párrafo.
+//
+// Devuelve bloques `{ tipo: 'parrafo' | 'subtitulo' | 'cita', texto, label? }`.
+// El texto de un `parrafo` puede seguir trayendo `*marcas*` y hasta una
+// `{{cita}}` en línea: de eso se encarga `segmentarTexto` después.
+
+// Qué puede quedar detrás de una cita sin que cuente como texto: el punto que
+// cierra la frase, una coma, un paréntesis o unas comillas.
+const SOLO_CIERRE = /^[\s.,;:!?)\]»”"'…]*$/;
+
+/**
+ * Parte un párrafo sacando a bloque las citas que lo merecen.
+ *
+ * La regla es una: **una cita sale a bloque cuando no lleva nada detrás en su
+ * línea**, más allá del punto que cierra la frase. Así salen a bloque las dos
+ * formas en que se escribe casi siempre —sola en su línea, o detrás de
+ * «Domnul spune:»— y ese punto final se queda pegado al versículo en vez de
+ * abrir un párrafo nuevo con un carácter dentro.
+ *
+ * Si queda texto detrás, la cita se queda EN LÍNEA, aunque abra la línea:
+ * sacarla dejaría ese texto huérfano en un párrafo que empieza por una coma o
+ * por una raya.
+ */
+const bloquesDeParrafo = (parrafo) => {
+  const bloques = [];
+  let pendiente = '';
+  let cursor = 0;
+
+  const volcar = () => {
+    const t = pendiente.trim();
+    if (t) bloques.push({ tipo: 'parrafo', texto: t });
+    pendiente = '';
+  };
+
+  for (const m of parrafo.matchAll(CITA)) {
+    const antes = parrafo.slice(cursor, m.index);
+    const finCita = m.index + m[0].length;
+    const salto = parrafo.indexOf('\n', finCita);
+    const finLinea = salto === -1 ? parrafo.length : salto;
+    const restoLinea = parrafo.slice(finCita, finLinea);
+
+    const cierraLinea = SOLO_CIERRE.test(restoLinea);
+
+    if (!cierraLinea) {
+      pendiente += antes + m[0];
+      cursor = finCita;
+      continue;
+    }
+
+    pendiente += antes;
+    volcar();
+    bloques.push({
+      tipo: 'cita',
+      label: m[1].trim(),
+      texto: `${m[2]}${cierraLinea ? restoLinea : ''}`.trim(),
+    });
+    cursor = cierraLinea ? finLinea : finCita;
+  }
+
+  pendiente += parrafo.slice(cursor);
+  volcar();
+  return bloques;
+};
+
+export const bloquesDe = (texto) => {
+  // Los saltos de Windows se normalizan aquí, en el único sitio por el que pasa
+  // todo lo que se pinta. Un `textarea` ya devuelve `\n`, pero un texto que
+  // llegue de fuera con `\r\n` dejaría un `\r` al final de cada línea y el
+  // `##` del subtítulo no se reconocería — sin error y sin síntoma claro.
+  const t = (typeof texto === 'string' ? texto : '').replace(/\r\n?/g, '\n');
+  const bloques = [];
+
+  for (const parrafo of t.split(/\n[ \t]*\n+/)) {
+    let lineas = [];
+    const volcar = () => {
+      const unido = lineas.join('\n').trim();
+      if (unido) bloques.push(...bloquesDeParrafo(unido));
+      lineas = [];
+    };
+    for (const linea of parrafo.split('\n')) {
+      // Un marcador sin texto detrás no es nada: se queda así al borrar el
+      // rótulo recién creado, y se imprimía como un `##` suelto.
+      if (/^[ \t]*#{2,6}[ \t]*$/.test(linea)) continue;
+
+      const rotulo = subtituloDe(linea);
+      if (rotulo) {
+        // Un subtítulo a media línea parte el párrafo en dos: es un rótulo, no
+        // una frase más.
+        //
+        // Y va LIMPIO de marcado: un rótulo se pinta entero en mayúsculas y
+        // negrita, así que una `*marca*` dentro no significa nada y los
+        // asteriscos salían impresos —marcar una palabra y convertir después
+        // esa línea en subtítulo es un gesto de lo más normal—.
+        volcar();
+        bloques.push({ tipo: 'subtitulo', texto: quitarMarcas(rotulo) });
+      } else {
+        lineas.push(linea);
+      }
+    }
+    volcar();
+  }
+
+  return bloques;
+};
+
+// ── Recorte para la schiță ──────────────────────────────
+//
+// La regla cambió el 2 nov 2026, a petición del propietario, después de llevar
+// al púlpito la primera predicación preparada con la aplicación.
+//
+// Antes: dos frases del explicar, una del ilustrar y una del aplicar, cinco
+// palabras cada una. Cinco palabras no bastaban para reconocer la frase desde
+// el atril —«Una primera frase larga que…» no dice nada— y el tope de frases
+// dejaba fuera la mitad del desarrollo sin avisar.
+//
+// Ahora entra CADA frase de cada campo, y cada una se recorta así:
+//   - sin nada marcado → ocho palabras; si la frase acaba en diez o menos, va
+//     entera, que es lo que significa «entre ocho y diez».
+//   - con algo marcado → hasta cinco palabras de arranque, «…» y lo marcado.
+// El arranque sitúa la frase; la marca conserva el matiz que el predicador
+// quiso destacar. Las dos cosas, nunca una u otra.
+const PALABRAS_CORTE = 8;
+const PALABRAS_ENTERA = 10;
+const PALABRAS_ARRANQUE = 5;
+
+// Lo que cuenta como palabra: un signo de puntuación suelto no es una palabra
+// que se haya dejado fuera, y contarlo ponía unos puntos suspensivos de más al
+// final de cualquier frase marcada.
+const ES_PALABRA = /[\p{L}\p{N}]/u;
+const palabrasDe = (texto) =>
+  String(texto || '')
+    .split(/\s+/)
+    .filter((p) => ES_PALABRA.test(p));
+
+// Una coma o un punto y coma justo antes de los puntos suspensivos se lee como
+// un borrón («lumea,…»): el recorte se queda sin ellos.
+const recortar = (palabras, n) =>
+  palabras
+    .slice(0, n)
+    .join(' ')
+    .replace(/[,;:·—–-]+$/, '');
+
+/**
+ * Resume una frase para el púlpito, con la regla de arriba.
+ */
+const resumenDeFrase = (frase) => {
+  const limpio = String(frase || '').trim();
+  if (!limpio) return '';
+
+  const marcas = marcadas(limpio);
+  if (!marcas.length) {
+    const palabras = palabrasDe(quitarMarcas(limpio));
+    if (!palabras.length) return '';
+    if (palabras.length <= PALABRAS_ENTERA) return palabras.join(' ');
+    return `${recortar(palabras, PALABRAS_CORTE)}…`;
+  }
+
+  // El arranque es lo que hay ANTES de la primera marca: contar desde el
+  // principio de la frase repetiría en el arranque las palabras que ya vienen
+  // detrás en negrita.
+  const arranque = palabrasDe(quitarMarcas(limpio.slice(0, limpio.indexOf('*'))));
+  const abre = recortar(arranque, PALABRAS_ARRANQUE);
+  const marcado = marcas.map((m) => `*${m}*`).join(' ');
+  if (!abre) return marcado;
+
+  // Los puntos suspensivos sólo si de verdad se ha quedado texto fuera: una
+  // frase corta y marcada entera se lee tal cual.
+  const alMargen = palabrasDe(quitarMarcas(limpio.replace(MARCA, ' ')));
+  const dentro = Math.min(arranque.length, PALABRAS_ARRANQUE);
+  return `${abre}${alMargen.length > dentro ? '…' : ''} ${marcado}`;
+};
+
+/**
+ * Trocea un texto en frases, pero SIN partir por dentro de una `*marca*`.
+ *
+ * Con un `split(/[.;\n]+/)` a secas, marcar una frase entera con el ratón —que
+ * se lleva el punto final dentro— dejaba un asterisco suelto a cada lado del
+ * corte: número impar de asteriscos, y en el púlpito la negrita se comía el
+ * resto de la línea. Desde que entra cada frase en la schiță, ese gesto es de
+ * los más probables.
+ */
+const frasesDe = (texto) => {
+  const frases = [];
+  let actual = '';
+  let dentro = false;
+
+  for (const ch of String(texto || '')) {
+    if (ch === '*') {
+      const cerrando = dentro;
+      dentro = !dentro;
+      actual += ch;
+      // Una marca que se ha tragado el punto final ES el final de la frase, y
+      // se corta al cerrarla. Sin esto, la frase siguiente se quedaba pegada a
+      // la marcada y el recorte la tiraba entera: el predicador marcaba una
+      // frase y perdía la de al lado.
+      if (cerrando && /[.;]$/.test(actual.slice(0, -1))) {
+        frases.push(actual);
+        actual = '';
+      }
+      continue;
+    }
+    if (!dentro && (ch === '.' || ch === ';' || ch === '\n')) {
+      frases.push(actual);
+      actual = '';
+      continue;
+    }
+    actual += ch;
+  }
+
+  frases.push(actual);
+  // Sin una sola letra no es una frase: con una lista numerada
+  // («1. Zidirea casei.») el corte por puntos dejaba dos líneas de schiță que
+  // decían «1» y «2», y en el atril eso es ruido puro.
+  return frases.filter((f) => /\p{L}/u.test(f));
+};
+
+/** Una cita como línea de schiță: la referencia en negrita y el arranque del
+ *  versículo con la misma regla que cualquier otra frase. */
+const lineaDeCita = (label, texto) => {
+  const resumen = resumenDeFrase(texto);
+  return `*${String(label || '').trim()}*${resumen ? ` ${resumen}` : ''}`;
 };
 
 /**
  * Las citas insertadas en un texto, listas para ir de palabra clave en la
- * schiță: la referencia en negrita y las primeras palabras del versículo.
+ * schiță: la referencia en negrita y el arranque del versículo.
  *
  * Antes de esto una cita insertada en el desarrollo no llegaba NUNCA al
  * púlpito: `generateOutline` sólo miraba lo marcado con asteriscos y, si no
@@ -324,72 +596,55 @@ const primerasPalabras = (texto, n = 5) => {
  */
 export const citasDe = (texto) => {
   if (!texto || typeof texto !== 'string') return [];
-  return [...texto.matchAll(CITA)].map(
-    (m) => `*${m[1].trim()}* ${primerasPalabras(m[2].trim())}`,
-  );
+  return [...texto.matchAll(CITA)].map((m) => lineaDeCita(m[1], m[2]));
 };
 
 /**
- * Alarga un recorte de palabras hasta no dejar una `*marca*` a medias.
+ * Las líneas de schiță de un campo: subtítulos, frases y citas, en el orden en
+ * que están escritos.
  *
- * Cortar por número de palabras es ciego a los asteriscos: si la marca
- * empieza dentro del recorte y cierra después, el resultado lleva un `*`
- * suelto y `TextoFormateado` (o el PDF) leería negrita el resto del párrafo
- * entero. Se alarga palabra a palabra hasta que el recuento de asteriscos
- * vuelve a ser par.
+ * Conserva los asteriscos de lo marcado en vez de quitarlos: `TextoFormateado`
+ * (en el púlpito, en el documento y en la página pública) y `runsDeTexto` (el
+ * PDF) ya saben pintar esa negrita, así que el símbolo nunca llega a verse como
+ * carácter. Un subtítulo se convierte en una marca entera en mayúsculas: es la
+ * división que el predicador puso en su texto, y en la cartilla del atril vale
+ * más que cualquier frase que se pudiera resumir de debajo.
  */
-const extenderHastaCerrarMarca = (palabras, maxPalabras) => {
-  let n = Math.min(maxPalabras, palabras.length);
-  while (n < palabras.length) {
-    const asteriscos = (palabras.slice(0, n).join(' ').match(/\*/g) || []).length;
-    if (asteriscos % 2 === 0) break;
-    n += 1;
-  }
-  return n;
-};
-
-/**
- * Resume una frase para el púlpito: el comienzo (unas pocas palabras) MÁS
- * cualquier `*marca*` que tenga, aunque quede más allá del corte.
- *
- * Antes, en cuanto había algo marcado en el texto, `generateOutline`
- * enseñaba SÓLO lo marcado y tiraba el comienzo de la frase; sin marcar nada
- * hacía lo contrario, sólo el comienzo. El predicador quiere las dos cosas a
- * la vez — el arranque de la frase para situarse, y la palabra que se marcó
- * para no perder el matiz — así que las dos van en la misma línea.
- */
-const resumenDeFrase = (frase, maxPalabras = 5) => {
-  const limpio = frase.trim();
-  if (!limpio) return '';
-  const palabras = limpio.split(/\s+/);
-  let abre = limpio;
-  if (palabras.length > maxPalabras) {
-    const n = extenderHastaCerrarMarca(palabras, maxPalabras);
-    abre = palabras.slice(0, n).join(' ');
-    if (n < palabras.length) abre += '…';
-  }
-  const marcasFuera = marcadas(limpio).filter((m) => !abre.includes(m));
-  return marcasFuera.length ? `${abre} ${marcasFuera.map((m) => `*${m}*`).join(' ')}` : abre;
-};
-
-/**
- * Como `claves()`, pero conservando los asteriscos de lo marcado en vez de
- * quitarlos: son las palabras clave de un punto, y `TextoFormateado` (en el
- * púlpito, en el documento y en la página pública) y el PDF ya saben pintar
- * esa negrita. Las citas se quitan antes de trocear en frases — van aparte,
- * por `citasDe` — porque su texto tiene sus propios espacios y el corte por
- * palabras las partiría a la mitad.
- */
-const fraseClaves = (texto, maxLineas = 3, maxPalabras = 5) => {
+const fraseClaves = (texto) => {
   if (!texto || typeof texto !== 'string') return [];
-  return texto
-    .replace(CITA, '')
-    .split(/[.;\n]+/)
-    .map((frase) => frase.trim())
-    .filter(Boolean)
-    .slice(0, maxLineas)
-    .map((frase) => resumenDeFrase(frase, maxPalabras))
-    .filter(Boolean);
+  const salida = [];
+
+  for (const bloque of bloquesDe(texto)) {
+    if (bloque.tipo === 'subtitulo') {
+      salida.push(`*${bloque.texto.toUpperCase()}*`);
+      continue;
+    }
+    if (bloque.tipo === 'cita') {
+      salida.push(lineaDeCita(bloque.label, bloque.texto));
+      continue;
+    }
+    // El párrafo se recorre a trozos: lo que hay antes de cada cita, la cita, y
+    // así hasta el final. Hay dos motivos para no trocear de una sola pasada:
+    // el texto de la cita trae puntos propios y el corte por frases la partiría
+    // a la mitad, y además la cita tiene que entrar en la schiță DONDE ESTÁ
+    // ESCRITA. Sacándola aparte salía detrás de las frases que en el texto van
+    // después de ella, y desde el atril eso se lee en el orden equivocado.
+    let desde = 0;
+    const añadirFrases = (trozo) => {
+      for (const frase of frasesDe(trozo)) {
+        const linea = resumenDeFrase(frase);
+        if (linea) salida.push(linea);
+      }
+    };
+    for (const m of bloque.texto.matchAll(CITA)) {
+      añadirFrases(bloque.texto.slice(desde, m.index));
+      salida.push(lineaDeCita(m[1], m[2]));
+      desde = m.index + m[0].length;
+    }
+    añadirFrases(bloque.texto.slice(desde));
+  }
+
+  return salida;
 };
 
 /**
@@ -415,15 +670,26 @@ export const segmentarTexto = (texto) => {
     if (m[1] !== undefined) {
       // *palabra* → negrita. Es justo lo que se marcó para verlo desde el
       // atril; en papel tiene sentido que se note lo mismo.
-      segmentos.push({ texto: m[1], bold: true });
+      //
+      // Se vuelve a trocear por dentro porque una marca puede ENVOLVER una
+      // cita: se selecciona una frase entera que ya tenía un versículo
+      // insertado y se pulsa «Marchează». Sin esto, las llaves y la barra
+      // salían impresas dentro de la negrita. No hay recursión infinita: el
+      // contenido de una marca no puede llevar otro asterisco.
+      for (const s of segmentarTexto(m[1])) segmentos.push(s.cita ? s : { ...s, bold: true });
     } else {
       // {{ref|texto}} → la referencia en negrita, pegada al versículo en
       // cursiva. Así se lee como una cita dentro de la frase y no como un
       // trozo de código suelto. `cita: true` en los dos marca que van juntos,
       // para que quien pinte el texto (`TextoFormateado`) pueda envolverlos
       // en un solo bloque con su propia barra a la izquierda.
+      //
+      // El versículo se trocea por dentro por el mismo motivo que la marca:
+      // se inserta la cita y después se pone en negrita una palabra DEL
+      // versículo, que es justo lo que se hace para destacar la palabra sobre
+      // la que va a ir el punto. Sin esto, el asterisco salía impreso.
       segmentos.push({ texto: `${m[2]} `, bold: true, cita: true });
-      segmentos.push({ texto: m[3], italica: true, cita: true });
+      for (const s of segmentarTexto(m[3])) segmentos.push({ ...s, italica: true, cita: true });
     }
     ultimo = m.index + m[0].length;
   }
@@ -461,6 +727,40 @@ export const alternarMarca = (texto, desde, hasta) => {
 };
 
 /**
+ * Pone o quita el `##` de subtítulo en las líneas que toca el cursor.
+ *
+ * Trabaja por LÍNEAS ENTERAS y no por la selección exacta, al revés que
+ * `alternarMarca`: un subtítulo es una línea completa, así que basta con que el
+ * cursor esté dentro —no hay que seleccionar nada— y seleccionar media frase no
+ * puede dejar medio rótulo. El mismo botón pone y quita, como el de la marca.
+ */
+export const alternarSubtitulo = (texto, desde = 0, hasta = desde) => {
+  const t = typeof texto === 'string' ? texto : '';
+  const a = Math.max(0, Math.min(desde, hasta));
+  const b = Math.min(t.length, Math.max(desde, hasta));
+
+  const ini = t.lastIndexOf('\n', Math.max(0, a - 1)) + 1;
+  const salto = t.indexOf('\n', b);
+  const fin = salto === -1 ? t.length : salto;
+
+  const lineas = t.slice(ini, fin).split('\n');
+  // Si TODO lo que se ha cogido ya son rótulos, el botón quita; si hay una sola
+  // línea normal, pone. Así pulsar dos veces deja el texto como estaba.
+  const todasSonRotulo = lineas.some((l) => l.trim()) && lineas.every((l) => !l.trim() || subtituloDe(l));
+
+  const cambiadas = lineas.map((linea) => {
+    if (!linea.trim()) return linea;
+    // Al poner, se quita antes el marcador que ya hubiera: con una selección
+    // de varias líneas donde una ya era rótulo, se quedaba `## ## Rótulo` —y
+    // el segundo par de almohadillas sí se imprimía—.
+    return todasSonRotulo ? subtituloDe(linea) : `## ${subtituloDe(linea) || linea.trim()}`;
+  });
+
+  const trozo = cambiadas.join('\n');
+  return { texto: t.slice(0, ini) + trozo + t.slice(fin), desde: ini, hasta: ini + trozo.length };
+};
+
+/**
  * Construye una schiță a partir de la preparación ya escrita.
  *
  * No hay IA ni hace falta: todo sale de lo que el predicador ha tecleado. La
@@ -477,33 +777,27 @@ export const generateOutline = (content) => {
     // el púlpito, en el PDF o en el enlace público—. Si se colaran, habría que
     // acordarse de quitarlos en cada uno de esos sitios.
     idea: quitarMarcas(c.idea.central).trim(),
-    // Las citas de la introducción se añaden aparte: `claves()` aplana la
-    // cita a texto corrido y el recorte por frases casi nunca la deja
-    // entera. `citasDe` la entrega ya lista como línea propia.
-    intro: [...claves(c.intro), ...citasDe(c.intro)],
+    // La introducción pasa por la misma regla que el desarrollo. Antes tenía la
+    // suya —tres frases de seis palabras, y los asteriscos quitados— así que lo
+    // que el predicador marcaba en la introducción no llegaba al atril.
+    intro: fraseClaves(c.intro),
     transition: quitarMarcas(c.transition).trim(),
     points: c.structure.map((punto) => {
       const d = c.development[punto.id] || {};
-      const subpuntos = (punto.subpoints || [])
-        .map((s) => quitarMarcas(s.title).trim())
-        .filter(Boolean);
+      const subpuntos = (punto.subpoints || []).map((s) => quitarMarcas(s.title).trim()).filter(Boolean);
 
       // El comienzo de cada frase (para situarse) MÁS lo marcado con
       // asteriscos (para no perder el matiz que el predicador quiso
-      // destacar) y las citas insertadas (siempre, se haya marcado algo o
-      // no): las tres cosas conviven en la misma lista de palabras clave.
+      // destacar), los subtítulos que él mismo puso y las citas insertadas,
+      // todo en el orden en que está escrito: `fraseClaves` recorre los
+      // bloques del campo, así que una cita ya no sale al final de la lista
+      // sino donde se va a leer.
       const desarrollo = [
-        ...fraseClaves(d.explain, 2, 5),
-        ...citasDe(d.explain),
-        ...fraseClaves(d.illustrate, 1, 5),
-        ...citasDe(d.illustrate),
-        ...fraseClaves(d.apply, 1, 5),
-        ...citasDe(d.apply),
+        ...fraseClaves(d.explain),
+        ...fraseClaves(d.illustrate),
+        ...fraseClaves(d.apply),
         // El desarrollo de un subpunto se trata igual que el del punto.
-        ...(punto.subpoints || []).flatMap((s) => [
-          ...fraseClaves(c.development[s.id]?.text, 1, 5),
-          ...citasDe(c.development[s.id]?.text),
-        ]),
+        ...(punto.subpoints || []).flatMap((s) => fraseClaves(c.development[s.id]?.text)),
       ];
 
       return {
@@ -526,8 +820,13 @@ export const generateOutline = (content) => {
     // volcarlo entero aquí convertiría la schiță en el resumen largo que
     // justamente no debe ser. Si el predicador quiere la frase completa, la
     // schiță es editable.
-    application: claves(c.idea.purpose, 1, 8).join(' '),
-    conclusion: [...claves(c.conclusion, 2, 8), ...citasDe(c.conclusion)].join(' · '),
+    //
+    // Las dos son UN campo de texto y no una lista, así que sus frases van
+    // seguidas separadas por un punto medio. Pueden traer negrita: quien las
+    // pinte tiene que pasar por `TextoFormateado` o `runsDeTexto`, nunca por
+    // texto plano, o el asterisco sale impreso.
+    application: fraseClaves(c.idea.purpose).join(' · '),
+    conclusion: fraseClaves(c.conclusion).join(' · '),
   };
 
   // Recién generada, todo lo que hay lo puso la aplicación: la referencia para
@@ -551,14 +850,19 @@ export const generateOutline = (content) => {
 // sitios, y también una línea sin viñeta ninguna.
 
 /** El array de claves, como texto para un `textarea`: una por línea, con guion. */
-export const clavesATexto = (claves) =>
-  (Array.isArray(claves) ? claves : []).map((k) => `- ${k}`).join('\n');
+export const clavesATexto = (claves) => (Array.isArray(claves) ? claves : []).map((k) => `- ${k}`).join('\n');
 
 /** Lo contrario: el texto del `textarea` de vuelta a array, sin viñetas. */
 export const textoAClaves = (texto) =>
   String(texto ?? '')
     .split('\n')
-    .map((linea) => linea.replace(/^\s*[-–—•*·]+\s*/, '').trim())
+    // El asterisco cuenta como viñeta sólo si lleva un espacio detrás («* idea»,
+    // que es como se pega una lista desde otro sitio). Sin esa condición se
+    // comía el asterisco que ABRE una marca —y casi todas las líneas que genera
+    // la aplicación empiezan por una, desde las citas (`*Ioan 3:16* …`) hasta
+    // los rótulos (`*ZIDIREA CASEI*`)—: quedaba un número impar de asteriscos y
+    // la negrita se tragaba el resto de la línea en el púlpito y en el PDF.
+    .map((linea) => linea.replace(/^\s*(?:[-–—•·]+|\*(?=\s))\s*/, '').trim())
     .filter(Boolean);
 
 export const normalizeOutline = (raw) => {
@@ -566,7 +870,11 @@ export const normalizeOutline = (raw) => {
   if (!raw) return base;
   let obj = raw;
   if (typeof raw === 'string') {
-    try { obj = JSON.parse(raw); } catch { return base; }
+    try {
+      obj = JSON.parse(raw);
+    } catch {
+      return base;
+    }
   }
   if (!obj || typeof obj !== 'object') return base;
   return {
@@ -616,8 +924,7 @@ const contenidoDeSchita = (o) => ({
 
 const mismo = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 
-const estaVacio = (v) =>
-  v === '' || v === null || v === undefined || (Array.isArray(v) && v.length === 0);
+const estaVacio = (v) => v === '' || v === null || v === undefined || (Array.isArray(v) && v.length === 0);
 
 /**
  * Decide un campo. Devuelve el valor y qué se hizo, para poder contarlo.
@@ -735,11 +1042,11 @@ export const collectReferences = (content) => {
   for (const punto of c.structure) {
     for (const r of punto.refs || []) añadir(r);
     const d = c.development[punto.id];
-    for (const r of (d?.refs || [])) añadir(r);
+    for (const r of d?.refs || []) añadir(r);
     // Las de los subpuntos también: en el púlpito no hay red, y una referencia
     // que se citó dentro de un subpunto se lee igual que las demás.
     for (const sub of punto.subpoints || []) {
-      for (const r of (c.development[sub.id]?.refs || [])) añadir(r);
+      for (const r of c.development[sub.id]?.refs || []) añadir(r);
     }
   }
   return [...vistas.values()];
