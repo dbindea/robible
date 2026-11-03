@@ -752,6 +752,52 @@ test('los versículos de apoyo salen en la schiță con su barra y su texto', ()
   assert.ok(JSON.stringify(cita).includes('Fiţi împlinitori'), 'falta el arranque del versículo');
 });
 
+test('en la cartilla el guion es del PÁRRAFO, no de la línea', () => {
+  // Las tres formas que conviven en un mismo campo y NO se tratan igual: una
+  // frase lleva guion, un `## rótulo` no —es la división que puso el
+  // predicador, no un elemento más de la lista— y una cita tampoco, que ya se
+  // distingue por su barra.
+  //
+  // Está aquí porque el mismo reparto gobierna la pantalla: el Modo Amvon
+  // ponía el guion en el `<p>` entero en vez de en el párrafo, y como el
+  // subtítulo y la cita se pintan como BLOQUE, el guion se quedaba solo en su
+  // renglón encima de cada rótulo y de cada versículo. Se vio en una
+  // predicación real llevada al atril el 3 nov 2026. Si alguien vuelve a
+  // mover el guion de sitio, que se rompa por este lado también.
+  const esquema = {
+    points: [
+      {
+        id: 'p0',
+        title: 'PUNCT',
+        keywords: ['## TESTUL LUCRARII', 'O frază oarecare', '{{Iacov 1:22|Fiţi împlinitori…}}'],
+        refs: [],
+      },
+    ],
+  };
+
+  const textos = [];
+  const recorrer = (n) => {
+    if (Array.isArray(n)) return n.forEach(recorrer);
+    if (!n || typeof n !== 'object') return;
+    if (typeof n.text === 'string') textos.push(n.text);
+    if (Array.isArray(n.text)) textos.push(n.text.map((t) => (typeof t === 'string' ? t : t.text)).join(''));
+    if (n.text) recorrer(n.text);
+    if (n.stack) recorrer(n.stack);
+    if (n.columns) recorrer(n.columns);
+    if (n.table) recorrer(n.table.body);
+  };
+  recorrer(definirSchita(SERMON, esquema, {}).content);
+
+  const frase = textos.find((t) => t.includes('O frază oarecare'));
+  const rotulo = textos.find((t) => t.includes('TESTUL LUCRARII'));
+  const cita = textos.find((t) => t.includes('Fiţi împlinitori'));
+
+  assert.ok(frase?.startsWith('- '), `la frase tiene que llevar su guion: ${JSON.stringify(frase)}`);
+  assert.ok(!rotulo?.startsWith('- '), `el subtítulo NO lleva guion: ${JSON.stringify(rotulo)}`);
+  assert.ok(!cita?.startsWith('- '), `la cita NO lleva guion: ${JSON.stringify(cita)}`);
+  assert.ok(!textos.some((t) => t.includes('#')), 'y la almohadilla no se imprime');
+});
+
 test('la schiță lleva la marca Y el número de página, a la derecha', () => {
   // Llevó marca sin número hasta el 2 nov 2026, porque era un cuadernillo que
   // se doblaba. Desde que las hojas van sueltas y en orden de lectura, el

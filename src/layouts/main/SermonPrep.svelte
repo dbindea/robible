@@ -16,6 +16,7 @@
    */
   import { onDestroy, onMount, tick } from 'svelte';
   import { _ } from '../../services/i18n.service';
+  import { navegarA } from '../../services/navigation.service';
   import { sermonsStore } from '../../store/sermonsStore';
   import { setSermonPublic, buildPublicSermonUrl } from '../../services/sermons.service';
   import { USE_BACKEND } from '../../config.js';
@@ -707,12 +708,22 @@
     return content.development[id];
   };
 
+  // ── Cambiar de vista ──────────────────────────────────────────────────────
+  //
+  // Siempre subiendo arriba del todo. Las tres vistas viven en la misma ruta,
+  // así que no hay navegación de por medio y el scroll se queda donde estaba:
+  // los botones que llevan a la schiță están al final de una pantalla larga, y
+  // sin esto se llegaba a la cartilla recién hecha mirándole el pie.
+  const verVista = (cual) => {
+    vista = cual;
+    window.scrollTo({ top: 0 });
+  };
+
   // ── Finalizar ─────────────────────────────────────────────────────────────
   const verFinal = async () => {
     await guardarYa();
-    vista = 'final';
+    verVista('final');
     avisar($_('app.sermons.sermon_finished'));
-    window.scrollTo({ top: 0 });
   };
 
   // ── La schiță, editada como listas de texto ─────────────────────────────
@@ -754,9 +765,8 @@
       // onMount, y volver a derivarlos reformatearía lo que se esté escribiendo.
       sincronizarTextos();
     }
-    vista = 'outline';
+    verVista('outline');
     avisar($_(vacia ? 'app.sermons.outline_created' : 'app.sermons.outline_opened'));
-    window.scrollTo({ top: 0 });
   };
 
   // ── Regenerar sin perder lo escrito a mano ──────────────────────────────
@@ -795,6 +805,9 @@
     await sermonsStore.update(sermonId, { outline: JSON.stringify(outline) });
     schitaAnterior = previa;
     avisar(resumenDeFusion(resumen));
+    // El botón está al final de la schiță: sin subir, lo que se ve después de
+    // regenerarla es el pie de página, y la cartilla nueva queda a oscuras.
+    window.scrollTo({ top: 0 });
   };
 
   const deshacerRegeneracion = async () => {
@@ -804,6 +817,7 @@
     sincronizarTextos();
     await sermonsStore.update(sermonId, { outline: JSON.stringify(outline) });
     avisar($_('app.sermons.outline_reverted'));
+    window.scrollTo({ top: 0 });
   };
 
   // ── Serie / tema ────────────────────────────────────────────────────────
@@ -874,18 +888,12 @@
 
   let avisoPreparada = '';
 
-  const irAlPulpito = () => {
-    window.history.pushState(null, '', `/predicile-mele/${encodeURIComponent(sermonId)}/amvon`);
-    window.dispatchEvent(new CustomEvent('robibile:navigate'));
-    window.dispatchEvent(new PopStateEvent('popstate'));
-  };
+  // `navegarA` y no `pushState` a mano: el botón del púlpito está al final de
+  // una pantalla larga, así que sin subir arriba se entraba al Modo Amvon
+  // mirando el pie de página (CLAUDE.md, trampa 89).
+  const irAlPulpito = () => navegarA(`/predicile-mele/${encodeURIComponent(sermonId)}/amvon`);
 
-  const volverALista = () => {
-    window.history.pushState(null, '', '/predicile-mele');
-    // La errata `robibile` es la del resto del proyecto (CLAUDE.md, trampa 1).
-    window.dispatchEvent(new CustomEvent('robibile:navigate'));
-    window.dispatchEvent(new PopStateEvent('popstate'));
-  };
+  const volverALista = () => navegarA('/predicile-mele');
 
   onMount(async () => {
     // Antes de leer, se sincroniza la cabecera con el servidor: si otro
@@ -1776,7 +1784,7 @@
       <div class="acciones no-imprimir">
         <!-- Volver no es un grupo: es la puerta por la que se ha entrado.
              Va arriba y en forma de enlace, igual que en la schiță. -->
-        <button type="button" class="acciones__volver" on:click={() => (vista = 'prep')}>
+        <button type="button" class="acciones__volver" on:click={() => verVista('prep')}>
           ← {$_('app.sermons.edit')}
         </button>
 
@@ -1906,7 +1914,7 @@
       </div>
 
       <div class="prep__acciones no-imprimir">
-        <button type="button" on:click={() => (vista = 'final')}>← {$_('app.sermons.back_to_sermon')}</button>
+        <button type="button" on:click={() => verVista('final')}>← {$_('app.sermons.back_to_sermon')}</button>
         <button type="button" on:click={regenerarSchita}>{$_('app.sermons.regenerate_outline')}</button>
         <!-- Sólo aparece después de regenerar, y se queda hasta que se usa o
              se sale: darse cuenta de que la fusión no era lo que uno quería
