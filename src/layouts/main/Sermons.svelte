@@ -14,6 +14,7 @@
   import BookDrawer from './BookDrawer.svelte';
   import Modal from '../../components/Modal.svelte';
   import { _ } from '../../services/i18n.service';
+  import { navegarA } from '../../services/navigation.service';
   import { SERMON_TYPES } from '../../services/sermons.service';
   import { sermonsStore } from '../../store/sermonsStore';
   import { isAuthenticated, currentUser } from '../../store/authStore';
@@ -183,18 +184,12 @@
     mostrarAviso(res.ok ? $_('app.sermons.duplicated') : $_(res.error));
   };
 
-  const abrir = (s) => {
-    window.history.pushState(null, '', `/predicile-mele/${encodeURIComponent(s.id)}`);
-    // La errata `robibile` es la del resto del proyecto (CLAUDE.md, trampa 1).
-    window.dispatchEvent(new CustomEvent('robibile:navigate'));
-    window.dispatchEvent(new PopStateEvent('popstate'));
-  };
+  // `navegarA` y no `pushState` a mano: las dos salían desde una tarjeta del
+  // final de la lista y el scroll se hereda, así que al Modo Amvon se llegaba
+  // mirando el pie de página en vez de la antesala (CLAUDE.md, trampa 89).
+  const abrir = (s) => navegarA(`/predicile-mele/${encodeURIComponent(s.id)}`);
 
-  const alPulpito = (s) => {
-    window.history.pushState(null, '', `/predicile-mele/${encodeURIComponent(s.id)}/amvon`);
-    window.dispatchEvent(new CustomEvent('robibile:navigate'));
-    window.dispatchEvent(new PopStateEvent('popstate'));
-  };
+  const alPulpito = (s) => navegarA(`/predicile-mele/${encodeURIComponent(s.id)}/amvon`);
 
   // Qué dice el botón principal según en qué punto esté la predicación.
   const accionDe = (estado) =>

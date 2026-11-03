@@ -19,6 +19,7 @@
   import { _ } from '../../services/i18n.service';
   import { sermonsStore } from '../../store/sermonsStore';
   import { etiquetaDeReferencia, normalizeOutline, quitarMarcas } from '../../services/sermon-content.service';
+  import { navegarA } from '../../services/navigation.service';
   import TextoFormateado from '../../components/TextoFormateado.svelte';
   import {
     FONT_SIZES,
@@ -151,10 +152,7 @@
     detener();
     clearActive();
     if (contenedor) savePosition(sermonId, contenedor.scrollTop);
-    window.history.pushState(null, '', `/predicile-mele/${encodeURIComponent(sermonId)}`);
-    // La errata `robibile` es la del resto del proyecto (CLAUDE.md, trampa 1).
-    window.dispatchEvent(new CustomEvent('robibile:navigate'));
-    window.dispatchEvent(new PopStateEvent('popstate'));
+    navegarA(`/predicile-mele/${encodeURIComponent(sermonId)}`);
   };
 
   const terminarYMarcar = async () => {
@@ -297,7 +295,10 @@
 
       {#if outline.intro?.length}
         <div class="amvon__bloque">
-          <p class="amvon__etiqueta">{$_('app.sermons.intro')}</p>
+          <!-- La introducción encabeza como un punto más, igual que en el PDF
+               de la schiță: son el mismo nivel. Antes era una etiqueta gris
+               diminuta y desde el atril no se encontraba. -->
+          <h2 class="amvon__titular amvon__titular--seccion">{$_('app.sermons.intro')}</h2>
           <!-- `TextoFormateado` y no texto plano: una línea puede traer una
                cita insertada (`*Referencia* primeras palabras…`), y sin esto
                el asterisco de la negrita saldría literal en pantalla. -->
@@ -322,12 +323,14 @@
         <div class="amvon__bloque">
           <!-- Sin los asteriscos del marcado manual: son sintaxis de
                preparación y aquí el predicador está delante de la iglesia. -->
-          <h2 class="amvon__punto">{i + 1}. {quitarMarcas(punto.title)}</h2>
+          <h2 class="amvon__titular">{i + 1}. {quitarMarcas(punto.title)}</h2>
           <!-- Cada palabra clave puede traer el comienzo de la frase MÁS lo
                marcado (o una cita insertada) en negrita: `TextoFormateado`
-               es quien lo pinta así, nunca texto plano con asteriscos. -->
+               es quien lo pinta así, nunca texto plano con asteriscos.
+               Misma clase que la introducción y la conclusión: en la cartilla
+               no hay dos cuerpos de texto, hay uno. -->
           {#each punto.keywords || [] as clave, k (k)}
-            <p class="amvon__clave"><TextoFormateado texto={clave} /></p>
+            <p class="amvon__linea"><TextoFormateado texto={clave} /></p>
           {/each}
           <!-- Las referencias de apoyo traen el arranque del versículo desde
                el 2 nov 2026, con la sintaxis de cita. Dos cosas que no se
@@ -349,7 +352,7 @@
       {#if outline.application}
         <hr class="amvon__separador" />
         <div class="amvon__bloque">
-          <p class="amvon__etiqueta">{$_('app.sermons.outline_application')}</p>
+          <h2 class="amvon__titular amvon__titular--seccion">{$_('app.sermons.outline_application')}</h2>
           <!-- La aplicación sale del propósito y desde el 2 nov 2026 pasa por
                la misma regla que el resto: puede traer negrita y citas, así
                que aquí tampoco puede ir como texto plano. -->
@@ -360,7 +363,7 @@
       {#if outline.conclusion}
         <hr class="amvon__separador" />
         <div class="amvon__bloque">
-          <p class="amvon__etiqueta">{$_('app.sermons.conclusion')}</p>
+          <h2 class="amvon__titular amvon__titular--seccion">{$_('app.sermons.conclusion')}</h2>
           <p class="amvon__linea"><TextoFormateado texto={outline.conclusion} /></p>
         </div>
       {/if}
@@ -528,11 +531,29 @@
     color: var(--color-ink);
   }
 
-  // Tres escalas. Los valores son grandes a propósito: esto se lee de pie, a
-  // medio metro y con luz de sala, no en la mano.
-  .amvon--normal { --amvon-punto: 1.75rem; --amvon-clave: 1.35rem; --amvon-linea: 1.15rem; }
-  .amvon--large { --amvon-punto: 2.35rem; --amvon-clave: 1.75rem; --amvon-linea: 1.4rem; }
-  .amvon--xlarge { --amvon-punto: 3rem; --amvon-clave: 2.2rem; --amvon-linea: 1.7rem; }
+  // ── La escala ─────────────────────────────────────────────────────────────
+  //
+  // UN solo cuerpo de texto para toda la cartilla y dos pasos por encima: el
+  // subtítulo que escribe el predicador y el titular de cada sección. Antes
+  // había tres cuerpos muy separados —el punto a 37 px y la conclusión a 22—
+  // y desde el atril eso no se leía como jerarquía sino como desorden.
+  //
+  // Los tres tamaños van de dos en dos píxeles, que es lo que se pidió: el de
+  // en medio es el de referencia y los otros dos son ese menos y más dos.
+  // Esto se lee de pie y a medio metro, no en la mano.
+  .amvon--normal { --amvon-titular: 1.625rem; --amvon-subtitulo: 1.375rem; --amvon-cuerpo: 1.25rem; }
+  .amvon--large { --amvon-titular: 1.75rem; --amvon-subtitulo: 1.5rem; --amvon-cuerpo: 1.375rem; }
+  .amvon--xlarge { --amvon-titular: 1.875rem; --amvon-subtitulo: 1.625rem; --amvon-cuerpo: 1.5rem; }
+
+  /* El versículo citado es el único que NO crece con la escala, y el mismo
+     valor en las tres no es un descuido. Una cita trae una frase entera; en
+     el cuerpo grande se comía la pantalla y empujaba fuera las ideas del
+     punto, que es lo que de verdad se mira desde el atril. La cita está ahí
+     para reconocerla de un vistazo, no para leerla en voz alta: para eso se
+     toca y se abre a pantalla completa, y ESE panel sí crece. */
+  .amvon--normal,
+  .amvon--large,
+  .amvon--xlarge { --amvon-cita: 1.375rem; }
 
   .amvon__barra {
     position: sticky;
@@ -572,7 +593,7 @@
 
   .amvon__titulo {
     margin: 0;
-    font-size: var(--amvon-clave);
+    font-size: var(--amvon-titular);
     line-height: 1.2;
   }
 
@@ -587,7 +608,7 @@
     margin: 0 0 1.5rem;
     padding: 0.75rem 1rem;
     border-left: 0.35rem solid var(--color-accent);
-    font-size: var(--amvon-linea);
+    font-size: var(--amvon-cuerpo);
     font-weight: 600;
     line-height: 1.4;
   }
@@ -599,7 +620,7 @@
   .amvon__transicion {
     margin: 0 0 1.5rem;
     padding: 0 1rem;
-    font-size: var(--amvon-linea);
+    font-size: var(--amvon-cuerpo);
     font-style: italic;
     line-height: 1.4;
   }
@@ -612,51 +633,78 @@
 
   .amvon__bloque { margin-bottom: 1.25rem; }
 
-  .amvon__etiqueta {
-    margin: 0 0 0.5rem;
-    font-size: var(--font-size-small);
-    font-weight: 700;
-    letter-spacing: var(--letter-spacing-eyebrow);
-    text-transform: uppercase;
-    color: var(--color-ink-soft);
-  }
-
-  .amvon__punto {
-    margin: 0 0 1rem;
-    font-size: var(--amvon-punto);
+  // ── Titulares ─────────────────────────────────────────────────────────────
+  //
+  // Los puntos numerados y las tres secciones —introducción, aplicación,
+  // conclusión— son EL MISMO NIVEL y comparten clase, exactamente como en el
+  // PDF de la schiță (ver `titularDeSchita`). Antes las secciones llevaban una
+  // etiqueta gris de 14 px y los puntos una letra de 37, y entre una cosa y la
+  // otra no había nada: la conclusión parecía una nota al pie de la cartilla.
+  .amvon__titular {
+    margin: 0 0 0.9rem;
+    font-size: var(--amvon-titular);
     font-weight: 700;
     line-height: 1.15;
     letter-spacing: -0.01em;
   }
 
-  // Las palabras clave van sueltas y muy espaciadas: son anclas para la vista,
-  // no frases que se lean seguidas.
+  // Las tres secciones se escriben en mayúsculas porque su nombre viene de los
+  // ficheros de idioma en minúscula («Introducere»), mientras que el título de
+  // un punto lo escribe el predicador —ya en mayúsculas— y se respeta tal cual.
+  .amvon__titular--seccion {
+    text-transform: uppercase;
+  }
+
+  // ── El cuerpo de la cartilla ──────────────────────────────────────────────
   //
-  // El guion lo pone el CSS y no el texto: en el atril hace que la columna se
-  // lea como lista de un vistazo, pero el dato guardado sigue siendo la idea
-  // limpia. La sangría negativa lo saca al margen para que las ideas queden
-  // alineadas entre sí aunque una ocupe dos líneas.
-  .amvon__clave {
+  // UNA sola clase para todo lo que se predica: las líneas de la introducción,
+  // las palabras clave de cada punto, la aplicación y la conclusión. Eran dos
+  // tamaños y dos pesos distintos, y el propietario pidió uno solo: en el atril
+  // la vista salta de un bloque a otro y dos cuerpos de texto se leen como dos
+  // cosas distintas cuando son exactamente la misma.
+  .amvon__linea {
     margin: 0 0 0.75rem;
     padding-left: 1.1em;
     text-indent: -1.1em;
-    font-size: var(--amvon-clave);
-    font-weight: 600;
-    line-height: 1.3;
-
-    &::before {
-      content: '– ';
-      color: var(--color-accent);
-    }
+    font-size: var(--amvon-cuerpo);
+    line-height: 1.45;
+    // Una frase puede traer saltos escritos a mano dentro del mismo párrafo.
+    // Sin esto se pegan en un párrafo corrido.
+    white-space: pre-line;
   }
 
-  .amvon__linea {
-    margin: 0 0 0.75rem;
-    font-size: var(--amvon-linea);
-    line-height: 1.5;
-    // La aplicación y la conclusión se escriben a mano en la schiță y pueden
-    // llevar saltos de línea. Sin esto se pegan en un párrafo corrido.
-    white-space: pre-line;
+  // El guion lo pone el CSS y no el texto: en el atril hace que la columna se
+  // lea como lista de un vistazo, pero el dato guardado sigue siendo la frase
+  // limpia. La sangría negativa lo saca al margen, para que las frases queden
+  // alineadas entre sí aunque una ocupe tres líneas.
+  //
+  // Y va delante del PÁRRAFO, no del `<p>` que lo contiene. Ahí está todo:
+  // puesto en el contenedor, una línea que fuera un subtítulo o un versículo
+  // —que `TextoFormateado` pinta como BLOQUE, no en línea— empujaba el guion a
+  // su propio renglón y dejaba un guion huérfano colgando encima de cada
+  // rótulo y de cada cita. Así sólo lo recibe el texto corrido, que es el
+  // mismo reparto que hace el PDF en `nodosDeBloques`.
+  .amvon__linea :global(.texto-formateado:not(.texto-formateado--bloques))::before,
+  .amvon__linea :global(.texto-formateado__parrafo)::before {
+    content: '– ';
+    color: var(--color-accent);
+  }
+
+  // Un subtítulo no es un elemento más de la lista: es la división que puso el
+  // predicador. Sin guion y pegado al margen de los guiones, para que las
+  // frases se lean colgando de él.
+  .amvon__linea :global(.texto-formateado__subtitulo) {
+    margin-left: -1.1em;
+    text-indent: 0;
+    font-size: var(--amvon-subtitulo);
+  }
+
+  // El versículo citado tampoco lleva guion —ya se distingue por su barra— y
+  // no crece con la escala. El `text-indent` hay que anularlo: lo hereda del
+  // contenedor y le sacaría la primera línea por fuera de su propia barra.
+  .amvon__linea :global(.texto-formateado__verso) {
+    text-indent: 0;
+    font-size: var(--amvon-cita);
   }
 
   /* Era una píldora con la referencia y nada más. Desde que la referencia
@@ -674,7 +722,9 @@
     background: transparent;
     color: inherit;
     font-family: inherit;
-    font-size: var(--amvon-linea);
+    // Fija, como cualquier otra cita: aquí hay un versículo entero debajo de
+    // la referencia y con el cuerpo grande ocupaba más que el punto entero.
+    font-size: var(--amvon-cita);
     text-align: left;
     cursor: pointer;
   }
@@ -733,9 +783,11 @@
     color: var(--color-accent);
   }
 
+  /* El panel SÍ crece con la escala, al revés que la cita de la cartilla: se
+     abre justamente para leer el versículo en voz alta, y aquí sobra sitio. */
   .refoverlay__texto {
     margin: 0 0 1.5rem;
-    font-size: var(--amvon-linea);
+    font-size: var(--amvon-cuerpo);
     line-height: 1.6;
     color: var(--color-ink);
 
