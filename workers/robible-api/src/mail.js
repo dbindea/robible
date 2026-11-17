@@ -18,10 +18,20 @@
 // DKIM existe sólo en producción. Lo demás sí, ver `MAIL_DEBUG` más abajo.
 
 /**
- * Remitente. `noreply@` porque nadie lee esa bandeja, y `reply_to` apuntando al
- * propietario para que quien conteste —y la gente contesta— llegue a alguien.
+ * Remitente. Elegido por el propietario el 17 nov 2026: `support@` en lugar del
+ * `noreply@` que había. La dirección **no necesita buzón para enviar** —lo que
+ * autoriza el envío es el DKIM del dominio, no una cuenta—, pero `support@`
+ * promete lo contrario que `noreply@`: quien la lea dará por hecho que hay
+ * alguien detrás y escribirá a ella directamente, no con «responder». Esos
+ * mensajes rebotan si el buzón no existe, así que **conviene que `support@`
+ * exista o sea un alias** al correo del propietario en IONOS.
+ *
+ * Mientras tanto `reply_to` sigue apuntando a una dirección que se lee de
+ * verdad, que es lo que salva las respuestas aunque el alias no esté hecho: la
+ * gente contesta a los correos automáticos, y una respuesta perdida no produce
+ * ningún síntoma por el que enterarse.
  */
-export const REMITENTE = 'RoBible <noreply@robible.com>';
+export const REMITENTE = 'RoBible <support@robible.com>';
 export const RESPONDER_A = 'dbindea@gmail.com';
 
 const ENDPOINT = 'https://api.resend.com/emails';
