@@ -35,6 +35,30 @@
         /* sin pantalla completa se proyecta igual */
       }
     </script>
+    <script>
+      // El token del correo de recuperación sale de la URL AQUÍ, antes de
+      // cargar nada más.
+      //
+      // Tiene que ser antes de Google Analytics, que es la etiqueta de abajo:
+      // GA manda un `page_view` al cargar con `page_location` = la URL entera,
+      // así que con el token todavía puesto **se lo lleva Analytics**. De paso
+      // desaparece del historial del navegador y de cualquier `Referer`.
+      //
+      // Se deja en `window` porque quien lo necesita (`App.svelte`) monta mucho
+      // después. Si no hay parámetro, esto no hace nada.
+      try {
+        var _params = new URLSearchParams(location.search);
+        var _recuperare = _params.get('recuperare');
+        if (_recuperare) {
+          window.__robibleRecuperare = _recuperare;
+          _params.delete('recuperare');
+          var _resto = _params.toString();
+          history.replaceState(null, '', location.pathname + (_resto ? '?' + _resto : '') + location.hash);
+        }
+      } catch {
+        /* sin esto el enlace sigue funcionando, sólo deja el token en la URL */
+      }
+    </script>
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-MX8YYQ3DRY"></script>
     <script>

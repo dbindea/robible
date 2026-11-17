@@ -868,6 +868,20 @@
       "type_hint": "You can change it whenever you like. Nothing is lost: your sermons stay yours even if you go back to a reader account.",
       "type_changed": "The account type has been changed.",
       "type_failed": "The account type could not be changed.",
+      "account": {
+        "title": "Account",
+        "hint": "The username and email you sign in with. You can change them at any time.",
+        "nickname": "Username",
+        "nickname_hint": "You sign in with it, and published sermons are signed with it.",
+        "email": "Email",
+        "email_hint": "You can sign in with it, and the reset link goes there if you forget your password. Leave it empty to remove it.",
+        "email_password": "Current password",
+        "email_password_hint": "Only asked when changing the email: it is what recovers the account.",
+        "save": "Save",
+        "saving": "Saving…",
+        "saved": "Account updated.",
+        "failed": "The changes could not be saved."
+      },
       "activity_memorize": "Memorising",
       "personal": {
         "title": "Personal details",
@@ -1166,6 +1180,8 @@
     "create_account": "New account",
     "nickname": "Username",
     "nickname_hint": "3-24 characters: letters, numbers, _ . -",
+    "identifier": "Username or email",
+    "identifier_hint": "You can sign in with either one.",
     "password": "Password",
     "security_question": "Security question",
     "custom_question": "Other question (write it below)",
@@ -1242,7 +1258,13 @@
       "invalid_country": "Country can't be longer than 60 characters.",
       "invalid_confession": "Confession can't be longer than 60 characters.",
       "invalid_birth_date": "Birth date is not valid.",
-      "invalid_motto": "The motto cannot be longer than 200 characters."
+      "invalid_motto": "The motto cannot be longer than 200 characters.",
+      "invalid_identifier": "Enter the account's username or email.",
+      "email_taken": "An account with this email already exists.",
+      "reset_token_used": "This link has already been used. Ask for a new one.",
+      "mail_not_configured": "Sending email is not available right now. Please write to the administrator.",
+      "mail_failed": "The email could not be sent. Try again in a few minutes.",
+      "route_not_deployed": "This feature is not available yet. Try again later."
     },
     "user_type": "Account type",
     "user_type_user": "User",
@@ -1253,7 +1275,16 @@
     "email_placeholder": "name@example.com",
     "email_help": "We do not use it for anything yet and you will not receive any messages. We keep it so we can reach you if you lose access to your account.",
     "security_question_help": "Write a question only you know the answer to.",
-    "recover_manual": "Cannot remember the answer either? Write to us and we will recover your account by hand:"
+    "recover_manual": "Cannot remember the answer either? Write to us and we will recover your account by hand:",
+    "recover_or": "or",
+    "recover_by_email": "Email me a link",
+    "recover_email_sending": "Sending…",
+    "recover_email_hint": "We will send a link to {email}.",
+    "recover_email_sent_title": "Check your email",
+    "recover_email_sent": "We sent you a link to set a new password. It expires in one hour and can only be used once.",
+    "recover_email_spam": "If you can't find it, check your spam folder too.",
+    "recover_link_title": "New password",
+    "recover_link_lead": "Choose the password you want to sign in with from now on."
   },
   "landing": {
     "skip_to_content": "Skip to content",

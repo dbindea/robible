@@ -7,7 +7,7 @@
   import AppMenu from './layouts/header/AppMenu.svelte';
   import AuthModal from './layouts/auth/AuthModal.svelte';
   import DailyVerseModal from './components/DailyVerseModal.svelte';
-  import { authMenuOpen } from './store/authMenuStore';
+  import { abrirRecuperacion, authMenuOpen } from './store/authMenuStore';
   import {
     _,
     currentLocale,
@@ -80,6 +80,20 @@
    */
   const esVentanaProyectada =
     typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('ecran') === '1';
+
+  // ── Quien llega desde el correo de recuperación ─────────────────────────
+  //
+  // El token ya no está en la URL: lo sacó de ahí el script del `<head>` de
+  // index.html, antes de que lo viera Google Analytics, y lo dejó en `window`.
+  // Aquí se recoge y se abre el modal en la pantalla de contraseña nueva.
+  //
+  // Va en el cuerpo del script y no en un `onMount`: no toca el DOM y así el
+  // modal está abierto en el primer render, sin un parpadeo de la Biblia
+  // detrás. Se borra de `window` para que no reviva al navegar por dentro.
+  if (typeof window !== 'undefined' && window.__robibleRecuperare) {
+    abrirRecuperacion(window.__robibleRecuperare);
+    window.__robibleRecuperare = '';
+  }
 
   const loadBibleVersion = async (version) => {
     const requestId = ++bibleLoadRequestId;

@@ -89,7 +89,21 @@ wrangler tail                                         # logs en vivo
 
 Configuración en [wrangler.toml](../workers/robible-api/wrangler.toml): binding `DB` a `robible-db`, `ALLOWED_ORIGIN` (CSV de orígenes CORS) y los límites de rate. El bloque `[limits] cpu_ms` está comentado a propósito: **no está disponible en el plan Free** y rompe el deploy.
 
-`JWT_SECRET` es un *secret*, no una var: no está en `wrangler.toml` ni en el repo. Rotarlo invalida todas las sesiones activas.
+`JWT_SECRET` es un *secret*, no una var: no está en `wrangler.toml` ni en el repo. Rotarlo invalida todas las sesiones activas **y los enlaces de recuperación que estén en vuelo**, que van firmados con él.
+
+### Correo (recuperación de contraseña)
+
+El worker manda el enlace de «he olvidado mi contraseña» a través de **Resend** (gratis: 3.000/mes, 100/día). El envío propio de Cloudflare no sirve: en plan gratuito sólo escribe a direcciones verificadas una por una.
+
+```bash
+wrangler secret put RESEND_API_KEY     # la clave del panel de Resend
+```
+
+Alta del dominio, una sola vez: en Resend → *Domains* → añadir `robible.com` → **integración con Cloudflare**, que mete los tres registros sola (DKIM en `resend._domainkey`, SPF y MX en `send.robible.com`). El MX de la raíz —el correo de IONOS— no se toca. A mano, los registros van en «DNS only» (nube gris): proxiados, Resend no los puede leer y la verificación no pasa nunca.
+
+`SITE_URL` (en `wrangler.toml`) es la base del enlace. Un valor equivocado manda a la gente a una dirección que no existe, y el correo es el único camino que le queda.
+
+**Sin `RESEND_API_KEY` la función se apaga sola**: el worker contesta `mail_not_configured` y la aplicación lo dice en pantalla, en vez de prometer un correo que nadie va a enviar. En local no hace falta clave: `dev-server.js` pone `MAIL_DEBUG=1` y el correo entero —enlace incluido— sale por su terminal.
 
 **Añadir un origen CORS** (dominio nuevo del frontend): editar `ALLOWED_ORIGIN` en `wrangler.toml` y redesplegar. La lista es explícita, no hay comodines.
 
@@ -123,7 +137,14 @@ wrangler d1 execute robible-db --remote --command "SELECT COUNT(*) FROM auth_ses
 wrangler d1 execute robible-db --local --command "..."
 ```
 
-Tablas: `users`, `auth_sessions`, `topics`, `verse_refs`, `favorites`, `notes`, `user_searches`, `user_profiles`, `rate_limits`, `_meta`. Versión de schema actual: **4** (fila en `_meta`).
+Tablas: `users`, `auth_sessions`, `topics`, `verse_refs`, `favorites`, `notes`, `user_searches`, `highlights`, `memorizations`, `push_subscriptions`, `sermons`, `page_views`, `rate_limits`, `_meta`. Versión de schema actual: **17** (fila en `_meta`).
+
+La 17 (17 nov 2026) no añade columnas: normaliza los emails a minúsculas y crea el índice único `idx_users_email`, porque el correo pasa a servir para iniciar sesión. **El índice falla si hay duplicados**, así que antes hay que mirarlos:
+
+```bash
+wrangler d1 execute robible-db --remote --command \
+  "SELECT lower(trim(email)) AS e, COUNT(*) AS n FROM users WHERE email IS NOT NULL GROUP BY e HAVING n > 1"
+```
 
 `schema.sql` está escrito con `CREATE TABLE IF NOT EXISTS`, así que re-ejecutarlo es idempotente y seguro; **no aplica migraciones destructivas**. Un `ALTER TABLE` hay que ejecutarlo a mano y luego subir `schema_version`.
 
@@ -148,6 +169,8 @@ wrangler d1 execute robible-db --remote --command "DELETE FROM users WHERE nickn
 | `wrangler deploy` → `Authentication error [code: 10000]` | **No es un problema de permisos: el token apunta a otra cuenta.** Las credenciales de wrangler son **globales, no por proyecto**, así que un `wrangler login` hecho para otro proyecto se lleva por delante la sesión de RoBible. `wrangler whoami` tiene que decir `Dbindea@gmail.com's Account` (`335ec3b5…`); la cuenta que espera el worker está apuntada en `node_modules/.cache/wrangler/wrangler-account.json`. Para no depender de con qué cuenta estés logueado, un `CLOUDFLARE_API_TOKEN` de esa cuenta en el entorno gana sobre el OAuth |
 | `curl` devuelve `000` contra cualquier HTTPS | No es la API ni la red: al curl de Git para Windows le falta el paquete de certificados (`error setting certificate verify locations`). Se ve con `curl -v`, que conecta al puerto 443 y corta ahí. Node lleva su propio almacén de CA, así que para sondear la API vale `node -e "fetch('…').then(r=>console.log(r.status))"` |
 | Un cambio en `workers/` no se nota contra el servidor local | `dev-server.js` importa `src/index.js` **una sola vez, al arrancar**: Node no recarga módulos. Hay que matar el proceso del 8787 y volver a lanzarlo, o se prueba el código viejo creyendo probar el nuevo — y el falso negativo es indistinguible de un fallo real |
+| El correo de recuperación no llega | Por orden: (1) `wrangler tail` — el worker registra ahí el error de Resend; (2) `daily_quota_exceeded` significa que se agotaron los 100 envíos del día, que se reinician a las 00:00 UTC; (3) dominio sin verificar en Resend, normalmente por tener los registros proxiados en Cloudflare en vez de «DNS only»; (4) si la respuesta fue `mail_not_configured`, falta `RESEND_API_KEY` |
+| «Este enlace ya se ha usado» con un enlace que parece nuevo | Los enlaces llevan la huella de la contraseña que había al emitirlos, así que **cualquier cambio de contraseña invalida todos los que estuvieran en vuelo** — también los que todavía no se habían abierto. Pedir uno nuevo, en cambio, no invalida el anterior: los dos siguen valiendo hasta que se use uno |
 
 ## Verificación rápida del backend
 

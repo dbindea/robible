@@ -6,7 +6,7 @@
 //
 // Si USE_BACKEND=false, usa siempre localStorage (modo offline puro).
 
-import { api, tokenStore, ApiError, translateApiError } from './apiClient.js';
+import { api, tokenStore, ApiError, translateApiError, rutaNoDesplegada } from './apiClient.js';
 import { USE_BACKEND } from '../config.js';
 import { getBibleVersionConfigOrDefault } from '../config/bible-versions.js';
 
@@ -34,6 +34,19 @@ const isValidSecurityAnswer = (a) => typeof a === 'string' && a.trim().length >=
 const isValidSecurityQuestionText = (q) => typeof q === 'string' && q.trim().length >= 5 && q.trim().length <= 120;
 const isValidEmail = (e) => typeof e === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim()) && e.trim().length <= 254;
 
+/**
+ * Con qué se entra y con qué se recupera la cuenta: el apodo o el correo.
+ *
+ * Esta función es la que hace visible el cambio del 17 nov 2026. Sin ella,
+ * `isValidNickname` rechazaba la `@` **antes de llegar al servidor** (el
+ * `AuthModal` comprueba antes de enviar), así que todo el trabajo del worker no
+ * se notaba: el formulario decía «nombre inválido» y no mandaba nada.
+ *
+ * La `@` decide cuál de las dos formas es, igual que en el worker: un apodo no
+ * puede contenerla.
+ */
+const isValidIdentifier = (v) => (typeof v === 'string' && v.includes('@') ? isValidEmail(v) : isValidNickname(v));
+
 export const USER_TYPES = ['user', 'preacher'];
 const isValidUserType = (t) => USER_TYPES.includes(t);
 
@@ -58,6 +71,7 @@ const isValidBirthDate = (d) => {
 
 export const validators = {
   isValidNickname,
+  isValidIdentifier,
   isValidPassword,
   isValidSecurityAnswer,
   isValidSecurityQuestionText,
@@ -192,12 +206,28 @@ export const register = async (data) => {
   return { ok: true, user, token };
 };
 
-export const login = async (nickname, password) => {
+/**
+ * Inicia sesión con el apodo O con el correo. El campo es uno solo: la persona
+ * escribe lo que recuerda.
+ *
+ * **Manda el mismo valor en los dos campos a propósito.** El frontend y el
+ * worker se despliegan por separado (CLAUDE.md, trampa 36): el worker anterior
+ * sólo lee `nickname` y el nuevo prefiere `identifier`, así que con los dos
+ * puestos el login funciona con cualquiera de las dos versiones y el orden de
+ * despliegue deja de importar. Cuando el worker nuevo lleve semanas desplegado
+ * se puede quitar `nickname`.
+ */
+export const login = async (identificador, password) => {
+  const nickname = identificador;
   if (!nickname || !password) return { ok: false, error: 'auth.errors.missing_credentials' };
 
   if (USE_BACKEND) {
     try {
-      const res = await api.post('/api/auth/login', { nickname: nickname.trim(), password });
+      const res = await api.post('/api/auth/login', {
+        identifier: nickname.trim(),
+        nickname: nickname.trim(),
+        password,
+      });
       tokenStore.set(res.token, res.user);
       saveLSSession({ token: res.token, userId: res.user.id, exp: Date.now() + SESSION_TTL_MS });
       return { ok: true, user: res.user, token: res.token };
@@ -209,7 +239,9 @@ export const login = async (nickname, password) => {
     }
   }
 
-  // Fallback
+  // Fallback: el almacén local está indexado por apodo, así que sin backend
+  // sólo se entra con el apodo. No es una carencia que haya que tapar — sin
+  // backend no hay perfil ni correo que mirar, y ya era así antes.
   const users = getLSUsers();
   const user = users[nickname.trim().toLowerCase()];
   if (!user) return { ok: false, error: 'auth.errors.invalid_credentials' };
@@ -226,8 +258,21 @@ export const login = async (nickname, password) => {
 export const getSecurityQuestion = async (nickname) => {
   if (USE_BACKEND) {
     try {
-      const res = await api.post('/api/auth/recover/question', { nickname: nickname.trim() }, { auth: false });
-      return { ok: true, securityQuestion: res.securityQuestion, securityQuestionText: res.securityQuestionText };
+      const res = await api.post(
+        '/api/auth/recover/question',
+        { identifier: nickname.trim(), nickname: nickname.trim() },
+        { auth: false },
+      );
+      return {
+        ok: true,
+        securityQuestion: res.securityQuestion,
+        securityQuestionText: res.securityQuestionText,
+        // `hasEmail` decide si la pantalla ofrece el correo automático. Con un
+        // worker viejo llega `undefined`, que es falso: la pantalla se queda
+        // como estaba en lugar de prometer un correo que nadie va a mandar.
+        hasEmail: !!res.hasEmail,
+        emailHint: res.emailHint || '',
+      };
     } catch (e) {
       if (e instanceof ApiError && e.status >= 400 && e.status < 500) {
         return { ok: false, error: translateApiError(e.code) };
@@ -246,7 +291,11 @@ export const verifySecurityAnswer = async (nickname, answer) => {
 
   if (USE_BACKEND) {
     try {
-      const res = await api.post('/api/auth/recover/verify', { nickname: nickname.trim(), answer: answer.trim() }, { auth: false });
+      const res = await api.post(
+        '/api/auth/recover/verify',
+        { identifier: nickname.trim(), nickname: nickname.trim(), answer: answer.trim() },
+        { auth: false },
+      );
       return { ok: true, resetToken: res.resetToken };
     } catch (e) {
       if (e instanceof ApiError && e.status >= 400 && e.status < 500) {
@@ -265,6 +314,38 @@ export const verifySecurityAnswer = async (nickname, answer) => {
   const resetToken = 'rb.reset.' + btoa(JSON.stringify({ sub: user.id, iat: Date.now(), exp: Date.now() + 5 * 60 * 1000 }))
     .replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
   return { ok: true, resetToken };
+};
+
+/**
+ * Pide que manden al correo de la cuenta un enlace para poner contraseña nueva.
+ *
+ * Necesita backend sí o sí: el correo lo manda el worker. Y la respuesta es
+ * siempre la misma pase lo que pase con la cuenta —existe, no existe, no tiene
+ * dirección—, porque si no este botón sirve para averiguar qué direcciones
+ * tienen cuenta en RoBible.
+ */
+export const solicitarCorreoRecuperacion = async (identificador) => {
+  if (!USE_BACKEND) return { ok: false, error: 'auth.errors.unknown' };
+  if (!isValidIdentifier(identificador)) return { ok: false, error: 'auth.errors.invalid_identifier' };
+
+  try {
+    await api.post(
+      '/api/auth/recover/email',
+      { identifier: identificador.trim(), locale: getCurrentLocale() },
+      { auth: false },
+    );
+    return { ok: true };
+  } catch (e) {
+    // Ruta que todavía no existe en el worker desplegado (CLAUDE.md, trampa 36).
+    // Aquí no hay fallback posible —el correo sólo lo puede mandar el worker—,
+    // así que lo único que se puede hacer es decirlo con precisión en vez de
+    // soltar un «ha ocurrido un error» que parece que la función está rota.
+    if (rutaNoDesplegada(e)) return { ok: false, error: 'auth.errors.route_not_deployed' };
+    // El 502 de `mail_failed` también se traduce: el fallo es nuestro, no de la
+    // cuenta, y la persona necesita saber que no le va a llegar nada.
+    if (e instanceof ApiError) return { ok: false, error: translateApiError(e.code) };
+    return { ok: false, error: 'auth.errors.unknown' };
+  }
 };
 
 export const resetPassword = async (resetToken, newPassword) => {
@@ -309,17 +390,25 @@ export const me = () => {
 };
 
 /**
- * Cambia tipo de cuenta, email o pregunta de seguridad. Todo opcional: se manda
- * sólo lo que se quiere cambiar.
+ * Cambia el apodo, el tipo de cuenta, el email o la pregunta de seguridad. Todo
+ * opcional: se manda sólo lo que se quiere cambiar.
  *
  * Necesita backend: el perfil vive en D1. En modo sin conexión no hay nada que
  * actualizar, porque el usuario local no tiene ni tipo ni email.
+ *
+ * **Cambiar el email exige `currentPassword`** (lo valida el worker, no esto):
+ * es el canal con el que se recupera la cuenta, así que quien se siente delante
+ * de una sesión abierta no puede quedársela poniendo el suyo. El apodo no, que
+ * no abre ninguna puerta.
  */
 export const updateProfile = async (cambios) => {
   if (!USE_BACKEND) return { ok: false, error: 'auth.errors.unknown' };
 
   if (cambios.userType !== undefined && !isValidUserType(cambios.userType)) {
     return { ok: false, error: translateApiError('invalid_user_type') };
+  }
+  if (cambios.nickname !== undefined && !isValidNickname(cambios.nickname)) {
+    return { ok: false, error: translateApiError('invalid_nickname') };
   }
   if (cambios.email?.trim() && !isValidEmail(cambios.email)) {
     return { ok: false, error: translateApiError('invalid_email') };

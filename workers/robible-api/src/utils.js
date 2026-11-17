@@ -5,6 +5,17 @@ export const PBKDF2_ITERATIONS = 100_000;
 export const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;     // 30 días
 export const RESET_TOKEN_TTL_MS = 5 * 60 * 1000;             // 5 min
 
+/**
+ * Vida del token que viaja en el correo de recuperación.
+ *
+ * Es una hora y el de arriba sigue en cinco minutos **a propósito**: el de la
+ * pregunta de seguridad se emite y se gasta en la misma pantalla, mientras que
+ * éste se manda por correo y puede tardar en abrirse —el aviso llega al móvil,
+ * la persona está conduciendo, lo mira al llegar—. Cinco minutos ahí
+ * significaría que casi nadie llega a tiempo y nadie entendería por qué.
+ */
+export const RESET_MAIL_TTL_MS = 60 * 60 * 1000; // 1 h
+
 const VALID_NICKNAME = /^[a-zA-Z0-9_.-]{3,24}$/;
 const VALID_PASSWORD = (p) => typeof p === 'string' && p.length >= 6 && p.length <= 128;
 
@@ -24,6 +35,57 @@ export const SERMON_STATUSES = ['draft', 'ready', 'preached'];
 // seguridad. Quien se equivoque al escribirlo se queda sin ese camino de
 // recuperación, que es exactamente lo mismo que no ponerlo.
 const VALID_EMAIL = (e) => typeof e === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim()) && e.trim().length <= 254;
+
+/**
+ * ── Identificador: nombre de usuario O correo ───────────────────────────────
+ *
+ * Desde el 17 nov 2026 se entra con las dos cosas. Quien dio su correo al
+ * registrarse espera poder usarlo, y lo preguntó un usuario real.
+ *
+ * La `@` desambigua sin ambigüedad posible: `VALID_NICKNAME` no la admite, así
+ * que ningún nombre de usuario puede parecerse a una dirección. Por eso la
+ * comprobación es `includes('@')` y no una expresión de email — un correo mal
+ * escrito tiene que caer en «credenciales incorrectas», no buscarse como si
+ * fuera un apodo.
+ *
+ * Estas tres viven aquí y no en `auth.js` por el mismo motivo que
+ * `normalizeSecurityAnswer`: las usan cuatro rutas (login y las tres de
+ * recuperación), y dos de ellas normalizando distinto daría un «no existe esa
+ * cuenta» imposible de diagnosticar desde fuera.
+ */
+export const esEmail = (valor) => typeof valor === 'string' && valor.includes('@');
+
+/**
+ * El correo se guarda y se busca SIEMPRE en minúsculas y sin espacios.
+ *
+ * El buzón es sensible a mayúsculas según el RFC, pero ningún proveedor real lo
+ * trata así, y normalizar es lo que permite que el índice único sea una columna
+ * normal en vez de una expresión. Lo importante: `register`, `updateProfile` y
+ * la búsqueda por identificador tienen que pasar por aquí las tres, o alguien
+ * se registra con `Juan@` y no puede entrar escribiendo `juan@`.
+ */
+export const normalizarEmail = (valor) =>
+  String(valor ?? '')
+    .trim()
+    .toLowerCase();
+
+/**
+ * `dbindea@gmail.com` → `d*****a@gmail.com`.
+ *
+ * Se enseña en la pantalla de recuperación para que la persona reconozca cuál
+ * de sus direcciones puso, sin que la pantalla sirva para leer el correo de
+ * otro. El dominio va entero: es lo que de verdad ayuda a reconocerla, y ya se
+ * adivina de todas formas.
+ */
+export const enmascararEmail = (valor) => {
+  const limpio = normalizarEmail(valor);
+  const corte = limpio.lastIndexOf('@');
+  if (corte < 1) return '';
+  const buzon = limpio.slice(0, corte);
+  const dominio = limpio.slice(corte);
+  if (buzon.length <= 2) return `${buzon[0]}*${dominio}`;
+  return `${buzon[0]}${'*'.repeat(Math.min(buzon.length - 2, 5))}${buzon[buzon.length - 1]}${dominio}`;
+};
 
 /**
  * Normaliza la respuesta de seguridad antes de hashearla.
@@ -124,8 +186,16 @@ async function hmacVerify(data, signature, secret) {
   return expected === signature;
 }
 
-export async function makeToken(userId, secret, ttlMs = SESSION_TTL_MS) {
+/**
+ * `extra` se mezcla en el payload firmado. Hoy lo usa una sola cosa y conviene
+ * saber cuál: el `pv` de los tokens de recuperación (ver `resetPassword`), que
+ * es lo que los convierte en tokens de UN SOLO USO sin necesidad de una tabla
+ * de tokens gastados. Va al final y con valor por defecto para no tocar las
+ * llamadas que sólo quieren una sesión.
+ */
+export async function makeToken(userId, secret, ttlMs = SESSION_TTL_MS, extra = {}) {
   const payload = {
+    ...extra,
     sub: userId,
     iat: Date.now(),
     exp: Date.now() + ttlMs,
@@ -155,6 +225,10 @@ export async function readToken(token, secret) {
 export const validators = {
   nickname: (n) => typeof n === 'string' && VALID_NICKNAME.test(n.trim()),
   password: VALID_PASSWORD,
+  // Con qué se entra y con qué se recupera la cuenta: el apodo o el correo.
+  // No es la unión de dos campos, es UN campo que admite dos formas (ver
+  // `esEmail`): el usuario escribe lo que recuerda y no elige de antemano.
+  identifier: (v) => (esEmail(v) ? VALID_EMAIL(v) : typeof v === 'string' && VALID_NICKNAME.test(v.trim())),
   topicName: (n) => typeof n === 'string' && n.trim().length >= 1 && n.trim().length <= 40,
   // La descripción SÍ puede venir vacía: es opcional y '' significa borrarla.
   // 200 caracteres es una o dos frases —lo que cabe bajo el título de una
@@ -302,10 +376,27 @@ export const getClientIp = (request) => {
  * secreto, y caerse por no poder contar sería peor que no contar.
  */
 export async function limitarPorIp(request, env, { clave = 'general' } = {}) {
-  const limitador = env?.RATE_LIMITER;
+  return limitar(env, { clave: `${clave}:${getClientIp(request)}` });
+}
+
+/**
+ * Como `limitarPorIp` pero con la clave entera a cargo de quien llama, y
+ * eligiendo limitador.
+ *
+ * Hace falta porque el correo de recuperación se limita por DOS cosas a la vez
+ * —la IP que lo pide y la cuenta a la que va— y lo segundo no se puede expresar
+ * con una clave derivada de la petición. Limitar sólo por IP dejaría a cualquiera
+ * con una IP nueva vaciar la cuota diaria de envíos; limitar sólo por cuenta
+ * dejaría barrer direcciones a razón de una por cuenta.
+ *
+ * `binding` existe porque el límite general (60/min) es absurdamente generoso
+ * para algo que gasta correos de verdad: el de envío es otro binding con 3/min.
+ */
+export async function limitar(env, { clave, binding = 'RATE_LIMITER' } = {}) {
+  const limitador = env?.[binding];
   if (!limitador?.limit) return { ok: true };
   try {
-    const { success } = await limitador.limit({ key: `${clave}:${getClientIp(request)}` });
+    const { success } = await limitador.limit({ key: clave });
     return success ? { ok: true } : { ok: false, error: 'rate_limit_exceeded:minute', retryAfter: 60 };
   } catch {
     return { ok: true };

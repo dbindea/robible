@@ -868,6 +868,20 @@
       "type_hint": "随时可以更换。不会丢失任何内容：即使切换回读者账户，讲章仍然属于你。",
       "type_changed": "账户类型已更改。",
       "type_failed": "无法更改账户类型。",
+      "account": {
+        "title": "账号",
+        "hint": "用来登录的用户名和邮箱，随时可以修改。",
+        "nickname": "用户名",
+        "nickname_hint": "用它登录账号，发布的讲道也用它署名。",
+        "email": "邮箱",
+        "email_hint": "可以用它登录；忘记密码时，重设链接会发到这里。留空即为删除。",
+        "email_password": "当前密码",
+        "email_password_hint": "只有修改邮箱时才需要：账号是靠它找回的。",
+        "save": "保存",
+        "saving": "正在保存…",
+        "saved": "账号已更新。",
+        "failed": "修改未能保存。"
+      },
       "activity_memorize": "背诵",
       "personal": {
         "title": "个人资料",
@@ -1166,6 +1180,8 @@
     "create_account": "新账户",
     "nickname": "用户名",
     "nickname_hint": "3-24个字符：字母、数字、_ . -",
+    "identifier": "用户名或邮箱",
+    "identifier_hint": "两者都可以用来登录。",
     "password": "密码",
     "security_question": "安全问题",
     "custom_question": "其他问题（在下方填写）",
@@ -1242,7 +1258,13 @@
       "invalid_country": "国家不能超过60个字符。",
       "invalid_confession": "信仰宗派不能超过60个字符。",
       "invalid_birth_date": "出生日期无效。",
-      "invalid_motto": "箴言不能超过 200 个字符。"
+      "invalid_motto": "箴言不能超过 200 个字符。",
+      "invalid_identifier": "请输入账号的用户名或邮箱。",
+      "email_taken": "已有账号使用这个邮箱。",
+      "reset_token_used": "这个链接已经用过了。请重新申请。",
+      "mail_not_configured": "目前无法发送邮件。请联系管理员。",
+      "mail_failed": "邮件发送失败。请几分钟后再试。",
+      "route_not_deployed": "这项功能还不可用。请稍后再试。"
     },
     "user_type": "账号类型",
     "user_type_user": "普通用户",
@@ -1253,7 +1275,16 @@
     "email_placeholder": "name@example.com",
     "email_help": "目前我们不会用它做任何事，你也不会收到任何邮件。保留它只是为了在你无法登录时能联系上你。",
     "security_question_help": "写一个只有你知道答案的问题。",
-    "recover_manual": "连答案也想不起来了？写信给我们，我们会手动帮你找回账号："
+    "recover_manual": "连答案也想不起来了？写信给我们，我们会手动帮你找回账号：",
+    "recover_or": "或者",
+    "recover_by_email": "给我发邮件",
+    "recover_email_sending": "正在发送…",
+    "recover_email_hint": "我们会把链接发到 {email}。",
+    "recover_email_sent_title": "请查看邮箱",
+    "recover_email_sent": "我们已经发送了设置新密码的链接。链接一小时后失效，并且只能使用一次。",
+    "recover_email_spam": "如果找不到，请也看一下垃圾邮件文件夹。",
+    "recover_link_title": "新密码",
+    "recover_link_lead": "请输入以后用来登录的密码。"
   },
   "landing": {
     "skip_to_content": "跳到主要内容",

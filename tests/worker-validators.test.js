@@ -17,8 +17,13 @@ import {
   genPublicSlug,
   normalizeSecurityAnswer,
   genShortId,
+  esEmail,
+  normalizarEmail,
+  enmascararEmail,
   PBKDF2_ITERATIONS,
   SESSION_TTL_MS,
+  RESET_TOKEN_TTL_MS,
+  RESET_MAIL_TTL_MS,
 } from '../workers/robible-api/src/utils.js';
 
 // ── Validación de entrada ───────────────────────────────────────────────────
@@ -273,8 +278,74 @@ test('readToken rechaza firma inválida, formato roto y token caducado', async (
   assert.equal(await readToken(caducado, 'secreto-de-pruebas'), null, 'token ya caducado');
 });
 
+test('makeToken conserva la carga extra, que es lo que hace el enlace de un solo uso', async () => {
+  const token = await makeToken('u_123', 'secreto-de-pruebas', 60_000, { pv: 'abc123def456' });
+  const payload = await readToken(token, 'secreto-de-pruebas');
+  assert.equal(payload.pv, 'abc123def456');
+  assert.equal(payload.sub, 'u_123', 'la carga extra no puede pisar el sujeto');
+
+  // Y sigue firmado: manipular el `pv` para reutilizar un enlace gastado tiene
+  // que romper la firma, no colarse.
+  const [, datos] = token.split('.');
+  const manipulado = `rb.${datos.slice(0, -2)}XY.${token.split('.')[2]}`;
+  assert.equal(await readToken(manipulado, 'secreto-de-pruebas'), null);
+});
+
 test('la sesión dura 30 días', () => {
   assert.equal(SESSION_TTL_MS, 30 * 24 * 60 * 60 * 1000);
+});
+
+test('el token del correo vive una hora y el de la pregunta cinco minutos', () => {
+  // No son el mismo número a propósito: uno se gasta en la misma pantalla y el
+  // otro llega por correo y puede tardar en abrirse.
+  assert.equal(RESET_TOKEN_TTL_MS, 5 * 60 * 1000);
+  assert.equal(RESET_MAIL_TTL_MS, 60 * 60 * 1000);
+  assert.ok(RESET_MAIL_TTL_MS > RESET_TOKEN_TTL_MS);
+});
+
+// ── Identificador: con qué se entra ─────────────────────────────────────────
+//
+// Desde el 17 nov 2026 se entra con el apodo o con el correo, en el mismo
+// campo. Lo que estos tests vigilan es que las dos formas no se pisen: un
+// correo tratado como apodo no encuentra ninguna cuenta y el mensaje habla de
+// «nombre inválido», que no ayuda a nadie.
+
+test('esEmail distingue por la @, que ningún apodo puede llevar', () => {
+  assert.ok(esEmail('ana@gmail.com'));
+  assert.ok(esEmail('  mal escrito @ pero con arroba'), 'con @ es un intento de correo, no un apodo');
+  assert.ok(!esEmail('dbindea'));
+  assert.ok(!esEmail('a.b-c_1'));
+  assert.ok(!esEmail(''));
+  assert.ok(!esEmail(null));
+  assert.ok(!esEmail(undefined));
+});
+
+test('identifier acepta las dos formas y rechaza lo que no es ninguna', () => {
+  for (const bueno of ['dbindea', 'a.b-c', 'ana@gmail.com', 'Ana.Maria@Correo.CO.UK']) {
+    assert.ok(validators.identifier(bueno), `debería aceptar "${bueno}"`);
+  }
+  for (const malo of ['ab', 'con espacio', 'sin-arroba-pero-larguísimo'.repeat(2), 'a@b', 'a@b@c.com', '', null, 123]) {
+    assert.ok(!validators.identifier(malo), `debería rechazar ${JSON.stringify(malo)}`);
+  }
+});
+
+test('normalizarEmail deja siempre la misma forma: minúsculas y sin espacios', () => {
+  // Es lo que permite que el índice único sea una columna normal, y sobre todo
+  // que quien se registró con `Juan@…` pueda entrar escribiendo `juan@…`.
+  assert.equal(normalizarEmail('  Dbindea@Gmail.COM '), 'dbindea@gmail.com');
+  assert.equal(normalizarEmail('ya@normal.com'), 'ya@normal.com');
+  assert.equal(normalizarEmail(null), '');
+  assert.equal(normalizarEmail(undefined), '');
+});
+
+test('enmascararEmail deja reconocer la dirección sin enseñarla', () => {
+  assert.equal(enmascararEmail('dbindea@gmail.com'), 'd*****a@gmail.com');
+  assert.equal(enmascararEmail('ANA@yahoo.es'), 'a*a@yahoo.es');
+  // Un buzón larguísimo no puede delatar su longitud con una fila de asteriscos.
+  assert.equal(enmascararEmail('a'.repeat(40) + '@correo.com'), 'a*****a@correo.com');
+  assert.equal(enmascararEmail('ab@correo.com'), 'a*@correo.com');
+  assert.equal(enmascararEmail('sin-arroba'), '');
+  assert.equal(enmascararEmail(''), '');
 });
 
 // ── Identificadores ─────────────────────────────────────────────────────────

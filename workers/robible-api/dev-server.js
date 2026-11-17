@@ -109,7 +109,21 @@ function normalizeArg(arg) {
 }
 
 const DB = makeD1Adapter();
-const env = { DB, JWT_SECRET, ALLOWED_ORIGIN, RATE_LIMIT_PER_MINUTE: '30', RATE_LIMIT_PER_HOUR: '500' };
+const env = {
+  DB,
+  JWT_SECRET,
+  ALLOWED_ORIGIN,
+  RATE_LIMIT_PER_MINUTE: '30',
+  RATE_LIMIT_PER_HOUR: '500',
+  // Los enlaces del correo apuntan al Vite local, no a producción.
+  SITE_URL: process.env.SITE_URL || 'http://localhost:5173',
+  // Sin clave de Resend, el correo entero sale por ESTE terminal (ver
+  // `mail.js`): es lo que permite probar la recuperación de punta a punta en
+  // local, copiando el enlace de aquí. Con `RESEND_API_KEY` puesta en el
+  // entorno se envía de verdad.
+  RESEND_API_KEY: process.env.RESEND_API_KEY,
+  MAIL_DEBUG: process.env.RESEND_API_KEY ? '0' : '1',
+};
 
 // ── Importar el router de producción ─────────────────────
 const prodApp = (await import('./src/index.js')).default;
@@ -127,7 +141,9 @@ serve({ fetch: app.fetch, port: PORT }, (info) => {
   console.log(`  Secret:  ${JWT_SECRET === 'dev-secret-change-me-in-production-please-make-it-long' ? '(dev default — cámbialo en producción)' : '(custom)'}`);
   console.log(`\n  Endpoints:`);
   console.log(`    GET  /api/health`);
-  console.log(`    POST /api/auth/register | login | recover/question | recover/verify | recover/reset`);
+  console.log(
+    `    POST /api/auth/register | login | recover/question | recover/verify | recover/email | recover/reset`,
+  );
   console.log(`    GET  /api/auth/me  (Bearer)`);
   console.log(`    POST /api/auth/logout | change-password  (Bearer)`);
   console.log(`    GET  /api/topics  POST /api/topics  PATCH/DELETE /api/topics/:id  (Bearer)`);

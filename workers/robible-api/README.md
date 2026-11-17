@@ -6,7 +6,7 @@ Sesiones con TTL de **30 días** (`SESSION_TTL_MS` en `src/utils.js`); los token
 
 ## Características
 
-- **Auth sin OAuth**: nickname + password + pregunta/seguridad con respuesta numérica
+- **Auth sin OAuth**: nickname **o email** + password, más una pregunta de seguridad que escribe el propio usuario
 - **Hashing**: PBKDF2-SHA256 (100k iteraciones) via Web Crypto API (compatible con el mock del frontend, misma migración posible)
 - **Tokens**: HMAC-SHA256 firmados, persistidos en D1 (revocables)
 - **Rate limiting**: persistente en D1 (sobrevive cold starts de Workers) por IP + endpoint + ventana
@@ -19,15 +19,21 @@ Sesiones con TTL de **30 días** (`SESSION_TTL_MS` en `src/utils.js`); los token
     había retirado en septiembre precisamente por guardar email. El email vuelve
     como decisión de producto explícita, no por descuido: es opcional de verdad,
     la interfaz no insiste y la app funciona igual sin él.
-  - **El envío de correo NO está implementado, y no lo estará por ahora**
-    (decisión del propietario, 9 sep 2026). Hoy el email sólo se almacena y el
-    usuario no recibe ningún mensaje; el texto del campo lo dice así. Cuando haya
-    volumen se valorará para validaciones o avisos, y entonces hará falta un
-    proveedor (MailChannels desde Workers, Resend, Postmark…).
-  - **Recuperación de cuenta cuando falla todo lo demás:** quien no recuerda su
-    respuesta de seguridad escribe a `dbindea@gmail.com` y la cuenta se recupera
-    **a mano contra D1**. El diálogo de recuperación lo indica; sin esa salida la
-    gente se daba por perdida y creaba otra cuenta.
+  - **Desde el 17 nov 2026 el email hace dos cosas más**, y por eso es único
+    (schema 17): con él se **inicia sesión** igual que con el apodo, y a él se
+    manda el enlace para poner una contraseña nueva. Hasta entonces sólo se
+    almacenaba —«el envío de correo NO está implementado, y no lo estará por
+    ahora», decía aquí— y la recuperación era un trámite manual contra D1.
+  - **El envío va por Resend** (`src/mail.js`), un `POST` a su API con
+    `RESEND_API_KEY` como secreto. El envío propio de Cloudflare (`send_email`)
+    no sirve: en plan gratuito sólo escribe a direcciones verificadas una por
+    una en la cuenta. Sin clave configurada la ruta devuelve
+    `mail_not_configured` en vez de fingir que mandó algo.
+  - **Recuperación de cuenta cuando falla todo lo demás:** quien no tiene correo
+    en la cuenta y tampoco recuerda su respuesta de seguridad escribe a
+    `dbindea@gmail.com` y la cuenta se recupera **a mano contra D1**. El diálogo
+    de recuperación lo indica; sin esa salida la gente se daba por perdida y
+    creaba otra cuenta.
 - **Multi-idioma**: las preguntas de seguridad se devuelven como clave, el frontend las traduce
 
 ## Estructura
@@ -39,8 +45,10 @@ workers/robible-api/
 ├── schema.sql             # D1 schema
 ├── src/
 │   ├── index.js           # entry: Hono router + CORS + error handling
-│   ├── auth.js            # register, login, recover (3 pasos), me, logout, change-password
+│   ├── auth.js            # register, login, recover (pregunta o correo), me, logout, change-password
 │   ├── data.js            # topics CRUD, verse_refs, favorites, notes, searches, export
+│   ├── mail.js            # envío por Resend (y modo local que lo imprime por consola)
+│   ├── mail-templates.js  # los textos del correo, en ro/es/en/zh
 │   └── utils.js           # hashing, tokens (HMAC), validators, rate limit, helpers DB
 ├── dev-server.js          # emula Workers+D1 con Hono + node:sqlite (sin wrangler)
 └── .env.example
@@ -53,8 +61,9 @@ workers/robible-api/
 | GET    | `/api/health`                       | no   | health check                              |
 | POST   | `/api/auth/register`                | no   | crea usuario, hashea password, devuelve token + user |
 | POST   | `/api/auth/login`                   | no   | verifica password, devuelve token + user  |
-| POST   | `/api/auth/recover/question`        | no   | devuelve la pregunta de seguridad         |
+| POST   | `/api/auth/recover/question`        | no   | devuelve la pregunta de seguridad, y si la cuenta tiene correo |
 | POST   | `/api/auth/recover/verify`          | no   | verifica respuesta, devuelve resetToken  |
+| POST   | `/api/auth/recover/email`           | no   | manda por correo el enlace de contraseña nueva |
 | POST   | `/api/auth/recover/reset`           | no   | cambia password usando resetToken, devuelve token |
 | GET    | `/api/auth/me`                      | sí   | devuelve el usuario actual                |
 | POST   | `/api/auth/logout`                  | sí   | invalida el token actual                  |

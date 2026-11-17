@@ -16,7 +16,14 @@ if (appTarget) {
 // (Si está logueado, va directo a la Biblia.)
 // Si escribe /landing explícitamente, siempre lo mostramos.
 // Si va a una ruta interna (/biblia/...), no redirigimos (deep links).
-if (typeof window !== 'undefined' && window.location.pathname === '/') {
+//
+// ── Y nunca cuando viene del enlace de recuperación ──────────────────────
+// Quien pincha ese enlace no tiene sesión por definición, así que caía
+// justo aquí y acababa en la landing — donde `AuthModal` NO se monta
+// (`{#if isLandingRoute}<Landing />{:else}…` en App.svelte): veía la portada,
+// ningún formulario y ninguna explicación. El Modo Amvon se salta por lo
+// mismo: tampoco es donde hay que aterrizar viniendo de un correo.
+if (typeof window !== 'undefined' && window.location.pathname === '/' && !window.__robibleRecuperare) {
   // ── Volver al púlpito tras una interrupción ──────────────────────────────
   //
   // Si el sistema mata la pestaña mientras se predica —una llamada, quedarse
