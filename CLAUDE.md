@@ -30,7 +30,7 @@ PWA de lectura bíblica multiidioma con lectura acompañada de música, comparac
 | `npm run build` | `vite build` → `dist/` + `scripts/generate-seo.mjs` (páginas SEO estáticas y sitemaps) |
 | `npm run preview` | Sirve el build de `dist/` |
 | `npm run lint` | ESLint. **Debe salir en 0 errores.** Quedan 12 avisos deliberados (`svelte/require-each-key`, `infinite-reactive-loop`): son señales reales pero no bloqueantes, no las silencies sin mirarlas |
-| `npm run format` | Prettier sobre todo el repo |
+| `npm run format` | Prettier sobre todo el repo. **No lo lances dentro de una tanda de cambios**: el repo NO está formateado —al probarlo el 17 nov 2026 tocó 138 ficheros y 1.240 líneas de puro reformateo— y eso entierra el cambio de verdad en el diff que luego hay que revisar para el merge. Si quieres formatear algo, `npx prettier --write <fichero>` y sólo los que ya estabas tocando |
 | `node workers/robible-api/dev-server.js` | Backend local en `127.0.0.1:8787` (emula Workers+D1 con `node:sqlite`) |
 | `node scripts/build-logo.js` | Regenera todos los favicons desde el SVG fuente |
 | `node scripts/build-bible-data.mjs [ver]` | Descarga y valida los datos de una versión bíblica (ver `public/data/CREDITS.md`) |
