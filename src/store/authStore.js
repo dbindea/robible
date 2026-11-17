@@ -50,6 +50,9 @@ export const getSecurityQuestion = (nickname) =>
 export const verifySecurityAnswer = (nickname, answer) =>
   authService.verifySecurityAnswer(nickname, answer);
 
+/** Manda al correo de la cuenta el enlace para poner contraseña nueva. */
+export const solicitarCorreoRecuperacion = (identificador) => authService.solicitarCorreoRecuperacion(identificador);
+
 export const resetPassword = async (resetToken, newPassword) => {
   const result = await authService.resetPassword(resetToken, newPassword);
   return setSession(result);

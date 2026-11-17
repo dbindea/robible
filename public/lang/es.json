@@ -868,6 +868,20 @@
       "type_hint": "Puedes cambiarlo cuando quieras. No se pierde nada: tus predicaciones siguen siendo tuyas aunque vuelvas a cuenta de lector.",
       "type_changed": "Se ha cambiado el tipo de cuenta.",
       "type_failed": "No se ha podido cambiar el tipo de cuenta.",
+      "account": {
+        "title": "La cuenta",
+        "hint": "El nombre de usuario y el correo con los que entras. Puedes cambiarlos cuando quieras.",
+        "nickname": "Nombre de usuario",
+        "nickname_hint": "Con él entras en la cuenta y con él se firman las predicaciones publicadas.",
+        "email": "Correo",
+        "email_hint": "Con él puedes entrar en la cuenta, y a él llega el enlace si olvidas la contraseña. Déjalo vacío para quitarlo.",
+        "email_password": "Contraseña actual",
+        "email_password_hint": "Solo se pide para cambiar el correo: con él se recupera la cuenta.",
+        "save": "Guardar",
+        "saving": "Guardando…",
+        "saved": "La cuenta se ha actualizado.",
+        "failed": "No se han podido guardar los cambios."
+      },
       "activity_memorize": "Memorización",
       "personal": {
         "title": "Datos personales",
@@ -1166,6 +1180,8 @@
     "create_account": "Cuenta nueva",
     "nickname": "Nombre de usuario",
     "nickname_hint": "3-24 caracteres: letras, números, _ . -",
+    "identifier": "Nombre de usuario o correo",
+    "identifier_hint": "Puedes entrar con cualquiera de los dos.",
     "password": "Contraseña",
     "security_question": "Pregunta de seguridad",
     "custom_question": "Otra pregunta (escríbela abajo)",
@@ -1242,7 +1258,13 @@
       "invalid_country": "El país no puede superar los 60 caracteres.",
       "invalid_confession": "La confesión no puede superar los 60 caracteres.",
       "invalid_birth_date": "La fecha de nacimiento no es válida.",
-      "invalid_motto": "El lema no puede pasar de 200 caracteres."
+      "invalid_motto": "El lema no puede pasar de 200 caracteres.",
+      "invalid_identifier": "Escribe el nombre de usuario o el correo de la cuenta.",
+      "email_taken": "Ya existe una cuenta con este correo.",
+      "reset_token_used": "Este enlace ya se ha usado. Pide uno nuevo.",
+      "mail_not_configured": "El envío de correos no está disponible ahora mismo. Escribe al administrador.",
+      "mail_failed": "No se ha podido enviar el correo. Inténtalo de nuevo en unos minutos.",
+      "route_not_deployed": "Esta función todavía no está disponible. Inténtalo más tarde."
     },
     "user_type": "Tipo de cuenta",
     "user_type_user": "Usuario",
@@ -1253,7 +1275,16 @@
     "email_placeholder": "nombre@ejemplo.com",
     "email_help": "Todavía no lo usamos para nada y no vas a recibir ningún mensaje. Lo guardamos para poder localizarte si te quedas sin acceso a la cuenta.",
     "security_question_help": "Escribe una pregunta cuya respuesta solo sepas tú.",
-    "recover_manual": "¿Tampoco recuerdas la respuesta? Escríbenos y te recuperamos la cuenta a mano:"
+    "recover_manual": "¿Tampoco recuerdas la respuesta? Escríbenos y te recuperamos la cuenta a mano:",
+    "recover_or": "o",
+    "recover_by_email": "Enviarme un correo",
+    "recover_email_sending": "Enviando…",
+    "recover_email_hint": "Te enviamos un enlace a {email}.",
+    "recover_email_sent_title": "Mira tu correo",
+    "recover_email_sent": "Te hemos enviado un enlace para poner una contraseña nueva. Caduca en una hora y solo se puede usar una vez.",
+    "recover_email_spam": "Si no lo encuentras, mira también en la carpeta de spam.",
+    "recover_link_title": "Contraseña nueva",
+    "recover_link_lead": "Escribe la contraseña con la que quieres entrar a partir de ahora."
   },
   "landing": {
     "skip_to_content": "Saltar al contenido",

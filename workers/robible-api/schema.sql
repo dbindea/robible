@@ -28,7 +28,14 @@ CREATE TABLE IF NOT EXISTS users (
   -- "sin dependencias de OAuth ni de PII", y la tabla `user_profiles` se retiró
   -- en septiembre de 2026 justamente por guardar email. Se reintroduce como
   -- decisión de producto explícita, sólo para recuperación y sin nada más de PII.
-  -- El envío de correo NO está implementado: hoy el email sólo se almacena.
+  --
+  -- Desde el 17 nov 2026 hace DOS cosas más, y las dos obligan a que sea único
+  -- (ver `idx_users_email`, schema_version 17): con él se inicia sesión igual
+  -- que con el apodo, y a él se manda el enlace para poner contraseña nueva.
+  -- Dos cuentas con la misma dirección serían un empate sin forma de
+  -- resolverlo. Se guarda SIEMPRE normalizado —minúsculas y sin espacios, ver
+  -- `normalizarEmail`—, que es lo que permite que el índice sea una columna
+  -- normal en vez de una expresión.
   email TEXT,
   -- Rol de administración (schema_version 13). Vive en base de datos, no en
   -- código: ningún sitio compara un nickname a mano, todo pasa por esta
@@ -74,6 +81,19 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_nickname ON users(nickname);
+
+-- Una dirección, una cuenta (schema_version 17). Parcial porque el email sigue
+-- siendo opcional: en SQLite, varios NULL no colisionan en un índice único, y
+-- el `WHERE` lo deja explícito además de no indexar filas que no aportan nada.
+--
+-- Aplicado en producción el 17 nov 2026, con la normalización previa y la
+-- consulta de duplicados que está en `docs/OPERACIONES.md` (salió vacía: 6
+-- cuentas, 4 con correo). Ojo, porque la consulta del runbook no lo cubría
+-- todo: una dirección guardada como cadena VACÍA tampoco es NULL, así que dos
+-- de ellas chocarían en este índice y la migración fallaría. Había cero, pero
+-- hay que mirarlo aparte — `trim(email) = ''`, no sólo `IS NOT NULL`.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email)
+  WHERE email IS NOT NULL;
 
 -- ── Migración para bases ya desplegadas (schema_version 8) ───────────────────
 -- Este archivo sólo crea; las columnas nuevas no aparecen en una tabla que ya
@@ -453,13 +473,16 @@ CREATE TABLE IF NOT EXISTS _meta (
 --     country / confession; se añade page_views (analíticas del panel de admin)
 -- 14: users gana motto (lema personal del perfil)
 -- 15: users gana plan ('free' | 'plus'), para las funciones con suscripción
+-- 16: push_subscriptions gana local_hour (la hora tal cual la eligió la persona)
+-- 17: el email pasa a ser único y normalizado: con él se inicia sesión y a él
+--     se manda el enlace de recuperación
 --
 -- El literal de abajo se había quedado en '9' aunque los comentarios de más
 -- abajo documentaban hasta la 12 (aplicadas a mano en producción sin bumpear
 -- este valor). Se corrige de una vez al llegar a la 13, en vez de arrastrar
 -- la deriva una migración más.
-INSERT OR IGNORE INTO _meta (key, value) VALUES ('schema_version', '16');
-UPDATE _meta SET value = '16' WHERE key = 'schema_version' AND value < '16';
+INSERT OR IGNORE INTO _meta (key, value) VALUES ('schema_version', '17');
+UPDATE _meta SET value = '17' WHERE key = 'schema_version' AND value < '17';
 
 -- 10: sermons gana is_public / public_slug / published_at
 --   ALTER TABLE sermons ADD COLUMN is_public INTEGER NOT NULL DEFAULT 0;
@@ -541,3 +564,19 @@ UPDATE _meta SET value = '16' WHERE key = 'schema_version' AND value < '16';
 --   ALTER TABLE users ADD COLUMN plan TEXT NOT NULL DEFAULT 'free';
 --
 -- Aplicado en producción el 15 sep 2026.
+
+-- 17: el email, único y normalizado (entrar con el correo + recuperación)
+--
+-- No añade ninguna columna: sólo normaliza lo que hay y crea el índice. El
+-- orden importa — el índice único falla si quedan duplicados, así que ANTES hay
+-- que mirar si los hay y decidir qué cuenta se queda la dirección:
+--
+--   SELECT lower(trim(email)) AS e, COUNT(*) AS n FROM users
+--    WHERE email IS NOT NULL GROUP BY e HAVING n > 1;
+--
+--   UPDATE users SET email = lower(trim(email)) WHERE email IS NOT NULL;
+--   CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email) WHERE email IS NOT NULL;
+--
+-- Normalizar las filas que ya existían no es cosmético: con el login por correo,
+-- quien se registró escribiendo `Juan@…` no podría entrar escribiendo `juan@…`,
+-- que es lo que teclea todo el mundo.

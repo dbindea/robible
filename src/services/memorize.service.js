@@ -9,7 +9,7 @@
 // calendario de repasos). Están separadas a propósito: es lo único que se puede
 // probar sin navegador y es donde de verdad se puede meter la pata.
 
-import { api, ApiError, translateApiError } from './apiClient.js';
+import { api, ApiError, translateApiError, rutaNoDesplegada } from './apiClient.js';
 import { USE_BACKEND } from '../config.js';
 
 // ── Troceo del texto ──────────────────────────────────────────────────────
@@ -191,15 +191,13 @@ const refEqual = (a, b) => a.book === b.book && a.chapter === b.chapter && a.ver
 /**
  * ¿El worker todavía no conoce esta ruta?
  *
- * El frontend (Netlify) y el worker (Cloudflare) se despliegan por separado, así
- * que siempre hay una ventana en la que uno va por delante del otro. Si el
- * worker aún no tiene `/api/memorizations`, devuelve 404 con el código genérico
- * `not_found` — distinto del `memorization_not_found` que sí devuelven estas
- * rutas cuando existen. Sin esta distinción, un 4xx cortaba el camino y la
- * función NO caía a localStorage: la memorización parecía rota para todo el que
- * hubiera iniciado sesión.
+ * Nació aquí —`/api/memorizations` fue la primera ruta que el frontend pidió
+ * antes de que existiera en Cloudflare— y hoy vive en `apiClient.js`, porque la
+ * necesita cualquiera que estrene una ruta. Se re-exporta para no romper a quien
+ * la importa de aquí (este servicio la usa y `tests/memorize.test.js` la pide
+ * por este camino).
  */
-export const rutaNoDesplegada = (e) => e instanceof ApiError && e.status === 404 && e.code === 'not_found';
+export { rutaNoDesplegada };
 
 const normalizar = (m) => ({
   id: m.id,

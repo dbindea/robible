@@ -54,6 +54,12 @@ app.post('/api/auth/recover/verify', async (c) => {
   applyCors(c);
   return auth.verifyRecoverAnswer(c.req.raw, c.env.DB, c.env, corsFor(c));
 });
+// Manda por correo un enlace para poner contraseña nueva. Sustituye al trámite
+// manual (escribir al propietario para que la genere a mano contra D1).
+app.post('/api/auth/recover/email', async (c) => {
+  applyCors(c);
+  return auth.recoverByEmail(c.req.raw, c.env.DB, c.env, corsFor(c));
+});
 app.post('/api/auth/recover/reset', async (c) => {
   applyCors(c);
   return auth.resetPassword(c.req.raw, c.env.DB, c.env, corsFor(c));

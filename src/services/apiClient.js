@@ -49,6 +49,14 @@ const ERROR_KEYS = {
   invalid_email: 'auth.errors.invalid_email',
   nickname_taken: 'auth.errors.nickname_taken',
   user_not_found: 'auth.errors.user_not_found',
+  // ── Entrar con el correo y recuperación por email (17 nov 2026) ─────────
+  // Un código que falte aquí cae en `auth.errors.unknown`, y entonces la
+  // persona lee «ha ocurrido un error» en lugar de qué hacer.
+  invalid_identifier: 'auth.errors.invalid_identifier',
+  email_taken: 'auth.errors.email_taken',
+  reset_token_used: 'auth.errors.reset_token_used',
+  mail_not_configured: 'auth.errors.mail_not_configured',
+  mail_failed: 'auth.errors.mail_failed',
   invalid_credentials: 'auth.errors.invalid_credentials',
   missing_credentials: 'auth.errors.missing_credentials',
   security_question_required: 'auth.errors.security_question_required',
@@ -92,6 +100,22 @@ const ERROR_KEYS = {
 };
 
 export const translateApiError = (code) => ERROR_KEYS[code] || 'auth.errors.unknown';
+
+/**
+ * ¿El worker todavía no conoce esta ruta?
+ *
+ * El frontend (Netlify) y el worker (Cloudflare) se despliegan por separado, así
+ * que siempre hay una ventana en la que uno va por delante del otro. Una ruta
+ * que el worker no tiene cae en su `app.notFound` y devuelve 404 con el código
+ * genérico `not_found`; las rutas que sí existen devuelven el suyo
+ * (`memorization_not_found`, `subscription_not_found`…). Sin distinguirlos, un
+ * servicio trata el 4xx como un error de datos y la función parece rota.
+ *
+ * Vive aquí, y no en el servicio que la estrenó, porque la necesita cualquiera
+ * que estrene una ruta: la memorización la primera y la recuperación por correo
+ * la segunda.
+ */
+export const rutaNoDesplegada = (e) => e instanceof ApiError && e.status === 404 && e.code === 'not_found';
 
 const request = async (method, path, { body, auth = true } = {}) => {
   if (!USE_BACKEND) {

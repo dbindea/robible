@@ -62,6 +62,17 @@
   let contrasenas = { actual: '', nueva: '', repetida: '' };
   let cambiandoContrasena = false;
 
+  // ── Cuenta: nombre de usuario y correo (17 nov 2026) ─────────────────────
+  //
+  // Hasta hoy ninguno de los dos se podía cambiar después del alta. El correo
+  // ni eso: el backend aceptaba el cambio desde el schema 8 y no había interfaz
+  // ninguna, así que quien se registró sin dirección no tenía forma de añadirla
+  // — y sin dirección no hay recuperación automática posible.
+  //
+  // Se lee UNA vez en `onMount`, como `datosPersonales` y por el mismo motivo.
+  let cuenta = { nickname: '', email: '', contrasena: '' };
+  let guardandoCuenta = false;
+
   $: versionConfig = getBibleVersionConfigOrDefault($selectedBibleVersion);
 
   $: applySeoMetadata({
@@ -319,6 +330,49 @@
     }
   };
 
+  // ── Cuenta ──────────────────────────────────────────────────────────────
+  //
+  // Las dos comparaciones van contra las variables directamente —no a través de
+  // un helper— para que el compilador vea la dependencia y los avisos se
+  // repinten al escribir (trampa 23).
+  $: apodoCambia = cuenta.nickname.trim().toLowerCase() !== ($currentUser?.nickname || '');
+  $: correoCambia = cuenta.email.trim().toLowerCase() !== ($currentUser?.email || '');
+  // Cambiar el correo exige la contraseña actual (lo valida también el worker):
+  // es el canal con el que se recupera la cuenta, así que no puede cambiarlo
+  // quien sólo se ha encontrado una sesión abierta. El apodo no la pide.
+  $: cuentaListaParaGuardar = (apodoCambia || correoCambia) && (!correoCambia || !!cuenta.contrasena);
+
+  const guardarCuenta = async () => {
+    if (guardandoCuenta) return;
+    const cambios = {};
+    if (apodoCambia) cambios.nickname = cuenta.nickname.trim();
+    if (correoCambia) {
+      // Cadena vacía sigue significando «quítamelo».
+      cambios.email = cuenta.email.trim();
+      cambios.currentPassword = cuenta.contrasena;
+    }
+    if (!Object.keys(cambios).length) return;
+
+    guardandoCuenta = true;
+    try {
+      const res = await updateProfile(cambios);
+      if (res.ok) {
+        currentUser.set(res.user);
+        // Se releen del usuario devuelto y no de lo escrito: el apodo vuelve
+        // normalizado en minúsculas, y enseñar otra cosa haría creer que se
+        // guardó con mayúsculas.
+        cuenta = { nickname: res.user.nickname || '', email: res.user.email || '', contrasena: '' };
+        mostrar($_('app.profile.account.saved'));
+      } else {
+        mostrar($_(res.error || 'app.profile.account.failed'));
+      }
+    } catch {
+      mostrar($_('app.profile.account.failed'));
+    } finally {
+      guardandoCuenta = false;
+    }
+  };
+
   const guardarDatosPersonales = async () => {
     if (guardandoDatos) return;
     guardandoDatos = true;
@@ -349,6 +403,11 @@
     avisoDiario = isEnabled();
     ultimaLectura = getLastRead();
     versetulZilei = await getTodayVerse();
+    cuenta = {
+      nickname: $currentUser?.nickname || '',
+      email: $currentUser?.email || '',
+      contrasena: '',
+    };
     datosPersonales = {
       fullName: $currentUser?.fullName || '',
       birthDate: $currentUser?.birthDate || '',
@@ -637,6 +696,68 @@
               <span class="tipo__pista">{$_(`auth.user_type_${tipo}_hint`)}</span>
             </button>
           {/each}
+        </div>
+      </article>
+
+      <!-- ── Cuenta: nombre de usuario y correo ───────────────────────── -->
+      <article class="tarjeta tarjeta--ancha">
+        <h2 class="tarjeta__titulo">
+          <!-- `sign-in` y no un arroba: no hay arroba en el juego de iconos, y
+               esta tarjeta es justo con qué se entra en la cuenta. -->
+          <span class="tarjeta__icono" aria-hidden="true"><Icon name="sign-in" /></span>
+          {$_('app.profile.account.title')}
+        </h2>
+        <p class="tarjeta__pista">{$_('app.profile.account.hint')}</p>
+
+        <div class="datos-personales">
+          <label class="campo-perfil">
+            <span>{$_('app.profile.account.nickname')}</span>
+            <input
+              type="text"
+              maxlength="24"
+              autocapitalize="off"
+              spellcheck="false"
+              bind:value={cuenta.nickname}
+              disabled={guardandoCuenta}
+            />
+            <small class="campo-perfil__pista">{$_('app.profile.account.nickname_hint')}</small>
+          </label>
+          <label class="campo-perfil">
+            <span>{$_('app.profile.account.email')}</span>
+            <input
+              type="email"
+              maxlength="254"
+              autocomplete="email"
+              bind:value={cuenta.email}
+              disabled={guardandoCuenta}
+            />
+            <small class="campo-perfil__pista">{$_('app.profile.account.email_hint')}</small>
+          </label>
+          <!-- La contraseña actual sólo aparece cuando el correo cambia de
+               verdad: guardar un apodo nuevo no tiene por qué pedir nada. -->
+          {#if correoCambia}
+            <label class="campo-perfil">
+              <span>{$_('app.profile.account.email_password')}</span>
+              <input
+                type="password"
+                autocomplete="current-password"
+                bind:value={cuenta.contrasena}
+                disabled={guardandoCuenta}
+              />
+              <small class="campo-perfil__pista">{$_('app.profile.account.email_password_hint')}</small>
+            </label>
+          {/if}
+        </div>
+
+        <div class="tarjeta__acciones">
+          <button
+            type="button"
+            class="boton boton--primario"
+            on:click={guardarCuenta}
+            disabled={guardandoCuenta || !cuentaListaParaGuardar}
+          >
+            {$_(guardandoCuenta ? 'app.profile.account.saving' : 'app.profile.account.save')}
+          </button>
         </div>
       </article>
 
@@ -1375,5 +1496,13 @@
         opacity: 0.6;
       }
     }
+  }
+
+  /* Una línea bajo el campo, para lo que no cabe en la etiqueta: que el apodo
+     es lo que firma las predicaciones, o para qué sirve el correo. */
+  .campo-perfil__pista {
+    font-size: var(--font-size-tiny);
+    line-height: 1.4;
+    color: var(--color-ink-soft);
   }
 </style>

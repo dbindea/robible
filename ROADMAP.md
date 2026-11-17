@@ -424,7 +424,7 @@ El objetivo es doble: **limpiar el UX en móvil** y **abrir el producto a los pr
 - `sec_question` vale ahora siempre `'custom'`; `LEGACY_SECURITY_QUESTIONS` se conserva sólo para traducir las claves de cuentas anteriores al recuperar el acceso.
 - Cambiar de tipo **no borra nada**: verificado que las categorías sobreviven.
 - El item de menú "Predicile mele" **no** se ha añadido todavía: llevaría a una ruta que aún no existe. Va con la Fase 5, donde tiene destino.
-- El email **sólo se almacena, y así se queda por ahora** (decisión del propietario, 9 sep 2026). No hay envío de correo ni lo habrá hasta que haya volumen — entonces se valorará para validaciones o avisos. Mientras tanto, quien pierde el acceso y tampoco recuerda su respuesta de seguridad **escribe a `dbindea@gmail.com`** y la cuenta se recupera a mano contra D1; el diálogo de recuperación lo dice (`auth.recover_manual`). El texto del campo se cambió para no prometer lo que no hace: antes decía «sólo para recuperar la cuenta». `workers/robible-api/README.md` está actualizado.
+- ~~El email **sólo se almacena, y así se queda por ahora**~~ (era la decisión del propietario del 9 sep 2026: nada de envío de correo hasta que hubiera volumen). **Revertido el 17 nov 2026**, porque el trámite manual dejó de ser teórico: un usuario preguntó por qué no podía entrar con su correo y el propietario pidió además la recuperación automática. Hoy el email sirve para **iniciar sesión** y para recibir el enlace de contraseña nueva, y el apodo se puede cambiar. Lo que queda del plan viejo es la salida de emergencia: quien no tiene correo en la cuenta y tampoco recuerda su respuesta de seguridad sigue escribiendo a `dbindea@gmail.com` (`auth.recover_manual`). Ver trampas 104-107.
 
 **Arreglo colateral**: la sección `auth` del español estaba **entera en rumano** (63 claves). Un usuario hispano veía el registro, el login y todos los errores en un idioma que no es el suyo. Corregido. Quedan ~30 claves más fuera de `auth` en la misma situación.
 
@@ -958,6 +958,23 @@ editor tipo Word, ni roles más allá de Utilizator/Predicator.
 ---
 
 ## Historial de cambios recientes
+
+**2026-11-17 — Entrar con el correo, cambiar el nombre de usuario y recuperación automática (schema 17)**
+
+Las tres salieron de preguntas de usuarios reales. Lo que las unía no se veía
+desde fuera: **el email sólo se podía poner al registrarse**, así que sin una
+pantalla donde añadirlo la recuperación automática no habría servido a nadie de
+los que ya tenían cuenta.
+
+- **Se inicia sesión con el apodo o con el correo**, en el mismo campo. El identificador viaja en dos campos del cuerpo (`identifier` y `nickname`) para que el orden de despliegue entre Netlify y Cloudflare no pueda romper el login. Trampa 104
+- **El correo pasa a ser único y normalizado** (schema 17: sin columnas nuevas, sólo `idx_users_email` y un `lower(trim(email))` sobre lo que había)
+- **El nombre de usuario se puede cambiar**, con la única condición de que no lo tenga otro. No rompe nada repartido: la firma de una predicación publicada sale de un `JOIN` y el slug público no lleva el apodo. Trampa 107
+- **Recuperación por correo**: el worker manda un enlace que abre la aplicación en «escribe tu contraseña nueva». Sustituye al trámite manual contra D1. El enlace caduca en una hora y es **de un solo uso sin tabla de tokens** —lleva la huella de la contraseña vigente—, y la contraseña anterior sigue valiendo hasta que su dueño elige otra, así que conocer una dirección no sirve para dejar a nadie fuera de su cuenta. Trampa 105
+- **El envío va por Resend** (gratis, 3.000/mes), un `fetch` desde el worker y sin dependencias nuevas: el envío propio de Cloudflare sólo escribe a direcciones verificadas en plan gratuito. Sin clave configurada la función se apaga y lo dice, en vez de prometer un correo que nadie manda. Trampa 106
+- **Tarjeta «Contul» en el perfil**: apodo y correo editables. Cambiar el correo pide la contraseña actual —es el canal de recuperación—; cambiar el apodo no
+- **El token no pasa por la URL donde lo ve Analytics**: lo saca un script inline del `<head>`, antes de gtag. Comprobado midiendo el `dl=` del hit de GA, no leyendo el código
+- 578 tests (16 nuevos), 4 trampas nuevas, `CACHE_NAME` a `robible-v43`
+- Pendiente del propietario: dar de alta `robible.com` en Resend y poner `RESEND_API_KEY`. Hasta entonces, las otras tres funciones van igual
 
 **2026-09-14/17 — Proyección para iglesias, donaciones, tres Biblias más y los fondos animados**
 

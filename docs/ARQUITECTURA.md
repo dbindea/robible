@@ -270,8 +270,9 @@ Implementación propia en [i18n.service.js](../src/services/i18n.service.js), si
 Hono sobre Cloudflare Workers, D1 como base de datos.
 
 - [index.js](../workers/robible-api/src/index.js) — router, CORS por allowlist, middleware `requireAuthMw`, 404 y handler de errores.
-- [auth.js](../workers/robible-api/src/auth.js) — registro, login, recuperación en 3 pasos, cambio de contraseña. PBKDF2-SHA256 100k iteraciones, salt de 16 bytes.
+- [auth.js](../workers/robible-api/src/auth.js) — registro, login (con apodo **o** correo), recuperación por los dos caminos —pregunta de seguridad o enlace por correo—, cambio de contraseña y de perfil. PBKDF2-SHA256 100k iteraciones, salt de 16 bytes.
 - [data.js](../workers/robible-api/src/data.js) — CRUD de topics, verse_refs, favoritos, notas, búsquedas y export.
+- [mail.js](../workers/robible-api/src/mail.js) + [mail-templates.js](../workers/robible-api/src/mail-templates.js) — el único correo que manda la aplicación: el enlace de contraseña nueva, vía Resend, con los textos en los cuatro idiomas.
 - [utils.js](../workers/robible-api/src/utils.js) — hashing, tokens HMAC, validadores, rate limiting persistente en D1.
 
 Los tokens son HMAC-SHA256 firmados **y** persistidos en `auth_sessions`: `requireAuth` valida la firma *y* la existencia de la fila, de modo que el logout revoca de verdad.

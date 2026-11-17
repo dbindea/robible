@@ -30,7 +30,7 @@ PWA de lectura bíblica multiidioma con lectura acompañada de música, comparac
 | `npm run build` | `vite build` → `dist/` + `scripts/generate-seo.mjs` (páginas SEO estáticas y sitemaps) |
 | `npm run preview` | Sirve el build de `dist/` |
 | `npm run lint` | ESLint. **Debe salir en 0 errores.** Quedan 12 avisos deliberados (`svelte/require-each-key`, `infinite-reactive-loop`): son señales reales pero no bloqueantes, no las silencies sin mirarlas |
-| `npm run format` | Prettier sobre todo el repo |
+| `npm run format` | Prettier sobre todo el repo. **No lo lances dentro de una tanda de cambios**: el repo NO está formateado —al probarlo el 17 nov 2026 tocó 138 ficheros y 1.240 líneas de puro reformateo— y eso entierra el cambio de verdad en el diff que luego hay que revisar para el merge. Si quieres formatear algo, `npx prettier --write <fichero>` y sólo los que ya estabas tocando |
 | `node workers/robible-api/dev-server.js` | Backend local en `127.0.0.1:8787` (emula Workers+D1 con `node:sqlite`) |
 | `node scripts/build-logo.js` | Regenera todos los favicons desde el SVG fuente |
 | `node scripts/build-bible-data.mjs [ver]` | Descarga y valida los datos de una versión bíblica (ver `public/data/CREDITS.md`) |
@@ -361,6 +361,34 @@ Cosas que rompen si no se saben:
     - **Los dos PDF van en Tinos**: la schiță y, desde el mismo día, el folio de la predicación («me gusta el del guion, implementémoslo por completo»). Al cambiar de fuente **subió toda la escala de tamaños**, y no es un capricho: la altura de la x de Tinos es ~0,45 em contra ~0,53 de Roboto, así que al mismo cuerpo se lee bastante más pequeña — Tinos a 11 pt tiene el ojo de Roboto a 9,3. Mantener la escala habría sido entregar un folio menos legible con la excusa de que es la fuente que se pidió.
     - El `porLinea` de `estimarAlto` se dejó calibrado para Roboto a propósito. Tinos es más estrecha, así que con ella la cuenta sale **alta** — y sobrestimar es el lado seguro: subestimar es lo que resucita la trampa 64, donde un `unbreakable` que no cabe hace desaparecer la sección entera.
     - **Va en WOFF, no en WOFF2, y recortada por Google.** El woff2 lleva la tabla `glyf` transformada: fontkit la abre, pero cuando pdfkit va a empotrarla tiene que volver a subsetearla y revienta con «Offset is outside the bounds of the DataView». Y entera son 2,2 MB las cuatro variantes — la API de Google acepta `text=` y devuelve exactamente los glifos que se le pidan, que son 69 KB. Todo esto está explicado en la cabecera de `scripts/build-pdf-font.mjs`, que es quien genera `src/services/pdf-font.js`.
+
+104. **Se entra con el apodo O con el correo, en el mismo campo, y el identificador viaja en DOS campos del cuerpo.** `login` y las tres rutas de recuperación leen `body.identifier ?? body.nickname`, y el cliente manda los dos con el mismo valor. No es indecisión: es la ventana de la trampa 36 aplicada a lo más central que hay — el worker viejo sólo entiende `nickname` y el nuevo prefiere `identifier`, así que con los dos puestos el login funciona con cualquier combinación de despliegues. Lo que decide qué forma es cada cosa es la `@`, que `VALID_NICKNAME` no admite (`esEmail` en `utils.js`).
+
+
+    - **El cliente también valida**, y ahí estuvo el cuello de botella: `isValidNickname` rechazaba la `@` **antes de enviar nada**, así que todo el trabajo del worker no se notaba. Por eso existe `isValidIdentifier` en `auth.service.js`.
+    - El correo se guarda y se busca **normalizado** (`normalizarEmail`: minúsculas, sin espacios) y es **único** desde el schema 17. Quien se registró con `Juan@…` no podría entrar escribiendo `juan@…`, que es lo que teclea todo el mundo; y dos cuentas con la misma dirección serían un empate sin forma de resolverlo. El índice es parcial (`WHERE email IS NOT NULL`) porque el correo sigue siendo opcional.
+    - El fallback de `localStorage` sólo conoce apodos, y está bien así: sin backend no hay perfil ni correo que mirar.
+
+105. **El enlace de recuperación no puede pasar por la URL donde lo ve Analytics.** Lo saca de ahí un `<script>` inline en el `<head>` de `index.html`, **antes del snippet de gtag**: GA manda un `page_view` al cargar con `page_location` = la URL entera, así que con el token puesto se lo lleva Google. El script lo deja en `window.__robibleRecuperare` y limpia la URL con `replaceState`; `App.svelte` lo recoge y abre el modal. Comprobado midiendo el `dl=` del hit de GA, no leyendo el código.
+
+
+    - **Y hay que saltarse el redirect a `/landing` de `main.js`.** Quien pincha ese enlace no tiene sesión por definición, así que caía justo en él y acababa en la landing, donde `AuthModal` **no se monta**: veía la portada y ninguna explicación.
+    - Tocar `index.html` obliga a bumpear `CACHE_NAME` (trampa 2): el service worker precachea `/`.
+    - **Un solo uso sin tabla de tokens**: el token lleva `pv`, el SHA del hash de la contraseña del momento de emitirlo, y `resetPassword` lo compara con el hash vivo antes de escribir. Consecuencia que conviene recordar: cambiar la contraseña invalida los enlaces en vuelo, pero pedir un enlace nuevo **no** invalida el anterior. Se hashea el hash a propósito — el token viaja por correo y acaba en servidores ajenos.
+    - El token del correo vive **una hora** y el de la pregunta de seguridad sigue en cinco minutos. Uno se gasta en la misma pantalla; el otro llega al móvil de alguien que está conduciendo.
+
+106. **El correo lo manda Resend, y el worker no puede mandarlo solo.** El envío propio de Cloudflare (`send_email`) en plan gratuito sólo escribe a direcciones verificadas una por una, así que no sirve para escribir a un usuario cualquiera. Los textos están **duplicados en `mail-templates.js`** en los cuatro idiomas por lo mismo que `sermons-index-meta.mjs` duplica los siete pasos (trampa 52): es otro bundle y no puede importar de `public/lang/`.
+
+
+    - **Sin `RESEND_API_KEY` la función se apaga en vez de mentir**: devuelve `mail_not_configured` y la pantalla lo dice. Un `ok` de cortesía dejaría a la persona esperando delante del buzón, y por fuera eso es indistinguible de un correo perdido. En local, `dev-server.js` pone `MAIL_DEBUG=1` y el correo entero sale por su terminal — así el flujo se prueba de punta a punta sin dominio ni clave.
+    - La respuesta de `/api/auth/recover/email` es **siempre la misma** —cuenta que no existe, cuenta sin correo, cuenta desactivada—, o el endpoint sirve para averiguar qué direcciones tienen cuenta en RoBible. Quien decide si se ofrece el botón es `hasEmail`, que viene de `recover/question`.
+    - Dos límites por petición y ninguno en D1 (`RATE_LIMITER_MAIL`, 3/min): por IP para que nadie vacíe la cuota de 100 envíos diarios, y por cuenta para que esto no sea un ariete contra el buzón de otra persona.
+
+107. **Cambiar el correo pide la contraseña actual; cambiar el apodo no.** El correo es el canal con el que se recupera la cuenta: quien se encuentre una sesión abierta —un móvil desbloqueado, el ordenador de la iglesia— podría ponerse el suyo y quedarse con la cuenta sin saber la contraseña. El apodo no abre ninguna puerta. Sólo se pide cuando el correo **cambia** de verdad, no al guardar el formulario.
+
+
+    - El apodo se guarda **en minúsculas**, como en el registro. No hay una segunda forma «para mostrar»: serían dos versiones del mismo dato y la firma pública y el login acabarían discrepando.
+    - Renombrarse no rompe nada ya repartido: la firma de una predicación publicada sale de un `JOIN users` (trampa 68) y se actualiza sola, el `public_slug` no contiene el apodo y las sesiones cuelgan del id.
 
 ## Mapa rápido
 

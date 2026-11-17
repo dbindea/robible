@@ -1,4 +1,4 @@
-// Auth endpoints: register, login, recover (3 steps), me, logout
+// Auth endpoints: register, login, recover (4 vías), me, logout
 import {
   hashValue,
   verifyHash,
@@ -11,11 +11,66 @@ import {
   deleteSession,
   requireAuth,
   checkRateLimit,
+  getClientIp,
+  limitar,
   json,
   error,
   normalizeSecurityAnswer,
+  esEmail,
+  normalizarEmail,
+  enmascararEmail,
+  sha256Hex,
   RESET_TOKEN_TTL_MS,
+  RESET_MAIL_TTL_MS,
 } from './utils.js';
+import { enviarCorreo } from './mail.js';
+import { correoRecuperacion } from './mail-templates.js';
+
+/**
+ * Busca la cuenta por lo que la persona haya escrito: apodo o correo.
+ *
+ * `columnas` es un literal escrito por nosotros en cada llamada —nunca viene de
+ * la petición—, así que se interpola; el identificador va siempre en `.bind()`.
+ *
+ * El correo se compara normalizado porque se guarda normalizado
+ * (`normalizarEmail`), y el apodo en minúsculas porque es como lo guarda
+ * `register`. Una de las dos sin normalizar da el mismo síntoma: la cuenta
+ * existe y el servidor dice que no.
+ */
+async function buscarPorIdentificador(db, identificador, columnas) {
+  if (esEmail(identificador)) {
+    return db.prepare(`SELECT ${columnas} FROM users WHERE email = ?`).bind(normalizarEmail(identificador)).first();
+  }
+  return db
+    .prepare(`SELECT ${columnas} FROM users WHERE nickname = ?`)
+    .bind(
+      String(identificador ?? '')
+        .trim()
+        .toLowerCase(),
+    )
+    .first();
+}
+
+/**
+ * Lee el identificador del cuerpo aceptando los DOS nombres de campo.
+ *
+ * No es indecisión: el frontend y el worker se despliegan por separado
+ * (CLAUDE.md, trampa 36), así que el bundle anterior seguirá mandando
+ * `nickname` durante la ventana entre los dos despliegues. Y el cliente nuevo
+ * manda los dos con el mismo valor, con lo que el orden de despliegue deja de
+ * importar para algo tan central como el login.
+ */
+const leerIdentificador = (body) => body?.identifier ?? body?.nickname;
+
+/**
+ * La huella de la contraseña que se mete en los tokens de recuperación.
+ *
+ * Es lo que los hace de UN SOLO USO sin tabla de tokens gastados: al resetear
+ * se recalcula contra el hash vivo y, si la contraseña ya cambió, el token deja
+ * de valer. Se hashea el hash a propósito — así el token no transporta ni un
+ * trozo de lo que hay guardado en la base de datos.
+ */
+export const huellaDeContrasena = async (passwordHash) => (await sha256Hex(String(passwordHash || ''))).slice(0, 12);
 
 // Claves de las preguntas predefinidas que se usaban antes del schema 8.
 //
@@ -50,7 +105,9 @@ export async function register(request, db, env, cors) {
   if (!validators.userType(tipo)) return error('invalid_user_type', 400, cors);
 
   // El email es opcional de verdad: sólo se valida si viene con algo escrito.
-  const emailLimpio = typeof email === 'string' ? email.trim() : '';
+  // Se guarda normalizado porque con él también se entra (ver `login`): quien
+  // escriba `Juan@…` al registrarse tiene que poder entrar con `juan@…`.
+  const emailLimpio = normalizarEmail(email);
   if (emailLimpio && !validators.email(emailLimpio)) return error('invalid_email', 400, cors);
 
   const normalized = nickname.trim().toLowerCase();
@@ -61,6 +118,14 @@ export async function register(request, db, env, cors) {
     .bind(normalized)
     .first();
   if (existing) return error('nickname_taken', 409, cors);
+
+  // Y el correo tampoco se puede repetir, desde que sirve para entrar: dos
+  // cuentas con la misma dirección serían un empate sin forma de resolverlo, y
+  // la que se quedara fuera no podría ni entrar ni recuperarse.
+  if (emailLimpio) {
+    const emailOcupado = await db.prepare('SELECT id FROM users WHERE email = ?').bind(emailLimpio).first();
+    if (emailOcupado) return error('email_taken', 409, cors);
+  }
 
   const userId = genId('u');
   const passwordSalt = crypto.randomUUID().replace(/-/g, '').substring(0, 32);
@@ -162,18 +227,21 @@ export async function login(request, db, env, cors) {
   let body;
   try { body = await request.json(); } catch { return error('invalid_json', 400, cors); }
 
-  const { nickname, password } = body || {};
-  if (!nickname || !password) return error('missing_credentials', 400, cors);
+  // Se entra con el apodo o con el correo, en el mismo campo.
+  const identificador = leerIdentificador(body);
+  const { password } = body || {};
+  if (!identificador || !password) return error('missing_credentials', 400, cors);
 
-  const user = await db
-    .prepare(
-      `SELECT id, nickname, password_salt, password_hash, user_type, email, is_admin,
-              is_disabled, full_name, birth_date, church, country, confession, motto, plan,
-              created_at, updated_at
-       FROM users WHERE nickname = ?`,
-    )
-    .bind(nickname.trim().toLowerCase())
-    .first();
+  const user = await buscarPorIdentificador(
+    db,
+    identificador,
+    `id, nickname, password_salt, password_hash, user_type, email, is_admin,
+     is_disabled, full_name, birth_date, church, country, confession, motto, plan,
+     created_at, updated_at`,
+  );
+  // Un correo que no existe da el MISMO error que una contraseña mala, a
+  // propósito: si no, este endpoint sirve para averiguar qué direcciones tienen
+  // cuenta en RoBible.
   if (!user) return error('invalid_credentials', 401, cors);
 
   const valid = await verifyHash(password, user.password_salt, user.password_hash);
@@ -217,20 +285,24 @@ export async function getRecoverQuestion(request, db, _env, cors) {
 
   let body;
   try { body = await request.json(); } catch { return error('invalid_json', 400, cors); }
-  const { nickname } = body || {};
-  if (!validators.nickname(nickname)) return error('invalid_nickname', 400, cors);
+  const identificador = leerIdentificador(body);
+  if (!validators.identifier(identificador)) return error('invalid_identifier', 400, cors);
 
-  const user = await db
-    .prepare('SELECT sec_question, sec_question_text FROM users WHERE nickname = ?')
-    .bind(nickname.trim().toLowerCase())
-    .first();
+  const user = await buscarPorIdentificador(db, identificador, 'sec_question, sec_question_text, email');
   if (!user) return error('user_not_found', 404, cors);
 
-  // Devolvemos la clave (frontend la traduce con i18n) o el texto custom
+  // Devolvemos la clave (frontend la traduce con i18n) o el texto custom.
+  //
+  // `hasEmail` es lo que decide si la pantalla ofrece el correo automático: sin
+  // dirección, ese botón sólo podría prometer un correo que nunca llega. Y
+  // `emailHint` va enmascarado para que la persona reconozca cuál de sus
+  // direcciones puso sin que esto sirva para leer la de otro.
   return json({
     ok: true,
     securityQuestion: user.sec_question,
     securityQuestionText: user.sec_question_text,
+    hasEmail: !!user.email,
+    emailHint: user.email ? enmascararEmail(user.email) : null,
   }, 200, cors);
 }
 
@@ -241,16 +313,16 @@ export async function verifyRecoverAnswer(request, db, env, cors) {
 
   let body;
   try { body = await request.json(); } catch { return error('invalid_json', 400, cors); }
-  const { nickname, answer } = body || {};
-  if (!validators.nickname(nickname)) return error('invalid_nickname', 400, cors);
+  const identificador = leerIdentificador(body);
+  const { answer } = body || {};
+  if (!validators.identifier(identificador)) return error('invalid_identifier', 400, cors);
   if (!validators.securityAnswer(answer)) return error('invalid_security_answer', 400, cors);
 
-  const user = await db
-    .prepare(
-      'SELECT id, sec_answer_salt, sec_answer_hash FROM users WHERE nickname = ?',
-    )
-    .bind(nickname.trim().toLowerCase())
-    .first();
+  const user = await buscarPorIdentificador(
+    db,
+    identificador,
+    'id, sec_answer_salt, sec_answer_hash, password_hash',
+  );
   if (!user) return error('user_not_found', 404, cors);
 
   // Misma normalización que al registrar, por fuerza: lo guardado es un hash.
@@ -259,8 +331,71 @@ export async function verifyRecoverAnswer(request, db, env, cors) {
   const valid = await verifyHash(normalizeSecurityAnswer(answer), user.sec_answer_salt, user.sec_answer_hash);
   if (!valid) return error('invalid_security_answer', 401, cors);
 
-  const resetToken = await makeToken(user.id, env.JWT_SECRET, RESET_TOKEN_TTL_MS);
+  // El `pv` convierte el token en uno de un solo uso: ver `huellaDeContrasena`.
+  // Lo lleva también este camino, no sólo el del correo — hasta ahora el token
+  // de la pregunta se podía reutilizar dentro de su ventana de cinco minutos.
+  const resetToken = await makeToken(user.id, env.JWT_SECRET, RESET_TOKEN_TTL_MS, {
+    pv: await huellaDeContrasena(user.password_hash),
+  });
   return json({ ok: true, resetToken }, 200, cors);
+}
+
+// ── RECOVER por CORREO: manda un enlace para poner contraseña nueva ─────────
+//
+// Sustituye al trámite manual: hasta el 17 nov 2026, quien no recordaba su
+// respuesta de seguridad escribía al propietario y éste le generaba una
+// contraseña a mano contra D1.
+//
+// Lo que se manda es un ENLACE y no una contraseña nueva. Importa el por qué:
+// una contraseña generada aquí tendría que pisar la que hay, y entonces
+// cualquiera que conozca tu dirección puede dejarte fuera de tu propia cuenta
+// sin saber nada más de ti. Con el enlace, **la contraseña actual sigue
+// funcionando** hasta que su dueño elige otra.
+export async function recoverByEmail(request, db, env, cors) {
+  // Dos límites, y hacen falta los dos: por IP para que nadie vacíe la cuota
+  // diaria de envíos, y por cuenta para que nadie use esto para bombardear el
+  // buzón de otra persona. Ninguno pasa por D1 — contar en D1 significa
+  // escribir, y eso fue el 100 % de las escrituras del día del aviso.
+  const porIp = await limitar(env, { binding: 'RATE_LIMITER_MAIL', clave: `mail:ip:${getClientIp(request)}` });
+  if (!porIp.ok) return error(porIp.error, 429, { ...cors, 'Retry-After': '60' });
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return error('invalid_json', 400, cors);
+  }
+  const identificador = leerIdentificador(body);
+  if (!validators.identifier(identificador)) return error('invalid_identifier', 400, cors);
+
+  const user = await buscarPorIdentificador(db, identificador, 'id, nickname, email, password_hash, is_disabled');
+
+  // Cuenta que no existe, cuenta sin correo y cuenta desactivada: las tres
+  // responden lo mismo que un envío correcto. La respuesta NO puede depender de
+  // si la cuenta existe, o este endpoint se convierte en un comprobador de
+  // direcciones. La pantalla sólo ofrece el botón cuando `hasEmail` dijo que sí
+  // (ver `getRecoverQuestion`), así que nadie se queda esperando un correo que
+  // no se envió.
+  if (!user || !user.email || user.is_disabled) return json({ ok: true }, 200, cors);
+
+  const porCuenta = await limitar(env, { binding: 'RATE_LIMITER_MAIL', clave: `mail:cuenta:${user.id}` });
+  if (!porCuenta.ok) return error(porCuenta.error, 429, { ...cors, 'Retry-After': '60' });
+
+  const token = await makeToken(user.id, env.JWT_SECRET, RESET_MAIL_TTL_MS, {
+    pv: await huellaDeContrasena(user.password_hash),
+  });
+  const base = (env.SITE_URL || 'https://robible.com').replace(/\/+$/, '');
+  const url = `${base}/?recuperare=${encodeURIComponent(token)}`;
+
+  const { asunto, html, texto } = correoRecuperacion(body?.locale, { nickname: user.nickname, url });
+  const envio = await enviarCorreo(env, { para: user.email, asunto, html, texto });
+
+  // Un fallo de envío sí se cuenta. No depende de la cuenta —la clave que falta
+  // o la cuota agotada son nuestras, no suyas—, así que no filtra nada, y
+  // callarlo dejaría a la persona esperando delante del buzón.
+  if (!envio.ok) return error(envio.motivo || 'mail_failed', 502, cors);
+
+  return json({ ok: true }, 200, cors);
 }
 
 // ── RECOVER STEP 3: reset password ─────────────────────
@@ -276,6 +411,21 @@ export async function resetPassword(request, db, env, cors) {
 
   const payload = await readToken(resetToken, env.JWT_SECRET);
   if (!payload) return error('reset_token_expired', 401, cors);
+
+  // ── Un solo uso ──────────────────────────────────────────────────────────
+  // El token lleva la huella de la contraseña que había cuando se emitió, así
+  // que hay que leer la de ahora ANTES de escribir la nueva. Si no coinciden,
+  // esta contraseña ya se cambió y el enlace está gastado: con el enlace del
+  // correo eso es lo que impide que quien lo reenvíe por error —o quien lea el
+  // buzón un mes después— vuelva a entrar con él.
+  //
+  // `pv` se comprueba sólo si viene: un token emitido por la versión anterior
+  // no lo tiene y tiene que seguir funcionando durante su ventana.
+  const actual = await db.prepare('SELECT id, password_hash FROM users WHERE id = ?').bind(payload.sub).first();
+  if (!actual) return error('user_not_found', 404, cors);
+  if (payload.pv && payload.pv !== (await huellaDeContrasena(actual.password_hash))) {
+    return error('reset_token_used', 401, cors);
+  }
 
   const newSalt = crypto.randomUUID().replace(/-/g, '').substring(0, 32);
   const newHash = await hashValue(newPassword, newSalt);
@@ -386,7 +536,7 @@ export async function updateProfile(request, db, env, cors) {
 
   let body;
   try { body = await request.json(); } catch { return error('invalid_json', 400, cors); }
-  const { userType, email, securityQuestionText, securityAnswer, fullName, birthDate, church, country, confession, motto } = body || {};
+  const { userType, nickname, email, currentPassword, securityQuestionText, securityAnswer, fullName, birthDate, church, country, confession, motto } = body || {};
 
   const campos = [];
   const valores = [];
@@ -397,12 +547,67 @@ export async function updateProfile(request, db, env, cors) {
     valores.push(userType);
   }
 
+  // ── Nombre de usuario (17 nov 2026) ────────────────────
+  //
+  // Se puede cambiar siempre que no lo tenga otro. No lleva contraseña actual
+  // porque no abre ninguna puerta: no sirve para recuperar la cuenta y cambiarlo
+  // no deja a nadie fuera.
+  //
+  // Lo que sí arrastra, y está bien así: la firma de una predicación publicada
+  // sale de un `JOIN users` (ver `paraElPublico` en sermons.js), así que se
+  // actualiza sola; el `public_slug` no contiene el apodo, así que ningún
+  // enlace repartido se rompe; y las sesiones cuelgan del id, así que nadie
+  // pierde la suya al renombrarse.
+  if (nickname !== undefined) {
+    if (!validators.nickname(nickname)) return error('invalid_nickname', 400, cors);
+    const normalizado = nickname.trim().toLowerCase();
+    // En minúsculas, como lo guarda `register`. No se introduce una segunda
+    // forma "para mostrar": serían dos versiones del mismo dato y la firma
+    // pública y el login acabarían discrepando.
+    if (normalizado !== auth.user.nickname) {
+      const ocupado = await db
+        .prepare('SELECT id FROM users WHERE nickname = ? AND id != ?')
+        .bind(normalizado, auth.user.id)
+        .first();
+      if (ocupado) return error('nickname_taken', 409, cors);
+      campos.push('nickname = ?');
+      valores.push(normalizado);
+    }
+  }
+
   if (email !== undefined) {
     // Mandar cadena vacía o null es la forma de quitarlo.
-    const limpio = typeof email === 'string' ? email.trim() : '';
+    const limpio = normalizarEmail(email);
     if (limpio && !validators.email(limpio)) return error('invalid_email', 400, cors);
-    campos.push('email = ?');
-    valores.push(limpio || null);
+    const anterior = auth.user.email || '';
+    // Sólo se pide contraseña cuando el correo CAMBIA de verdad. Guardar el
+    // formulario sin tocarlo —al editar el apodo, por ejemplo— no tiene por qué
+    // exigir nada.
+    if (limpio !== anterior) {
+      // ── Por qué aquí sí se pide la contraseña actual ────────────────────
+      // El correo es el canal con el que se recupera la cuenta: quien se siente
+      // delante de una sesión abierta —un móvil desbloqueado, el ordenador de
+      // la iglesia— podría ponerse el suyo y quedarse con la cuenta para
+      // siempre, sin saber la contraseña. Es la misma razón por la que
+      // `changePassword` pide la actual.
+      if (!currentPassword) return error('invalid_current_password', 401, cors);
+      const credenciales = await db
+        .prepare('SELECT password_salt, password_hash FROM users WHERE id = ?')
+        .bind(auth.user.id)
+        .first();
+      const valida = await verifyHash(currentPassword, credenciales.password_salt, credenciales.password_hash);
+      if (!valida) return error('invalid_current_password', 401, cors);
+
+      if (limpio) {
+        const ocupado = await db
+          .prepare('SELECT id FROM users WHERE email = ? AND id != ?')
+          .bind(limpio, auth.user.id)
+          .first();
+        if (ocupado) return error('email_taken', 409, cors);
+      }
+      campos.push('email = ?');
+      valores.push(limpio || null);
+    }
   }
 
   // ── Perfil opcional (schema_version 13) ────────────────
@@ -452,10 +657,23 @@ export async function updateProfile(request, db, env, cors) {
   campos.push('updated_at = ?');
   valores.push(now, auth.user.id);
 
-  await db
-    .prepare(`UPDATE users SET ${campos.join(', ')} WHERE id = ?`)
-    .bind(...valores)
-    .run();
+  // El `try` es por las dos columnas únicas (`nickname` y, desde el schema 17,
+  // `email`): las comprobaciones de arriba cubren el caso normal, pero dos
+  // peticiones simultáneas pueden colarse entre el SELECT y el UPDATE y
+  // entonces quien lo caza es la base de datos. Sin esto, el usuario recibiría
+  // un 500 sin explicación en vez de «ese nombre ya está ocupado».
+  try {
+    await db
+      .prepare(`UPDATE users SET ${campos.join(', ')} WHERE id = ?`)
+      .bind(...valores)
+      .run();
+  } catch (e) {
+    const mensaje = String(e?.message || '');
+    if (/UNIQUE|constraint/i.test(mensaje)) {
+      return error(/email/i.test(mensaje) ? 'email_taken' : 'nickname_taken', 409, cors);
+    }
+    throw e;
+  }
 
   const actualizado = await db
     .prepare(
