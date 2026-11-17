@@ -139,12 +139,19 @@ wrangler d1 execute robible-db --local --command "..."
 
 Tablas: `users`, `auth_sessions`, `topics`, `verse_refs`, `favorites`, `notes`, `user_searches`, `highlights`, `memorizations`, `push_subscriptions`, `sermons`, `page_views`, `rate_limits`, `_meta`. Versión de schema actual: **17** (fila en `_meta`).
 
-La 17 (17 nov 2026) no añade columnas: normaliza los emails a minúsculas y crea el índice único `idx_users_email`, porque el correo pasa a servir para iniciar sesión. **El índice falla si hay duplicados**, así que antes hay que mirarlos:
+La 17 (17 nov 2026) no añade columnas: normaliza los emails a minúsculas y crea el índice único `idx_users_email`, porque el correo pasa a servir para iniciar sesión. **El índice falla si hay duplicados**, así que antes hay que mirarlos — y en dos formas, porque una dirección guardada como cadena **vacía** tampoco es `NULL` y dos de ellas chocarían igual:
 
 ```bash
+# 1. Duplicados de verdad (excluyendo las vacías, que van en la consulta 2)
 wrangler d1 execute robible-db --remote --command \
-  "SELECT lower(trim(email)) AS e, COUNT(*) AS n FROM users WHERE email IS NOT NULL GROUP BY e HAVING n > 1"
+  "SELECT lower(trim(email)) AS e, COUNT(*) AS n FROM users WHERE email IS NOT NULL AND trim(email) != '' GROUP BY e HAVING n > 1"
+
+# 2. Cadenas vacías y direcciones sin normalizar
+wrangler d1 execute robible-db --remote --command \
+  "SELECT COUNT(*) AS total, SUM(CASE WHEN email IS NOT NULL AND trim(email)='' THEN 1 ELSE 0 END) AS vacios, SUM(CASE WHEN email IS NOT NULL AND trim(email)!='' AND email != lower(trim(email)) THEN 1 ELSE 0 END) AS a_normalizar FROM users"
 ```
+
+Si la 2 devuelve más de un `vacio`, hay que pasarlos a `NULL` antes del índice (`UPDATE users SET email = NULL WHERE trim(email) = ''`). Aplicada el 17 nov 2026 con las dos a cero.
 
 `schema.sql` está escrito con `CREATE TABLE IF NOT EXISTS`, así que re-ejecutarlo es idempotente y seguro; **no aplica migraciones destructivas**. Un `ALTER TABLE` hay que ejecutarlo a mano y luego subir `schema_version`.
 

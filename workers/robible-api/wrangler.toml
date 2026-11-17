@@ -63,6 +63,15 @@ simple = { limit = 60, period = 60 }
 # quien no le ha llegado y corta en seco el uso del endpoint como ariete contra
 # el buzón de otra persona. Se consulta DOS veces por petición, con la IP y con
 # la cuenta (ver `recoverByEmail`).
+#
+# OJO al comprobarlo: el contador es APROXIMADO y va por colo, así que con pocas
+# peticiones espaciadas no corta. Medido en producción el 17 nov 2026: cinco
+# seguidas pasaron las cinco —lo que parece un binding muerto y no lo es— y en
+# una tanda de treinta cortó veintidós. Para verlo cortar hacen falta ~30 de
+# golpe; con menos no se concluye nada. Y como `limitar()` es fail-open a
+# propósito (un limitador caído no puede tirar el login), un binding de verdad
+# roto da exactamente el mismo síntoma: la forma de distinguirlos es probar el
+# otro limitador, que si corta descarta el problema de cuenta o de plan.
 [[unsafe.bindings]]
 name = "RATE_LIMITER_MAIL"
 type = "ratelimit"

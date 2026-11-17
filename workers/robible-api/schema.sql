@@ -85,6 +85,13 @@ CREATE INDEX IF NOT EXISTS idx_users_nickname ON users(nickname);
 -- Una dirección, una cuenta (schema_version 17). Parcial porque el email sigue
 -- siendo opcional: en SQLite, varios NULL no colisionan en un índice único, y
 -- el `WHERE` lo deja explícito además de no indexar filas que no aportan nada.
+--
+-- Aplicado en producción el 17 nov 2026, con la normalización previa y la
+-- consulta de duplicados que está en `docs/OPERACIONES.md` (salió vacía: 6
+-- cuentas, 4 con correo). Ojo, porque la consulta del runbook no lo cubría
+-- todo: una dirección guardada como cadena VACÍA tampoco es NULL, así que dos
+-- de ellas chocarían en este índice y la migración fallaría. Había cero, pero
+-- hay que mirarlo aparte — `trim(email) = ''`, no sólo `IS NOT NULL`.
 CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email)
   WHERE email IS NOT NULL;
 
