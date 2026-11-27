@@ -194,6 +194,23 @@
     sugerenciasRef = consultaRef.trim() ? searchReferences(consultaRef, map, 5, bible) : [];
   };
 
+  /**
+   * Enter inserta la primera sugerencia.
+   *
+   * El campo se abre ya enfocado (`data-autofocus`, ver `Modal.svelte`), así
+   * que insertar un versículo en mitad de la explicación es: botón, escribir
+   * «ioan 3 16», Enter. Sin esto había que dar un clic para entrar en el campo
+   * y otro para elegir de la lista, y se insertan muchos seguidos.
+   *
+   * Sin sugerencias no hace nada —ni cierra el diálogo—: lo normal es que falte
+   * media referencia por escribir.
+   */
+  const teclaEnBuscador = (e) => {
+    if (e.key !== 'Enter' || !sugerenciasRef.length) return;
+    e.preventDefault();
+    añadirRef(sugerenciasRef[0]);
+  };
+
   /** Lee o escribe un campo de texto libre, sea del desarrollo (con `:`) o de
    *  nivel superior (`intro`/`conclusion`). Un único punto de acceso para que
    *  `insertarCitaEnCampo` no tenga que saber de antemano dónde vive cada uno. */
@@ -1951,11 +1968,15 @@
 >
   <label class="campo">
     <span>{$_('app.sermons.refs_search')}</span>
+    <!-- `data-autofocus`: el diálogo se abre con el cursor ya dentro, y Enter
+         inserta la primera sugerencia. Ver `teclaEnBuscador`. -->
     <input
+      data-autofocus
       spellcheck="false"
       type="text"
       bind:value={consultaRef}
       on:input={buscarRef}
+      on:keydown={teclaEnBuscador}
       placeholder={$_('app.sidebar.form.reference_placeholder')}
     />
   </label>
