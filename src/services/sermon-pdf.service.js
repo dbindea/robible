@@ -118,6 +118,14 @@ const T = {
   schitaPunto: 17,
   schitaClave: 15,
   schitaNota: 11, // Los «Versete de sprijin» de cada punto.
+  // El versículo citado de la cartilla, dos puntos por debajo de la clave.
+  //
+  // Va más pequeño desde el 27 nov 2026, y a la vez en UNA sola línea (ver
+  // `enLinea` en `bloqueCitado`): el propietario contó que las citas eran lo
+  // que más sitio ocupaba de la schiță. No es la línea que se predica —es el
+  // recordatorio de qué versículo toca— así que puede leerse un punto por
+  // debajo de las ideas sin perder nada en el atril.
+  schitaCita: 13,
 };
 
 // Interlineado del cuerpo. 1.35 era correcto y quedaba apretado para leer en
@@ -269,34 +277,68 @@ const runsDeTexto = (texto, opciones = {}) =>
  * pasaje de la predicación, que lleva los números de versículo intercalados).
  */
 const bloqueCitado = (label, cuerpo, opciones = {}) => {
+  // El texto del versículo, como runs de pdfmake. Admite una cadena (un
+  // versículo suelto) o un array ya segmentado.
+  const runsDelCuerpo = (Array.isArray(cuerpo) ? cuerpo : [{ text: cuerpo }]).map((r) =>
+    typeof r === 'string' ? { text: r } : r,
+  );
+
+  // ── Dos formas de la misma cita ──
+  //
+  // Apiladas (el folio de la predicación): la referencia en su renglón y el
+  // texto debajo. Se lee de cerca y con calma.
+  //
+  // **En línea** (la cartilla, desde el 27 nov 2026): la referencia en negrita
+  // delante del texto, todo en un solo renglón. Lo pidió el propietario
+  // después de imprimir la schiță —«las referencias ocupan mucho»— y es
+  // verdad: cada versículo gastaba dos renglones y un tercio de la altura de
+  // una cara se iba en citas. La barra azul se queda, que es lo que distingue
+  // un versículo de una idea marcada (ver la trampa 70).
+  const contenido = opciones.enLinea
+    ? [
+        {
+          text: [
+            ...(label ? [{ text: label, bold: true, color: ACENTO }, { text: ' ' }] : []),
+            ...runsDelCuerpo.map((r) => ({
+              ...r,
+              ...(opciones.italics === false ? {} : { italics: true }),
+              ...(opciones.color ? { color: opciones.color } : {}),
+            })),
+          ],
+          fontSize: opciones.fontSize ?? T.cita,
+          lineHeight: opciones.lineHeight ?? 1.2,
+        },
+      ]
+    : [
+        ...(label
+          ? [
+              {
+                text: label,
+                bold: true,
+                color: ACENTO,
+                fontSize: T.nota,
+                margin: [0, 0, 0, 3],
+              },
+            ]
+          : []),
+        {
+          text: cuerpo,
+          fontSize: opciones.fontSize ?? T.cita,
+          // El versículo citado va en cursiva; el pasaje de la predicación
+          // NO, que son varios versículos seguidos y se leen en voz alta.
+          ...(opciones.italics === false ? {} : { italics: true }),
+          ...(opciones.color ? { color: opciones.color } : {}),
+          lineHeight: opciones.lineHeight ?? 1.35,
+        },
+      ];
+
   const nodo = {
     table: {
       widths: ['*'],
       body: [
         [
           {
-            stack: [
-              ...(label
-                ? [
-                    {
-                      text: label,
-                      bold: true,
-                      color: ACENTO,
-                      fontSize: opciones.labelFontSize ?? T.nota,
-                      margin: [0, 0, 0, 3],
-                    },
-                  ]
-                : []),
-              {
-                text: cuerpo,
-                fontSize: opciones.fontSize ?? T.cita,
-                // El versículo citado va en cursiva; el pasaje de la predicación
-                // NO, que son varios versículos seguidos y se leen en voz alta.
-                ...(opciones.italics === false ? {} : { italics: true }),
-                ...(opciones.color ? { color: opciones.color } : {}),
-                lineHeight: opciones.lineHeight ?? 1.35,
-              },
-            ],
+            stack: contenido,
             // Sólo el borde IZQUIERDO, que es la barra. Con los cuatro en
             // `false` —como estaba— pdfmake no dibuja ninguno: el `border` de la
             // celda manda sobre el `vLineWidth` del layout, así que la barra
@@ -311,10 +353,12 @@ const bloqueCitado = (label, cuerpo, opciones = {}) => {
       hLineWidth: () => 0,
       vLineWidth: (i) => (i === 0 ? 2.5 : 0),
       vLineColor: () => ACENTO,
-      paddingLeft: () => 10,
-      paddingTop: () => 3,
+      // En línea la cita es un renglón más, así que se ciñe: con el relleno
+      // del bloque apilado volvía a gastar el alto que se venía a ahorrar.
+      paddingLeft: () => (opciones.enLinea ? 7 : 10),
+      paddingTop: () => (opciones.enLinea ? 1.5 : 3),
       paddingRight: () => 0,
-      paddingBottom: () => 3,
+      paddingBottom: () => (opciones.enLinea ? 1.5 : 3),
     },
     margin: opciones.margin ?? [CARRIL + SANGRIA_CITA, AIRE_PARRAFO, 0, AIRE_PARRAFO],
   };
@@ -757,22 +801,74 @@ const pieDePagina = (pagina, total) => ({
 // que el propietario vio impresas: las caras se rellenaban en múltiplos de
 // cuatro, así que sobraban medias páginas en blanco, y los bloques no se leían
 // de izquierda a derecha. Ahora las caras van seguidas (1|2, 3|4, …) y cada
-// hoja lleva su número abajo a la derecha, que es lo que las ordena.
+// CARA lleva su número al pie, que es lo que las ordena.
 
 const columnaDeSchita = (trozos) => ({ stack: trozos, width: '*' });
 
 // El alto útil de una cara.
 //
-// A4 apaisado son 595 pt de alto; menos el margen de arriba y la banda del pie
-// quedan ~555. Se cuentan 520: la estimación es gruesa y pasarse significa que
-// pdfmake añade una página por su cuenta, con lo que la cuenta de caras deja de
-// cuadrar con lo impreso.
+// A4 apaisado son 595,28 pt de alto; menos el margen de arriba (14) y la banda
+// del pie (14 + 12) quedan **555,28 de caja real**. Lo que se cuenta aquí es lo
+// que el reparto se permite llenar.
 //
-// Calibrado barriendo el valor y generando el PDF de VERDAD cada vez, con tres
-// predicaciones —una real y dos sintéticas—, y comparando las caras planeadas
-// con las páginas impresas. Desde la definición esto no se ve. El barrido
-// empezaba a descuadrar en 545, así que 520 deja un colchón de media línea.
-const ALTO_CARA = 520;
+// Estuvo en 520 mientras la estimación era gruesa, pero el colchón no era el
+// problema: el problema era que la estimación se pasaba un 20 % (ver
+// `altoDeSchita`), así que cada cara se declaraba llena con cuatro quintos de
+// texto. El propietario lo vio impreso el 27 nov 2026 — un palmo en blanco al
+// pie de las dos columnas, en todas las hojas.
+//
+// Con el estimador calibrado contra la fuente de verdad, el error sobre seis
+// schițe normales (de 3 a 16 puntos, 42 caras) se queda por debajo del 1 % y
+// siempre por ARRIBA, que es el lado seguro, y las caras se llenan al 90-96 %
+// en vez de al 75.
+//
+// 530 y no 540 por un caso extremo que sí se midió: un texto hecho sólo de
+// palabras larguísimas («responsabilitate», «propovăduire») se desbordaba por
+// 1 pt. Los 25 pt de colchón no cuestan nada en texto normal —las seis schițe
+// de prueba salen con exactamente las mismas hojas con 530 que con 540— y
+// cubren ese caso.
+//
+// La forma de comprobarlo es generar el PDF de VERDAD y medir el alto que
+// pdfmake le da a cada cara: desde la definición esto no se ve. Pasarse
+// significa que pdfmake derrama la columna en una hoja nueva por su cuenta y
+// el orden de lectura se rompe.
+const ALTO_CARA = 530;
+
+// ── Cuánto ocupa una línea de la cartilla ─────────────────────────────────
+//
+// Los tres números salen de medir Tinos con `fontkit`, no de probar a ojo. El
+// que había antes —«1,9 caracteres por punto de ancho»— venía de Roboto y era
+// el origen del hueco en blanco: daba 50 caracteres por renglón donde caben 64,
+// así que una frase de una línea se contaba como dos.
+//
+//   - Un carácter de texto corriente mide 0,41 em de ancho (0,408 medido sobre
+//     frases rumanas de una predicación real).
+//   - Uno de una línea en MAYÚSCULAS, 0,58: los titulares y los rótulos del
+//     predicador van en caja alta y ocupan casi un 50 % más.
+//   - Un renglón mide 1,107 veces el cuerpo, que es `(ascendente − descendente)`
+//     de Tinos. Contar el cuerpo a secas dejaba cada línea un 10 % corta.
+const EM_CARACTER = 0.41;
+const EM_CARACTER_MAYUS = 0.58;
+const ALTO_DE_RENGLON = 1.107;
+
+/**
+ * Cuántos renglones impresos ocupa un texto en un ancho dado.
+ *
+ * La capacidad en bruto no basta: el margen derecho queda dentado porque la
+ * palabra que no cabe se baja entera, y de media se pierde **media palabra por
+ * renglón**. Se descuenta a partir de la longitud media de las palabras DEL
+ * PROPIO texto, que es lo que hace que funcione igual con una frase corriente
+ * y con una línea de «responsabilitate» y «propovăduire»: probado contra el
+ * alto real de 120 textos, no se queda corto en ninguno y se pasa de media en
+ * 0,15 renglones. Un llenado fijo (0,94) sí se quedaba corto en tres.
+ */
+const renglonesDe = (texto, tamano, ancho) => {
+  const em = texto && texto === texto.toUpperCase() ? EM_CARACTER_MAYUS : EM_CARACTER;
+  const palabras = texto.trim().split(/\s+/).length || 1;
+  const porLinea = Math.max(8, Math.floor(ancho / (tamano * em) - texto.length / palabras / 2));
+  // Los saltos escritos cuentan como líneas, igual que en el folio.
+  return texto.split('\n').reduce((a, linea) => a + Math.max(1, Math.ceil(linea.length / porLinea)), 0);
+};
 
 /**
  * El alto de un trozo de la schiță, en puntos.
@@ -780,29 +876,26 @@ const ALTO_CARA = 520;
  * Se mide en puntos y no «en líneas» desde el 2 nov 2026. Contar líneas se
  * quedaba corto por dos sitios a la vez —cada trozo lleva sus márgenes, y el
  * titular de un punto es un cuerpo y medio— y el resultado era medible: una
- * predicación normal planificaba dos páginas y pdfmake imprimía tres, con lo
- * que el plegado dejaba de cuadrar.
+ * predicación normal planificaba dos páginas y pdfmake imprimía tres.
  *
- * El ancho es el de media hoja apaisada menos el canal del doblez; se cuentan
- * 1,9 caracteres por punto de ancho, un pelo conservador, porque en negrita y
- * en mayúsculas la letra es más ancha que en el texto corrido.
+ * El ancho baja con el nodo: una cita va dentro de una celda con su relleno,
+ * así que mide menos que la columna. Con el ancho de la columna entera salían
+ * menos renglones de los que se imprimen.
  */
-const altoDeSchita = (nodo) => {
+const altoDeSchita = (nodo, ancho = ANCHO_COLUMNA_SCHITA) => {
   const margenes = (nodo.margin?.[1] || 0) + (nodo.margin?.[3] || 0);
-  if (nodo.stack) return nodo.stack.reduce((a, n) => a + altoDeSchita(n), 0) + margenes;
+  const dentro = Math.max(80, ancho - (nodo.margin?.[0] || 0) - (nodo.margin?.[2] || 0));
+  if (nodo.stack) return nodo.stack.reduce((a, n) => a + altoDeSchita(n, dentro), 0) + margenes;
   // Una cita lleva su barra dibujada con el borde de una tabla de una celda
   // (ver `bloqueCitado`). Sin esta rama, cada versículo citado mediría CERO y
   // la cara se declararía medio vacía estando llena: es la trampa 71, otra vez
-  // y en el otro documento. Los 8 pt son el relleno de la celda.
+  // y en el otro documento. Los 3 pt son el relleno de la celda.
   if (nodo.table) {
-    return nodo.table.body.flat().reduce((a, celda) => a + altoDeSchita(celda), 0) + margenes + 8;
+    return nodo.table.body.flat().reduce((a, celda) => a + altoDeSchita(celda, dentro - 7), 0) + margenes + 3;
   }
   const texto = textoDeRun(nodo);
   const tamano = nodo.fontSize || T.schitaClave;
-  const porLinea = Math.max(16, Math.round((ANCHO_COLUMNA_SCHITA / tamano) * 1.9));
-  // Los saltos escritos cuentan como líneas, igual que en el folio.
-  const lineas = texto.split('\n').reduce((a, linea) => a + Math.max(1, Math.ceil(linea.length / porLinea)), 0);
-  return Math.max(1, lineas) * tamano * (nodo.lineHeight || 1.25) + margenes;
+  return renglonesDe(texto, tamano, dentro) * tamano * ALTO_DE_RENGLON * (nodo.lineHeight || 1) + margenes;
 };
 
 /**
@@ -831,12 +924,14 @@ const nodosDeBloques = (bloques) =>
       };
     }
     if (b.tipo === 'cita') {
+      // En línea y un par de puntos más pequeña: ver `enLinea` en
+      // `bloqueCitado` y `T.schitaCita`.
       return bloqueCitado(b.label, runsDeTexto(b.texto), {
-        fontSize: T.schitaClave,
-        labelFontSize: T.schitaNota,
+        enLinea: true,
+        fontSize: T.schitaCita,
         color: GRIS,
         lineHeight: 1.2,
-        margin: [0, 3, 0, 3],
+        margin: [0, 2, 0, 2],
         unbreakable: false,
       });
     }
@@ -1043,24 +1138,42 @@ export const definirSchita = (sermon, esquema, etiquetas = {}) => {
         },
       ],
     }),
-    // El número de página, abajo a la derecha. Lo pidió el propietario al
+    // El número, abajo y al pie de CADA COLUMNA. Lo pidió el propietario al
     // dejar de ser un cuadernillo: desde que las hojas van sueltas y en orden
     // de lectura, el número es lo único que las ordena si se caen al suelo —y
     // «¿voy por la tres o por la cuatro?» es una pregunta que no se puede
-    // estar haciendo delante de la congregación. Va `n / total` y no sólo `n`
-    // porque así además se ve si falta una hoja.
+    // estar haciendo delante de la congregación.
     //
-    // La marca se queda a la izquierda: es toda la publicidad de la
-    // aplicación y esta hoja se imprime y se reparte (ver la trampa 94).
-    footer: (pagina, total) => ({
-      columns: [
-        { text: 'robible.com', alignment: 'left', width: '*' },
-        { text: `${pagina} / ${total}`, alignment: 'right', width: 'auto', bold: true },
-      ],
-      fontSize: T.schitaNota - 1.5,
-      color: GRIS,
-      margin: [MARGEN_SCHITA, 4, MARGEN_SCHITA, 0],
-    }),
+    // **Se numeran las CARAS, no las hojas** (27 nov 2026): «una página A4 en
+    // realidad tiene 2 páginas». Y es lo que de verdad hacía falta, porque lo
+    // que se lee es la columna: con el número de la hoja, las caras 5 y 6 eran
+    // las dos «3 / 4» y la línea de puntos del medio invitaba a cortar unas
+    // medias cuartillas que después no se podían ordenar. La hoja sigue
+    // leyéndose del par: las caras 3 y 4 son la segunda.
+    //
+    // Los anchos son los de las columnas del contenido, así que cada número
+    // cae justo debajo de su cara. La marca se queda a la izquierda del todo:
+    // es toda la publicidad de la aplicación y esta hoja se imprime y se
+    // reparte (ver la trampa 94).
+    footer: (pagina) => {
+      const numero = (cara) => (cara <= caras.length ? `${cara} / ${caras.length}` : '');
+      return {
+        columns: [
+          {
+            width: ANCHO_COLUMNA_SCHITA,
+            columns: [
+              { text: 'robible.com', alignment: 'left', width: '*' },
+              { text: numero(pagina * 2 - 1), alignment: 'right', width: 'auto', bold: true },
+            ],
+          },
+          { text: '', width: CANAL_SCHITA },
+          { text: numero(pagina * 2), alignment: 'right', width: ANCHO_COLUMNA_SCHITA, bold: true },
+        ],
+        fontSize: T.schitaNota - 1.5,
+        color: GRIS,
+        margin: [MARGEN_SCHITA, 4, MARGEN_SCHITA, 0],
+      };
+    },
   };
 };
 

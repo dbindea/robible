@@ -306,6 +306,9 @@ const tablasDe = (definicion) => {
       return recorrer(n.table.body);
     }
     if (n.stack) return recorrer(n.stack);
+    // La cartilla reparte su contenido en columnas: sin esta rama, sus citas
+    // son invisibles para este recorrido.
+    if (n.columns) return recorrer(n.columns);
   };
   recorrer(definicion.content);
   return salida;
@@ -798,21 +801,149 @@ test('en la cartilla el guion es del PÁRRAFO, no de la línea', () => {
   assert.ok(!textos.some((t) => t.includes('#')), 'y la almohadilla no se imprime');
 });
 
-test('la schiță lleva la marca Y el número de página, a la derecha', () => {
+/** Los textos sueltos del pie de una hoja, con su alineación. */
+const piezasDelPie = (pie) => {
+  const salida = [];
+  const recorrer = (n) => {
+    if (Array.isArray(n)) return n.forEach(recorrer);
+    if (!n || typeof n !== 'object') return;
+    if (typeof n.text === 'string') salida.push(n);
+    if (n.columns) recorrer(n.columns);
+  };
+  recorrer(pie.columns);
+  return salida;
+};
+
+test('la schiță numera las CARAS, no las hojas: una A4 son dos páginas', () => {
   // Llevó marca sin número hasta el 2 nov 2026, porque era un cuadernillo que
   // se doblaba. Desde que las hojas van sueltas y en orden de lectura, el
   // número es lo único que las ordena — lo pidió el propietario: «debajo de
   // todo ponme en pie de página a la derecha el número para ir buscando las
   // páginas en orden».
-  const definicion = definirSchita(SERMON, { points: [] }, {});
-  assert.ok(definicion.footer, 'la schiță también tiene que llevar marca');
-  const pie = definicion.footer(2, 3);
-  const textos = pie.columns.map((c) => c.text);
+  //
+  // Y desde el 27 nov 2026 lo que se numera es la CARA: «una página A4 en
+  // realidad tiene 2 páginas». Lo que se lee es la columna, así que con el
+  // número de la hoja las caras 5 y 6 eran las dos «3 / 4» y, cortadas por la
+  // línea de puntos del medio, no había forma de ordenarlas.
+  const definicion = definirSchita(SERMON, esquemaDe(14, 4), {});
+  assert.ok(definicion.footer, 'la schiță también tiene que llevar pie');
+
+  const caras = definicion.content.flatMap((p) => p.columns.filter((c) => c.stack?.length)).length;
+  assert.ok(caras >= 4, `hacen falta varias caras para comprobar la numeración: ${caras}`);
+
+  const pie = definicion.footer(2, definicion.content.length);
+  const textos = piezasDelPie(pie).map((c) => c.text);
 
   assert.ok(textos.includes('robible.com'), `el pie no lleva la marca: ${JSON.stringify(textos)}`);
-  assert.ok(textos.includes('2 / 3'), `el pie no lleva el número: ${JSON.stringify(textos)}`);
+  // La segunda hoja lleva las caras 3 y 4, cada una bajo su columna.
+  assert.ok(textos.includes(`3 / ${caras}`), `falta el número de la cara izquierda: ${JSON.stringify(textos)}`);
+  assert.ok(textos.includes(`4 / ${caras}`), `falta el número de la cara derecha: ${JSON.stringify(textos)}`);
 
-  // El número a la DERECHA: es lo que se busca al recoger las hojas.
-  const numero = pie.columns.find((c) => c.text === '2 / 3');
-  assert.equal(numero.alignment, 'right');
+  // Cada número al pie de SU columna, a la derecha: es lo que se busca al
+  // recoger las hojas.
+  for (const cara of [3, 4]) {
+    assert.equal(piezasDelPie(pie).find((c) => c.text === `${cara} / ${caras}`).alignment, 'right');
+  }
+});
+
+test('una cara que no existe no se numera', () => {
+  // Con un número impar de caras, la última hoja lleva la columna derecha en
+  // blanco: numerarla anunciaría una página que no está.
+  const definicion = definirSchita(SERMON, esquemaDe(3), {});
+  const caras = definicion.content.flatMap((p) => p.columns.filter((c) => c.stack?.length)).length;
+  const ultima = definicion.content.length;
+  const textos = piezasDelPie(definicion.footer(ultima, ultima)).map((c) => c.text);
+
+  assert.ok(!textos.includes(`${caras + 1} / ${caras}`), `numera una cara que no existe: ${JSON.stringify(textos)}`);
+});
+
+// ── La cita de la cartilla, en UNA línea (27 nov 2026) ─────────────────────
+
+test('en la schiță la referencia y el versículo van en el MISMO renglón', () => {
+  // Lo pidió el propietario después de imprimirla: «las referencias ocupan
+  // mucho». Cada versículo gastaba dos renglones —la referencia arriba, el
+  // texto debajo— y una cartilla normal lleva una docena. La barra azul se
+  // queda: es lo que distingue un versículo de una palabra marcada.
+  const esquema = {
+    points: [{ id: 'p0', title: 'PUNCT', keywords: ['{{1 Corinteni 2:12|Şi noi n-am primit duhul lumii…}}'], refs: [] }],
+  };
+  const tablas = tablasDe(definirSchita(SERMON, esquema, {}));
+  const cita = tablas.find((t) => JSON.stringify(t).includes('1 Corinteni 2:12'));
+  assert.ok(cita, 'la cita no se dibujó');
+
+  // Un solo nodo de texto dentro de la celda: si fueran dos, serían dos
+  // renglones.
+  const dentro = cita.table.body[0][0].stack;
+  assert.equal(dentro.length, 1, `la cita de la cartilla es un solo renglón: ${JSON.stringify(dentro)}`);
+
+  const [etiqueta, , texto] = dentro[0].text;
+  assert.equal(etiqueta.text, '1 Corinteni 2:12');
+  assert.equal(etiqueta.bold, true, 'la referencia va en negrita');
+  assert.ok(texto.italics, 'y el texto del versículo en cursiva, como siempre');
+  assert.ok(dentro[0].fontSize < 15, 'un par de puntos por debajo de las ideas');
+  assert.deepEqual(cita.table.body[0][0].border, [true, false, false, false], 'la barra se queda');
+});
+
+test('en el folio de la predicación la cita SIGUE siendo de dos renglones', () => {
+  // Son dos documentos con dos trabajos distintos: la cartilla se mira de reojo
+  // desde el atril y la referencia es un recordatorio; el folio se lee de cerca
+  // y la referencia encabeza el pasaje.
+  const contenido = {
+    version: 1,
+    structure: [{ id: 'p1', title: 'Punct', refs: [], subpoints: [] }],
+    development: {
+      p1: { explain: '', illustrate: '', apply: '', refs: [{ label: 'Ioan 3:16', text: 'Fiindcă atât de mult…' }] },
+    },
+    intro: '',
+    conclusion: '',
+  };
+  const [cita] = tablasDe(definirPredica({ title: 'T' }, contenido));
+  assert.equal(cita.table.body[0][0].stack.length, 2, 'la referencia encima y el texto debajo');
+});
+
+// ── El hueco en blanco del pie de cada cara ────────────────────────────────
+
+test('las caras se llenan: una schiță normal no gasta hojas de más', () => {
+  // El estimador de altura venía calibrado para Roboto («1,9 caracteres por
+  // punto de ancho») y Tinos es bastante más estrecha: contaba 50 caracteres
+  // por renglón donde caben 64, así que una frase de una línea se declaraba de
+  // dos y cada cara se daba por llena con cuatro quintos de texto. El
+  // propietario lo vio impreso el 27 nov 2026 — un palmo en blanco al pie de
+  // las dos columnas de todas las hojas.
+  //
+  // Hace falta texto de longitud REAL para que se note: con líneas de diez
+  // caracteres los dos modelos cuentan lo mismo. Las frases de aquí abajo son
+  // de una predicación de verdad.
+  const FRASES = [
+    'Folosim adesea in limbajul nostru de zi cu zi expresii de acest fel',
+    'Am o casa, am o familie, am o masina si multe altele asemenea',
+    'Sau, avem o biserica, avem o credinta, avem mantuire',
+    'Si se aud tot felul de afirmatii care ne fac sa ne gandim la ce avem',
+    'Intrebarea predicii din seara aceasta suna asa: "Cine te face deosebit?"',
+    '## CE SUNTEM NOI?',
+    'Noi fiecare am fost in necunostinta de Dumnezeu si fara nicio speranta',
+    '{{1 Corinteni 2:7|Noi propovăduim înţelepciunea lui Dumnezeu, cea tainică şi…}}',
+    'Printr-o minune pe care nimeni n-o poate explica am ajuns la El',
+  ];
+  const esquema = {
+    version: 1,
+    idea: 'Trebuie sa fim responsabili cu ceea ce am primit in dar.',
+    intro: FRASES.slice(0, 6),
+    points: Array.from({ length: 12 }, (_, i) => ({
+      id: `p${i}`,
+      title: `PUNCTUL NUMARUL ${i + 1} AL PREDICII`,
+      keywords: Array.from({ length: 6 }, (_, k) => FRASES[(i + k) % FRASES.length]),
+      refs: [`{{Ioan 1:${i + 1}|La inceput era Cuvantul si Cuvantul era cu Dumnezeu…}}`],
+    })),
+    application: FRASES.slice(0, 4).join('\n\n'),
+    conclusion: FRASES.slice(2, 6).join('\n\n'),
+  };
+
+  const definicion = definirSchita(SERMON, esquema, {});
+  const caras = definicion.content.flatMap((p) => p.columns.filter((c) => c.stack?.length)).length;
+
+  // Esta schiță ocupaba 10 caras con el estimador viejo y ocupa 8 con el
+  // calibrado. El número no es sagrado —cambiar un tamaño lo mueve— pero si
+  // vuelve a 10 es que alguien ha devuelto el estimador a contar de más.
+  assert.ok(caras <= 8, `la cartilla vuelve a desperdiciar media columna por cara: ${caras} caras`);
 });
